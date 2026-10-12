@@ -436,3 +436,7 @@ body { background: var(--background); }
 .topbar a { text-decoration: none; }
 .intro-visual > * { grid-area: 1 / 1; }
 .intro-halo { position: static; }
+
+/* ================= Várias fotos de uma vez (V2 §2) ================= */
+.batch-row { display: flex; gap: 12px; align-items: flex-start; }
+.batch-row__thumb { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; flex: none; background: var(--brand-soft); }

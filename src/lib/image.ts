@@ -8,6 +8,7 @@
  */
 import { IMAGE, LIMITS } from "@/config/business";
 import type { ProcessedImage } from "@/data/demo-repository";
+import { readPhotoDate } from "./exif";
 
 export class ImageError extends Error {
   constructor(readonly code: "TOO_LARGE" | "UNSUPPORTED" | "HEIC" | "CORRUPT" | "TOO_MANY_PIXELS", message: string) {
@@ -100,6 +101,7 @@ export async function processImage(file: Blob): Promise<ProcessedImage> {
   if (!mime || !(IMAGE.acceptedMime as readonly string[]).includes(mime)) {
     throw new ImageError("UNSUPPORTED", "Esse arquivo não parece uma foto JPEG, PNG ou WebP.");
   }
+  const takenDate = readPhotoDate(bytes, mime); // lido antes de re-codificar (que remove o EXIF)
   const dims = readDimensions(bytes, mime);
   if (dims && dims.w * dims.h > LIMITS.maxUploadPixels) {
     throw new ImageError("TOO_MANY_PIXELS", "A foto tem resolução grande demais para esta versão. Tente uma versão reduzida.");
@@ -115,7 +117,7 @@ export async function processImage(file: Blob): Promise<ProcessedImage> {
     const display = await encode(bmp, IMAGE.displayMaxEdge, IMAGE.displayQuality, out);
     const thumb = await encode(bmp, IMAGE.thumbMaxEdge, IMAGE.thumbQuality, out);
     const { w, h } = fit(bmp.width, bmp.height, IMAGE.displayMaxEdge);
-    return { mime: out, width: w, height: h, bytes: display.size, hash: await sha256Hex(buf), display, thumb };
+    return { mime: out, width: w, height: h, bytes: display.size, hash: await sha256Hex(buf), display, thumb, takenDate };
   } finally {
     bmp.close();
   }

@@ -102,6 +102,8 @@ export interface ProcessedImage {
   hash: string;
   display: Blob;
   thumb: Blob;
+  /** Data em que a foto foi tirada (EXIF), quando o arquivo trouxer. Só sugestão para o campo de data. */
+  takenDate?: CivilDate | null;
 }
 
 export interface Snapshot {
@@ -310,6 +312,14 @@ export async function submitMission(
   const entry = await tx.objectStore("entries").get(input.entryId);
   if (!dog || !profile || !entry || entry.dogId !== dog.id) {
     return fail(tx, new DomainError("NOT_FOUND", "Não encontramos essa lembrança."));
+  }
+  // Arte do Estúdio nunca conclui missão de foto real (§11).
+  if (entry.source === "studio") {
+    return fail(tx, new DomainError("ART_NOT_ALLOWED", "Artes do Estúdio não concluem missões — escolha uma foto."));
+  }
+  // Uma foto rende pontos em uma única missão (MUDANCAS-V2 §7.1).
+  if (entry.missionId && entry.missionId !== mission.id) {
+    return fail(tx, new DomainError("PHOTO_ALREADY_USED", "Essa foto já foi usada em outra missão. Escolha outra foto."));
   }
   const completedSet = new Set((await tx.objectStore("completions").getAll()).map((c) => c.missionId));
   if (missionState(mission, completedSet) === "locked") {

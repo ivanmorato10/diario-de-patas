@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { COLLECTIONS, type CollectionId } from "@/config/catalog";
+import { COLLECTIONS, MISSIONS, type CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { useStore } from "@/data/store";
 import { deleteEntry, getMedia, updateEntry, DomainError } from "@/data/demo-repository";
 import { isCivilDate } from "@/domain/dates";
+import { missionState } from "@/domain/missions";
 import type { DiaryEntry } from "@/domain/types";
-import { IconDownload, IconPencil, IconTrash } from "./icons";
+import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
+import { collectionTitle } from "./mission-ui";
 
-function Sheet({ open, onClose, labelledBy, children }: { open: boolean; onClose: () => void; labelledBy: string; children: React.ReactNode }) {
+export function Sheet({ open, onClose, labelledBy, children }: { open: boolean; onClose: () => void; labelledBy: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -123,6 +126,46 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
           <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy}>Excluir</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>Cancelar</button>
         </div>
+      </Sheet>
+    </>
+  );
+}
+
+/**
+ * “Usar numa missão” (MUDANCAS-V2 §2): leva uma foto livre do diário direto à confirmação de uma missão,
+ * sem novo envio. Só aparece para fotos livres — artes não concluem missão e uma foto pontua uma vez.
+ */
+export function UseInMission({ entry, completed, label }: { entry: DiaryEntry; completed: ReadonlySet<string>; label: string }) {
+  const [open, setOpen] = useState(false);
+  if (entry.source !== "free" || entry.missionId) return null;
+  const options = MISSIONS.map((m) => ({ m, state: missionState(m, completed) }))
+    .filter((o) => o.state !== "locked")
+    .sort((a, b) => Number(a.state === "completed") - Number(b.state === "completed"));
+  const title = `use-${entry.id}`;
+  return (
+    <>
+      <button type="button" className="btn btn--ghost btn--small" onClick={() => setOpen(true)} aria-label={`Usar ${label} numa missão`}>
+        <IconStar size={18} /> Usar numa missão
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} labelledBy={title}>
+        <h2 id={title}>Usar esta foto numa missão</h2>
+        <p className="small muted">A foto continua a mesma — nada é enviado de novo. Depois você confirma se ela mostra o que a missão pede.</p>
+        <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: "55dvh", overflowY: "auto" }}>
+          {options.map(({ m, state }) => (
+            <li key={m.id}>
+              <Link href={`/guardar?missao=${m.slug}&entrada=${entry.id}`} className="card mission-card" style={{ padding: 12 }}>
+                <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
+                  <strong>{m.title}</strong>
+                  <span className="caption">{collectionTitle(m.collectionId)}{state === "completed" ? " · já concluída, sem pontos" : ""}</span>
+                </span>
+                {state === "available" ? <span className="chip chip--reward">+{m.xp} XP</span> : null}
+                <IconChevron size={18} className="muted" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {options.length === 0 ? <p className="small">Nenhuma missão disponível agora.</p> : null}
+        <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>Cancelar</button>
       </Sheet>
     </>
   );

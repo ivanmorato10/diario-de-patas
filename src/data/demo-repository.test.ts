@@ -93,6 +93,34 @@ describe("repositório demo", () => {
     migrated.close();
   });
 
+  it("várias fotos de uma vez: 5 fotos criam 5 lembranças, e o retry do lote não duplica", async () => {
+    const keys = ["b1", "b2", "b3", "b4", "b5"];
+    await Promise.all(keys.map(entry));
+    await Promise.all(keys.map(entry)); // "Guardar todas" de novo após uma falha
+    expect((await loadSnapshot(db)).entries).toHaveLength(5);
+  });
+
+  it("uma lembrança livre conclui uma missão depois, sem duplicar a foto", async () => {
+    const e = await entry("livre");
+    const r = await approve("depois", e.id);
+    expect(r.xpAwarded).toBe(10);
+    const snap = await loadSnapshot(db);
+    expect(snap.entries).toHaveLength(1);
+    expect(snap.entries[0]).toMatchObject({ id: e.id, mediaId: e.mediaId, source: "mission", missionId: "M01" });
+  });
+
+  it("uma foto não rende pontos em duas missões", async () => {
+    const e = await entry("e");
+    await approve("s1", e.id, "M01");
+    await expect(approve("s2", e.id, "M02")).rejects.toMatchObject({ code: "PHOTO_ALREADY_USED" });
+    expect((await loadSnapshot(db)).xpTotal).toBe(10);
+  });
+
+  it("arte do Estúdio não conclui missão", async () => {
+    const art = await saveEntry(db, { requestKey: "art", image: img("art"), caption: "", occurredDate: "2026-10-12", source: "studio", missionId: null, albumIds: [], kind: "art" });
+    await expect(approve("s", art.id)).rejects.toMatchObject({ code: "ART_NOT_ALLOWED" });
+  });
+
   it("excluir a foto mantém a conquista e retira do álbum", async () => {
     const e = await entry("e");
     await approve("s", e.id);

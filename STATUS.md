@@ -7,7 +7,7 @@
 | Seção | Situação |
 |---|---|
 | 1. Missões confirmadas pelo dono (sem IA) | ✅ |
-| 2. Fotos livres, várias de uma vez, usar foto do Diário numa missão | ⏳ |
+| 2. Fotos livres, várias de uma vez, usar foto do Diário numa missão | ✅ |
 | 3. Catálogo de 48 missões e novos níveis | ⏳ |
 | 4. Cuidados (ficha de saúde) | ⏳ |
 | 5. Documentos | ⏳ |
@@ -32,6 +32,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | Hoje: nível/XP, até 3 sugestões filtradas por preferências, trocar sugestões, progresso do álbum, última lembrança | ✅ demo |
 | Catálogo de 12 missões, detalhe, pré-requisito M01, XP único por missão | ✅ demo |
 | Envio: câmera/galeria, tipo pelos bytes, limites de bytes e pixels, orientação EXIF, remoção de metadados/GPS, girar, legenda, data civil, cancelar, retry sem duplicar | ✅ demo |
+| Várias fotos de uma vez (galeria `multiple`): legenda e data por foto, data lida do EXIF (JPEG/PNG/WebP) ou hoje, “Guardar todas”, mostra quantas cabem, retry do lote sem duplicar | ✅ demo |
+| “Usar numa missão” no Diário: foto livre conclui missão depois, sem novo upload; aviso se a missão já foi concluída; arte nunca conclui missão; uma foto pontua em uma única missão | ✅ demo |
 | Confirmação da missão pelo dono (“Sim, mostra” / “Não tenho certeza”) — **modo oficial**, “Confirmada por você”; sem limite diário | ✅ |
 | Diário: linha do tempo por mês, filtros, busca, editar, baixar, excluir | ✅ demo |
 | Álbuns: 6 coleções, contagem separada de fotos de missão e livres, conquistas | ✅ demo |
@@ -54,7 +56,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 ## Verificado
 
-- `npm test` — 24 testes (datas civis, sugestões, níveis, regras do validador desligado, ledger, idempotência de XP com requisições simultâneas, sem limite diário, migração v1→v2, exclusão e reset com outra aba aberta, paridade do seed).
+- `npm test` — 31 testes (datas civis, sugestões, níveis, regras do validador desligado, ledger, idempotência de XP com requisições simultâneas, sem limite diário, migração v1→v2, exclusão e reset com outra aba aberta, paridade do seed, data do EXIF em JPEG/PNG/WebP, lote de 5 fotos, foto livre → missão, foto não pontua duas vezes, arte não conclui missão).
+- Verificação no navegador (Chrome, 390 px) da seção 2: 5 fotos → 5 lembranças, data do EXIF preenchida, “Usar numa missão” conclui “Olá, mundo” sem duplicar a foto.
 - `npm run typecheck` e `npm run build` — sem erros.
 - `node scripts/contrast.mjs` — contraste de todas as combinações usadas.
 - `scripts/e2e.py` (Chromium headless, 390 px, 360 px e 1280 px) — 28/28: fluxo completo, EXIF, arquivo falso e corrompido, persistência após recarregar, sem rolagem horizontal, sem erros de console, apagar diário.
