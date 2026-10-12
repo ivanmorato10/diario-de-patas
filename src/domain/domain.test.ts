@@ -31,7 +31,7 @@ describe("missões (§9)", () => {
   });
   it("concluir M01 abre as demais", () => {
     const done = new Set(["M01"]);
-    expect(MISSIONS.filter((m) => missionState(m, done) === "available")).toHaveLength(11);
+    expect(MISSIONS.filter((m) => missionState(m, done) === "available")).toHaveLength(MISSIONS.length - 1);
   });
   it("sugere até 3 respeitando preferências sociais", () => {
     const s = dailySuggestions(new Set(["M01"]), { ...allPrefs, socialDogs: false }, "2026-10-12");
@@ -52,7 +52,31 @@ describe("missões (§9)", () => {
     expect(totalCatalogXp()).toBeGreaterThanOrEqual(LEVELS[LEVELS.length - 1].minXp);
     expect(levelFor(0).title).toBe("Novo companheiro");
     expect(levelFor(75).title).toBe("Explorador");
-    expect(levelFor(160).nextAt).toBeNull();
+    expect(levelFor(349).title).toBe("Contador de histórias");
+    expect(levelFor(500).title).toBe("Sempre juntos");
+  });
+});
+
+describe("catálogo v2 (MUDANCAS-V2 §3)", () => {
+  it("48 missões, 650 XP, ids e slugs únicos", () => {
+    expect(MISSIONS).toHaveLength(48);
+    expect(totalCatalogXp()).toBe(650);
+    expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(48);
+    expect(new Set(MISSIONS.map((m) => m.slug)).size).toBe(48);
+  });
+  it("todas as novas pedem só M01; missões opcionais nunca são pré-requisito", () => {
+    expect(MISSIONS.filter((m) => m.id !== "M01").every((m) => m.prerequisiteId === "M01")).toBe(true);
+    const optional = new Set(MISSIONS.filter((m) => m.optional).map((m) => m.id));
+    expect(optional.size).toBeGreaterThan(0);
+    expect(MISSIONS.some((m) => m.prerequisiteId && optional.has(m.prerequisiteId))).toBe(false);
+  });
+  it("toda missão externa tem uma alternativa em casa", () => {
+    const outdoor = MISSIONS.filter((m) => m.context === "outdoor");
+    expect(outdoor.length).toBeGreaterThan(0);
+    expect(outdoor.every((m) => (m.homeAlternative ?? "").length > 10)).toBe(true);
+  });
+  it("níveis em ordem crescente", () => {
+    expect(LEVELS.map((l) => l.minXp)).toEqual([0, 30, 70, 120, 220, 350, 500]);
   });
 });
 

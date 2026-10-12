@@ -1,5 +1,5 @@
--- Seed versionado do catálogo (espelha src/config/catalog.ts, CATALOG_VERSION = 1).
--- STATUS: não aplicado. Manter em sincronia; um teste de paridade está no backlog (Etapa C).
+-- Seed versionado do catálogo (espelha src/config/catalog.ts, CATALOG_VERSION = 2).
+-- STATUS: não aplicado. Manter em sincronia: src/config/catalog.test.ts compara este arquivo com o catálogo.
 insert into public.mission_templates (id, slug, localized_title, visual_criterion, xp, collection_id, eligibility, prerequisite_id, subjective) values
 ('M01','ola-mundo','{"pt-BR":"Olá, mundo"}','{"pt-BR":"Cachorro claramente visível."}',10,'primeiras-lembrancas','any',null,false),
 ('M02','soneca-de-respeito','{"pt-BR":"Soneca de respeito"}','{"pt-BR":"Cachorro deitado ou descansando."}',10,'vida-em-casa','home','M01',false),
@@ -12,5 +12,41 @@ insert into public.mission_templates (id, slug, localized_title, visual_criterio
 ('M09','amizade-de-patas','{"pt-BR":"Amizade de patas"}','{"pt-BR":"Dois ou mais cachorros enquadrados."}',20,'pequenas-aventuras','social-dogs','M01',false),
 ('M10','momento-engracado','{"pt-BR":"Momento engraçado"}','{"pt-BR":"Cachorro na foto. O humor não é avaliado."}',10,'manias-e-expressoes','any','M01',true),
 ('M11','companhia-tranquila','{"pt-BR":"Companhia tranquila"}','{"pt-BR":"Cachorro descansando perto de uma pessoa."}',15,'nosso-vinculo','people','M01',false),
-('M12','cara-de-capa','{"pt-BR":"Cara de capa"}','{"pt-BR":"Retrato com o cachorro claramente visível."}',10,'manias-e-expressoes','any','M01',false)
+('M12','cara-de-capa','{"pt-BR":"Cara de capa"}','{"pt-BR":"Retrato com o cachorro claramente visível."}',10,'manias-e-expressoes','any','M01',false),
+('M13','primeiro-dia-em-casa','{"pt-BR":"Primeiro dia em casa"}','{"pt-BR":"Uma foto do começo de vocês dois (pode ser antiga)."}',15,'primeiras-lembrancas','any','M01',false),
+('M14','patinha-de-perto','{"pt-BR":"Patinha de perto"}','{"pt-BR":"A patinha em close."}',10,'primeiras-lembrancas','any','M01',false),
+('M15','meu-nome','{"pt-BR":"Meu nome"}','{"pt-BR":"A coleira ou a plaquinha com o nome aparecendo."}',10,'primeiras-lembrancas','any','M01',false),
+('M16','bocejo-flagrado','{"pt-BR":"Bocejo flagrado"}','{"pt-BR":"O cachorro bocejando."}',15,'manias-e-expressoes','home','M01',false),
+('M17','posicao-estranha-de-dormir','{"pt-BR":"Posição estranha de dormir"}','{"pt-BR":"O cachorro dormindo numa posição curiosa."}',15,'vida-em-casa','home','M01',false),
+('M18','esperando-na-porta','{"pt-BR":"Esperando na porta"}','{"pt-BR":"O cachorro perto da porta, esperando."}',10,'vida-em-casa','home','M01',false),
+('M19','hora-do-banho','{"pt-BR":"Hora do banho"}','{"pt-BR":"O cachorro no banho ou logo depois."}',15,'cuidados','home','M01',false),
+('M20','cheiroso','{"pt-BR":"Cheiroso"}','{"pt-BR":"O cachorro depois do banho ou da tosa."}',10,'cuidados','any','M01',false),
+('M21','dia-de-chuva','{"pt-BR":"Dia de chuva"}','{"pt-BR":"O cachorro num dia de chuva, dentro de casa."}',10,'estacoes-e-datas','home','M01',false),
+('M22','esconderijo-favorito','{"pt-BR":"Esconderijo favorito"}','{"pt-BR":"O cachorro no seu esconderijo preferido."}',10,'vida-em-casa','home','M01',false),
+('M23','dono-do-sofa','{"pt-BR":"Dono do sofá"}','{"pt-BR":"O cachorro deitado no sofá ou na cama."}',10,'vida-em-casa','home','M01',false),
+('M24','selfie-juntos','{"pt-BR":"Selfie juntos"}','{"pt-BR":"Você e o cachorro na mesma selfie. Ninguém é identificado."}',15,'nosso-vinculo','people','M01',false),
+('M25','patinha-na-mao','{"pt-BR":"Patinha na mão"}','{"pt-BR":"A patinha do cachorro na mão de uma pessoa."}',15,'nosso-vinculo','people','M01',false),
+('M26','colo-bom','{"pt-BR":"Colo bom"}','{"pt-BR":"O cachorro no colo de uma pessoa."}',10,'nosso-vinculo','people','M01',false),
+('M27','familia-reunida','{"pt-BR":"Família reunida"}','{"pt-BR":"O cachorro com duas ou mais pessoas da família."}',20,'nosso-vinculo','people','M01',false),
+('M28','bom-dia','{"pt-BR":"Bom dia"}','{"pt-BR":"O cachorro logo pela manhã."}',10,'nosso-vinculo','any','M01',false),
+('M29','boa-noite','{"pt-BR":"Boa noite"}','{"pt-BR":"O cachorro na hora de dormir."}',10,'nosso-vinculo','home','M01',false),
+('M30','cabeca-inclinada','{"pt-BR":"Cabeça inclinada"}','{"pt-BR":"O cachorro com a cabeça inclinada."}',15,'manias-e-expressoes','any','M01',false),
+('M31','lingua-de-fora','{"pt-BR":"Língua de fora"}','{"pt-BR":"O cachorro com a língua de fora."}',10,'manias-e-expressoes','any','M01',false),
+('M32','orelhas-em-acao','{"pt-BR":"Orelhas em ação"}','{"pt-BR":"As orelhas do cachorro em destaque."}',10,'manias-e-expressoes','any','M01',false),
+('M33','cara-de-culpado','{"pt-BR":"Cara de culpado"}','{"pt-BR":"O cachorro com cara de quem aprontou. A cara é você quem julga."}',15,'manias-e-expressoes','home','M01',false),
+('M34','truque-favorito','{"pt-BR":"Truque favorito"}','{"pt-BR":"O cachorro fazendo um truque que já conhece."}',20,'manias-e-expressoes','any','M01',false),
+('M35','brinquedo-sobrevivente','{"pt-BR":"Brinquedo sobrevivente"}','{"pt-BR":"O cachorro com um brinquedo bem gasto."}',10,'vida-em-casa','home','M01',false),
+('M36','correria','{"pt-BR":"Correria!"}','{"pt-BR":"O cachorro correndo (pode estar tremida)."}',15,'pequenas-aventuras','any','M01',false),
+('M37','novo-caminho','{"pt-BR":"Novo caminho"}','{"pt-BR":"O cachorro passeando num lugar novo."}',20,'pequenas-aventuras','outdoor','M01',false),
+('M38','por-do-sol','{"pt-BR":"Pôr do sol"}','{"pt-BR":"O cachorro num passeio no fim da tarde."}',15,'pequenas-aventuras','outdoor','M01',false),
+('M39','pegadas','{"pt-BR":"Pegadas"}','{"pt-BR":"Pegadas do cachorro na areia, terra ou neve."}',15,'pequenas-aventuras','outdoor','M01',false),
+('M40','lugar-pet-friendly','{"pt-BR":"Lugar pet friendly"}','{"pt-BR":"O cachorro num lugar que aceita pets."}',20,'pequenas-aventuras','outdoor','M01',false),
+('M41','na-estrada','{"pt-BR":"Na estrada"}','{"pt-BR":"O cachorro no carro, com cinto pet ou na caixa de transporte."}',15,'pequenas-aventuras','outdoor','M01',false),
+('M42','dia-de-praia','{"pt-BR":"Dia de praia"}','{"pt-BR":"O cachorro na praia ou perto da água."}',20,'estacoes-e-datas','outdoor','M01',false),
+('M43','dia-de-frio','{"pt-BR":"Dia de frio"}','{"pt-BR":"O cachorro aquecido num dia frio."}',10,'estacoes-e-datas','home','M01',false),
+('M44','dia-de-calor','{"pt-BR":"Dia de calor"}','{"pt-BR":"O cachorro na sombra ou perto da água fresca."}',10,'estacoes-e-datas','any','M01',false),
+('M45','feliz-aniversario','{"pt-BR":"Feliz aniversário"}','{"pt-BR":"O cachorro numa comemoração de aniversário."}',20,'estacoes-e-datas','any','M01',false),
+('M46','natal-juntos','{"pt-BR":"Natal juntos"}','{"pt-BR":"O cachorro com enfeites ou clima de Natal por perto."}',15,'estacoes-e-datas','home','M01',false),
+('M47','visita-ao-veterinario','{"pt-BR":"Visita ao veterinário"}','{"pt-BR":"O cachorro numa clínica veterinária."}',15,'cuidados','any','M01',false),
+('M48','unhas-e-tosa','{"pt-BR":"Unhas e tosa"}','{"pt-BR":"O cachorro num dia de cuidado com unhas ou pelos."}',10,'cuidados','any','M01',false)
 on conflict (id) do nothing;

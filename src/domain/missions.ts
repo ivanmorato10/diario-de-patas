@@ -47,7 +47,8 @@ export function dailySuggestions(
   swapOffset = 0,
   limit: number = LIMITS.homeSuggestions,
 ): MissionTemplate[] {
-  const available = MISSIONS.filter((m) => missionState(m, completed) === "available");
+  // Missões opcionais (datas especiais) não entram nas sugestões; ficam na lista para quem quiser.
+  const available = MISSIONS.filter((m) => !m.optional && missionState(m, completed) === "available");
   let pool = available.filter((m) => matchesPreferences(m, prefs));
   if (pool.length === 0) pool = available.filter((m) => m.context === "any" || m.context === "home");
   if (pool.length === 0) return [];

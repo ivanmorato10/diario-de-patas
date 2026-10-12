@@ -34,6 +34,7 @@ export default function MissaoDetalhe() {
           </div>
           <h1>{mission.title}</h1>
           <p>{mission.description}</p>
+          {mission.optional ? <span className="chip chip--neutral" style={{ alignSelf: "flex-start" }}>Opcional</span> : null}
         </section>
 
         <section className="card stack" aria-label="Detalhes da missão">
@@ -47,6 +48,12 @@ export default function MissaoDetalhe() {
             <div className="row-between"><dt className="muted">Foto da galeria</dt><dd style={{ margin: 0 }}>{mission.acceptsGallery ? "Aceita, inclusive fotos antigas" : "Somente câmera"}</dd></div>
             {prereq ? <div className="row-between"><dt className="muted">Pré-requisito</dt><dd style={{ margin: 0 }}>{prereq.title}</dd></div> : null}
           </dl>
+          {mission.homeAlternative ? (
+            <div className="stack" style={{ gap: 4 }}>
+              <span className="caption">Alternativa em casa</span>
+              <p className="small">{mission.homeAlternative}</p>
+            </div>
+          ) : null}
         </section>
 
         {state === "completed" ? (
