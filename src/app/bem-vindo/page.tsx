@@ -24,27 +24,34 @@ const STEPS: { title: string; text: string; paw?: boolean; cta?: string }[] = [
     text: "O passeio de sempre, a soneca no sofá, aquela pose por um petisco… Nosso álbum está nessas pequenas coisas.\nVamos guardar as favoritas?",
   },
   {
-    title: "Este app foi criado para guardar esses momentos.",
-    text: "Aqui, cada foto vira uma página. Cada pequena aventura vira uma figurinha no álbum. E, com o tempo, vocês ganham a história inteira de vocês dois.",
+    title: "Um álbum todinho dele.\nCheio de vocês.",
+    cta: "Vamos começar",
+    text: "A primeira aventura, o brinquedo favorito, as mil posições de dormir. Junte as fotos e veja a história do seu cachorro ganhar um lugar só dela.",
   },
   {
     title: "Os anos passam depressa para nós.",
     text: "Um dia você vai querer rever cada detalhe: o jeito de dormir, a bagunça, o olhar de quem esperou você chegar. Tudo vai estar guardado aqui.",
   },
   {
-    title: "Sempre juntos.",
-    text: "Agora é a vez do seu melhor amigo. Vamos começar a história de vocês?",
+    title: "Já me conheceu.\nAgora, quem é o seu melhor\u00a0amigo?",
+    text: "Me conta o nome dele e escolhe uma foto. Temos muitas aventuras pela frente!",
   },
 ];
 
-/** A patinha fica presa à última palavra para nunca cair sozinha numa linha. */
-function TitleWithPaw({ title, paw }: { title: string; paw?: boolean }) {
-  if (!paw) return <>{title}</>;
-  const cut = title.search(/\S+$/);
+/** Cada frase do título é um bloco (quebra equilibrada); a patinha fica presa à última palavra. */
+function Title({ title, paw }: { title: string; paw?: boolean }) {
+  const lines = title.split("\n");
   return (
     <>
-      {title.slice(0, cut)}
-      <span style={{ whiteSpace: "nowrap" }}>{title.slice(cut)}<Paw size={30} className="intro-diary__paw" /></span>
+      {lines.map((line, i) => {
+        const last = i === lines.length - 1;
+        const cut = line.search(/\S+$/);
+        return (
+          <span key={i} className="intro__title-line">
+            {last && paw ? <>{line.slice(0, cut)}<span style={{ whiteSpace: "nowrap" }}>{line.slice(cut)}<Paw size={30} className="intro-diary__paw" /></span></> : line}
+          </span>
+        );
+      })}
     </>
   );
 }
@@ -133,7 +140,7 @@ export default function BemVindo() {
         <section key={step} className="intro__slide" aria-live="polite">
           <StepVisual step={step} />
           <div className={`stack${step === 0 ? " intro-diary anim-rise" : ""}`} style={{ textAlign: "center", alignItems: "center" }}>
-            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420, whiteSpace: "pre-line", fontSize: STEPS[step].title.includes("\n") ? "1.75rem" : undefined }}><TitleWithPaw title={STEPS[step].title} paw={STEPS[step].paw} /></h1>
+            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420, fontSize: STEPS[step].title.includes("\n") ? "1.75rem" : undefined }}><Title title={STEPS[step].title} paw={STEPS[step].paw} /></h1>
             <p className="anim-rise-2 intro__text" style={{ whiteSpace: "pre-line" }}>{STEPS[step].text}</p>
           </div>
         </section>
@@ -144,7 +151,7 @@ export default function BemVindo() {
           </div>
           {last ? (
             <>
-              <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">Criar o diário do meu cachorro</Link>
+              <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">Apresentar meu cachorro</Link>
               <button type="button" className="btn btn--secondary btn--block" onClick={() => setShowAccountInfo((v) => !v)} aria-expanded={showAccountInfo} aria-controls="conta-info">
                 Já tenho conta
               </button>

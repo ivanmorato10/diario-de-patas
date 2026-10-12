@@ -40,13 +40,13 @@ with sync_playwright() as p:
     page.goto(BASE + "/"); page.wait_for_url("**/bem-vindo")
     page.wait_for_timeout(1500); page.screenshot(path=f"{OUT}/01a-intro-1.png"); no_overflow(page, "intro")
     for i in range(2, 6):
-        page.get_by_role("button", name={2: "Vamos nessa, Abu!", 3: "Cada momento conta"}.get(i, "Continuar")).click(); page.wait_for_timeout(1700)
+        page.get_by_role("button", name={2: "Vamos nessa, Abu!", 3: "Cada momento conta", 4: "Vamos começar"}.get(i, "Continuar")).click(); page.wait_for_timeout(1700)
         page.screenshot(path=f"{OUT}/01{'abcde'[i-1]}-intro-{i}.png")
-    check("introdução chega ao convite final", page.get_by_role("heading", name="Sempre juntos.").is_visible())
+    check("introdução chega ao convite final", page.get_by_role("heading", name="Já me conheceu.").is_visible())
     page.get_by_role("button", name="Já tenho conta").click()
     check("‘Já tenho conta’ explica que contas não estão ativas", page.get_by_text("Contas ainda não estão ativas").is_visible())
 
-    page.get_by_role("link", name="Criar o diário do meu cachorro").click(); page.wait_for_url("**/comecar")
+    page.get_by_role("link", name="Apresentar meu cachorro").click(); page.wait_for_url("**/comecar")
     page.get_by_role("button", name="Criar meu diário").click()
     check("nome obrigatório", page.get_by_role("alert").first.inner_text().startswith("Conte para a gente"))
     page.get_by_label("Nome do cachorro").fill("Luna")

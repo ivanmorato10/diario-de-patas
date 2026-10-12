@@ -412,6 +412,7 @@ body { background: var(--background); }
 .intro { background: linear-gradient(180deg, var(--brand-teal-light) 0%, var(--background) 55%); }
 .intro__main { min-height: calc(100dvh - 40px); justify-content: space-between; gap: 18px; padding-top: 14px; }
 .intro__slide { display: flex; flex-direction: column; align-items: center; gap: 22px; flex: 1; justify-content: center; }
+.intro__title-line { display: block; text-wrap: balance; }
 .intro__text { font-size: 1.125rem; line-height: 1.55; max-width: 440px; color: var(--text-secondary); }
 .intro__actions { gap: 14px; }
 /* Primeira página: bilhete escrito à mão numa folha pautada do diário */
