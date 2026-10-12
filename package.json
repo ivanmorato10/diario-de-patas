@@ -1,0 +1,32 @@
+{
+  "name": "diario-de-patas",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "contrast": "node scripts/contrast.mjs"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/nunito-sans": "^5.3.0",
+    "idb": "^8.0.4",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  },
+  "private": true,
+  "type": "module"
+}
