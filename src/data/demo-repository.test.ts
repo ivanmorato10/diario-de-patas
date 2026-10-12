@@ -73,8 +73,17 @@ describe("repositório demo", () => {
 
   it("reset apaga tudo", async () => {
     await entry("e");
-    await resetDemo(db, `test-${n}`);
-    db = await openDemoDb(`test-${n}`);
-    expect((await loadSnapshot(db)).dog).toBeNull();
+    await resetDemo(db);
+    const snap = await loadSnapshot(db);
+    expect(snap.dog).toBeNull();
+    expect(snap.entries).toHaveLength(0);
+  });
+
+  it("reset não trava com outra aba usando o mesmo banco", async () => {
+    await entry("e");
+    const otherTab = await openDemoDb(`test-${n}`);
+    await resetDemo(db);
+    expect((await loadSnapshot(otherTab)).dog).toBeNull();
+    otherTab.close();
   });
 });

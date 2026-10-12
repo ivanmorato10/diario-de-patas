@@ -4,7 +4,7 @@
  * Espelha as regras do servidor (idempotência, ledger único de XP, cotas) para que o fluxo
  * se comporte igual; em produção estas regras ficam no backend (Etapa C/D).
  */
-import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from "idb";
+import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { civilDateInTz } from "@/domain/dates";
@@ -38,7 +38,13 @@ export class DomainError extends Error {
 }
 
 export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
-  return openDB<DemoDB>(name, DB_VERSION, {
+  const db: Promise<Db> = openDB<DemoDB>(name, DB_VERSION, {
+    // Outra aba (com uma versão nova do app) pediu um upgrade do banco: solta a conexão
+    // para não travá-la e recarrega esta aba para já usar a versão nova.
+    blocking() {
+      void db.then((d) => d.close());
+      if (typeof window !== "undefined") window.location.reload();
+    },
     upgrade(db) {
       db.createObjectStore("profile", { keyPath: "id" });
       db.createObjectStore("dogs", { keyPath: "id" });
@@ -55,11 +61,18 @@ export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
       db.createObjectStore("usage", { keyPath: "key" });
     },
   });
+  return db;
 }
 
-export async function resetDemo(db: Db | null, name = DEMO_DB_NAME) {
-  db?.close();
-  await deleteDB(name);
+const STORES = ["profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp", "usage"] as const;
+
+/**
+ * Esvazia todas as tabelas numa única transação. Não usa deleteDB: apagar o banco fica
+ * "bloqueado" para sempre enquanto outra aba (ou o app instalado) mantém uma conexão aberta.
+ */
+export async function resetDemo(db: Db) {
+  const tx = db.transaction(STORES, "readwrite");
+  await Promise.all([...STORES.map((s) => tx.objectStore(s).clear()), tx.done]);
 }
 
 const now = () => new Date().toISOString();

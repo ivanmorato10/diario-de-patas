@@ -15,6 +15,9 @@ interface StoreValue {
 
 const Ctx = createContext<StoreValue | null>(null);
 
+/** Avisa as outras abas abertas do app quando o diário é apagado. */
+const CHANNEL = "ddp-store";
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [db, setDb] = useState<Db | null>(null);
   const [snap, setSnap] = useState<Snapshot | null>(null);
@@ -40,13 +43,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (dbRef.current) setSnap(await loadSnapshot(dbRef.current));
   }, []);
 
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const ch = new BroadcastChannel(CHANNEL);
+    ch.onmessage = (e) => {
+      if (e.data === "reset") void reload();
+    };
+    return () => ch.close();
+  }, [reload]);
+
   const reset = useCallback(async () => {
+    if (!dbRef.current) return;
     await resetDemo(dbRef.current);
-    const d = await openDemoDb();
-    dbRef.current = d;
-    setDb(d);
-    setSnap(await loadSnapshot(d));
-  }, []);
+    await reload();
+    if (typeof BroadcastChannel !== "undefined") {
+      const ch = new BroadcastChannel(CHANNEL);
+      ch.postMessage("reset");
+      ch.close();
+    }
+  }, [reload]);
 
   const value = useMemo(() => ({ db, snap, unavailable, reload, reset }), [db, snap, unavailable, reload, reset]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
