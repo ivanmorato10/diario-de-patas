@@ -1,6 +1,6 @@
 // Service worker mínimo (§15): guarda só o shell estático. Nunca respostas autenticadas nem fotos privadas.
-const CACHE = "ddp-static-v2";
-const SHELL = ["/offline.html", "/brand/icon.svg", "/brand/symbol.svg", "/brand/icon-192.png", "/manifest.webmanifest"];
+const CACHE = "ddp-static-v3";
+const SHELL = ["/offline.html", "/brand/favicon-64.png", "/brand/abu-mascote.png", "/brand/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

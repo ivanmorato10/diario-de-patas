@@ -7,14 +7,14 @@ export const metadata: Metadata = {
   title: { default: "Diário de Patas", template: "%s · Diário de Patas" },
   description: "Um diário com missões, fotos e lembranças do seu melhor amigo.",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/brand/icon.svg", apple: "/brand/icon-192.png" },
+  icons: { icon: "/brand/favicon-64.png", apple: "/brand/apple-touch-icon.png" },
   // Conteúdo é privado: nada de pré-visualização com fotos em Open Graph (§12).
   openGraph: { title: "Diário de Patas", description: "Pequenas aventuras. Memórias para sempre." },
   robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F6F7FB",
+  themeColor: "#63B4AD",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

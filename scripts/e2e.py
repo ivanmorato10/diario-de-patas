@@ -38,11 +38,15 @@ with sync_playwright() as p:
     page.on("console", lambda m: m.type == "error" and errors.append(m.text))
 
     page.goto(BASE + "/"); page.wait_for_url("**/bem-vindo")
-    page.screenshot(path=f"{OUT}/01-boas-vindas.png", full_page=True); no_overflow(page, "boas-vindas")
+    page.wait_for_timeout(1500); page.screenshot(path=f"{OUT}/01a-intro-1.png"); no_overflow(page, "intro")
+    for i in range(2, 6):
+        page.get_by_role("button", name="Oi, Abu!" if i == 2 else "Continuar").click(); page.wait_for_timeout(1700)
+        page.screenshot(path=f"{OUT}/01{'abcde'[i-1]}-intro-{i}.png")
+    check("introdução chega ao convite final", page.get_by_role("heading", name="Sempre juntos.").is_visible())
     page.get_by_role("button", name="Já tenho conta").click()
     check("‘Já tenho conta’ explica que contas não estão ativas", page.get_by_text("Contas ainda não estão ativas").is_visible())
 
-    page.get_by_role("link", name="Criar meu diário").click(); page.wait_for_url("**/comecar")
+    page.get_by_role("link", name="Criar o diário do meu cachorro").click(); page.wait_for_url("**/comecar")
     page.get_by_role("button", name="Criar meu diário").click()
     check("nome obrigatório", page.get_by_role("alert").first.inner_text().startswith("Conte para a gente"))
     page.get_by_label("Nome do cachorro").fill("Luna")
@@ -109,7 +113,7 @@ with sync_playwright() as p:
 
     # Largura estreita 360 px
     small = browser.new_context(viewport={"width": 360, "height": 740}, storage_state=None)
-    sp = small.new_page(); sp.goto(BASE + "/bem-vindo"); no_overflow(sp, "360px boas-vindas"); small.close()
+    sp = small.new_page(); sp.goto(BASE + "/bem-vindo"); sp.wait_for_timeout(800); no_overflow(sp, "360px intro"); small.close()
     # Desktop
     page.set_viewport_size({"width": 1280, "height": 900}); page.goto(BASE + "/hoje"); page.wait_for_timeout(400)
     page.screenshot(path=f"{OUT}/16-desktop-hoje.png"); no_overflow(page, "desktop")

@@ -1,24 +1,47 @@
 /**
- * Identidade "Plaquinha" (docs/BRAND.md): o símbolo é a plaquinha da coleira do Abu,
- * com o nome dele gravado. Não é um retrato — quando houver fotos de referência,
- * a ilustração do Abu pode ser gravada na plaquinha. Os arquivos vivem em /public/brand
- * e são gerados por scripts/build-brand.py; nenhum componente depende do desenho.
+ * Marca a partir do logo enviado pelo proprietário (docs/brand-source/logo-original.jpg).
+ * Recortes gerados por scripts/cut-logo.py em /public/brand. Nenhum componente depende
+ * do desenho em si: trocar os PNGs troca a marca.
  */
 /* eslint-disable @next/next/no-img-element */
 
-export function TagMark({ size = 40, title }: { size?: number; title?: string }) {
-  return <img src="/brand/symbol.svg" width={size * (100 / 120)} height={size} alt={title ?? ""} aria-hidden={title ? undefined : true} style={{ display: "block" }} />;
+/** Rosto do Abu num quadradinho verde-água — cabeçalho e favicon. */
+export function AbuFace({ size = 52, className = "abu-face" }: { size?: number; className?: string }) {
+  return (
+    <span className={className} style={{ width: size, height: size }} aria-hidden="true">
+      <img src="/brand/favicon-64.png" alt="" width={size} height={size} />
+    </span>
+  );
 }
 
-export function Wordmark({ size = 32 }: { size?: number }) {
-  return <img src="/brand/logo-horizontal.svg" alt="Diário de Patas" className="wordmark" style={{ height: size * 1.4 }} />;
+/** Abu segurando o livro, sem fundo. */
+export function AbuMascot({ width = 220, className, alt = "" }: { width?: number; className?: string; alt?: string }) {
+  return <img src="/brand/abu-mascote.png" alt={alt} width={width} height={Math.round(width * (562 / 460))} className={className} style={{ display: "block", height: "auto" }} aria-hidden={alt ? undefined : true} />;
 }
 
-/** Bilhete do Abu, o anfitrião — uso moderado (§4). */
+/** Cartão completo do logo (Abu + “Diário de Patas · Sempre Juntos”). */
+export function LogoCard({ width = 240, className }: { width?: number; className?: string }) {
+  return <img src="/brand/logo-card.png" alt="Diário de Patas — Sempre Juntos" width={width} height={Math.round(width * (824 / 672))} className={className} style={{ display: "block", height: "auto" }} />;
+}
+
+/** Assinatura do cabeçalho: rosto do Abu + nome com a fonte do logo. */
+export function BrandLockup({ withTagline = false }: { withTagline?: boolean }) {
+  return (
+    <span className="brand-lockup">
+      <span className="brand-lockup__face"><img src="/brand/favicon-64.png" alt="" /></span>
+      <span>
+        <span className="brand-lockup__name">Diário de Patas</span>
+        {withTagline ? <span className="brand-lockup__tag">Sempre Juntos</span> : null}
+      </span>
+    </span>
+  );
+}
+
+/** Bilhete do Abu — uso moderado (§4). */
 export function AbuSays({ children }: { children: React.ReactNode }) {
   return (
-    <div className="row" style={{ alignItems: "flex-start" }}>
-      <TagMark size={48} />
+    <div className="row anim-rise" style={{ alignItems: "flex-start" }}>
+      <AbuFace />
       <div className="abu-note">
         <p className="abu-note__name">Abu</p>
         <p className="abu-note__text">{children}</p>

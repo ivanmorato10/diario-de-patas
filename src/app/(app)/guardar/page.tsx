@@ -15,7 +15,7 @@ import type { DiaryEntry } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { PhotoPicker } from "@/components/photo-picker";
 import { AbuSays } from "@/components/brand";
-import { IconAlert, IconCheck, IconInfo, IconRotate, IconStar } from "@/components/icons";
+import { IconAlert, IconCheck, IconInfo, IconRotate, IconStar, Paw } from "@/components/icons";
 import { rotateProcessed } from "@/lib/image";
 import { collectionTitle } from "@/components/mission-ui";
 
@@ -228,12 +228,15 @@ function ResultView({
     <section className="stack-lg" aria-live="polite">
       {previewUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <div className={`polaroid tape${approved ? " celebrate" : ""}`} style={{ margin: "8px 6px 0" }}><img src={previewUrl} alt={`Lembrança de ${dogName}`} className="photo" /><p className="polaroid__note">{dogName}</p></div>
+        <div style={{ position: "relative" }}>
+          <div className={`polaroid tape${approved ? " anim-drop" : ""}`} style={{ margin: "8px 6px 0" }}><img src={previewUrl} alt={`Lembrança de ${dogName}`} className="photo" /><p className="polaroid__note">{dogName}</p></div>
+          {approved ? <PawBurst /> : null}
+        </div>
       ) : null}
       {approved ? (
         <>
           <div className="stack">
-            <span className="chip chip--reward" style={{ alignSelf: "flex-start" }}><IconStar size={16} /> {r!.xpAwarded > 0 ? `+${r!.xpAwarded} XP` : "Pontos já contados"}</span>
+            <span className="chip chip--reward anim-stamp" style={{ alignSelf: "flex-start" }}><IconStar size={16} /> {r!.xpAwarded > 0 ? `+${r!.xpAwarded} XP` : "Pontos já contados"}</span>
             <h1 ref={headingRef} tabIndex={-1}>Conquista: {missionTitle}</h1>
             <p className="muted">{r!.alreadyCompleted ? "Essa missão já estava concluída — a foto foi guardada e os pontos não somam de novo." : `Guardada no álbum ${collectionTitle(collectionOf(r!.submission.missionId))}.`}</p>
             <p className="caption"><IconCheck size={14} style={{ verticalAlign: "-2px" }} /> Confirmada por você (modo demonstração, sem IA)</p>
@@ -266,6 +269,24 @@ function ResultView({
         </>
       )}
     </section>
+  );
+}
+
+/** Patinhas que saltam da foto ao conquistar — decorativas; o texto confirma a conquista. */
+function PawBurst() {
+  const pieces = Array.from({ length: 10 }, (_, i) => {
+    const ang = (i / 10) * Math.PI * 2;
+    const dist = 120 + (i % 3) * 30;
+    return { dx: Math.cos(ang) * dist, dy: Math.sin(ang) * dist * 0.8, rot: (i % 2 ? 1 : -1) * (30 + i * 9), delay: (i % 4) * 40 };
+  });
+  return (
+    <div className="burst" aria-hidden="true">
+      {pieces.map((p, i) => (
+        <span key={i} style={{ ["--dx" as string]: `${p.dx}px`, ["--dy" as string]: `${p.dy}px`, ["--rot" as string]: `${p.rot}deg`, animationDelay: `${p.delay}ms`, color: i % 3 === 0 ? "var(--lilac)" : i % 3 === 1 ? "var(--accent)" : "var(--brand-teal)" }}>
+          <Paw size={22} />
+        </span>
+      ))}
+    </div>
   );
 }
 

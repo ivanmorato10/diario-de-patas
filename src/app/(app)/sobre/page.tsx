@@ -2,7 +2,7 @@
 
 import { SUPPORT } from "@/config/business";
 import { TopBar } from "@/components/shell";
-import { TagMark } from "@/components/brand";
+import { LogoCard } from "@/components/brand";
 
 export default function Sobre() {
   return (
@@ -10,10 +10,10 @@ export default function Sobre() {
       <TopBar title="Sobre" back="/config" />
       <main className="main">
         <section className="stack" aria-labelledby="historia">
-          <TagMark size={56} />
+          <LogoCard width={200} className="anim-pop" />
           <h1 id="historia">Nossa história</h1>
           <p>O Diário de Patas nasceu inspirado no Abu e nos pequenos momentos que fazem a vida com um cachorro ser especial. Um passeio, uma soneca, uma expressão engraçada: aqui, cada momento pode virar uma lembrança.</p>
-          <p className="caption">Inspirado no Abu. O símbolo é a plaquinha da coleira com o nome dele. Quando tivermos fotos de referência, o retrato do Abu pode ser gravado nela.</p>
+          <p className="caption">Inspirado no Abu. O Abu do logo é o nosso anfitrião: aparece para dar boas-vindas e comemorar as conquistas de vocês.</p>
         </section>
 
         <section id="demo" className="card stack" aria-labelledby="demo-t">

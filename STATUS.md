@@ -13,7 +13,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | Item | Situação |
 |---|---|
 | Arquitetura, estrutura, configuração centralizada | ✅ |
-| Identidade “Plaquinha” v2: logo (plaquinha da coleira com “abu” gravado), wordmark contornado, ícones, paleta coleira/latão/bolinha, Bricolage Grotesque + Figtree + Caveat, polaroides, figurinhas — ver docs/BRAND.md | ✅ |
+| Identidade v3 a partir do logo do proprietário (Abu lendo o livro): recortes automáticos, paleta do logo, Baloo 2 + Nunito, introdução emocional em 5 passos com animações, movimento nas telas e na conquista — ver docs/BRAND.md | ✅ |
 | Boas-vindas, onboarding (nome obrigatório, foto/data/preferências opcionais, fuso confirmado, aviso de privacidade) | ✅ demo |
 | Hoje: nível/XP, até 3 sugestões filtradas por preferências, trocar sugestões, progresso do álbum, última lembrança | ✅ demo |
 | Catálogo de 12 missões, detalhe, pré-requisito M01, XP único por missão | ✅ demo |
@@ -44,7 +44,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 - `npm test` — 22 testes (datas civis, sugestões, níveis, regras do validador, ledger, idempotência de XP com requisições simultâneas, limite diário, exclusão, paridade do seed).
 - `npm run typecheck` e `npm run build` — sem erros.
 - `node scripts/contrast.mjs` — contraste de todas as combinações usadas.
-- `scripts/e2e.py` (Chromium headless, 390 px, 360 px e 1280 px) — 27/27: fluxo completo, EXIF, arquivo falso e corrompido, persistência após recarregar, sem rolagem horizontal, sem erros de console, apagar diário.
+- `scripts/e2e.py` (Chromium headless, 390 px, 360 px e 1280 px) — 28/28: fluxo completo, EXIF, arquivo falso e corrompido, persistência após recarregar, sem rolagem horizontal, sem erros de console, apagar diário.
 
 ## Não verificado
 
@@ -57,7 +57,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 1. **Projeto Supabase** (URL + anon key + service role) para a Etapa C.
 2. **Escolha do provedor de validação** (Etapa D) e **de imagem com referência** (Etapa E) — vou comparar opções com documentação e preços atuais quando chegar a hora.
-3. **Fotos do Abu** (frente, perfil, corpo inteiro, expressão típica) para o retrato ilustrado na plaquinha. A galeria Pixieset não pôde ser lida daqui; baixar e anexar, ou rodar o Claude Code com Chrome.
+3. **Logo**: versão vetorial (SVG) e confirmação de direitos de uso antes do lançamento.
 4. Email de suporte real.
 
 ## Próximo passo

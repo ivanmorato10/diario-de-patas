@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useStore } from "@/data/store";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconSun } from "./icons";
 import { DogAvatar } from "./media";
-import { TagMark, Wordmark } from "./brand";
+import { AbuFace, BrandLockup } from "./brand";
 
 const NAV = [
   { href: "/hoje", label: "Hoje", Icon: IconSun },
@@ -54,7 +54,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
           {back ? (
             <Link href={back} className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link>
           ) : (
-            <Link href="/hoje" aria-label="Diário de Patas — início" style={{ display: "inline-flex" }}>{title ? <TagMark size={34} /> : <Wordmark size={22} />}</Link>
+            <Link href="/hoje" aria-label="Diário de Patas — início" style={{ display: "inline-flex" }}>{title ? <AbuFace size={38} className="brand-lockup__face" /> : <BrandLockup />}</Link>
           )}
           {title ? <h1 style={{ fontSize: "1.25rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</h1> : null}
         </div>

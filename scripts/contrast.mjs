@@ -5,23 +5,10 @@ const L = (hex) => {
 };
 const ratio = (a, b) => { const [x, y] = [L(a), L(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
 const pairs = [
-  ["tinta / papel", "#1D2B53", "#F6F7FB", 4.5],
-  ["texto secundário / papel", "#5A6386", "#F6F7FB", 4.5],
-  ["texto secundário / branco", "#5A6386", "#FFFFFF", 4.5],
-  ["branco / tinta (botão)", "#FFFFFF", "#1D2B53", 4.5],
-  ["tinta / brand-soft (aba ativa)", "#1D2B53", "#E7EBF7", 4.5],
-  ["tinta / bolinha (chip XP, botão no destaque)", "#1D2B53", "#D6EC3D", 4.5],
-  ["bolinha / tinta (rótulo no destaque)", "#D6EC3D", "#1D2B53", 4.5],
-  ["#E7EBF7 / tinta (texto no destaque)", "#E7EBF7", "#1D2B53", 4.5],
-  ["latão profundo / accent-soft (bilhete)", "#7A560B", "#FBF1D6", 4.5],
-  ["tinta / accent-soft (bilhete)", "#1D2B53", "#FBF1D6", 4.5],
-  ["#3D2A03 / latão (figurinha concluída)", "#3D2A03", "#D9A93B", 3.0],
+  ["marrom / fundo", "#3D2D1E", "#EAF6F3", 4.5], ["marrom suave / fundo", "#6B5A4A", "#EAF6F3", 4.5], ["creme / marrom (botão)", "#FFF8EC", "#3D2D1E", 4.5], ["marrom / verde-água (destaque)", "#3D2D1E", "#63B4AD", 4.5], ["marrom / pêssego (XP)", "#3D2D1E", "#FFD9BF", 4.5], ["link / fundo", "#226760", "#EAF6F3", 4.5], ["branco / laranja (ícone figurinha)", "#FFFFFF", "#E36F34", 3.0],
   ["branco / perigo", "#FFFFFF", "#B42318", 4.5],
-  ["perigo / branco", "#B42318", "#FFFFFF", 4.5],
   ["#7A1A12 / danger-soft", "#7A1A12", "#FDECEA", 4.5],
   ["desativado #5F6862 / #ECEEE9", "#5F6862", "#ECEEE9", 4.5],
-  ["foco #2B3D75 / papel (não-texto)", "#2B3D75", "#F6F7FB", 3.0],
-  ["latão / papel (decoração)", "#D9A93B", "#F6F7FB", 1.0],
 ];
 let fail = 0;
 for (const [n, a, b, min] of pairs) { const r = ratio(a, b); const ok = r >= min; if (!ok) fail++; console.log(`${ok ? "OK  " : "FAIL"} ${r.toFixed(2)}:1 (mín ${min}) ${n}`); }

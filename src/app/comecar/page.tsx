@@ -11,6 +11,7 @@ import { PhotoPicker } from "@/components/photo-picker";
 import { PreferencesFields, TimezoneSelect } from "@/components/profile-fields";
 import { DemoBanner, StorageUnavailable } from "@/components/shell";
 import { IconArrowLeft, IconInfo } from "@/components/icons";
+import { AbuSays } from "@/components/brand";
 import type { DogPreferences } from "@/domain/types";
 
 export default function Comecar() {
@@ -63,6 +64,7 @@ export default function Comecar() {
           <form className="stack-lg" onSubmit={submit} noValidate>
             <div className="stack">
               <h1>Vamos criar o diário</h1>
+              <AbuSays>Me conta: como se chama o seu melhor amigo?</AbuSays>
               <p className="muted">Só o nome é obrigatório. O resto você ajusta quando quiser.</p>
             </div>
 

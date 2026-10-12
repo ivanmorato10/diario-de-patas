@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TagMark } from "@/components/brand";
+import { AbuMascot } from "@/components/brand";
 
 export const metadata: Metadata = {
   title: "Álbum compartilhado",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function SharedPage() {
   return (
     <main className="main main--bare" style={{ alignItems: "center", textAlign: "center", paddingTop: 64 }}>
-      <TagMark size={56} />
+      <AbuMascot width={150} className="anim-float" />
       <h1>Este álbum não está disponível</h1>
       <p className="muted">O link pode ter sido desativado ou não existir mais.</p>
       <p className="caption">Diário de Patas</p>
