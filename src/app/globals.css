@@ -412,13 +412,13 @@ body { background: var(--background); }
 .intro { background: linear-gradient(180deg, var(--brand-teal-light) 0%, var(--background) 55%); }
 .intro__main { min-height: calc(100dvh - 40px); justify-content: space-between; gap: 18px; padding-top: 14px; }
 .intro__slide { display: flex; flex-direction: column; align-items: center; gap: 22px; flex: 1; justify-content: center; }
-.intro__title-line { display: block; text-wrap: balance; }
+.intro__title-line { display: block; }
 .intro__text { font-size: 1.125rem; line-height: 1.55; max-width: 440px; color: var(--text-secondary); }
 .intro__actions { gap: 14px; }
-/* Primeira página: bilhete escrito à mão numa folha pautada do diário */
-.intro-diary { width: 100%; max-width: 440px; gap: 2px; padding: 12px 22px 6px; border-radius: 6px; background: var(--paper) repeating-linear-gradient(transparent 0 33px, #e6dccb 33px 34px) 0 12px; box-shadow: 0 2px 10px rgba(63, 43, 26, 0.12); rotate: -1.2deg; color: var(--text-primary); text-align: left !important; align-items: stretch !important; }
-.intro-diary h1 { font-family: var(--font-hand); font-weight: 700; font-size: 2.2rem; line-height: 34px; letter-spacing: 0; padding-bottom: 6px; }
-.intro-diary__paw { color: var(--brand-teal); margin-left: 8px; vertical-align: -4px; rotate: 18deg; }
+/* Textos da introdução: bilhete escrito à mão numa folha pautada do diário */
+.intro-diary { width: 100%; max-width: 440px; gap: 2px; padding: 12px 22px 6px; border-radius: 6px; background: var(--paper) repeating-linear-gradient(transparent 0 33px, #e6dccb 33px 34px) 0 12px; box-shadow: 0 2px 10px rgba(63, 43, 26, 0.12); color: var(--text-primary); text-align: left; align-items: stretch; }
+.intro-diary h1 { font-family: var(--font-hand); font-weight: 700; font-size: 1.9rem; line-height: 34px; letter-spacing: 0; padding-bottom: 6px; }
+.intro-diary__paw { color: var(--brand-teal); margin-left: 5px; vertical-align: -2px; rotate: 18deg; }
 .intro-diary .intro__text { white-space: pre-line; font-family: var(--font-hand); font-weight: 500; font-size: 1.45rem; line-height: 34px; color: var(--text-primary); max-width: none; }
 .intro-visual { position: relative; min-height: 270px; width: 100%; display: grid; place-items: center; }
 .intro-halo { position: absolute; width: 240px; height: 240px; border-radius: 50%; background: var(--brand-teal); opacity: 0.35; animation: pop-in 600ms var(--spring) both; }

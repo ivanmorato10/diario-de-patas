@@ -48,7 +48,7 @@ function Title({ title, paw }: { title: string; paw?: boolean }) {
         const cut = line.search(/\S+$/);
         return (
           <span key={i} className="intro__title-line">
-            {last && paw ? <>{line.slice(0, cut)}<span style={{ whiteSpace: "nowrap" }}>{line.slice(cut)}<Paw size={30} className="intro-diary__paw" /></span></> : line}
+            {last && paw ? <>{line.slice(0, cut)}<span style={{ whiteSpace: "nowrap" }}>{line.slice(cut)}<Paw size={24} className="intro-diary__paw" /></span></> : line}
           </span>
         );
       })}
@@ -139,8 +139,8 @@ export default function BemVindo() {
 
         <section key={step} className="intro__slide" aria-live="polite">
           <StepVisual step={step} />
-          <div className={`stack${step === 0 ? " intro-diary anim-rise" : ""}`} style={{ textAlign: "center", alignItems: "center" }}>
-            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420, fontSize: STEPS[step].title.includes("\n") ? "1.75rem" : undefined }}><Title title={STEPS[step].title} paw={STEPS[step].paw} /></h1>
+          <div className="stack intro-diary anim-rise" style={{ rotate: `${step % 2 ? 1 : -1.2}deg` }}>
+            <h1 ref={titleRef} tabIndex={-1} className="anim-rise"><Title title={STEPS[step].title} paw={STEPS[step].paw} /></h1>
             <p className="anim-rise-2 intro__text" style={{ whiteSpace: "pre-line" }}>{STEPS[step].text}</p>
           </div>
         </section>
