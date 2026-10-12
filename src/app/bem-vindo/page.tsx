@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AbuFace, AbuMascot, LogoCard } from "@/components/brand";
+import { AbuCard, AbuFace, AbuMascot } from "@/components/brand";
 import { IconStar, Paw } from "@/components/icons";
 import { DemoBanner } from "@/components/shell";
 
@@ -17,7 +17,7 @@ const STEPS = [
   },
   {
     title: "A vida com a gente é feita de momentos pequenos.",
-    text: "Uma soneca no sol, o primeiro passeio do dia, aquela cara que só quem mora com a gente entende. Eles passam rápido — e acabam perdidos no meio de milhares de fotos.",
+    text: "Uma soneca no sol, o primeiro passeio do dia, aquela pose caprichada para a foto. Eles passam rápido — e acabam perdidos no meio de milhares de fotos.",
   },
   {
     title: "Este app foi criado para guardar esses momentos.",
@@ -46,7 +46,7 @@ function StepVisual({ step }: { step: number }) {
     const moments = [
       { src: "/moments/soneca.webp", label: "Soneca no sol", focus: "45% 62%" },
       { src: "/moments/passeio.webp", label: "Passeio", focus: "62% 72%" },
-      { src: "/moments/cara.webp", label: "Aquela cara", focus: "50% 22%" },
+      { src: "/moments/pose.webp", label: "Fazendo pose", focus: "50% 22%" },
     ];
     return (
       <div className="intro-visual intro-moments" aria-hidden="true">
@@ -90,7 +90,7 @@ function StepVisual({ step }: { step: number }) {
   }
   return (
     <div className="intro-visual">
-      <div className="anim-pop"><LogoCard width={210} /></div>
+      <div className="anim-pop"><div className="anim-float"><AbuCard width={220} /></div></div>
     </div>
   );
 }
@@ -116,7 +116,7 @@ export default function BemVindo() {
 
         <section key={step} className="intro__slide" aria-live="polite">
           <StepVisual step={step} />
-          <div className="stack" style={{ textAlign: "center", alignItems: "center" }}>
+          <div className={`stack${step === 0 ? " intro-diary anim-rise" : ""}`} style={{ textAlign: "center", alignItems: "center" }}>
             <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420 }}>{STEPS[step].title}</h1>
             <p className="anim-rise-2 intro__text">{STEPS[step].text}</p>
           </div>

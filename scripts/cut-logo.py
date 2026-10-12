@@ -1,5 +1,6 @@
 """Recorta o logo enviado pelo proprietário (docs/brand-source/logo-original.jpg) em:
 - logo-card.png       cartão completo com cantos arredondados transparentes
+- abu-card.png        só a ilustração do cartão (sem a faixa de texto)
 - abu-mascote.png     Abu + livro sem fundo (recorte por preenchimento a partir das bordas)
 - app-icon-512.png / icon-192.png / apple-touch-icon.png   ícone quadrado
 - favicon-64.png      rosto do Abu
@@ -23,6 +24,10 @@ def rounded(img, r):
 CARD = (80, 236, 752, 1060)
 card = rounded(im.crop(CARD), 54)
 card.save(os.path.join(OUT, "logo-card.png"), optimize=True)
+
+# 1b) Só a ilustração: 6px para dentro da borda do cartão (raio ~89) e acima da faixa de texto (y=865)
+ART = (84, 241, 748, 864)
+rounded(im.crop(ART), 84).save(os.path.join(OUT, "abu-card.png"), optimize=True)
 
 # 2) Mascote recortado: remove os dois tons de verde-água conectados à borda
 BOX = (150, 290, 690, 875)

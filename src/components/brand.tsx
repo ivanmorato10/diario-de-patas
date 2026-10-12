@@ -24,6 +24,11 @@ export function LogoCard({ width = 240, className }: { width?: number; className
   return <img src="/brand/logo-card.png" alt="Diário de Patas — Sempre Juntos" width={width} height={Math.round(width * (824 / 672))} className={className} style={{ display: "block", height: "auto" }} />;
 }
 
+/** Só a ilustração do cartão (Abu + livro), sem o texto — para telas que já mostram o nome. */
+export function AbuCard({ width = 220, className }: { width?: number; className?: string }) {
+  return <img src="/brand/abu-card.png" alt="Abu lendo o Diário de Patas" width={width} height={Math.round(width * (623 / 664))} className={className} style={{ display: "block", height: "auto" }} />;
+}
+
 /** Assinatura do cabeçalho: rosto do Abu + nome com a fonte do logo. */
 export function BrandLockup({ withTagline = false }: { withTagline?: boolean }) {
   return (

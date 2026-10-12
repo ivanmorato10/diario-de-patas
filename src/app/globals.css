@@ -1,6 +1,7 @@
 /* Diário de Patas — identidade a partir do logo do Abu. Fonte da verdade: docs/BRAND.md */
 @import "@fontsource-variable/baloo-2/wght.css";
 @import "@fontsource-variable/nunito/wght.css";
+@import "@fontsource-variable/caveat/wght.css";
 
 :root {
   /* Cores tiradas do logo: verde-água do cartão, marrom do traço, laranja da coleira, lilás do ossinho, creme das páginas */
@@ -28,6 +29,7 @@
   --focus: #226760;
 
   --font-heading: "Baloo 2 Variable", "Nunito Variable", system-ui, sans-serif;
+  --font-hand: "Caveat Variable", "Segoe Print", cursive;
   --font-body: "Nunito Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   --radius-card: 22px;
@@ -410,6 +412,10 @@ body { background: var(--background); }
 .intro__slide { display: flex; flex-direction: column; align-items: center; gap: 22px; flex: 1; justify-content: center; }
 .intro__text { font-size: 1.125rem; line-height: 1.55; max-width: 440px; color: var(--text-secondary); }
 .intro__actions { gap: 14px; }
+/* Primeira página: bilhete escrito à mão numa folha pautada do diário */
+.intro-diary { width: 100%; max-width: 440px; gap: 4px; padding: 18px 22px 8px; border-radius: 6px; background: var(--paper) repeating-linear-gradient(transparent 0 37px, #e6dccb 37px 38px) 0 16px; box-shadow: 0 2px 10px rgba(63, 43, 26, 0.12); rotate: -1.2deg; color: var(--text-primary); }
+.intro-diary h1 { font-family: var(--font-hand); font-weight: 700; font-size: 2.3rem; line-height: 38px; letter-spacing: 0; }
+.intro-diary .intro__text { font-family: var(--font-hand); font-weight: 500; font-size: 1.65rem; line-height: 38px; color: var(--text-primary); }
 .intro-visual { position: relative; min-height: 270px; width: 100%; display: grid; place-items: center; }
 .intro-halo { position: absolute; width: 240px; height: 240px; border-radius: 50%; background: var(--brand-teal); opacity: 0.35; animation: pop-in 600ms var(--spring) both; }
 .intro-halo--warm { background: var(--reward); opacity: 0.7; }
