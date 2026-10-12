@@ -51,7 +51,7 @@ function StepVisual({ step }: { step: number }) {
     return (
       <div className="intro-visual intro-moments" aria-hidden="true">
         {moments.map(({ src, label, focus }, i) => (
-          <div key={label} className="polaroid anim-drop intro-mini" style={{ animationDelay: `${i * 160}ms`, ["--tilt" as string]: `${[-6, 3, -2][i]}deg` }}>
+          <div key={label} className="polaroid intro-mini" style={{ animationDelay: `${250 + i * 800}ms`, ["--tilt" as string]: `${[-6, 3, -2][i]}deg` }}>
             <img src={src} alt="" className="intro-mini__photo" style={{ objectPosition: focus }} />
             <p className="polaroid__note" style={{ fontSize: "0.95rem", textAlign: "center" }}>{label}</p>
           </div>

@@ -367,6 +367,7 @@ body { background: var(--background); }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes stamp { 0% { transform: scale(1.8) rotate(-18deg); opacity: 0; } 60% { transform: scale(0.92) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
 @keyframes drop { 0% { transform: translateY(-30px) rotate(-8deg); opacity: 0; } 70% { transform: translateY(4px) rotate(var(--tilt, -1.2deg)); opacity: 1; } 100% { transform: rotate(var(--tilt, -1.2deg)); } }
+@keyframes photo-place { 0% { transform: translateY(-70px) scale(1.35) rotate(calc(var(--tilt, 0deg) * -3)); opacity: 0; box-shadow: 0 30px 40px rgba(63, 43, 26, 0.25); } 55% { opacity: 1; } 78% { transform: translateY(3px) scale(0.98) rotate(var(--tilt, 0deg)); } 100% { transform: rotate(var(--tilt, 0deg)); } }
 @keyframes paw-step { 0%, 100% { opacity: 0; } 20%, 60% { opacity: 1; } }
 @keyframes burst { 0% { transform: translate(0, 0) scale(0.4) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; } }
 @keyframes fill { from { width: 0; } }
@@ -403,6 +404,7 @@ body { background: var(--background); }
   .anim-float, .anim-hello, .paw-trail span { animation: none !important; }
   .paw-trail span { opacity: 1; }
   .burst { display: none; }
+  .intro-mini { animation: none; }
   .polaroid { transform: none; }
 }
 
@@ -420,7 +422,7 @@ body { background: var(--background); }
 .intro-halo { position: absolute; width: 240px; height: 240px; border-radius: 50%; background: var(--brand-teal); opacity: 0.35; animation: pop-in 600ms var(--spring) both; }
 .intro-halo--warm { background: var(--reward); opacity: 0.7; }
 .intro-moments { display: flex; justify-content: center; align-items: center; gap: 8px; }
-.intro-mini { width: 108px; }
+.intro-mini { width: 108px; animation: photo-place 700ms var(--spring) both; }
 .intro-mini__photo { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 3px; background: var(--brand-soft); }
 .intro-album { background: var(--paper); border: 3px solid var(--text-primary); border-radius: 18px; box-shadow: 0 5px 0 var(--text-primary); padding: 16px 18px 20px; width: 250px; }
 .intro-album__title { font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; text-align: center; margin-bottom: 12px; }
