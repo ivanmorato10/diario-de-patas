@@ -10,14 +10,18 @@ import { DemoBanner } from "@/components/shell";
  * Introdução emocional (pedido do proprietário): o Abu se apresenta e conta por que o app existe.
  * Nada aqui inventa fatos sobre o Abu — só o propósito do diário.
  */
-const STEPS = [
+const STEPS: { title: string; text: string; paw?: boolean; cta?: string }[] = [
   {
     title: "Oi, eu sou o Abu!",
+    paw: true,
+    cta: "Vamos nessa, Abu!",
     text: "Minha vida tem passeios, sonecas e umas travessuras que merecem ser lembradas.\nAposto que a do seu cachorro também.\nVamos guardar essas histórias juntos?",
   },
   {
-    title: "A vida com a gente é feita de momentos pequenos.",
-    text: "Uma soneca no sol, o primeiro passeio do dia, aquela pose caprichada para a foto. Eles passam rápido — e acabam perdidos no meio de milhares de fotos.",
+    title: "Pra você, uma foto.\nPra mim, um dia com você.",
+    paw: true,
+    cta: "Cada momento conta",
+    text: "O passeio de sempre, a soneca no sofá, aquela pose por um petisco… Nosso álbum está nessas pequenas coisas.\nVamos guardar as favoritas?",
   },
   {
     title: "Este app foi criado para guardar esses momentos.",
@@ -32,6 +36,18 @@ const STEPS = [
     text: "Agora é a vez do seu melhor amigo. Vamos começar a história de vocês?",
   },
 ];
+
+/** A patinha fica presa à última palavra para nunca cair sozinha numa linha. */
+function TitleWithPaw({ title, paw }: { title: string; paw?: boolean }) {
+  if (!paw) return <>{title}</>;
+  const cut = title.search(/\S+$/);
+  return (
+    <>
+      {title.slice(0, cut)}
+      <span style={{ whiteSpace: "nowrap" }}>{title.slice(cut)}<Paw size={30} className="intro-diary__paw" /></span>
+    </>
+  );
+}
 
 function StepVisual({ step }: { step: number }) {
   if (step === 0) {
@@ -117,8 +133,8 @@ export default function BemVindo() {
         <section key={step} className="intro__slide" aria-live="polite">
           <StepVisual step={step} />
           <div className={`stack${step === 0 ? " intro-diary anim-rise" : ""}`} style={{ textAlign: "center", alignItems: "center" }}>
-            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420 }}>{STEPS[step].title}{step === 0 ? <Paw size={30} className="intro-diary__paw" /> : null}</h1>
-            <p className="anim-rise-2 intro__text">{STEPS[step].text}</p>
+            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420, whiteSpace: "pre-line", fontSize: STEPS[step].title.includes("\n") ? "1.75rem" : undefined }}><TitleWithPaw title={STEPS[step].title} paw={STEPS[step].paw} /></h1>
+            <p className="anim-rise-2 intro__text" style={{ whiteSpace: "pre-line" }}>{STEPS[step].text}</p>
           </div>
         </section>
 
@@ -142,7 +158,7 @@ export default function BemVindo() {
             <div className="row" style={{ gap: 10 }}>
               {step > 0 ? <button type="button" className="btn btn--secondary" onClick={() => setStep((s) => s - 1)} aria-label="Voltar">Voltar</button> : null}
               <button type="button" className="btn btn--primary" style={{ flex: 1 }} onClick={() => setStep((s) => s + 1)}>
-                {step === 0 ? "Vamos nessa, Abu!" : "Continuar"}
+                {STEPS[step].cta ?? "Continuar"}
               </button>
             </div>
           )}
