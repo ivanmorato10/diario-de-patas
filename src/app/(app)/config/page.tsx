@@ -102,7 +102,7 @@ export default function Config() {
           <div className="field">
             <label htmlFor="tz">Fuso horário</label>
             <TimezoneSelect id="tz" value={tz} onChange={setTz} />
-            <span className="hint">Usado para organizar datas e renovar o limite diário.</span>
+            <span className="hint">Usado para organizar as datas do diário.</span>
           </div>
           {msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null}
           <button type="submit" className="btn btn--primary btn--block">Salvar perfil</button>
@@ -112,7 +112,6 @@ export default function Config() {
           <h2 id="uso">Uso desta versão de teste</h2>
           <dl className="stack small" style={{ margin: 0, gap: 6 }}>
             <div className="row-between"><dt className="muted">Lembranças</dt><dd style={{ margin: 0 }}>{snap.entries.length} de {LIMITS.maxEntries}</dd></div>
-            <div className="row-between"><dt className="muted">Validações hoje</dt><dd style={{ margin: 0 }}>{snap.validationsToday} de {LIMITS.validationsPerDay}</dd></div>
             <div className="row-between"><dt className="muted">Tamanho máximo por foto</dt><dd style={{ margin: 0 }}>{LIMITS.maxUploadBytes / 1024 / 1024} MB</dd></div>
             <div className="row-between"><dt className="muted">Créditos do estúdio</dt><dd style={{ margin: 0 }}>0 (ainda não disponível)</dd></div>
           </dl>

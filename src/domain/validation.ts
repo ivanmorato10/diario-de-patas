@@ -1,3 +1,8 @@
+/**
+ * DESLIGADO (MUDANCAS-V2 §1): missões são confirmadas pelo dono; nenhuma foto é validada por IA.
+ * Mantido para o futuro: "sugestão de missão por IA, nunca bloqueio" — por exemplo, sugerir
+ * em qual missão uma foto livre se encaixa. Nada aqui é chamado pelo app hoje.
+ */
 import { z } from "zod";
 import type { MissionTemplate } from "@/config/catalog";
 import type { SubmissionStatus } from "./types";

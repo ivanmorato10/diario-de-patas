@@ -18,7 +18,7 @@ const NAV = [
 export function DemoBanner() {
   return (
     <div className="demo-banner" role="note">
-      Modo demonstração: tudo fica só neste aparelho, sem conta e sem IA. <Link href="/sobre#demo">Saiba mais</Link>
+      Modo demonstração: tudo fica só neste aparelho, sem conta. <Link href="/sobre#demo">Saiba mais</Link>
     </div>
   );
 }

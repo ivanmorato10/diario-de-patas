@@ -11,11 +11,16 @@ import { civilDateInTz } from "@/domain/dates";
 import { missionById, missionState } from "@/domain/missions";
 import type {
   AlbumEntry, CivilDate, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
-  Profile, SubmissionStatus, UsageCounter, XpLedgerEntry, EntrySource,
+  Profile, SubmissionStatus, XpLedgerEntry, EntrySource,
 } from "@/domain/types";
 
 export const DEMO_DB_NAME = "diario-de-patas-demo";
-const DB_VERSION = 1;
+/**
+ * Versões do banco local. Cada upgrade só ACRESCENTA ou remove o que mudou — nunca recria
+ * tabelas com dados do usuário.
+ * 1: esquema inicial · 2: remove o contador de validações diárias (MUDANCAS-V2 §1)
+ */
+const DB_VERSION = 2;
 
 interface DemoDB extends DBSchema {
   profile: { key: string; value: Profile };
@@ -26,7 +31,6 @@ interface DemoDB extends DBSchema {
   submissions: { key: string; value: MissionSubmission; indexes: { requestKey: string } };
   completions: { key: string; value: MissionCompletion };
   xp: { key: string; value: XpLedgerEntry; indexes: { completionKey: string } };
-  usage: { key: string; value: UsageCounter };
 }
 
 export type Db = IDBPDatabase<DemoDB>;
@@ -45,26 +49,31 @@ export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
       void db.then((d) => d.close());
       if (typeof window !== "undefined") window.location.reload();
     },
-    upgrade(db) {
-      db.createObjectStore("profile", { keyPath: "id" });
-      db.createObjectStore("dogs", { keyPath: "id" });
-      db.createObjectStore("media", { keyPath: "id" }).createIndex("hash", "hash");
-      const entries = db.createObjectStore("entries", { keyPath: "id" });
-      entries.createIndex("requestKey", "requestKey", { unique: true });
-      entries.createIndex("occurredDate", "occurredDate");
-      const ae = db.createObjectStore("albumEntries", { keyPath: "key" });
-      ae.createIndex("albumId", "albumId");
-      ae.createIndex("entryId", "entryId");
-      db.createObjectStore("submissions", { keyPath: "id" }).createIndex("requestKey", "requestKey", { unique: true });
-      db.createObjectStore("completions", { keyPath: "instanceKey" });
-      db.createObjectStore("xp", { keyPath: "id" }).createIndex("completionKey", "completionKey", { unique: true });
-      db.createObjectStore("usage", { keyPath: "key" });
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) createV1(db);
+      // v2: o limite diário de validações deixou de existir.
+      if (oldVersion === 1) db.deleteObjectStore("usage" as never);
     },
   });
   return db;
 }
 
-const STORES = ["profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp", "usage"] as const;
+function createV1(db: IDBPDatabase<DemoDB>) {
+  db.createObjectStore("profile", { keyPath: "id" });
+  db.createObjectStore("dogs", { keyPath: "id" });
+  db.createObjectStore("media", { keyPath: "id" }).createIndex("hash", "hash");
+  const entries = db.createObjectStore("entries", { keyPath: "id" });
+  entries.createIndex("requestKey", "requestKey", { unique: true });
+  entries.createIndex("occurredDate", "occurredDate");
+  const ae = db.createObjectStore("albumEntries", { keyPath: "key" });
+  ae.createIndex("albumId", "albumId");
+  ae.createIndex("entryId", "entryId");
+  db.createObjectStore("submissions", { keyPath: "id" }).createIndex("requestKey", "requestKey", { unique: true });
+  db.createObjectStore("completions", { keyPath: "instanceKey" });
+  db.createObjectStore("xp", { keyPath: "id" }).createIndex("completionKey", "completionKey", { unique: true });
+}
+
+const STORES = ["profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp"] as const;
 
 /**
  * Esvazia todas as tabelas numa única transação. Não usa deleteDB: apagar o banco fica
@@ -102,7 +111,6 @@ export interface Snapshot {
   albumEntries: AlbumEntry[];
   completions: MissionCompletion[];
   xpTotal: number;
-  validationsToday: number;
   today: CivilDate;
 }
 
@@ -114,7 +122,6 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
   const xp = await db.getAll("xp");
   const tz = profile?.timezone ?? "UTC";
   const today = civilDateInTz(new Date(), tz);
-  const usage = await db.get("usage", `${today}:validation`);
   return {
     profile,
     dog: dogs[0] ?? null,
@@ -122,7 +129,6 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
     albumEntries: await db.getAll("albumEntries"),
     completions: await db.getAll("completions"),
     xpTotal: xp.reduce((s, e) => s + e.amount, 0),
-    validationsToday: usage?.count ?? 0,
     today,
   };
 }
@@ -284,7 +290,7 @@ export interface SubmitResult {
 
 /**
  * Registra a submissão de missão de forma idempotente e concede XP uma única vez.
- * No modo demo a decisão vem da confirmação manual do dono (mode = "demo_manual").
+ * A decisão vem da confirmação do dono (mode = "owner") — sem IA e sem limite diário (MUDANCAS-V2 §1).
  */
 export async function submitMission(
   db: Db,
@@ -292,7 +298,7 @@ export async function submitMission(
 ): Promise<SubmitResult> {
   const mission = missionById(input.missionId);
   if (!mission) throw new DomainError("UNKNOWN_MISSION", "Missão não encontrada.");
-  const tx = db.transaction(["profile", "dogs", "entries", "submissions", "completions", "xp", "usage", "albumEntries"], "readwrite");
+  const tx = db.transaction(["profile", "dogs", "entries", "submissions", "completions", "xp", "albumEntries"], "readwrite");
   const prior = await tx.objectStore("submissions").index("requestKey").get(input.requestKey);
   if (prior) {
     const completion = (await tx.objectStore("completions").get(`${prior.dogId}:${prior.missionId}`)) ?? null;
@@ -308,15 +314,6 @@ export async function submitMission(
   const completedSet = new Set((await tx.objectStore("completions").getAll()).map((c) => c.missionId));
   if (missionState(mission, completedSet) === "locked") {
     return fail(tx, new DomainError("LOCKED", "Essa missão abre depois de concluir a anterior."));
-  }
-  // Cota diária (falhas técnicas não consomem).
-  if (input.status !== "technical_failure" && input.status !== "pending") {
-    const key = `${civilDateInTz(new Date(), profile.timezone)}:validation`;
-    const usage = (await tx.objectStore("usage").get(key)) ?? { key, count: 0 };
-    if (usage.count >= LIMITS.validationsPerDay) {
-      return fail(tx, new DomainError("DAILY_LIMIT", `Você usou as ${LIMITS.validationsPerDay} validações de hoje. A foto continua no diário e você pode validar amanhã.`));
-    }
-    await tx.objectStore("usage").put({ key, count: usage.count + 1 });
   }
   const submission: MissionSubmission = {
     id: newId(), requestKey: input.requestKey, missionId: mission.id, dogId: dog.id, entryId: entry.id,

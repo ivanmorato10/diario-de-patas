@@ -9,7 +9,6 @@ export const LIMITS = {
   maxUploadBytes: 10 * 1024 * 1024,
   /** Limite de pixels para evitar imagens que exaurem memória ao decodificar. */
   maxUploadPixels: 40_000_000,
-  validationsPerDay: 5,
   captionMaxChars: 280,
   dogNameMaxChars: 40,
   albumTitleMaxChars: 40,
@@ -21,7 +20,7 @@ export const IMAGE = {
   displayQuality: 0.85,
   thumbMaxEdge: 400,
   thumbQuality: 0.78,
-  /** Variante reduzida enviada ao validador (não substitui o original de exibição). */
+  /** Variante reduzida para um validador futuro (desligado; ver src/domain/validation.ts). */
   validationMaxEdge: 1024,
   acceptedMime: ["image/jpeg", "image/png", "image/webp"] as const,
 } as const;

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { missionById, missionBySlug, missionState } from "@/domain/missions";
-import { LIMITS } from "@/config/business";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MissionStamp, collectionTitle } from "@/components/mission-ui";
 import { IconCheck, IconInfo } from "@/components/icons";
@@ -22,7 +21,6 @@ export default function MissaoDetalhe() {
   }
   const state = missionState(mission, completed);
   const prereq = mission.prerequisiteId ? missionById(mission.prerequisiteId) : null;
-  const remaining = Math.max(0, LIMITS.validationsPerDay - snap.validationsToday);
   const completion = snap.completions.find((c) => c.missionId === mission.id);
 
   return (
@@ -54,31 +52,20 @@ export default function MissaoDetalhe() {
         {state === "completed" ? (
           <div className="notice notice--positive" role="status">
             <IconCheck />
-            <span>Missão concluída{completion?.mode === "demo_manual" ? " (confirmada por você no modo demonstração)" : ""}. Os pontos já foram contados — reenviar não soma de novo.</span>
+            <span>Missão concluída{completion ? " (confirmada por você)" : ""}. Os pontos já foram contados — reenviar não soma de novo.</span>
           </div>
         ) : state === "locked" ? (
           <div className="notice notice--info"><IconInfo /><span>Essa missão abre depois de concluir “{prereq?.title}”.</span></div>
         ) : (
           <div className="notice notice--info">
             <IconInfo />
-            <span>
-              Nesta demonstração não há validação por IA: depois de escolher a foto, você confirma se ela mostra o critério.
-              A conquista fica marcada como confirmada por você. Hoje restam {remaining} de {LIMITS.validationsPerDay} validações.
-            </span>
+            <span>Depois de escolher a foto, você confirma se ela mostra o que a missão pede. A conquista fica marcada como confirmada por você.</span>
           </div>
         )}
 
         <div className="stack">
           {state === "available" ? (
-            remaining > 0 ? (
-              <Link href={`/guardar?missao=${mission.slug}`} className="btn btn--primary btn--block">Enviar foto</Link>
-            ) : (
-              <>
-                <button type="button" className="btn btn--primary btn--block" disabled aria-describedby="limit-msg">Enviar foto</button>
-                <p id="limit-msg" className="small muted">As validações de hoje acabaram. Você ainda pode guardar a foto no diário e validar amanhã.</p>
-                <Link href="/guardar" className="btn btn--secondary btn--block">Guardar no diário</Link>
-              </>
-            )
+            <Link href={`/guardar?missao=${mission.slug}`} className="btn btn--primary btn--block">Enviar foto</Link>
           ) : state === "completed" ? (
             <Link href={`/albuns/${mission.collectionId}`} className="btn btn--secondary btn--block">Abrir álbum</Link>
           ) : null}

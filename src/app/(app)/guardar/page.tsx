@@ -23,7 +23,7 @@ type Step =
   | { kind: "pick" }
   | { kind: "edit" }
   | { kind: "confirm"; entry: DiaryEntry }
-  | { kind: "result"; entry: DiaryEntry; result: SubmitResult | null; limitMessage?: string };
+  | { kind: "result"; entry: DiaryEntry; result: SubmitResult | null };
 
 function GuardarInner() {
   const params = useSearchParams();
@@ -102,17 +102,12 @@ function GuardarInner() {
       const result = await submitMission(db!, {
         requestKey: submissionKey.current, missionId: mission.id, entryId: entry.id,
         status: matches ? "approved" : "uncertain", reasonCode: matches ? "OWNER_CONFIRMED" : "OWNER_UNSURE",
-        mode: "demo_manual", providerVersion: null,
+        mode: "owner", providerVersion: null,
       });
       await reload();
       setStep({ kind: "result", entry, result });
     } catch (err) {
-      if (err instanceof DomainError && err.code === "DAILY_LIMIT") {
-        await reload();
-        setStep({ kind: "result", entry, result: null, limitMessage: err.message });
-      } else {
-        setError(err instanceof DomainError ? err.message : "Não conseguimos registrar agora. A foto já está no diário — tente de novo.");
-      }
+      setError(err instanceof DomainError ? err.message : "Não conseguimos registrar agora. A foto já está no diário — tente de novo.");
     } finally {
       setBusy(false);
     }
@@ -195,7 +190,7 @@ function GuardarInner() {
               <span className="caption">Critério</span>
               <p style={{ fontWeight: 600 }}>{mission!.criterion}</p>
             </div>
-            <div className="notice notice--info"><IconInfo /><span>Modo demonstração: sem IA, quem confirma é você. A foto já está guardada no diário.</span></div>
+            <div className="notice notice--info"><IconInfo /><span>Quem confirma é você. A foto já está guardada no diário.</span></div>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
               <button type="button" className="btn btn--primary btn--block" onClick={() => confirm(step.entry, true)} disabled={busy}>Sim, mostra</button>
@@ -239,7 +234,7 @@ function ResultView({
             <span className="chip chip--reward anim-stamp" style={{ alignSelf: "flex-start" }}><IconStar size={16} /> {r!.xpAwarded > 0 ? `+${r!.xpAwarded} XP` : "Pontos já contados"}</span>
             <h1 ref={headingRef} tabIndex={-1}>Conquista: {missionTitle}</h1>
             <p className="muted">{r!.alreadyCompleted ? "Essa missão já estava concluída — a foto foi guardada e os pontos não somam de novo." : `Guardada no álbum ${collectionTitle(collectionOf(r!.submission.missionId))}.`}</p>
-            <p className="caption"><IconCheck size={14} style={{ verticalAlign: "-2px" }} /> Confirmada por você (modo demonstração, sem IA)</p>
+            <p className="caption"><IconCheck size={14} style={{ verticalAlign: "-2px" }} /> Confirmada por você</p>
           </div>
           {firstAchievement ? <AbuSays>Essa merece um lugar no álbum!</AbuSays> : null}
           <div className="stack">
@@ -250,7 +245,7 @@ function ResultView({
       ) : r ? (
         <>
           <h1 ref={headingRef} tabIndex={-1}>Guardada no diário</h1>
-          <p>Não deu para confirmar o tema nesta foto. Ela ficou no diário, sem pontos — você pode tentar outra quando quiser.</p>
+          <p>Tudo bem não ter certeza. A foto ficou no diário, sem pontos — você pode tentar outra quando quiser.</p>
           <div className="stack">
             <Link href={`/guardar?missao=${slugFor(r.submission.missionId)}`} className="btn btn--primary btn--block">Tentar outra foto</Link>
             <Link href="/diario" className="btn btn--secondary btn--block">Ver no diário</Link>
@@ -259,9 +254,7 @@ function ResultView({
       ) : (
         <>
           <h1 ref={headingRef} tabIndex={-1}>Guardada no diário</h1>
-          {step.limitMessage ? (
-            <div className="notice notice--warn" role="status"><IconAlert /><span>{step.limitMessage}</span></div>
-          ) : <p className="muted">Mais uma lembrança de {dogName}.</p>}
+          <p className="muted">Mais uma lembrança de {dogName}.</p>
           <div className="stack">
             <Link href="/diario" className="btn btn--primary btn--block">Ver no diário</Link>
             <Link href="/hoje" className="btn btn--secondary btn--block">Voltar para Hoje</Link>

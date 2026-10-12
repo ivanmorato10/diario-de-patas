@@ -1,9 +1,8 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it, beforeEach } from "vitest";
 import {
-  openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, DomainError, type Db, type ProcessedImage,
+  openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, type Db, type ProcessedImage,
 } from "./demo-repository";
-import { LIMITS } from "@/config/business";
 
 const img = (hash = "h"): ProcessedImage => ({
   mime: "image/webp", width: 10, height: 10, bytes: 3, hash, display: new Blob(["abc"]), thumb: new Blob(["a"]),
@@ -18,7 +17,7 @@ beforeEach(async () => {
 
 const entry = (key: string) => saveEntry(db, { requestKey: key, image: img(key), caption: "", occurredDate: "2026-10-12", source: "free", missionId: null, albumIds: [] });
 const approve = (key: string, entryId: string, missionId = "M01") =>
-  submitMission(db, { requestKey: key, missionId, entryId, status: "approved", reasonCode: "MATCH", mode: "demo_manual", providerVersion: null });
+  submitMission(db, { requestKey: key, missionId, entryId, status: "approved", reasonCode: "MATCH", mode: "owner", providerVersion: null });
 
 describe("repositório demo", () => {
   it("retry de envio não duplica a lembrança", async () => {
@@ -40,7 +39,7 @@ describe("repositório demo", () => {
 
   it("resultado incerto guarda a foto sem XP", async () => {
     const e = await entry("e");
-    const r = await submitMission(db, { requestKey: "s", missionId: "M01", entryId: e.id, status: "uncertain", reasonCode: "LOW_VISIBILITY", mode: "demo_manual", providerVersion: null });
+    const r = await submitMission(db, { requestKey: "s", missionId: "M01", entryId: e.id, status: "uncertain", reasonCode: "OWNER_UNSURE", mode: "owner", providerVersion: null });
     expect(r.xpAwarded).toBe(0);
     const snap = await loadSnapshot(db);
     expect(snap.xpTotal).toBe(0);
@@ -52,12 +51,46 @@ describe("repositório demo", () => {
     await expect(approve("s", e.id, "M03")).rejects.toMatchObject({ code: "LOCKED" });
   });
 
-  it("aplica o limite diário de validações", async () => {
+  it("sem limite diário: muitas confirmações no mesmo dia, XP ainda uma única vez", async () => {
     const e = await entry("e");
-    for (let i = 0; i < LIMITS.validationsPerDay; i++) {
-      await submitMission(db, { requestKey: `u${i}`, missionId: "M01", entryId: e.id, status: "uncertain", reasonCode: null, mode: "demo_manual", providerVersion: null });
+    for (let i = 0; i < 8; i++) {
+      await submitMission(db, { requestKey: `u${i}`, missionId: "M01", entryId: e.id, status: "uncertain", reasonCode: "OWNER_UNSURE", mode: "owner", providerVersion: null });
     }
-    await expect(approve("over", e.id)).rejects.toBeInstanceOf(DomainError);
+    await approve("a1", e.id);
+    await approve("a2", e.id);
+    const snap = await loadSnapshot(db);
+    expect(snap.xpTotal).toBe(10);
+    expect(snap.completions).toHaveLength(1);
+  });
+
+  it("migra um banco da versão 1 sem perder dados e remove o contador antigo", async () => {
+    const name = `legacy-${n}`;
+    const raw = await new Promise<IDBDatabase>((res, rej) => {
+      const r = indexedDB.open(name, 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        d.createObjectStore("profile", { keyPath: "id" }).put({ id: "me", timezone: "America/Sao_Paulo", locale: "pt-BR", createdAt: "x" });
+        d.createObjectStore("dogs", { keyPath: "id" }).put({ id: "d1", name: "Thor", photoMediaId: null, birthDate: null, preferences: { home: true, outdoor: true, socialDogs: false, people: true }, createdAt: "x" });
+        d.createObjectStore("media", { keyPath: "id" }).createIndex("hash", "hash");
+        const en = d.createObjectStore("entries", { keyPath: "id" });
+        en.createIndex("requestKey", "requestKey", { unique: true });
+        en.createIndex("occurredDate", "occurredDate");
+        const ae = d.createObjectStore("albumEntries", { keyPath: "key" });
+        ae.createIndex("albumId", "albumId");
+        ae.createIndex("entryId", "entryId");
+        d.createObjectStore("submissions", { keyPath: "id" }).createIndex("requestKey", "requestKey", { unique: true });
+        d.createObjectStore("completions", { keyPath: "instanceKey" });
+        d.createObjectStore("xp", { keyPath: "id" }).createIndex("completionKey", "completionKey", { unique: true });
+        d.createObjectStore("usage", { keyPath: "key" });
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    raw.close();
+    const migrated = await openDemoDb(name);
+    expect([...migrated.objectStoreNames]).not.toContain("usage");
+    expect((await loadSnapshot(migrated)).dog?.name).toBe("Thor");
+    migrated.close();
   });
 
   it("excluir a foto mantém a conquista e retira do álbum", async () => {

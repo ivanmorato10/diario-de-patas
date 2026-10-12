@@ -20,7 +20,7 @@ export default function Sobre() {
           <h2 id="demo-t">O que é o modo demonstração</h2>
           <ul className="stack small" style={{ paddingLeft: 18, margin: 0 }}>
             <li>As fotos e o diário ficam guardados só neste navegador. Não há conta nem sincronização; limpar os dados do navegador apaga o diário.</li>
-            <li>As missões são confirmadas por você. Ainda não há validação por IA.</li>
+            <li>As missões são confirmadas por você: depois de escolher a foto, você diz se ela mostra o que a missão pede. Os pontos não valem dinheiro.</li>
             <li>O Estúdio de artes e os links de compartilhamento ainda não estão ativos.</li>
             <li>Nenhum pagamento existe nesta versão.</li>
           </ul>

@@ -70,10 +70,11 @@ export interface AlbumEntry {
 export type SubmissionStatus = "approved" | "uncertain" | "not_matched" | "pending" | "technical_failure";
 
 /**
- * "ai" = decisão de um provedor real.
- * "demo_manual" = confirmação do próprio dono em modo demonstração — NUNCA exibida como aprovação da IA.
+ * Quem decidiu a missão (MUDANCAS-V2 §1): o modo oficial é a confirmação do próprio dono.
+ * "owner" = confirmada pelo dono. "demo_manual" = mesmo significado, gravado por versões anteriores.
+ * "ai" = reservado para o validador futuro (desligado; só sugestão, nunca bloqueio).
  */
-export type ValidationMode = "ai" | "demo_manual";
+export type ValidationMode = "owner" | "demo_manual" | "ai";
 
 export interface MissionSubmission {
   id: string;
@@ -108,7 +109,3 @@ export interface XpLedgerEntry {
   createdAt: string;
 }
 
-export interface UsageCounter {
-  key: string; // `${civilDate}:validation`
-  count: number;
-}
