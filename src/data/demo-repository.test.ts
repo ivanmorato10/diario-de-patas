@@ -1,7 +1,8 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it, beforeEach } from "vitest";
 import {
-  openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, type Db, type ProcessedImage,
+  openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, exportMetadata, type Db, type ProcessedImage,
+  saveHealthProfile, addWeight, saveVaccine, saveVisit, saveMedication, saveContact, deleteHealthRecord,
 } from "./demo-repository";
 
 const img = (hash = "h"): ProcessedImage => ({
@@ -146,5 +147,73 @@ describe("repositório demo", () => {
     await resetDemo(db);
     expect((await loadSnapshot(otherTab)).dog).toBeNull();
     otherTab.close();
+  });
+});
+
+describe("ficha de cuidados (MUDANCAS-V2 §4)", () => {
+  it("cria, edita e exclui cada tipo de registro", async () => {
+    await saveHealthProfile(db, { breed: "SRD", sex: "female", neutered: true, microchip: "985 000 123", allergies: "Frango" });
+    await saveHealthProfile(db, { breed: "SRD", sex: "female", neutered: true, microchip: "985 000 123", allergies: "" });
+    const w = await addWeight(db, { date: "2026-10-01", kg: 8.4 });
+    await addWeight(db, { date: "2026-09-01", kg: 8.1 });
+    const v = await saveVaccine(db, { kind: "vaccine", name: "V10", appliedDate: "2026-10-01", nextDate: "2027-10-01" });
+    const v2 = await saveVaccine(db, { kind: "vaccine", name: "V10 reforço", appliedDate: "2026-10-01", nextDate: "2026-10-22" }, v.id);
+    const c = await saveVisit(db, { date: "2026-10-02", clinic: "Clínica Bem-Estar", reason: "Rotina" });
+    const m = await saveMedication(db, { name: "Remédio X", dose: "1 comprimido", frequency: "a cada 12 h", startDate: "2026-10-01" });
+    const k = await saveContact(db, { kind: "emergency", name: "Hospital 24h", phone: "+55 11 4000-0000" });
+
+    let h = (await loadSnapshot(db)).health;
+    expect(h.profile).toMatchObject({ breed: "SRD", allergies: "" });
+    expect(h.weights.map((x) => x.kg)).toEqual([8.1, 8.4]); // ordem por data para o gráfico
+    expect(h.vaccines).toHaveLength(1);
+    expect(h.vaccines[0]).toMatchObject({ id: v.id, name: "V10 reforço", createdAt: v.createdAt });
+    expect(v2.id).toBe(v.id);
+    expect([h.visits.length, h.medications.length, h.contacts.length]).toEqual([1, 1, 1]);
+
+    await expect(saveVaccine(db, { kind: "vaccine", name: "", appliedDate: "2026-10-01" })).rejects.toMatchObject({ code: "INVALID" });
+    await expect(saveVisit(db, { date: "2026-10-01" }, "nao-existe")).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    for (const [store, id] of [["weights", w.id], ["vaccines", v.id], ["visits", c.id], ["medications", m.id], ["contacts", k.id]] as const) {
+      await deleteHealthRecord(db, store, id);
+    }
+    h = (await loadSnapshot(db)).health;
+    expect([h.weights.length, h.vaccines.length, h.visits.length, h.medications.length, h.contacts.length]).toEqual([1, 0, 0, 0, 0]);
+  });
+
+  it("persiste ao recarregar e entra na exportação", async () => {
+    await saveVaccine(db, { kind: "dewormer", name: "Vermífugo", appliedDate: "2026-10-01", nextDate: "2026-10-22" });
+    db.close();
+    db = await openDemoDb(`test-${n}`); // nova conexão = app recarregado
+    expect((await loadSnapshot(db)).health.vaccines[0]?.name).toBe("Vermífugo");
+    expect((await exportMetadata(db)).health.vaccines).toHaveLength(1);
+  });
+
+  it("apagar diário remove também a ficha de cuidados", async () => {
+    await saveHealthProfile(db, { breed: "SRD" });
+    await addWeight(db, { date: "2026-10-01", kg: 8 });
+    await saveContact(db, { kind: "vet", name: "Dra. Ana" });
+    await resetDemo(db);
+    const raw = await Promise.all((["healthProfile", "weights", "vaccines", "visits", "medications", "contacts"] as const).map((s) => db.count(s)));
+    expect(raw).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("migra da versão 2 para a 3 sem perder o diário", async () => {
+    const name = `v2-${n}`;
+    // Banco como o app v2 deixava: sem os stores de cuidados, com um cachorro salvo.
+    const raw = await new Promise<IDBDatabase>((res, rej) => {
+      const r = indexedDB.open(name, 2);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        for (const st of ["profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp"]) d.createObjectStore(st, { keyPath: st === "completions" ? "instanceKey" : st === "albumEntries" ? "key" : "id" });
+        r.transaction!.objectStore("dogs").put({ id: "d1", name: "Thor", photoMediaId: null, birthDate: null, preferences: { home: true, outdoor: true, socialDogs: false, people: true }, createdAt: "x" });
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    raw.close();
+    const migrated = await openDemoDb(name);
+    expect([...migrated.objectStoreNames]).toEqual(expect.arrayContaining(["vaccines", "contacts", "healthProfile"]));
+    expect((await loadSnapshot(migrated)).dog?.name).toBe("Thor");
+    migrated.close();
   });
 });

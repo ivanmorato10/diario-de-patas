@@ -9,6 +9,12 @@ import type { CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { civilDateInTz } from "@/domain/dates";
 import { missionById, missionState } from "@/domain/missions";
+import {
+  ContactSchema, EMPTY_HEALTH, HealthProfileSchema, MedicationSchema, VaccineSchema, VisitSchema, WeightSchema, firstIssue,
+  type Contact, type ContactInput, type HealthData, type HealthProfile, type HealthProfileInput, type Medication, type MedicationInput,
+  type Vaccine, type VaccineInput, type Visit, type VisitInput, type WeightInput, type WeightRecord,
+} from "@/domain/health";
+import type { ZodType } from "zod";
 import type {
   AlbumEntry, CivilDate, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
   Profile, SubmissionStatus, XpLedgerEntry, EntrySource,
@@ -19,8 +25,9 @@ export const DEMO_DB_NAME = "diario-de-patas-demo";
  * Versões do banco local. Cada upgrade só ACRESCENTA ou remove o que mudou — nunca recria
  * tabelas com dados do usuário.
  * 1: esquema inicial · 2: remove o contador de validações diárias (MUDANCAS-V2 §1)
+ * 3: ficha de cuidados — healthProfile, weights, vaccines, visits, medications, contacts (§4)
  */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 interface DemoDB extends DBSchema {
   profile: { key: string; value: Profile };
@@ -31,6 +38,12 @@ interface DemoDB extends DBSchema {
   submissions: { key: string; value: MissionSubmission; indexes: { requestKey: string } };
   completions: { key: string; value: MissionCompletion };
   xp: { key: string; value: XpLedgerEntry; indexes: { completionKey: string } };
+  healthProfile: { key: string; value: HealthProfile };
+  weights: { key: string; value: WeightRecord };
+  vaccines: { key: string; value: Vaccine };
+  visits: { key: string; value: Visit };
+  medications: { key: string; value: Medication };
+  contacts: { key: string; value: Contact };
 }
 
 export type Db = IDBPDatabase<DemoDB>;
@@ -53,6 +66,7 @@ export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
       if (oldVersion < 1) createV1(db);
       // v2: o limite diário de validações deixou de existir.
       if (oldVersion === 1) db.deleteObjectStore("usage" as never);
+      if (oldVersion < 3) createV3(db);
     },
   });
   return db;
@@ -73,7 +87,15 @@ function createV1(db: IDBPDatabase<DemoDB>) {
   db.createObjectStore("xp", { keyPath: "id" }).createIndex("completionKey", "completionKey", { unique: true });
 }
 
-const STORES = ["profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp"] as const;
+function createV3(db: IDBPDatabase<DemoDB>) {
+  db.createObjectStore("healthProfile", { keyPath: "dogId" });
+  for (const s of ["weights", "vaccines", "visits", "medications", "contacts"] as const) db.createObjectStore(s, { keyPath: "id" });
+}
+
+const STORES = [
+  "profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp",
+  "healthProfile", "weights", "vaccines", "visits", "medications", "contacts",
+] as const;
 
 /**
  * Esvazia todas as tabelas numa única transação. Não usa deleteDB: apagar o banco fica
@@ -114,6 +136,8 @@ export interface Snapshot {
   completions: MissionCompletion[];
   xpTotal: number;
   today: CivilDate;
+  /** Ficha de cuidados — privada; nunca vai para compartilhamentos (§4). */
+  health: HealthData;
 }
 
 export async function loadSnapshot(db: Db): Promise<Snapshot> {
@@ -132,6 +156,21 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
     completions: await db.getAll("completions"),
     xpTotal: xp.reduce((s, e) => s + e.amount, 0),
     today,
+    health: dogs[0] ? await loadHealth(db, dogs[0].id) : EMPTY_HEALTH,
+  };
+}
+
+const CONTACT_ORDER = ["emergency", "vet", "clinic", "sitter", "other"];
+
+async function loadHealth(db: Db, dogId: string): Promise<HealthData> {
+  const byDesc = <T,>(k: keyof T) => (a: T, b: T) => String(b[k]).localeCompare(String(a[k]));
+  return {
+    profile: (await db.get("healthProfile", dogId)) ?? null,
+    weights: (await db.getAll("weights")).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt)),
+    vaccines: (await db.getAll("vaccines")).sort(byDesc<Vaccine>("appliedDate")),
+    visits: (await db.getAll("visits")).sort(byDesc<Visit>("date")),
+    medications: (await db.getAll("medications")).sort(byDesc<Medication>("startDate")),
+    contacts: (await db.getAll("contacts")).sort((a, b) => CONTACT_ORDER.indexOf(a.kind) - CONTACT_ORDER.indexOf(b.kind) || a.name.localeCompare(b.name, "pt-BR")),
   };
 }
 
@@ -354,6 +393,57 @@ export async function submitMission(
   return { submission, completion, xpAwarded, alreadyCompleted };
 }
 
+// ---------- Ficha de cuidados (MUDANCAS-V2 §4) — registro do dono, sem interpretação ----------
+
+function parse<T>(schema: ZodType<T>, input: unknown): T {
+  const r = schema.safeParse(input);
+  if (!r.success) throw new DomainError("INVALID", firstIssue(r.error));
+  return r.data;
+}
+
+async function currentDogId(db: Db): Promise<string> {
+  const [dog] = await db.getAll("dogs");
+  if (!dog) throw new DomainError("NO_DOG", "Crie o diário antes.");
+  return dog.id;
+}
+
+export async function saveHealthProfile(db: Db, input: HealthProfileInput): Promise<HealthProfile> {
+  const data = parse(HealthProfileSchema, input);
+  const rec: HealthProfile = { ...data, dogId: await currentDogId(db), updatedAt: now() };
+  await db.put("healthProfile", rec);
+  return rec;
+}
+
+export async function addWeight(db: Db, input: WeightInput): Promise<WeightRecord> {
+  const data = parse(WeightSchema, input);
+  const rec: WeightRecord = { ...data, id: newId(), dogId: await currentDogId(db), createdAt: now() };
+  await db.put("weights", rec);
+  return rec;
+}
+
+type CareStore = "vaccines" | "visits" | "medications" | "contacts";
+type CareRecord = { vaccines: Vaccine; visits: Visit; medications: Medication; contacts: Contact };
+
+/** Cria (sem id) ou edita (com id) um registro da ficha. */
+async function upsertCare<S extends CareStore>(db: Db, store: S, schema: ZodType<Omit<CareRecord[S], "id" | "dogId" | "createdAt" | "updatedAt">>, input: unknown, id?: string): Promise<CareRecord[S]> {
+  const data = parse(schema, input);
+  const dogId = await currentDogId(db);
+  const prev = id ? ((await db.get(store, id)) as CareRecord[S] | undefined) : undefined;
+  if (id && !prev) throw new DomainError("NOT_FOUND", "Registro não encontrado.");
+  const rec = { ...data, id: id ?? newId(), dogId, createdAt: prev?.createdAt ?? now(), updatedAt: now() } as CareRecord[S];
+  await db.put(store, rec as never);
+  return rec;
+}
+
+export const saveVaccine = (db: Db, input: VaccineInput, id?: string) => upsertCare(db, "vaccines", VaccineSchema, input, id);
+export const saveVisit = (db: Db, input: VisitInput, id?: string) => upsertCare(db, "visits", VisitSchema, input, id);
+export const saveMedication = (db: Db, input: MedicationInput, id?: string) => upsertCare(db, "medications", MedicationSchema, input, id);
+export const saveContact = (db: Db, input: ContactInput, id?: string) => upsertCare(db, "contacts", ContactSchema, input, id);
+
+export async function deleteHealthRecord(db: Db, store: CareStore | "weights", id: string) {
+  await db.delete(store, id);
+}
+
 /** Exportação simples (metadados). Exportação elaborada com fotos é P1. */
 export async function exportMetadata(db: Db) {
   const snap = await loadSnapshot(db);
@@ -366,5 +456,6 @@ export async function exportMetadata(db: Db) {
     albums: snap.albumEntries,
     achievements: snap.completions,
     xpTotal: snap.xpTotal,
+    health: snap.health,
   };
 }

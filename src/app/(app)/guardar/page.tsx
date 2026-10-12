@@ -44,6 +44,8 @@ function GuardarInner() {
   const params = useSearchParams();
   const mission = missionBySlug(params.get("missao") ?? "");
   const fromEntryId = params.get("entrada");
+  // Data sugerida vinda de outra tela (ex.: “Guardar uma foto desta visita”).
+  const presetDate = params.get("data");
   const { ready, snap, unavailable } = useRequireDiary();
   const { db, reload } = useStore();
 
@@ -71,8 +73,8 @@ function GuardarInner() {
   const missionAvailable = missionStateNow === "available";
 
   useEffect(() => {
-    if (snap && !date) setDate(snap.today);
-  }, [snap, date]);
+    if (snap && !date) setDate(presetDate && isCivilDate(presetDate) && presetDate <= snap.today ? presetDate : snap.today);
+  }, [snap, date, presetDate]);
   useEffect(() => {
     headingRef.current?.focus();
   }, [step.kind]);
@@ -101,7 +103,7 @@ function GuardarInner() {
     setError(null);
     setPickNotes([]);
     entryKey.current = newId(); // nova tentativa = nova chave; retries reutilizam
-    setDate(suggestedDate(p, snap!.today));
+    setDate(p.takenDate && p.takenDate <= snap!.today ? p.takenDate : presetDate && isCivilDate(presetDate) && presetDate <= snap!.today ? presetDate : snap!.today);
     setDupe(await findEntryByHash(db!, p.hash));
     setStep({ kind: "edit" });
   }

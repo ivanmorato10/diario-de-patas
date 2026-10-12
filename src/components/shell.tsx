@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useStore } from "@/data/store";
-import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconSun } from "./icons";
+import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun } from "./icons";
 import { DogAvatar } from "./media";
 import { AbuFace, BrandLockup } from "./brand";
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/hoje", label: "Hoje", Icon: IconSun },
   { href: "/diario", label: "Diário", Icon: IconBook },
   { href: "/albuns", label: "Álbuns", Icon: IconAlbum },
+  { href: "/cuidados", label: "Cuidados", Icon: IconHeart },
   { href: "/estudio", label: "Estúdio", Icon: IconBrush },
 ];
 

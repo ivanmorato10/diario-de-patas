@@ -9,10 +9,13 @@ import { IconPlus, IconShuffle, IconStar } from "@/components/icons";
 import { MissionRow, collectionMissions, collectionTitle } from "@/components/mission-ui";
 import { dailySuggestions, levelFor, missionState } from "@/domain/missions";
 import { formatCivilDate } from "@/domain/dates";
+import { upcomingCare } from "@/domain/health";
+import { UpcomingCareCard } from "@/components/health-ui";
 
 export default function Hoje() {
   const { ready, snap, unavailable } = useRequireDiary();
   const [swap, setSwap] = useState(0);
+  const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
   const completed = useMemo(() => new Set(snap?.completions.map((c) => c.missionId) ?? []), [snap]);
   const suggestions = useMemo(
     () => (snap?.dog ? dailySuggestions(completed, snap.dog.preferences, snap.today, swap) : []),
@@ -92,6 +95,8 @@ export default function Hoje() {
             <p>O diário continua aberto para qualquer momento. Novas missões chegam em versões futuras.</p>
           </section>
         )}
+
+        {care.length ? <UpcomingCareCard items={care} today={snap.today} compact /> : null}
 
         <section className="card stack" aria-labelledby="album-prog">
           <div className="row-between">

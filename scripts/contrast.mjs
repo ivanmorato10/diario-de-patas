@@ -9,6 +9,10 @@ const pairs = [
   ["branco / perigo", "#FFFFFF", "#B42318", 4.5],
   ["#7A1A12 / danger-soft", "#7A1A12", "#FDECEA", 4.5],
   ["desativado #5F6862 / #ECEEE9", "#5F6862", "#ECEEE9", 4.5],
+  ["selo em dia: marrom / verde-água suave", "#3D2D1E", "#D3EFEA", 4.5],
+  ["selo em breve: marrom / amarelo claro", "#3D2D1E", "#FDF3DC", 4.5],
+  ["marrom suave / superfície (eixos do gráfico)", "#6B5A4A", "#FFFFFF", 4.5],
+  ["linha do gráfico laranja / superfície", "#E36F34", "#FFFFFF", 3.0],
 ];
 let fail = 0;
 for (const [n, a, b, min] of pairs) { const r = ratio(a, b); const ok = r >= min; if (!ok) fail++; console.log(`${ok ? "OK  " : "FAIL"} ${r.toFixed(2)}:1 (mín ${min}) ${n}`); }
