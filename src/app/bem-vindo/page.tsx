@@ -12,8 +12,8 @@ import { DemoBanner } from "@/components/shell";
  */
 const STEPS = [
   {
-    title: "Olá, eu me chamo Abu.",
-    text: "Sou um cachorro de verdade. E este diário existe por minha causa.",
+    title: "Oi, eu sou o Abu!",
+    text: "Minha vida tem passeios, sonecas e umas travessuras que merecem ser lembradas.\nAposto que a do seu cachorro também.\nVamos guardar essas histórias juntos?",
   },
   {
     title: "A vida com a gente é feita de momentos pequenos.",
@@ -38,7 +38,7 @@ function StepVisual({ step }: { step: number }) {
     return (
       <div className="intro-visual">
         <div className="intro-halo" aria-hidden="true" />
-        <div className="anim-bounce-in"><div className="anim-hello"><div className="anim-float"><AbuMascot width={230} alt="Abu, o cachorro que inspirou o app, segurando um livro" /></div></div></div>
+        <div className="anim-bounce-in"><div className="anim-hello"><div className="anim-float"><AbuMascot width={190} alt="Abu, o cachorro que inspirou o app, segurando um livro" /></div></div></div>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function BemVindo() {
         <section key={step} className="intro__slide" aria-live="polite">
           <StepVisual step={step} />
           <div className={`stack${step === 0 ? " intro-diary anim-rise" : ""}`} style={{ textAlign: "center", alignItems: "center" }}>
-            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420 }}>{STEPS[step].title}</h1>
+            <h1 ref={titleRef} tabIndex={-1} className="anim-rise" style={{ maxWidth: 420 }}>{STEPS[step].title}{step === 0 ? <Paw size={30} className="intro-diary__paw" /> : null}</h1>
             <p className="anim-rise-2 intro__text">{STEPS[step].text}</p>
           </div>
         </section>
@@ -142,7 +142,7 @@ export default function BemVindo() {
             <div className="row" style={{ gap: 10 }}>
               {step > 0 ? <button type="button" className="btn btn--secondary" onClick={() => setStep((s) => s - 1)} aria-label="Voltar">Voltar</button> : null}
               <button type="button" className="btn btn--primary" style={{ flex: 1 }} onClick={() => setStep((s) => s + 1)}>
-                {step === 0 ? "Oi, Abu!" : "Continuar"}
+                {step === 0 ? "Vamos nessa, Abu!" : "Continuar"}
               </button>
             </div>
           )}

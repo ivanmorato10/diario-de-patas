@@ -40,7 +40,7 @@ with sync_playwright() as p:
     page.goto(BASE + "/"); page.wait_for_url("**/bem-vindo")
     page.wait_for_timeout(1500); page.screenshot(path=f"{OUT}/01a-intro-1.png"); no_overflow(page, "intro")
     for i in range(2, 6):
-        page.get_by_role("button", name="Oi, Abu!" if i == 2 else "Continuar").click(); page.wait_for_timeout(1700)
+        page.get_by_role("button", name="Vamos nessa, Abu!" if i == 2 else "Continuar").click(); page.wait_for_timeout(1700)
         page.screenshot(path=f"{OUT}/01{'abcde'[i-1]}-intro-{i}.png")
     check("introdução chega ao convite final", page.get_by_role("heading", name="Sempre juntos.").is_visible())
     page.get_by_role("button", name="Já tenho conta").click()
