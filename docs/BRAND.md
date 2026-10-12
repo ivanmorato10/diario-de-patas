@@ -1,62 +1,62 @@
-# Guia de identidade — Diário de Patas (provisório)
+# Guia de identidade — Diário de Patas · “Plaquinha”
 
-> **Identidade provisória.** O símbolo atual é um **caderno com patinha**. Ele **não é um retrato do Abu**: ainda não há fotos de referência. Nada sobre raça, pelagem, cores, orelhas ou história do Abu foi inventado.
+Versão 2 (12/10/2026). Substitui a identidade provisória do caderno, que ficou genérica demais. Paleta e fontes divergem das propostas iniciais do briefing (§6) **por decisão do proprietário**.
 
-## Essência
+## Ideia central
 
-- Promessa: viver pequenas aventuras com o cachorro e guardar a história de vocês.
-- Frase: **Pequenas aventuras. Memórias para sempre.**
-- Descrição: Um diário com missões, fotos e lembranças do seu melhor amigo.
-- Assinatura “Inspirado no Abu”: só em Boas-vindas e Sobre.
+O símbolo é a **plaquinha da coleira do Abu**, com o nome dele gravado. É o objeto mais pessoal que um cachorro tem e diz “inspirado no Abu” sem inventar a aparência dele. As cores vêm do mesmo mundo: a coleira (tinta), o latão da plaquinha, a bolinha de tênis e o papel do álbum. O app se comporta como um álbum de verdade: fotos em polaroide com anotação à mão, fita adesiva e **figurinhas** que se colam a cada missão.
 
-## Tokens de cor (`src/app/globals.css`)
+Quando houver fotos de referência, o retrato ilustrado do Abu pode ser gravado na plaquinha (no lugar da patinha), sem mudar o resto do sistema.
 
-| Token | Valor | Uso |
-|---|---|---|
-| `--background` | #FFF9F1 | Fundo creme |
-| `--surface` | #FFFFFF | Cartões e campos |
-| `--text-primary` | #243C32 | Texto principal |
-| `--text-secondary` | #59665F | Texto secundário |
-| `--brand-primary` | #285943 | Botões, links, foco |
-| `--brand-soft` | #E5EFE7 | Destaques, aba ativa |
-| `--sage` | #A6BBA6 | **Só decoração** (1,95:1 — nunca texto) |
-| `--accent` | #C65D3B | Ícones e detalhes de celebração (4,17:1 — não usar em texto pequeno) |
-| `--accent-text` | #A5482A | Derivado para texto terracota pequeno (4,92:1 sobre accent-soft) |
-| `--accent-soft` | #F9E7DE | Avisos positivos, fala do Abu |
-| `--reward` | #E8B84A | Chips de XP, sempre com texto escuro |
-| `--border` | #DCE3DA | Separadores |
-| `--danger` | #B42318 | Erros e ações destrutivas |
+## Logo
 
-Contraste verificado com `node scripts/contrast.mjs` — todas as combinações usadas passam (texto ≥ 4,5:1; foco e ícones ≥ 3:1). Estados nunca dependem só de cor: concluída/bloqueada têm ícone e texto.
-
-## Tipografia
-
-- Títulos: **Nunito Sans** 700/800. Corpo: **Inter** 400/600. Fallback `system-ui`.
-- Hospedadas localmente via `@fontsource` (licença SIL Open Font License 1.1 para ambas).
-- Escala: h1 28–32 px, seções 20 px, corpo 16 px, legendas 13–14 px.
-
-## Componentes
-
-Grid 4/8 px, margens 16–20 px, botões 48 px (alvo mínimo 44 px), cartões raio 20 px, campos raio 12 px, chips em pílula, sombras suaves, foco visível de 3 px. Animações 150–250 ms, uma vez, desligadas com `prefers-reduced-motion`. Sucesso sempre tem texto, nunca só animação.
-
-## Abu, o anfitrião
-
-- Componente `AbuSays` (balão com o símbolo provisório). Uso moderado: boas-vindas, estados vazios, primeira conquista, Sobre.
-- Microcopy aprovada: “Oi, eu sou o Abu! Vamos guardar as suas aventuras?”, “Essa merece um lugar no álbum!”, “Uma soneca também é uma grande conquista.”
-- **Para criar o mascote** precisamos de fotos: rosto de frente, perfil, corpo inteiro e uma expressão típica. Estilo: ilustração 2D simples, contorno suave, formas arredondadas, legível pequeno. Expressões futuras: acolhendo, curioso, celebrando, dormindo, esperando.
-- Substituição: trocar `src/components/brand.tsx` e `public/brand/*`. Nenhuma tela depende do desenho.
-
-## Arquivos
-
-| Arquivo | Uso |
+| Arquivo (`public/brand/`) | Uso |
 |---|---|
-| `public/brand/icon.svg` | Símbolo vetorial editável (favicon) |
-| `public/brand/app-icon.svg` | Ícone do app com área segura para máscara |
-| `public/brand/icon-192.png`, `icon-512.png` | Gerados a partir do SVG |
-| `public/brand/wordmark.svg` | Símbolo + “Diário de Patas” (texto requer Nunito Sans para editar) |
+| `logo-horizontal.svg` | Assinatura principal (cabeçalho do app, boas-vindas) |
+| `logo-horizontal-dark.svg` | Sobre fundo tinta |
+| `logo-stacked.svg` | Espaços quadrados, materiais impressos |
+| `symbol.svg` | Plaquinha sozinha (bilhetes do Abu, telas de estado) |
+| `app-icon.svg`, `icon-192.png`, `icon-512.png` | Ícone do app (fundo tinta, área segura para máscara) |
+| `icon.svg` | Favicon simplificado (sem argola nem nome — legível em 16 px) |
+
+O wordmark “diário de patas” é **minúsculo**, em Bricolage Grotesque 800, convertido em contornos (não depende de fonte instalada). Tudo é gerado por `python3 scripts/build-brand.py` — edite o script, não os SVGs.
+
+Não fazer: esticar, trocar as cores do latão, tirar o nome “abu” da plaquinha na versão grande, colocar o wordmark sobre fotos.
+
+## Cores
+
+| Nome | Hex | Token | Uso |
+|---|---|---|---|
+| Tinta (coleira) | #1D2B53 | `--text-primary`, `--brand-primary` | Texto, botões, destaque |
+| Tinta suave | #5A6386 | `--text-secondary` | Texto secundário |
+| Papel | #F6F7FB | `--background` | Fundo |
+| Latão | #D9A93B | `--accent` | Plaquinha, figurinha conquistada — **decoração** |
+| Latão profundo | #7A560B | `--accent-text` | Texto sobre latão claro |
+| Bolinha de tênis | #D6EC3D | `--reward` | XP, figurinhas, fita, botão no destaque — sempre com texto tinta |
+| Linguinha | #F28B82 | `--tongue` | Reservada para celebrações — **decoração** |
+
+Contraste verificado com `node scripts/contrast.mjs` (texto ≥ 4,5:1, foco/ícones ≥ 3:1).
+
+## Tipografia (todas OFL, hospedadas localmente)
+
+- **Bricolage Grotesque** (variável, 700–800) — títulos e wordmark. Tracking levemente negativo.
+- **Figtree** (variável, 400–600) — corpo, botões, formulários.
+- **Caveat** 600 — **somente** anotações nas polaroides e bilhetes do Abu, sempre ≥ 24 px. Nunca em botões, formulários ou textos longos.
+
+Escala: h1 32–40 px · h2 22 px · h3 18 px · corpo 16 px · legendas 13–14 px.
+
+## Elementos de assinatura
+
+- **Polaroide** (`.polaroid`): moldura branca, base mais larga com a legenda escrita à mão, leve inclinação alternada (desligada com reduced-motion).
+- **Fita** (`.tape`): faixa cor de bolinha segurando a foto em destaque.
+- **Figurinha** (`.mission-stamp`): círculo com borda branca de recorte. Bolinha = missão disponível; latão com ✓ = conquistada; pontilhado = espaço vazio no álbum ou bloqueada.
+- **Faixa da coleira** (`.hero-mission`): a missão do dia em bloco tinta, com botão bolinha.
+- **Bilhete do Abu** (`.abu-note`): plaquinha + balão latão claro com letra à mão. Uso moderado.
+
+Restrição: só **um** desses elementos de destaque por bloco de tela; o resto fica quieto (listas simples, bordas finas).
 
 ## Voz
 
-Carinhosa, leve, adulta. Sem culpa, sem pressão, sem emojis em excesso. Erros sempre com próximo passo. Nunca afirmar o que o cachorro sente.
+Carinhosa, leve, adulta. Sem culpa, sem pressão, sem excesso de emoji. Nunca afirmar o que o cachorro sente.
 
-**Pendente antes do lançamento:** verificação de nome e marca (não realizada).
+**Pendente:** verificação de nome e marca antes do lançamento; mascote ilustrado a partir das fotos do Abu.

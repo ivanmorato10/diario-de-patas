@@ -2,7 +2,7 @@
 
 import { SUPPORT } from "@/config/business";
 import { TopBar } from "@/components/shell";
-import { NotebookMark } from "@/components/brand";
+import { TagMark } from "@/components/brand";
 
 export default function Sobre() {
   return (
@@ -10,10 +10,10 @@ export default function Sobre() {
       <TopBar title="Sobre" back="/config" />
       <main className="main">
         <section className="stack" aria-labelledby="historia">
-          <NotebookMark size={56} />
+          <TagMark size={56} />
           <h1 id="historia">Nossa história</h1>
           <p>O Diário de Patas nasceu inspirado no Abu e nos pequenos momentos que fazem a vida com um cachorro ser especial. Um passeio, uma soneca, uma expressão engraçada: aqui, cada momento pode virar uma lembrança.</p>
-          <p className="caption">Inspirado no Abu. O símbolo do caderno é provisório — o retrato do Abu chega quando tivermos as fotos de referência.</p>
+          <p className="caption">Inspirado no Abu. O símbolo é a plaquinha da coleira com o nome dele. Quando tivermos fotos de referência, o retrato do Abu pode ser gravado nela.</p>
         </section>
 
         <section id="demo" className="card stack" aria-labelledby="demo-t">

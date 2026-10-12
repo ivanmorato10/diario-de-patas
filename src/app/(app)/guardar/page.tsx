@@ -228,7 +228,7 @@ function ResultView({
     <section className="stack-lg" aria-live="polite">
       {previewUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={previewUrl} alt={`Lembrança de ${dogName}`} className={`photo${approved ? " celebrate" : ""}`} />
+        <div className={`polaroid tape${approved ? " celebrate" : ""}`} style={{ margin: "8px 6px 0" }}><img src={previewUrl} alt={`Lembrança de ${dogName}`} className="photo" /><p className="polaroid__note">{dogName}</p></div>
       ) : null}
       {approved ? (
         <>

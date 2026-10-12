@@ -62,9 +62,9 @@ export default function Hoje() {
             </div>
             <Link href={`/missoes/${hero.slug}`} className="hero-mission" style={{ textDecoration: "none", color: "inherit" }}>
               <div className="hero-mission__band">
-                <span className="mission-stamp" style={{ background: "var(--surface)" }} aria-hidden="true"><IconStar /></span>
+                <span className="mission-stamp" aria-hidden="true"><IconStar /></span>
                 <div className="stack" style={{ gap: 4 }}>
-                  <span className="caption" style={{ color: "var(--accent-text)", fontWeight: 600 }}>{collectionTitle(hero.collectionId)}</span>
+                  <span className="caption hero-mission__kicker">{collectionTitle(hero.collectionId)}</span>
                   <h3 style={{ fontSize: "1.25rem" }}>{hero.title}</h3>
                 </div>
               </div>
@@ -107,12 +107,10 @@ export default function Hoje() {
         <section className="stack" aria-labelledby="last-title">
           <h2 id="last-title">Última lembrança</h2>
           {last ? (
-            <Link href={`/diario#${last.id}`} className="card card--flush" style={{ display: "block" }}>
-              <MediaImage id={last.mediaId} variant="display" alt={last.caption ? `Lembrança: ${last.caption}` : `Lembrança de ${dog.name}`} className="photo" style={{ borderRadius: 0 }} />
-              <div className="stack" style={{ padding: 16, gap: 4 }}>
-                {last.caption ? <p>{last.caption}</p> : null}
-                <p className="caption">{formatCivilDate(last.occurredDate)}</p>
-              </div>
+            <Link href={`/diario#${last.id}`} className="polaroid tape" style={{ display: "block", textDecoration: "none", margin: "8px 6px 0" }}>
+              <MediaImage id={last.mediaId} variant="display" alt={last.caption ? `Lembrança: ${last.caption}` : `Lembrança de ${dog.name}`} className="photo" />
+              <p className="polaroid__note">{last.caption || dog.name}</p>
+              <p className="caption polaroid__meta">{formatCivilDate(last.occurredDate)}</p>
             </Link>
           ) : (
             <div className="card stitched empty" style={{ boxShadow: "none" }}>

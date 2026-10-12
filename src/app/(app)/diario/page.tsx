@@ -91,15 +91,15 @@ export default function Diario() {
                   const m = e.missionId ? missionById(e.missionId) : null;
                   const label = e.caption ? `lembrança “${e.caption.slice(0, 40)}”` : `lembrança de ${formatCivilDate(e.occurredDate)}`;
                   return (
-                    <article key={e.id} id={e.id} className="card card--flush">
-                      <MediaImage id={e.mediaId} variant="display" alt={e.caption ? `Foto: ${e.caption}` : `Foto de ${dog.name}`} className="photo" style={{ borderRadius: 0 }} />
-                      <div className="stack" style={{ padding: "12px 16px 8px", gap: 6 }}>
+                    <article key={e.id} id={e.id} className="polaroid" style={{ margin: "6px 4px 14px" }}>
+                      <MediaImage id={e.mediaId} variant="display" alt={e.caption ? `Foto: ${e.caption}` : `Foto de ${dog.name}`} className="photo" />
+                      {e.caption ? <p className="polaroid__note">{e.caption}</p> : null}
+                      <div className="stack" style={{ padding: "8px 4px 6px", gap: 6 }}>
                         <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
                           {m ? <span className="chip chip--reward"><IconStar size={14} /> {m.title}</span> : null}
                           {e.source === "studio" ? <span className="chip chip--accent">Arte criada com IA</span> : null}
                           {(albumsByEntry.get(e.id) ?? []).map((a) => <span key={a} className="chip chip--neutral">{COLLECTIONS.find((c) => c.id === a)?.title}</span>)}
                         </div>
-                        {e.caption ? <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{e.caption}</p> : null}
                         <div className="row-between">
                           <p className="caption">{formatCivilDate(e.occurredDate)}</p>
                           <EntryActions entry={e} albumIds={albumsByEntry.get(e.id) ?? []} today={snap.today} label={label} />

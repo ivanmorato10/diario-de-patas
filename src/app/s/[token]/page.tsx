@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { NotebookMark } from "@/components/brand";
+import { TagMark } from "@/components/brand";
 
 export const metadata: Metadata = {
   title: "Álbum compartilhado",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function SharedPage() {
   return (
     <main className="main main--bare" style={{ alignItems: "center", textAlign: "center", paddingTop: 64 }}>
-      <NotebookMark size={56} />
+      <TagMark size={56} />
       <h1>Este álbum não está disponível</h1>
       <p className="muted">O link pode ter sido desativado ou não existir mais.</p>
       <p className="caption">Diário de Patas</p>

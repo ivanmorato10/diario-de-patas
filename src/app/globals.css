@@ -1,34 +1,37 @@
-/* Diário de Patas — tokens e componentes base. Fonte da verdade: docs/BRAND.md */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/nunito-sans/700.css";
-@import "@fontsource/nunito-sans/800.css";
+/* Diário de Patas — identidade "Plaquinha". Fonte da verdade: docs/BRAND.md */
+@import "@fontsource-variable/bricolage-grotesque/wght.css";
+@import "@fontsource-variable/figtree/wght.css";
+@import "@fontsource/caveat/600.css";
 
 :root {
-  --background: #fff9f1;
+  /* Paleta: a coleira (tinta), a plaquinha (latão), a bolinha de tênis e o papel do álbum */
+  --background: #f6f7fb;          /* papel */
   --surface: #ffffff;
-  --text-primary: #243c32;
-  --text-secondary: #59665f;
-  --brand-primary: #285943;
-  --brand-primary-hover: #1f4835;
-  --brand-soft: #e5efe7;
-  --sage: #a6bba6;
-  --accent: #c65d3b;
-  --accent-text: #a5482a; /* terracota escurecida para texto pequeno (contraste ≥ 4.5:1) */
-  --accent-soft: #f9e7de;
-  --reward: #e8b84a;
-  --border: #dce3da;
+  --text-primary: #1d2b53;        /* tinta da coleira */
+  --text-secondary: #5a6386;
+  --brand-primary: #1d2b53;
+  --brand-primary-hover: #2b3d75;
+  --brand-soft: #e7ebf7;
+  --sage: #c9d0e6;                /* linhas decorativas — nunca texto */
+  --accent: #d9a93b;              /* latão da plaquinha — decoração */
+  --accent-text: #7a560b;         /* latão profundo para texto */
+  --accent-soft: #fbf1d6;
+  --reward: #d6ec3d;              /* bolinha de tênis — fundo de XP/figurinha, texto em tinta */
+  --tongue: #f28b82;              /* linguinha — só decoração */
+  --border: #dde2ef;
   --danger: #b42318;
   --danger-soft: #fdecea;
-  --focus: #285943;
+  --focus: #2b3d75;
 
-  --font-heading: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Bricolage Grotesque Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Figtree Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-hand: "Caveat", "Segoe Print", cursive; /* só anotações em fotos e bilhetes do Abu */
 
-  --radius-card: 20px;
+  --radius-card: 18px;
   --radius-field: 12px;
   --radius-pill: 999px;
-  --shadow-card: 0 1px 2px rgba(36, 60, 50, 0.06), 0 4px 16px rgba(36, 60, 50, 0.06);
+  --shadow-card: 0 1px 0 rgba(29, 43, 83, 0.06);
+  --shadow-photo: 0 1px 2px rgba(29, 43, 83, 0.12), 0 8px 22px rgba(29, 43, 83, 0.10);
   --gutter: 16px;
   --content-max: 640px;
   --nav-height: 64px;
@@ -52,10 +55,10 @@ body {
 }
 img { max-width: 100%; display: block; }
 a { color: var(--brand-primary); text-underline-offset: 2px; }
-h1, h2, h3 { font-family: var(--font-heading); line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
-h1 { font-size: clamp(1.75rem, 1.5rem + 1.2vw, 2rem); font-weight: 800; }
-h2 { font-size: 1.25rem; font-weight: 800; }
-h3 { font-size: 1.0625rem; font-weight: 700; }
+h1, h2, h3 { font-family: var(--font-heading); line-height: 1.1; margin: 0; letter-spacing: -0.025em; }
+h1 { font-size: clamp(2rem, 1.6rem + 1.8vw, 2.5rem); font-weight: 800; }
+h2 { font-size: 1.375rem; font-weight: 750; }
+h3 { font-size: 1.125rem; font-weight: 700; }
 p { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
 
@@ -266,7 +269,7 @@ a.card.row, a.card.row-between, a.card.mission-card, .mission-card { display: fl
 .timeline-month { position: sticky; top: 56px; z-index: 1; background: var(--background); padding: 8px 0; font-family: var(--font-heading); font-weight: 800; }
 
 .sticky-action { position: sticky; bottom: calc(var(--nav-height) + 12px + env(safe-area-inset-bottom)); z-index: 5; display: flex; justify-content: flex-end; pointer-events: none; }
-.sticky-action > * { pointer-events: auto; box-shadow: 0 6px 18px rgba(36, 60, 50, 0.22); }
+.sticky-action > * { pointer-events: auto; box-shadow: 0 6px 18px rgba(29, 43, 83, 0.22); }
 
 dialog.sheet {
   border: 0; padding: 0; width: min(560px, 100vw); max-height: 90dvh;
@@ -274,7 +277,7 @@ dialog.sheet {
   margin: auto auto 0; background: var(--surface); color: inherit;
 }
 @media (min-width: 600px) { dialog.sheet { border-radius: var(--radius-card); margin: auto; } }
-dialog.sheet::backdrop { background: rgba(36, 60, 50, 0.4); }
+dialog.sheet::backdrop { background: rgba(29, 43, 83, 0.4); }
 .sheet__body { padding: 20px var(--gutter) calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; max-height: 90dvh; display: flex; flex-direction: column; gap: 16px; }
 
 .celebrate { animation: pop 240ms var(--ease) 1; }
@@ -288,3 +291,52 @@ dialog.sheet::backdrop { background: rgba(36, 60, 50, 0.4); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+
+
+/* ================= Identidade "Plaquinha" ================= */
+
+/* Foto em moldura de polaroide, com anotação à mão */
+.polaroid {
+  background: #fff; padding: 10px 10px 0; border-radius: 4px;
+  box-shadow: var(--shadow-photo);
+  transform: rotate(var(--tilt, -1.2deg));
+}
+.polaroid:nth-of-type(2n) { --tilt: 1.1deg; }
+.polaroid:nth-of-type(3n) { --tilt: -0.4deg; }
+.polaroid .photo { border-radius: 2px; }
+.polaroid__note { font-family: var(--font-hand); font-size: 1.5rem; line-height: 1.15; padding: 10px 4px 4px; color: var(--text-primary); overflow-wrap: anywhere; }
+.polaroid__meta { padding: 2px 4px 10px; }
+@media (prefers-reduced-motion: reduce) { .polaroid { transform: none; } }
+
+/* Fita adesiva segurando a foto */
+.tape { position: relative; }
+.tape::before {
+  content: ""; position: absolute; top: -12px; left: 50%; width: 92px; height: 26px; z-index: 1;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(214, 236, 61, 0.72); /* fita na cor da bolinha */
+  box-shadow: 0 1px 1px rgba(29, 43, 83, 0.08);
+}
+
+/* Figurinhas (missões): conquista = figurinha colada; pendente = espaço pontilhado */
+.mission-stamp {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--reward); color: var(--text-primary);
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(29, 43, 83, 0.18);
+}
+.mission-stamp--done { background: var(--accent); color: #3d2a03; }
+.mission-stamp--locked { background: transparent; border: 2px dashed var(--sage); box-shadow: none; color: var(--text-secondary); }
+
+/* Missão em destaque: faixa da coleira */
+.hero-mission { border: 0; box-shadow: none; background: var(--brand-primary); color: #fff; border-radius: 22px; }
+.hero-mission__band { background: transparent; padding: 22px 20px 6px; }
+.hero-mission .muted, .hero-mission p { color: #e7ebf7; }
+.hero-mission h3 { color: #fff; font-size: 1.5rem; }
+.hero-mission .btn--primary { background: var(--reward); color: var(--text-primary); }
+.hero-mission__kicker { color: var(--reward) !important; font-weight: 600; }
+
+/* Bilhete do Abu */
+.abu-note { background: var(--accent-soft); border-radius: 4px 18px 18px 18px; padding: 10px 16px 12px; }
+.abu-note__name { font-size: 0.8125rem; font-weight: 700; color: var(--accent-text); }
+.abu-note__text { font-family: var(--font-hand); font-size: 1.5rem; line-height: 1.2; }
+
+.wordmark { display: block; height: 30px; width: auto; }

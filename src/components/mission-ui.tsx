@@ -11,8 +11,9 @@ export function collectionMissions(id: string) {
   return MISSIONS.filter((m) => m.collectionId === id);
 }
 
-export function MissionStamp({ state }: { state: MissionState }) {
-  const cls = state === "completed" ? "mission-stamp mission-stamp--done" : state === "locked" ? "mission-stamp mission-stamp--locked" : "mission-stamp";
+/** Figurinha da missão. No álbum (`slot`), o que ainda não foi conquistado aparece como espaço vazio. */
+export function MissionStamp({ state, slot = false }: { state: MissionState; slot?: boolean }) {
+  const cls = state === "completed" ? "mission-stamp mission-stamp--done" : state === "locked" || slot ? "mission-stamp mission-stamp--locked" : "mission-stamp";
   const Icon = state === "completed" ? IconCheck : state === "locked" ? IconLock : IconStar;
   return <span className={cls} aria-hidden="true"><Icon /></span>;
 }
