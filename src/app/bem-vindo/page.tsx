@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AbuFace, AbuMascot, LogoCard } from "@/components/brand";
-import { IconCamera, IconStar, IconSun, Paw } from "@/components/icons";
+import { IconStar, Paw } from "@/components/icons";
 import { DemoBanner } from "@/components/shell";
 
 /**
@@ -44,15 +44,15 @@ function StepVisual({ step }: { step: number }) {
   }
   if (step === 1) {
     const moments = [
-      { Icon: IconSun, label: "Soneca no sol" },
-      { Icon: Paw, label: "Passeio" },
-      { Icon: IconCamera, label: "Aquela cara" },
+      { src: "/moments/soneca.webp", label: "Soneca no sol", focus: "45% 62%" },
+      { src: "/moments/passeio.webp", label: "Passeio", focus: "62% 72%" },
+      { src: "/moments/cara.webp", label: "Aquela cara", focus: "50% 22%" },
     ];
     return (
       <div className="intro-visual intro-moments" aria-hidden="true">
-        {moments.map(({ Icon, label }, i) => (
+        {moments.map(({ src, label, focus }, i) => (
           <div key={label} className="polaroid anim-drop intro-mini" style={{ animationDelay: `${i * 160}ms`, ["--tilt" as string]: `${[-6, 3, -2][i]}deg` }}>
-            <div className="intro-mini__photo"><Icon size={34} /></div>
+            <img src={src} alt="" className="intro-mini__photo" style={{ objectPosition: focus }} />
             <p className="polaroid__note" style={{ fontSize: "0.95rem", textAlign: "center" }}>{label}</p>
           </div>
         ))}
