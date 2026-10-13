@@ -19,7 +19,7 @@ export const DAILY_NO_REPEAT_DAYS = 14;
 
 const d = { acceptsGallery: true, version: 1, subjective: false, prerequisiteId: "M01", kind: "daily" as const, xp: CYCLE_XP.daily };
 
-/** Banco inicial de 36 missões do dia (§7.4). `portrait` = serve para quem não passeia (†). */
+/** Banco de 66 missões do dia (§7.4): 36 iniciais + 30 aprovadas em 13/10/2026, 22 por espaço. `portrait` = serve para quem não passeia (†). */
 export const DAILY_MISSIONS: MissionTemplate[] = [
   // Espaço A — casa e descanso
   { ...d, slot: "A", id: "D01", slug: "dia-meu-cantinho-favorito", title: "Meu cantinho favorito", description: "O lugar da casa que foi o escolhido de hoje.", criterion: "O cachorro no cantinho preferido.", collectionId: "vida-em-casa", context: "home" },
@@ -34,6 +34,17 @@ export const DAILY_MISSIONS: MissionTemplate[] = [
   { ...d, slot: "A", id: "D10", slug: "dia-cochilo-no-sol", title: "Cochilo no sol", description: "Aquela faixa de sol no chão.", criterion: "O cachorro deitado no sol.", collectionId: "vida-em-casa", context: "home" },
   { ...d, slot: "A", id: "D11", slug: "dia-olhar-ja-acabou", title: "Olhar de “já acabou?”", description: "Aquela cara de quem queria mais um pouco.", criterion: "O cachorro olhando para a câmera.", collectionId: "manias-e-expressoes", context: "home", advancesItem: "C06" },
   { ...d, slot: "A", id: "D12", slug: "dia-foto-do-dia-em-casa", title: "Foto do dia em casa", description: "Qualquer momento de hoje em casa vale.", criterion: "O cachorro em casa.", collectionId: "vida-em-casa", context: "home" },
+  // Novas (aprovadas pelo proprietário em 13/10/2026)
+  { ...d, slot: "A", id: "D37", slug: "dia-patinhas-cruzadas", title: "Patinhas cruzadas", description: "Aquela pose chique, de patas cruzadas.", criterion: "O cachorro deitado com as patas da frente à vista.", collectionId: "manias-e-expressoes", context: "home" },
+  { ...d, slot: "A", id: "D38", slug: "dia-arrumando-a-cama", title: "Arrumando a cama", description: "As voltinhas e cavucadas antes de deitar.", criterion: "O cachorro na cama ou caminha dele.", collectionId: "vida-em-casa", context: "home" },
+  { ...d, slot: "A", id: "D39", slug: "dia-de-guarda", title: "De guarda", description: "No posto de vigia preferido da casa.", criterion: "O cachorro atento dentro de casa.", collectionId: "vida-em-casa", context: "home" },
+  { ...d, slot: "A", id: "D40", slug: "dia-pezinho-de-fora", title: "Pezinho de fora", description: "Uma patinha escapando enquanto ele descansa.", criterion: "O cachorro deitado com uma pata aparecendo.", collectionId: "vida-em-casa", context: "home" },
+  { ...d, slot: "A", id: "D41", slug: "dia-fiscal-da-cozinha", title: "Fiscal da cozinha", description: "De olho em tudo enquanto alguém cozinha — sem comida de gente.", criterion: "O cachorro na cozinha.", collectionId: "vida-em-casa", context: "home" },
+  { ...d, slot: "A", id: "D42", slug: "dia-hora-da-agua", title: "Hora da água", description: "Matando a sede no pote de sempre.", criterion: "O cachorro perto do pote de água.", collectionId: "vida-em-casa", context: "home" },
+  { ...d, slot: "A", id: "D43", slug: "dia-debaixo-da-manta", title: "Debaixo da manta", description: "Enroladinho na manta — só se ele gostar.", criterion: "O cachorro com uma manta, coberta ou almofada.", collectionId: "vida-em-casa", context: "home" },
+  { ...d, slot: "A", id: "D44", slug: "dia-sombra-oficial", title: "Sombra oficial", description: "Aquele que segue você por todos os cômodos.", criterion: "O cachorro andando ou parado dentro de casa.", collectionId: "nosso-vinculo", context: "home" },
+  { ...d, slot: "A", id: "D45", slug: "dia-sonhando-acordado", title: "Sonhando acordado", description: "Olhar perdido, pensamento longe.", criterion: "O cachorro deitado de olhos abertos.", collectionId: "manias-e-expressoes", context: "home" },
+  { ...d, slot: "A", id: "D46", slug: "dia-colega-de-trabalho", title: "Colega de trabalho", description: "Do lado enquanto alguém lê, estuda ou trabalha.", criterion: "O cachorro perto de alguém lendo ou no computador.", collectionId: "nosso-vinculo", context: "people" },
   // Espaço B — companhia e brincadeira
   { ...d, slot: "B", id: "D13", slug: "dia-brinquedo-inseparavel", title: "Brinquedo inseparável", description: "O brinquedo que vai para todo canto.", criterion: "O cachorro com um brinquedo.", collectionId: "vida-em-casa", context: "home", advancesItem: "M03" },
   { ...d, slot: "B", id: "D14", slug: "dia-companhia-no-sofa", title: "Companhia no sofá", description: "Dividindo o sofá com alguém.", criterion: "O cachorro no sofá junto de uma pessoa.", collectionId: "nosso-vinculo", context: "people", advancesItem: "C10" },
@@ -47,6 +58,17 @@ export const DAILY_MISSIONS: MissionTemplate[] = [
   { ...d, slot: "B", id: "D22", slug: "dia-recebendo-alguem", title: "Recebendo alguém em casa", description: "A festa de quando alguém chega.", criterion: "O cachorro recebendo uma pessoa.", collectionId: "nosso-vinculo", context: "people" },
   { ...d, slot: "B", id: "D23", slug: "dia-momento-de-carinho", title: "Momento de carinho", description: "Um carinho qualquer, do jeito de vocês.", criterion: "Uma pessoa fazendo carinho no cachorro.", collectionId: "nosso-vinculo", context: "people" },
   { ...d, slot: "B", id: "D24", slug: "dia-brincadeira-inventada", title: "Brincadeira inventada", description: "Aquela brincadeira que só vocês conhecem.", criterion: "O cachorro brincando.", collectionId: "manias-e-expressoes", context: "any" },
+  // Novas (aprovadas pelo proprietário em 13/10/2026)
+  { ...d, slot: "B", id: "D47", slug: "dia-esconde-esconde", title: "Esconde-esconde", description: "Achou! Uma rodada de procurar alguém ou um brinquedo.", criterion: "O cachorro procurando ou encontrando alguém ou um brinquedo.", collectionId: "manias-e-expressoes", context: "any" },
+  { ...d, slot: "B", id: "D48", slug: "dia-brinquedo-redescoberto", title: "Brinquedo redescoberto", description: "Aquele que estava sumido debaixo do sofá.", criterion: "O cachorro com um brinquedo.", collectionId: "vida-em-casa", context: "any" },
+  { ...d, slot: "B", id: "D49", slug: "dia-pega-pega", title: "Pega-pega", description: "Correndo atrás de alguém — ou fugindo.", criterion: "O cachorro correndo perto de uma pessoa.", collectionId: "nosso-vinculo", context: "people" },
+  { ...d, slot: "B", id: "D50", slug: "dia-mordedor-da-vez", title: "Mordedor da vez", description: "O mordedor preferido de hoje.", criterion: "O cachorro mordiscando um brinquedo ou mordedor.", collectionId: "vida-em-casa", context: "any" },
+  { ...d, slot: "B", id: "D51", slug: "dia-abraco-apertado", title: "Abraço apertado", description: "Um abraço, só se ele curtir.", criterion: "Uma pessoa abraçando o cachorro.", collectionId: "nosso-vinculo", context: "people" },
+  { ...d, slot: "B", id: "D52", slug: "dia-caca-ao-petisco", title: "Caça ao petisco", description: "Os petiscos de sempre escondidos para ele farejar.", criterion: "O cachorro farejando dentro de casa.", collectionId: "manias-e-expressoes", context: "any" },
+  { ...d, slot: "B", id: "D53", slug: "dia-atencao-total", title: "Atenção total", description: "Sentadinho, esperando o próximo pedido.", criterion: "O cachorro sentado olhando para alguém.", collectionId: "nosso-vinculo", context: "people" },
+  { ...d, slot: "B", id: "D54", slug: "dia-dupla-no-chao", title: "Dupla no chão", description: "Alguém sentado no chão, na altura dele.", criterion: "Uma pessoa sentada no chão com o cachorro.", collectionId: "nosso-vinculo", context: "people" },
+  { ...d, slot: "B", id: "D55", slug: "dia-vem-pegar", title: "Vem pegar!", description: "Brinquedo na boca e olhar de desafio.", criterion: "O cachorro com um brinquedo na boca olhando para a câmera.", collectionId: "manias-e-expressoes", context: "any" },
+  { ...d, slot: "B", id: "D56", slug: "dia-escovinha", title: "Escovinha", description: "Um momento de escovar o pelo, no ritmo dele.", criterion: "Uma pessoa escovando o cachorro.", collectionId: "cuidados", context: "people" },
   // Espaço C — passeio ou retrato († = retrato, para quem não passeia)
   { ...d, slot: "C", id: "D25", slug: "dia-passeio-do-dia", title: "Passeio do dia", description: "O passeio de hoje, curto ou longo.", criterion: "O cachorro passeando.", collectionId: "pequenas-aventuras", context: "outdoor" },
   { ...d, slot: "C", id: "D26", slug: "dia-explorando-um-cheiro", title: "Explorando um cheiro", description: "Aquela farejada que não tem pressa.", criterion: "O cachorro farejando lá fora.", collectionId: "pequenas-aventuras", context: "outdoor" },
@@ -60,6 +82,17 @@ export const DAILY_MISSIONS: MissionTemplate[] = [
   { ...d, slot: "C", id: "D34", slug: "dia-de-volta-para-casa", title: "De volta para casa", description: "A chegada depois do passeio.", criterion: "O cachorro voltando para casa.", collectionId: "pequenas-aventuras", context: "outdoor", advancesItem: "C09" },
   { ...d, slot: "C", id: "D35", slug: "dia-retrato-com-luz-bonita", title: "Retrato com luz bonita", description: "Aproveite uma luz bonita de hoje.", criterion: "Retrato do cachorro.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
   { ...d, slot: "C", id: "D36", slug: "dia-close-no-focinho", title: "Close no focinho", description: "O focinho em primeiro plano.", criterion: "Close do focinho do cachorro.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
+  // Novas (aprovadas pelo proprietário em 13/10/2026)
+  { ...d, slot: "C", id: "D57", slug: "dia-a-guia-apareceu", title: "A guia apareceu!", description: "A animação de quando a guia sai da gaveta.", criterion: "O cachorro com coleira, peitoral ou guia.", collectionId: "pequenas-aventuras", context: "any" },
+  { ...d, slot: "C", id: "D58", slug: "dia-verde-no-caminho", title: "Verde no caminho", description: "Folhas, flores ou galhos no passeio de hoje.", criterion: "O cachorro lá fora com plantas aparecendo.", collectionId: "pequenas-aventuras", context: "outdoor" },
+  { ...d, slot: "C", id: "D59", slug: "dia-pausa-na-sombra", title: "Pausa na sombra", description: "Um descanso fresquinho no meio do passeio.", criterion: "O cachorro na sombra, ao ar livre.", collectionId: "pequenas-aventuras", context: "outdoor" },
+  { ...d, slot: "C", id: "D60", slug: "dia-pelo-ao-vento", title: "Pelo ao vento", description: "O vento bagunçando o pelo ou as orelhas.", criterion: "O cachorro ao ar livre.", collectionId: "pequenas-aventuras", context: "outdoor" },
+  { ...d, slot: "C", id: "D61", slug: "dia-olhos-nos-olhos", title: "Olhos nos olhos", description: "Os olhos em primeiro plano.", criterion: "Close dos olhos do cachorro.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
+  { ...d, slot: "C", id: "D62", slug: "dia-silhueta", title: "Silhueta", description: "Contra a luz, só o contorno.", criterion: "O cachorro contra a luz.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
+  { ...d, slot: "C", id: "D63", slug: "dia-olhando-para-cima", title: "Olhando para cima", description: "Foto de cima, com ele olhando para você.", criterion: "O cachorro olhando para cima.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
+  { ...d, slot: "C", id: "D64", slug: "dia-na-altura-dele", title: "Na altura dele", description: "O mundo visto da altura do seu cachorro.", criterion: "Foto tirada na altura do cachorro.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
+  { ...d, slot: "C", id: "D65", slug: "dia-banquinho-da-praca", title: "Banquinho da praça", description: "Uma parada num banco ou mureta do passeio.", criterion: "O cachorro perto de um banco ou mureta lá fora.", collectionId: "pequenas-aventuras", context: "outdoor" },
+  { ...d, slot: "C", id: "D66", slug: "dia-corpo-inteiro", title: "Corpo inteiro", description: "Da ponta do focinho à ponta do rabo.", criterion: "O cachorro inteiro na foto.", collectionId: "manias-e-expressoes", context: "any", portrait: true },
 ];
 
 const c = { acceptsGallery: true, version: 1, subjective: false, prerequisiteId: "M01", kind: "collection_item" as const, xp: CYCLE_XP.collectionItem };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COLLECTION_ITEMS, DAILY_MISSIONS, PERMANENT_SETS, SPECIAL_MISSIONS } from "@/config/cycle";
+import { COLLECTION_ITEMS, DAILY_MISSIONS, DAILY_NO_REPEAT_DAYS, PERMANENT_SETS, SPECIAL_MISSIONS } from "@/config/cycle";
 import { civilDateInTz } from "./dates";
 import { addDays } from "./health";
 import { ALL_MISSIONS, activeSpecials, buildHistory, eligibleDaily, generatePlan, instanceKey, setProgress, swapInPlan, type DailyPlan } from "./cycle";
@@ -18,9 +18,9 @@ function simulate(days: number, prefs = all, start = "2026-10-01", dog = "dog-1"
 }
 
 describe("catálogo do ciclo (§7.4–7.6)", () => {
-  it("36 missões do dia (12 por espaço), 5 coleções de 6, 3 especiais; IDs e slugs únicos", () => {
-    expect(DAILY_MISSIONS).toHaveLength(36);
-    for (const s of ["A", "B", "C"]) expect(DAILY_MISSIONS.filter((m) => m.slot === s)).toHaveLength(12);
+  it("66 missões do dia (22 por espaço), 5 coleções de 6, 3 especiais; IDs e slugs únicos", () => {
+    expect(DAILY_MISSIONS).toHaveLength(66);
+    for (const s of ["A", "B", "C"]) expect(DAILY_MISSIONS.filter((m) => m.slot === s)).toHaveLength(22);
     expect(PERMANENT_SETS).toHaveLength(5);
     expect(PERMANENT_SETS.every((s) => s.items.length === 6 && s.items.every((id) => missionById(id)))).toBe(true);
     expect(SPECIAL_MISSIONS).toHaveLength(3);
@@ -57,13 +57,15 @@ describe("sorteio das missões do dia (§7.1)", () => {
   it("nada se repete em 14 dias enquanto o espaço tiver opção; esgotado, volta a mais antiga", () => {
     const plans = simulate(30);
     for (const slot of ["A", "B", "C"] as const) {
-      const pool = eligibleDaily(slot, all).length; // 12
+      const pool = eligibleDaily(slot, all).length; // 22
       const seq = plans.map((p) => p.slots[slot]);
       for (let i = 0; i < seq.length; i++) {
         const prev = i > 0 ? seq.lastIndexOf(seq[i], i - 1) : -1;
-        if (prev >= 0) expect(i - prev).toBeGreaterThanOrEqual(Math.min(pool, 15));
+        if (prev >= 0) expect(i - prev).toBeGreaterThanOrEqual(Math.min(pool, DAILY_NO_REPEAT_DAYS));
       }
-      expect(new Set(seq.slice(0, pool)).size).toBe(pool); // os 12 primeiros dias, todos diferentes
+      const win = Math.min(pool, DAILY_NO_REPEAT_DAYS);
+      expect(pool).toBeGreaterThanOrEqual(15); // banco suficiente para 14 dias sem repetir
+      expect(new Set(seq.slice(0, win)).size).toBe(win); // os 14 primeiros dias, todos diferentes
     }
   });
   it("respeita as preferências: sem passeio o espaço C vira retrato; sem outros cães, sem encontro na rua", () => {

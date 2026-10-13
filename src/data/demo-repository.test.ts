@@ -324,7 +324,7 @@ describe("ciclo contínuo de missões (MUDANCAS-V2 §7)", () => {
     await approve("m01", (await entry("m01")).id);
     // Força um plano com D17 (avança “Bolinha”, C12) trocando o espaço B até aparecer.
     let p = (await loadSnapshot(db)).dailyPlan!;
-    for (let i = 0; i < 12 && p.slots.B !== "D17"; i++) p = await swapDaily(db, "B");
+    for (let i = 0; i < 22 && p.slots.B !== "D17"; i++) p = await swapDaily(db, "B");
     expect(p.slots.B).toBe("D17");
     const r = await daily("bola", "D17");
     expect(r).toMatchObject({ xpAwarded: 10, advancedItem: "C12" });

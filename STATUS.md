@@ -12,7 +12,7 @@
 | 4. Cuidados (ficha de saúde) | ✅ |
 | 5. Documentos | ✅ |
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
-| 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
+| 7. Ciclo contínuo de missões | ✅ 66 missões do dia (22 por espaço) — 14 dias sem repetir |
 | 8. Contas reais (Supabase) | ✅ app pronto e testado com contas reais (21/21) e importação (6/6). **Para abrir ao público faltam 2 passos do proprietário:** SMTP próprio e variáveis na Vercel (ver Bloqueado) |
 | Splash de entrada antes da apresentação; Google/Apple/email; conta e exclusão em Ajustes | ✅ (E2E real 25/25). Site no ar já em modo contas (variáveis na Vercel 13/10). **Google e Apple precisam ser ligados no Supabase** (`docs/SUPABASE.md` §7) |
 | Emails com a identidade da marca (criar conta, entrar, esqueci a senha, trocar email, avisos) + email de conta excluída enviado pelo app | ✅ **ativos** desde 13/10: SMTP Gmail diariodepatas.app@gmail.com ligado no Supabase e na Vercel (senha de app só no `.env.local`/painéis) |
@@ -97,7 +97,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 ## Limitação conhecida (§7)
 
-**“Nada se repete em 14 dias”** não é possível com o banco atual: cada espaço tem 12 missões do dia (o espaço C para quem não passeia tem 6 retratos) e uma é sugerida por dia. O app não repete enquanto houver opção no espaço; esgotado, volta a mais antiga. Para cumprir 14 dias à risca, cada espaço precisa de **pelo menos 15 missões** (decisão de conteúdo do proprietário).
+**“Nada se repete em 14 dias”** vale desde 13/10/2026: cada espaço tem 22 missões do dia. Exceção: quem marcou que **não passeia** vê só os retratos no espaço C — são 11, então ali a repetição volta a cada ~11 dias. Para cumprir 14 dias também nesse caso, faltam pelo menos 4 retratos.
 
 ## Não verificado
 
@@ -119,7 +119,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 5. **Entrar com Google e Apple:** credenciais OAuth do Google (grátis) e Apple Developer Program (US$ 99/ano) — passo a passo em `docs/SUPABASE.md` §7. Até lá os botões avisam e o email funciona.
 
-6. **Missões do dia:** 30 novas (D37–D66, 10 por espaço) escritas para cumprir os 14 dias sem repetir; aguardam revisão em `docs/missoes/missoes-do-dia-revisao.xlsx` antes de entrar no app e no banco.
+6. ~~Missões do dia~~ — 30 novas (D37–D66) aprovadas pelo proprietário em 13/10/2026 e ativas no app e no banco: 22 por espaço, 14 dias sem repetir.
 7. **Entrar com Apple:** o proprietário tem conta Apple Developer; faltam Services ID, Key ID, Team ID e a chave .p8 (`docs/SUPABASE.md` §7).
 
 ## Próximo passo
