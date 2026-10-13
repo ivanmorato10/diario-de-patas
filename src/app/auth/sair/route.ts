@@ -5,5 +5,5 @@ import { userClient } from "@/server/supabase";
 export async function POST(req: Request) {
   const supa = await userClient();
   await supa.auth.signOut();
-  return NextResponse.redirect(new URL("/bem-vindo", req.url), { status: 303 });
+  return NextResponse.redirect(new URL("/entrar", req.url), { status: 303 });
 }

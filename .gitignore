@@ -13,3 +13,5 @@ photos/
 
 # Resultados do teste de qualidade do Estúdio (contêm fotos do Abu)
 studio-eval/
+.vercel
+e2e-real-out/

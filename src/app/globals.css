@@ -504,3 +504,16 @@ body { background: var(--background); }
 .progress--indeterminate span { width: 40%; animation: indeterminate 1.2s var(--ease) infinite; }
 @keyframes indeterminate { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
 @media (prefers-reduced-motion: reduce) { .progress--indeterminate span { animation: none; width: 100%; opacity: 0.5; } }
+
+/* Splash de entrada (modo real): logo e opções de conta */
+.splash { display: flex; flex-direction: column; gap: 20px; padding-top: 28px; padding-bottom: 32px; min-height: 100dvh; }
+.splash__hero { position: relative; display: grid; place-items: center; min-height: 240px; }
+.splash__hero .intro-halo { position: absolute; }
+.splash__actions { margin-top: auto; }
+.splash__actions h1 { font-size: 1.6rem; line-height: 1.2; }
+.btn--provider { background: var(--surface); color: var(--text-primary); border: 1px solid var(--border); gap: 10px; }
+.btn--provider:hover { border-color: var(--sage); }
+.btn--apple { background: #000; color: #fff; border-color: #000; }
+.btn--apple:hover { background: #1c1c1e; border-color: #1c1c1e; }
+.splash__or { display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 0.875rem; }
+.splash__or::before, .splash__or::after { content: ""; flex: 1; height: 1px; background: var(--border); }

@@ -28,9 +28,10 @@ export async function proxy(request: NextRequest) {
   if (!data?.claims && !isPublicPath(path)) {
     const to = request.nextUrl.clone();
     to.pathname = "/entrar";
-    to.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
+    to.search = path === "/" ? "" : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return NextResponse.redirect(to);
   }
+  if (data?.claims && path === "/entrar") return NextResponse.redirect(new URL("/", request.url)); // já entrou
   return response;
 }
 

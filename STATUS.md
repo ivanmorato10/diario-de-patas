@@ -1,6 +1,6 @@
 # STATUS — Diário de Patas
 
-Última atualização: **12 de outubro de 2026** · Etapas concluídas: **A** e **B** (seção 25 do briefing) · **MUDANCAS-V2** em andamento (ver abaixo)
+Última atualização: **13 de outubro de 2026** · Etapas concluídas: **A** e **B** (seção 25 do briefing) · **MUDANCAS-V2** em andamento (ver abaixo)
 
 ## MUDANCAS-V2 — progresso
 
@@ -14,6 +14,7 @@
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
 | 8. Contas reais (Supabase) | ✅ app pronto e testado com contas reais (21/21) e importação (6/6). **Para abrir ao público faltam 2 passos do proprietário:** SMTP próprio e variáveis na Vercel (ver Bloqueado) |
+| Splash de entrada antes da apresentação; Google/Apple/email; conta e exclusão em Ajustes | ✅ (E2E real 25/25). Site no ar já em modo contas (variáveis na Vercel 13/10). **Google e Apple precisam ser ligados no Supabase** (`docs/SUPABASE.md` §7) |
 | 9. Estúdio com IA (Gemini, adendo) | ✅ do meu lado (testado com gerador de teste); **falta a chave do Gemini** para a geração real |
 | 10. Estúdio completo (adendo) | ✅ do meu lado (4 abas, 28 presets, figurinha, cartão, recorte, desligar preset, teste de qualidade pronto); **falta rodar o teste de qualidade com a chave e a aprovação dos presets** |
 
@@ -114,6 +115,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 **Custo estimado por arte (preços oficiais 12/10/2026):** normal 1K ≈ US$ 0,036 · papel de parede 2K ≈ US$ 0,053 · premium ≈ US$ 0,136 (≈ 4× a normal, mas o adendo define 2 créditos — decidir após o teste).
 3. **Logo**: versão vetorial (SVG) e confirmação de direitos de uso antes do lançamento.
 4. Email de suporte real.
+
+5. **Entrar com Google e Apple:** credenciais OAuth do Google (grátis) e Apple Developer Program (US$ 99/ano) — passo a passo em `docs/SUPABASE.md` §7. Até lá os botões avisam e o email funciona.
 
 ## Próximo passo
 

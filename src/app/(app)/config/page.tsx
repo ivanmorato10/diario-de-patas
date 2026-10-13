@@ -7,6 +7,7 @@ import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
 import { LIMITS } from "@/config/business";
 import { REAL_MODE } from "@/config/mode";
+import { browserClient } from "@/data/supabase-browser";
 import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
@@ -27,6 +28,17 @@ export default function Config() {
   const [tz, setTz] = useState("");
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [account, setAccount] = useState<{ email: string; via: string } | null>(null);
+
+  useEffect(() => {
+    if (!REAL_MODE) return;
+    browserClient().auth.getUser().then(({ data }) => {
+      const u = data.user;
+      if (!u) return;
+      const p = u.app_metadata?.provider;
+      setAccount({ email: u.email ?? "", via: p === "google" ? "Google" : p === "apple" ? "Apple" : "email" });
+    });
+  }, []);
 
   useEffect(() => {
     if (snap?.dog && prefs === null) {
@@ -75,7 +87,7 @@ export default function Config() {
 
   async function wipe() {
     await reset();
-    router.replace("/bem-vindo");
+    router.replace(REAL_MODE ? "/entrar" : "/bem-vindo");
   }
 
   return (
@@ -127,9 +139,14 @@ export default function Config() {
         </section>
 
         {REAL_MODE ? (
-          <form method="post" action="/auth/sair">
-            <button type="submit" className="btn btn--secondary btn--block">Sair da conta</button>
-          </form>
+          <section className="card stack" aria-labelledby="conta">
+            <h2 id="conta">Conta</h2>
+            {account ? <p className="small">Conectado como <strong>{account.email}</strong> (entrada com {account.via}).</p> : null}
+            <form method="post" action="/auth/sair">
+              <button type="submit" className="btn btn--secondary btn--block">Sair da conta</button>
+            </form>
+            <a href="#apagar" className="small">Excluir conta</a>
+          </section>
         ) : null}
 
         <ImportDemoCard />

@@ -48,7 +48,7 @@ for e in emails.values():
 
 def login(page, who):
     page.goto(BASE + "/hoje"); page.wait_for_url("**/entrar?next=*")
-    page.get_by_label("Seu email").fill(emails[who])
+    page.get_by_role("button", name="Entrar com email").click(); page.get_by_label("Seu email").fill(emails[who])
     # O teste não envia email: só o pedido de envio é interceptado; o código de uso único (gerado pela
     # API de administração) é conferido pelo Supabase de verdade em verifyOtp.
     page.route("**/auth/v1/otp*", lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
@@ -76,8 +76,16 @@ with sync_playwright() as p:
     ctxA = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo")
     a = ctxA.new_page(); a.on("pageerror", lambda e: errors.append(str(e)))
 
+    # ---------- Splash: a entrada vem antes da apresentação ----------
+    a.goto(BASE + "/"); a.wait_for_url("**/entrar")
+    check("sem conta, / abre o splash de entrada", a.get_by_role("button", name="Continuar com Google").is_visible() and a.get_by_role("button", name="Continuar com Apple").is_visible())
+    a.goto(BASE + "/bem-vindo"); check("a apresentação pede login antes", "/entrar" in a.url)
+
     # ---------- Conta A ----------
     login(a, "A")
+    a.goto(BASE + "/"); a.wait_for_url("**/bem-vindo", timeout=20000)
+    check("depois de entrar sem diário, vem a apresentação", a.get_by_role("button", name="Pular").is_visible())
+    a.goto(BASE + "/entrar"); check("quem já entrou não volta ao login", "/entrar" not in a.url)
     a.goto(BASE + "/comecar"); a.get_by_label("Nome do cachorro").fill("Luna")
     a.locator("input[type=file]:not([capture])").first.set_input_files(photo(0)); a.wait_for_timeout(800)
     a.get_by_role("button", name="Criar meu diário").click(); a.wait_for_url("**/hoje", timeout=30000)
@@ -179,7 +187,7 @@ with sync_playwright() as p:
     ctxV.close()
 
     # ---------- Sair e entrar de novo ----------
-    a.goto(BASE + "/config"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/bem-vindo")
+    a.goto(BASE + "/config"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/entrar")
     a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
     login(a, "A"); a.goto(BASE + "/hoje")
     check("dados persistem depois de sair e entrar",

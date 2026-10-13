@@ -153,9 +153,7 @@ export default function BemVindo() {
           {last ? (
             <>
               <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">Apresentar meu cachorro</Link>
-              {REAL_MODE ? (
-                <Link href="/entrar" className="btn btn--secondary btn--block">Já tenho conta</Link>
-              ) : (
+              {REAL_MODE ? null : (
                 <button type="button" className="btn btn--secondary btn--block" onClick={() => setShowAccountInfo((v) => !v)} aria-expanded={showAccountInfo} aria-controls="conta-info">
                   Já tenho conta
                 </button>

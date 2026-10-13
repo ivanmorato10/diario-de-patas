@@ -91,3 +91,23 @@ Com SMTP ativo, dá para ligar os modelos em português com código de 6 dígito
 
 Em *Vercel › Project › Settings › Environment Variables* (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` (qualquer texto aleatório longo, para a limpeza diária). Depois, **Redeploy** — as variáveis `NEXT_PUBLIC_` entram no build.
 
+
+> Feito em 13/10/2026 pela CLI (`npx vercel env add`, Production e Preview) e redeploy: o site no ar está no modo contas.
+
+## 7. Entrar com Google e com Apple (iCloud)
+
+A tela de entrada (`/entrar`, primeira tela do app) já tem os botões. Enquanto um provedor não estiver ligado no Supabase, o botão avisa “ainda está sendo configurado” e o email continua funcionando. Credenciais só nos painéis, nunca no chat ou no git.
+
+**Google (Gmail)** — gratuito:
+1. console.cloud.google.com › APIs e serviços › *Tela de consentimento OAuth*: tipo Externo, nome “Diário de Patas”, email de suporte.
+2. *Credenciais › Criar credenciais › ID do cliente OAuth* › Aplicativo da Web. Em *URIs de redirecionamento autorizados*: `https://mxpotienvwpetkzcylsi.supabase.co/auth/v1/callback`.
+3. Supabase › Authentication › Sign In / Providers › **Google**: ligar e colar Client ID e Client Secret.
+
+**Apple (iCloud)** — exige o Apple Developer Program (US$ 99/ano):
+1. developer.apple.com › Certificates, IDs & Profiles: criar um **App ID** com “Sign in with Apple” e um **Services ID** (ex.: `app.diariodepatas.web`) com domínio `mxpotienvwpetkzcylsi.supabase.co` e Return URL `https://mxpotienvwpetkzcylsi.supabase.co/auth/v1/callback`.
+2. Criar uma **Key** com “Sign in with Apple” e baixar o `.p8` (Key ID e Team ID ficam na tela).
+3. Supabase › Authentication › Providers › **Apple**: ligar, Client ID = Services ID, e gerar o *Secret Key* a partir do `.p8` (o painel explica; o segredo vence a cada 6 meses e precisa ser renovado).
+
+Quem usa “Ocultar meu email” da Apple entra com um endereço `@privaterelay.appleid.com` — funciona normalmente.
+
+**Excluir conta:** *Perfil e ajustes › Conta* mostra com qual conta a pessoa entrou e leva a *Excluir conta* (apaga tudo, inclusive o usuário de login). A Apple exige essa opção dentro do app.
