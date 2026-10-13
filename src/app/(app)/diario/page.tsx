@@ -11,6 +11,7 @@ import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/comp
 import { MediaImage } from "@/components/media";
 import { AbuSays } from "@/components/brand";
 import { EntryActions, UseInMission } from "@/components/entry-actions";
+import { cycleContext } from "@/data/store";
 import { IconPlus, IconStar } from "@/components/icons";
 
 type Filter = "all" | "mission" | "free" | "studio" | CollectionId;
@@ -19,7 +20,7 @@ export default function Diario() {
   const { ready, snap, unavailable } = useRequireDiary();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const completed = useMemo(() => new Set(snap?.completions.map((c) => c.missionId) ?? []), [snap]);
+  const ctx = useMemo(() => (snap ? cycleContext(snap) : null), [snap]);
 
   const albumsByEntry = useMemo(() => {
     const map = new Map<string, CollectionId[]>();
@@ -105,7 +106,7 @@ export default function Diario() {
                           <p className="caption">{formatCivilDate(e.occurredDate)}</p>
                           <EntryActions entry={e} albumIds={albumsByEntry.get(e.id) ?? []} today={snap.today} label={label} />
                         </div>
-                        <UseInMission entry={e} completed={completed} label={label} />
+                        {ctx ? <UseInMission entry={e} ctx={ctx} label={label} /> : null}
                       </div>
                     </article>
                   );

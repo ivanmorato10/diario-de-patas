@@ -457,3 +457,24 @@ body { background: var(--background); }
 .doc-thumb { position: relative; width: 56px; height: 56px; flex: none; border-radius: 10px; background: var(--brand-soft); display: grid; place-items: center; color: var(--text-secondary); overflow: hidden; }
 .doc-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .doc-thumb__tag { position: absolute; bottom: 3px; right: 3px; background: var(--surface); color: var(--text-primary); font-size: 0.625rem; font-weight: 800; padding: 0 4px; border-radius: 4px; }
+
+/* ================= Missões do dia (V2 §7) ================= */
+.daily-card { padding: 12px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+.daily-card__main { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; min-height: 44px; }
+.daily-card .btn--ghost { align-self: flex-end; }
+.daily-card--done { background: var(--brand-soft); }
+.daily-done { background: var(--paper); border: 2px solid var(--brand-teal); text-align: center; align-items: center; }
+
+/* ================= Coleções (V2 §7) ================= */
+.tabs { display: flex; gap: 6px; background: var(--brand-soft); padding: 4px; border-radius: var(--radius-pill); }
+.tab { flex: 1; min-height: 44px; border: 0; border-radius: var(--radius-pill); background: transparent; font: inherit; font-family: var(--font-heading); font-weight: 700; color: var(--text-secondary); cursor: pointer; }
+.tab.is-active { background: var(--surface); color: var(--text-primary); box-shadow: var(--shadow-card); }
+.set-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.set-slot { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; aspect-ratio: 1; border-radius: 14px; border: 2px dashed var(--sage); color: var(--text-secondary); text-decoration: none; padding: 6px; text-align: center; overflow: hidden; }
+.set-slot--done { border: 0; background: var(--brand-soft); color: var(--text-primary); }
+.set-slot__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.set-slot__icon { display: grid; place-items: center; }
+.set-slot__label { position: relative; font-size: 0.75rem; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.set-slot--done:has(.set-slot__img) .set-slot__label { position: absolute; left: 4px; right: 4px; bottom: 4px; background: rgba(255, 248, 236, 0.92); border-radius: 8px; padding: 2px 4px; }
+.medal { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--reward); color: var(--text-primary); box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--accent); flex: none; }
+.set-cover { width: 100%; max-width: 240px; border-radius: 12px; box-shadow: var(--shadow-photo); }

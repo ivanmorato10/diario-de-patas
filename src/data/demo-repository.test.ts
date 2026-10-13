@@ -1,10 +1,11 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import {
   openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, exportMetadata, type Db, type ProcessedImage,
   saveHealthProfile, addWeight, saveVaccine, saveVisit, saveMedication, saveContact, deleteHealthRecord,
-  addDocument, updateDocument, deleteDocument, getDocumentFile,
+  addDocument, updateDocument, deleteDocument, getDocumentFile, swapDaily,
 } from "./demo-repository";
+import { PERMANENT_SETS } from "@/config/cycle";
 import type { ProcessedDocument } from "@/lib/document-file";
 import { LIMITS } from "@/config/business";
 
@@ -259,3 +260,89 @@ describe("documentos (MUDANCAS-V2 §5)", () => {
     expect([await db.count("documents"), await db.count("documentFiles")]).toEqual([0, 0]);
   });
 });
+
+describe("ciclo contínuo de missões (MUDANCAS-V2 §7)", () => {
+  afterEach(() => vi.useRealTimers());
+  const setDay = (iso: string) => vi.useFakeTimers({ toFake: ["Date"], now: new Date(`${iso}T15:00:00Z`) }); // meio-dia em SP
+  const daily = async (key: string, missionId: string) => {
+    const e = await entry(key);
+    return submitMission(db, { requestKey: `s-${key}`, missionId, entryId: e.id, status: "approved", reasonCode: "OWNER_CONFIRMED", mode: "owner", providerVersion: null });
+  };
+
+  it("o plano do dia é gravado e reabrir no mesmo dia mostra o mesmo; a troca persiste", async () => {
+    setDay("2026-10-12");
+    const a = (await loadSnapshot(db)).dailyPlan!;
+    db.close();
+    db = await openDemoDb(`test-${n}`);
+    expect((await loadSnapshot(db)).dailyPlan!.slots).toEqual(a.slots);
+    const swapped = await swapDaily(db, "B");
+    expect(swapped.slots.B).not.toBe(a.slots.B);
+    expect((await loadSnapshot(db)).dailyPlan!.slots.B).toBe(swapped.slots.B);
+  });
+
+  it("missão do dia dá XP uma vez naquele dia e de novo em outro dia sorteado; fora do plano é recusada", async () => {
+    setDay("2026-10-12");
+    await approve("m01", (await entry("m01")).id);
+    const plan = (await loadSnapshot(db)).dailyPlan!;
+    expect((await daily("d1", plan.slots.A)).xpAwarded).toBe(10);
+    expect((await daily("d1b", plan.slots.A)).xpAwarded).toBe(0); // mesmo dia: pontos já contados
+    const notToday = ["D01", "D02", "D03"].find((id) => !Object.values(plan.slots).includes(id))!;
+    await expect(daily("fora", notToday)).rejects.toMatchObject({ code: "NOT_TODAY" });
+
+    // Dias depois a mesma missão volta a ser sorteada e rende de novo.
+    let day = "2026-10-13";
+    for (let i = 0; i < 40; i++) {
+      setDay(day);
+      const p = (await loadSnapshot(db)).dailyPlan!;
+      if (Object.values(p.slots).includes(plan.slots.A)) break;
+      day = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    }
+    expect((await daily("d2", plan.slots.A)).xpAwarded).toBe(10);
+  });
+
+  it("uma foto não dá pontos em duas missões, nem na mesma missão do dia em outro dia", async () => {
+    setDay("2026-10-12");
+    await approve("m01", (await entry("m01")).id);
+    const plan = (await loadSnapshot(db)).dailyPlan!;
+    const e = await entry("foto");
+    await submitMission(db, { requestKey: "x1", missionId: plan.slots.A, entryId: e.id, status: "approved", reasonCode: null, mode: "owner", providerVersion: null });
+    await expect(submitMission(db, { requestKey: "x2", missionId: plan.slots.B, entryId: e.id, status: "approved", reasonCode: null, mode: "owner", providerVersion: null })).rejects.toMatchObject({ code: "PHOTO_ALREADY_USED" });
+  });
+
+  it("especial só dentro da janela e uma vez por ocorrência", async () => {
+    setDay("2026-10-12");
+    await approve("m01", (await entry("m01")).id);
+    await expect(daily("h0", "S03")).rejects.toMatchObject({ code: "OUT_OF_WINDOW" });
+    setDay("2026-10-25");
+    expect((await daily("h1", "S03")).xpAwarded).toBe(20);
+    expect((await daily("h2", "S03")).xpAwarded).toBe(0);
+  });
+
+  it("missão do dia ligada avança o item da coleção sem XP extra", async () => {
+    setDay("2026-10-12");
+    await approve("m01", (await entry("m01")).id);
+    // Força um plano com D17 (avança “Bolinha”, C12) trocando o espaço B até aparecer.
+    let p = (await loadSnapshot(db)).dailyPlan!;
+    for (let i = 0; i < 12 && p.slots.B !== "D17"; i++) p = await swapDaily(db, "B");
+    expect(p.slots.B).toBe("D17");
+    const r = await daily("bola", "D17");
+    expect(r).toMatchObject({ xpAwarded: 10, advancedItem: "C12" });
+    expect((await loadSnapshot(db)).collectionAdvances.map((a) => a.itemId)).toEqual(["C12"]);
+  });
+
+  it("completar as 6 dá a medalha e os 50 XP uma única vez, mesmo com requisições simultâneas", async () => {
+    setDay("2026-10-12");
+    await approve("m01", (await entry("m01")).id);
+    const set = PERMANENT_SETS.find((s) => s.id === "poses-de-dormir")!;
+    for (const id of set.items.slice(0, 5)) await daily(`p-${id}`, id);
+    const last = set.items[5];
+    const [e1, e2] = [await entry("l1"), await entry("l2")];
+    const res = await Promise.all([e1, e2].map((e, i) => submitMission(db, { requestKey: `last${i}`, missionId: last, entryId: e.id, status: "approved", reasonCode: null, mode: "owner", providerVersion: null })));
+    expect(res.flatMap((r) => r.medals)).toEqual(["poses-de-dormir"]);
+    const snap = await loadSnapshot(db);
+    expect(snap.medals).toHaveLength(1);
+    const itemsXp = set.items.length * 15; // C01–C05 e M17 valem 15 cada
+    expect(snap.xpTotal).toBe(10 + itemsXp + 50);
+  });
+});
+

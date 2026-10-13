@@ -44,6 +44,13 @@ public/                manifest, service worker, offline, assets de marca provis
 scripts/               contraste WCAG e teste E2E (Playwright)
 ```
 
+## Ciclo contínuo de missões (MUDANCAS-V2 §7)
+
+- Tipos: `once` (48 do catálogo), `daily` (36), `collection_item` (15 novos + M reaproveitados), `special` (3). Dados em `src/config/cycle.ts`; regras puras em `src/domain/cycle.ts`.
+- Instância que recebe XP: `dog:missão` (única/item), `dog:missão:AAAA-MM-DD` (do dia), `dog:missão:AAAA` (especial). Uma foto rende pontos em uma única instância.
+- Plano do dia gravado na primeira abertura (IndexedDB `dailyPlans`; Supabase `daily_plans`), sorteio FNV-1a(cachorro|data|espaço|troca), histórico de 14 dias (ver limitação no STATUS).
+- Medalha: verificada na mesma transação da conclusão (IndexedDB) / `award_medal` com chave única + lock (SQL).
+
 ## Regras que valem em qualquer modo
 
 - XP: uma entrada positiva por conclusão (`unique(completion_id)`); retries devolvem a conclusão existente.

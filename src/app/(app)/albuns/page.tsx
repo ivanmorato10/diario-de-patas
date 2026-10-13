@@ -1,15 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { CollectionsView } from "@/components/collections";
 import { COLLECTIONS } from "@/config/catalog";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
 import { collectionMissions } from "@/components/mission-ui";
 import { IconAlbum } from "@/components/icons";
 
-export default function Albuns() {
+export default function AlbunsPage() {
+  return (
+    <Suspense fallback={<main className="main"><PageLoading /></main>}>
+      <Albuns />
+    </Suspense>
+  );
+}
+
+type Tab = "albuns" | "colecoes";
+
+function Albuns() {
   const { ready, snap, unavailable } = useRequireDiary();
+  const params = useSearchParams();
+  const router = useRouter();
+  const path = usePathname();
+  const tab: Tab = params.get("aba") === "colecoes" ? "colecoes" : "albuns";
+  const setTab = (t: Tab) => router.replace(t === "colecoes" ? `${path}?aba=colecoes` : path, { scroll: false });
   const stats = useMemo(() => {
     const completed = new Set(snap?.completions.map((c) => c.missionId) ?? []);
     const entriesById = new Map(snap?.entries.map((e) => [e.id, e]) ?? []);
@@ -22,11 +39,20 @@ export default function Albuns() {
   }, [snap]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap) return <main className="main"><PageLoading /></main>;
   return (
     <>
       <TopBar title="Álbuns" />
       <main className="main">
+        <div role="tablist" aria-label="Álbuns e coleções" className="tabs">
+          {([["albuns", "Álbuns"], ["colecoes", `Coleções (${snap.medals.length}/5)`]] as const).map(([id, label]) => (
+            <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`} className={`tab${tab === id ? " is-active" : ""}`} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
+        {tab === "colecoes" ? (
+          <div role="tabpanel" id="panel-colecoes" aria-labelledby="tab-colecoes"><CollectionsView snap={snap} /></div>
+        ) : (
+        <div role="tabpanel" id="panel-albuns" aria-labelledby="tab-albuns" className="stack">
         <p className="muted">Cada missão concluída vira uma conquista no álbum. Fotos livres também podem morar aqui.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
           {stats.map(({ c, photos, done, total, cover }) => (
@@ -43,6 +69,8 @@ export default function Albuns() {
             </Link>
           ))}
         </div>
+        </div>
+        )}
       </main>
     </>
   );

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getMedia, loadSnapshot, openDemoDb, resetDemo, type Db, type Snapshot } from "./demo-repository";
 import type { MediaAsset } from "@/domain/types";
+import type { CycleContext } from "@/domain/cycle";
 
 interface StoreValue {
   db: Db | null;
@@ -103,4 +104,13 @@ export function useMedia(id: string | null | undefined): MediaAsset | null | und
     };
   }, [db, id]);
   return m;
+}
+
+/** Contexto do ciclo de missões a partir do snapshot (§7). */
+export function cycleContext(snap: Snapshot): CycleContext | null {
+  if (!snap.dog) return null;
+  return {
+    dogId: snap.dog.id, dogName: snap.dog.name, birthDate: snap.dog.birthDate, today: snap.today,
+    plan: snap.dailyPlan, completions: snap.completions, advances: snap.collectionAdvances,
+  };
 }

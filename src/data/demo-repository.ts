@@ -8,7 +8,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { civilDateInTz } from "@/domain/dates";
-import { missionById, missionState } from "@/domain/missions";
+import { missionById } from "@/domain/missions";
 import {
   ContactSchema, EMPTY_HEALTH, HealthProfileSchema, MedicationSchema, VaccineSchema, VisitSchema, WeightSchema, firstIssue,
   type Contact, type ContactInput, type HealthData, type HealthProfile, type HealthProfileInput, type Medication, type MedicationInput,
@@ -17,8 +17,10 @@ import {
 import type { ZodType } from "zod";
 import { DocumentMetaSchema, type DocumentFile, type DocumentMetaInput, type HealthDocument } from "@/domain/documents";
 import type { ProcessedDocument } from "@/lib/document-file";
+import { CYCLE_XP, type DailySlot } from "@/config/cycle";
+import { activeSpecials, buildHistory, generatePlan, instanceKey as instanceKeyFor, setProgress, setsContaining, swapInPlan, type DailyPlan } from "@/domain/cycle";
 import type {
-  AlbumEntry, CivilDate, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
+  AlbumEntry, CivilDate, CollectionAdvance, Medal, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
   Profile, SubmissionStatus, XpLedgerEntry, EntrySource,
 } from "@/domain/types";
 
@@ -29,8 +31,9 @@ export const DEMO_DB_NAME = "diario-de-patas-demo";
  * 1: esquema inicial · 2: remove o contador de validações diárias (MUDANCAS-V2 §1)
  * 3: ficha de cuidados — healthProfile, weights, vaccines, visits, medications, contacts (§4)
  * 4: documentos — metadados em documents, arquivo em documentFiles (§5)
+ * 5: ciclo contínuo — dailyPlans, collectionAdvances, medals (§7)
  */
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 interface DemoDB extends DBSchema {
   profile: { key: string; value: Profile };
@@ -49,6 +52,9 @@ interface DemoDB extends DBSchema {
   contacts: { key: string; value: Contact };
   documents: { key: string; value: HealthDocument };
   documentFiles: { key: string; value: DocumentFile };
+  dailyPlans: { key: string; value: DailyPlan };
+  collectionAdvances: { key: string; value: CollectionAdvance };
+  medals: { key: string; value: Medal };
 }
 
 export type Db = IDBPDatabase<DemoDB>;
@@ -75,6 +81,11 @@ export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
       if (oldVersion < 4) {
         db.createObjectStore("documents", { keyPath: "id" });
         db.createObjectStore("documentFiles", { keyPath: "id" });
+      }
+      if (oldVersion < 5) {
+        db.createObjectStore("dailyPlans", { keyPath: "key" });
+        db.createObjectStore("collectionAdvances", { keyPath: "key" });
+        db.createObjectStore("medals", { keyPath: "key" });
       }
     },
   });
@@ -104,6 +115,7 @@ function createV3(db: IDBPDatabase<DemoDB>) {
 const STORES = [
   "profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp",
   "healthProfile", "weights", "vaccines", "visits", "medications", "contacts", "documents", "documentFiles",
+  "dailyPlans", "collectionAdvances", "medals",
 ] as const;
 
 /**
@@ -147,6 +159,10 @@ export interface Snapshot {
   today: CivilDate;
   /** Ficha de cuidados — privada; nunca vai para compartilhamentos (§4). */
   health: HealthData;
+  /** Missões do dia de hoje (gravadas na primeira abertura do dia, §7.1). */
+  dailyPlan: DailyPlan | null;
+  collectionAdvances: CollectionAdvance[];
+  medals: Medal[];
 }
 
 export async function loadSnapshot(db: Db): Promise<Snapshot> {
@@ -157,16 +173,55 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
   const xp = await db.getAll("xp");
   const tz = profile?.timezone ?? "UTC";
   const today = civilDateInTz(new Date(), tz);
+  // Conclusões antigas não guardavam a foto: completa pela submissão aceita.
+  const subs = new Map((await db.getAll("submissions")).map((s) => [s.id, s.entryId]));
+  const completions = (await db.getAll("completions")).map((c) => (c.entryId ? c : { ...c, entryId: subs.get(c.submissionId) }));
   return {
     profile,
     dog: dogs[0] ?? null,
     entries,
     albumEntries: await db.getAll("albumEntries"),
-    completions: await db.getAll("completions"),
+    completions,
     xpTotal: xp.reduce((s, e) => s + e.amount, 0),
     today,
     health: dogs[0] ? await loadHealth(db, dogs[0].id) : EMPTY_HEALTH,
+    dailyPlan: dogs[0] ? await ensureDailyPlan(db, dogs[0], today) : null,
+    collectionAdvances: await db.getAll("collectionAdvances"),
+    medals: await db.getAll("medals"),
   };
+}
+
+// ---------- Ciclo contínuo (MUDANCAS-V2 §7) ----------
+
+async function dailyHistory(db: Db, dogId: string, before: CivilDate) {
+  const plans = (await db.getAll("dailyPlans")).filter((p) => p.dogId === dogId);
+  const daily = (await db.getAll("completions")).filter((c) => c.dogId === dogId && c.date && missionById(c.missionId)?.kind === "daily").map((c) => ({ missionId: c.missionId, date: c.date! }));
+  return buildHistory(plans, daily, before);
+}
+
+/** Na primeira abertura do dia o plano é gravado; reabrir no mesmo dia mostra o mesmo plano. */
+export async function ensureDailyPlan(db: Db, dog: Dog, today: CivilDate): Promise<DailyPlan> {
+  const key = `${dog.id}:${today}`;
+  const existing = await db.get("dailyPlans", key);
+  if (existing) return existing;
+  const plan = generatePlan(dog.id, today, dog.preferences, await dailyHistory(db, dog.id, today), now());
+  const tx = db.transaction("dailyPlans", "readwrite");
+  const raced = await tx.store.get(key); // outra aba pode ter gravado no meio-tempo
+  if (!raced) await tx.store.put(plan);
+  await tx.done;
+  return raced ?? plan;
+}
+
+/** Trocar uma sugestão do dia é gratuito e fica gravado no plano (§7.1 regra 3). */
+export async function swapDaily(db: Db, slot: DailySlot): Promise<DailyPlan> {
+  const [dog] = await db.getAll("dogs");
+  const profile = await db.get("profile", "me");
+  if (!dog || !profile) throw new DomainError("NO_DOG", "Crie o diário antes.");
+  const today = civilDateInTz(new Date(), profile.timezone);
+  const plan = await ensureDailyPlan(db, dog, today);
+  const next = swapInPlan(plan, slot, dog.preferences, await dailyHistory(db, dog.id, today));
+  await db.put("dailyPlans", next);
+  return next;
 }
 
 const CONTACT_ORDER = ["emergency", "vet", "clinic", "sitter", "other"];
@@ -335,8 +390,13 @@ export async function deleteEntry(db: Db, id: string) {
 export interface SubmitResult {
   submission: MissionSubmission;
   completion: MissionCompletion | null;
+  /** XP total desta conclusão, incluindo medalhas. */
   xpAwarded: number;
   alreadyCompleted: boolean;
+  /** Item de coleção avançado por uma missão do dia (sem XP extra). */
+  advancedItem?: string;
+  /** Coleções completadas agora (medalha + 50 XP). */
+  medals: string[];
 }
 
 /**
@@ -349,12 +409,12 @@ export async function submitMission(
 ): Promise<SubmitResult> {
   const mission = missionById(input.missionId);
   if (!mission) throw new DomainError("UNKNOWN_MISSION", "Missão não encontrada.");
-  const tx = db.transaction(["profile", "dogs", "entries", "submissions", "completions", "xp", "albumEntries"], "readwrite");
+  const tx = db.transaction(["profile", "dogs", "entries", "submissions", "completions", "xp", "albumEntries", "dailyPlans", "collectionAdvances", "medals"], "readwrite");
   const prior = await tx.objectStore("submissions").index("requestKey").get(input.requestKey);
   if (prior) {
-    const completion = (await tx.objectStore("completions").get(`${prior.dogId}:${prior.missionId}`)) ?? null;
+    const completion = (await tx.objectStore("completions").getAll()).find((c) => c.submissionId === prior.id) ?? null;
     await tx.done;
-    return { submission: prior, completion, xpAwarded: 0, alreadyCompleted: true };
+    return { submission: prior, completion, xpAwarded: 0, alreadyCompleted: true, medals: [] };
   }
   const [dog] = await tx.objectStore("dogs").getAll();
   const profile = await tx.objectStore("profile").get("me");
@@ -370,9 +430,27 @@ export async function submitMission(
   if (entry.missionId && entry.missionId !== mission.id) {
     return fail(tx, new DomainError("PHOTO_ALREADY_USED", "Essa foto já foi usada em outra missão. Escolha outra foto."));
   }
-  const completedSet = new Set((await tx.objectStore("completions").getAll()).map((c) => c.missionId));
-  if (missionState(mission, completedSet) === "locked") {
+  const allCompletions = await tx.objectStore("completions").getAll();
+  const completedSet = new Set(allCompletions.map((c) => c.missionId));
+  if (mission.prerequisiteId && !completedSet.has(mission.prerequisiteId)) {
     return fail(tx, new DomainError("LOCKED", "Essa missão abre depois de concluir a anterior."));
+  }
+  const today = civilDateInTz(new Date(), profile.timezone);
+  let occurrence: string | undefined;
+  if (mission.kind === "daily") {
+    const plan = await tx.objectStore("dailyPlans").get(`${dog.id}:${today}`);
+    if (!plan || !Object.values(plan.slots).includes(mission.id)) {
+      return fail(tx, new DomainError("NOT_TODAY", "Essa missão do dia não está nas sugestões de hoje. A foto continua no diário."));
+    }
+  } else if (mission.kind === "special") {
+    const w = activeSpecials(today, dog.birthDate, dog.name).find((x) => x.mission.id === mission.id);
+    if (!w) return fail(tx, new DomainError("OUT_OF_WINDOW", "Essa missão especial não está disponível agora. A foto continua no diário."));
+    occurrence = w.occurrence;
+  }
+  const key = instanceKeyFor(dog.id, mission, today, occurrence);
+  // Uma foto rende pontos em uma única conquista — nem a mesma missão do dia em outro dia.
+  if (input.status === "approved" && allCompletions.some((c) => c.entryId === entry.id && c.instanceKey !== key)) {
+    return fail(tx, new DomainError("PHOTO_ALREADY_USED", "Essa foto já rendeu pontos em outra missão. Escolha outra foto."));
   }
   const submission: MissionSubmission = {
     id: newId(), requestKey: input.requestKey, missionId: mission.id, dogId: dog.id, entryId: entry.id,
@@ -383,24 +461,49 @@ export async function submitMission(
   let completion: MissionCompletion | null = null;
   let xpAwarded = 0;
   let alreadyCompleted = false;
+  let advancedItem: string | undefined;
+  const medals: string[] = [];
   if (submission.status === "approved") {
-    const instanceKey = `${dog.id}:${mission.id}`;
-    const existing = await tx.objectStore("completions").get(instanceKey);
+    const existing = await tx.objectStore("completions").get(key);
     if (existing) {
       completion = existing;
       alreadyCompleted = true;
     } else {
-      completion = { instanceKey, dogId: dog.id, missionId: mission.id, submissionId: submission.id, mode: submission.mode, completedAt: now() };
+      completion = { instanceKey: key, dogId: dog.id, missionId: mission.id, submissionId: submission.id, mode: submission.mode, completedAt: now(), entryId: entry.id, date: today };
       await tx.objectStore("completions").put(completion);
       // índice único em completionKey impede uma segunda entrada positiva
-      await tx.objectStore("xp").add({ id: newId(), dogId: dog.id, completionKey: instanceKey, amount: mission.xp, reason: `mission:${mission.id}`, createdAt: now() });
+      await tx.objectStore("xp").add({ id: newId(), dogId: dog.id, completionKey: key, amount: mission.xp, reason: `mission:${mission.id}`, createdAt: now() });
       xpAwarded = mission.xp;
+
+      // Missão do dia ligada a um item de coleção: avança o item, sem XP extra (§7.1 regra 6).
+      const completedNow = [...allCompletions, completion];
+      if (mission.advancesItem && !completedNow.some((c) => c.missionId === mission.advancesItem)) {
+        const advKey = `${dog.id}:${mission.advancesItem}`;
+        if (!(await tx.objectStore("collectionAdvances").get(advKey))) {
+          await tx.objectStore("collectionAdvances").put({ key: advKey, dogId: dog.id, itemId: mission.advancesItem, entryId: entry.id, viaMissionId: mission.id, createdAt: now() });
+          advancedItem = mission.advancesItem;
+        }
+      }
+      // Coleção completa: medalha + 50 XP uma única vez (a checagem roda dentro da mesma transação).
+      const touched = new Set([...setsContaining(mission.id), ...(mission.advancesItem ? setsContaining(mission.advancesItem) : [])]);
+      if (touched.size) {
+        const progress = setProgress(completedNow, await tx.objectStore("collectionAdvances").getAll());
+        for (const p of progress) {
+          if (!touched.has(p.set.id) || !p.complete) continue;
+          const medalKey = `${dog.id}:${p.set.id}`;
+          if (await tx.objectStore("medals").get(medalKey)) continue;
+          await tx.objectStore("medals").put({ key: medalKey, dogId: dog.id, setId: p.set.id, createdAt: now() });
+          await tx.objectStore("xp").add({ id: newId(), dogId: dog.id, completionKey: `medal:${medalKey}`, amount: CYCLE_XP.collectionMedal, reason: `medal:${p.set.id}`, createdAt: now() });
+          xpAwarded += CYCLE_XP.collectionMedal;
+          medals.push(p.set.id);
+        }
+      }
     }
     await tx.objectStore("entries").put({ ...entry, source: "mission", missionId: mission.id });
     await tx.objectStore("albumEntries").put({ key: `${mission.collectionId}:${entry.id}`, albumId: mission.collectionId, entryId: entry.id, addedAt: now() });
   }
   await tx.done;
-  return { submission, completion, xpAwarded, alreadyCompleted };
+  return { submission, completion, xpAwarded, alreadyCompleted, advancedItem, medals };
 }
 
 // ---------- Ficha de cuidados (MUDANCAS-V2 §4) — registro do dono, sem interpretação ----------
@@ -506,6 +609,8 @@ export async function exportMetadata(db: Db) {
     entries: snap.entries.map(({ requestKey: _r, ...e }) => e),
     albums: snap.albumEntries,
     achievements: snap.completions,
+    medals: snap.medals,
+    collectionAdvances: snap.collectionAdvances,
     xpTotal: snap.xpTotal,
     health: snap.health,
   };

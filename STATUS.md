@@ -12,7 +12,7 @@
 | 4. Cuidados (ficha de saúde) | ✅ |
 | 5. Documentos | ✅ |
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
-| 7. Ciclo contínuo de missões | ⏳ |
+| 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
 | 8. Contas reais (Supabase) | ⏳ |
 | 9. Estúdio com IA | ⏳ |
 
@@ -35,6 +35,11 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | **Documentos** em Cuidados: 8 categorias, PDF/JPEG/PNG/WebP até 10 MB validados pelos bytes (`%PDF-` e assinaturas de imagem; texto renomeado .pdf é recusado), imagens processadas como fotos (EXIF, sem metadados, miniatura), PDF guardado como está; ver em nova aba (blob URL), baixar, editar, excluir com confirmação; limite de 50; validade “vence em breve”/“vencido” também em Próximos cuidados; foto da etiqueta da vacina e anexos de consulta viram documentos; nunca entram no Diário, Álbuns ou links | ✅ demo |
 | Migration `20261014000000_documents.sql` (tabela + bucket privado separado `documents` + cota de 50 + vínculos) | ✅ aplicada e testada em Postgres local descartável; ⚠️ não aplicada no Supabase |
 | Migration `20261013000000_health.sql` com RLS por dono | ✅ aplicada e testada num Postgres 16 local descartável (stub de `auth`); ⚠️ não aplicada no Supabase |
+| **Missões do dia**: 3 por dia (casa e descanso · companhia e brincadeira · passeio ou retrato), sorteio determinístico por hash(cachorro + data), plano gravado na primeira abertura do dia (fuso do usuário), “Trocar” gratuito e persistente, “2 de 3 hoje”, cartão “Aventuras de hoje concluídas!” com patinhas; 10 XP por dia sorteado; respeita preferências (sem passeio → retrato; encontro na rua só com outros cães) | ✅ demo |
+| **Coleções permanentes** (5 × 6, aba “Coleções” em Álbuns): itens reaproveitam M17, M30, M24… (conclusões antigas contam), missão do dia ligada avança item sem XP extra, medalha + 50 XP uma única vez (testado com requisições simultâneas), capa especial em canvas (sem IA) para baixar, sugestão da próxima | ✅ demo |
+| **Especiais** (aniversário ±7 dias com data informada, Natal 1–26/12, Halloween 24–31/10): cartão em Hoje só na janela, 20 XP uma vez por ano, “Transformar em arte de …?” leva ao Estúdio com tema e foto escolhidos | ✅ demo |
+| Níveis sem fim (“Sempre juntos II, III…” a cada 250 XP), dias com lembranças (sem sequência) e número de medalhas em Hoje | ✅ |
+| Migration `20261015000000_cycle.sql` (tipos de missão, `daily_plans`, avanços, medalhas, `award_medal` idempotente) + seed das 102 missões com teste de paridade | ✅ aplicada em Postgres local descartável; ⚠️ não aplicada no Supabase |
 | 7 níveis (0 → 500 XP, “Sempre juntos”), todos alcançáveis pelo catálogo (teste) | ✅ |
 | Lista de missões agrupada por coleção com filtro “Disponíveis / Concluídas” | ✅ demo |
 | Envio: câmera/galeria, tipo pelos bytes, limites de bytes e pixels, orientação EXIF, remoção de metadados/GPS, girar, legenda, data civil, cancelar, retry sem duplicar | ✅ demo |
@@ -62,7 +67,9 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 ## Verificado
 
-- `npm test` — 57 testes (inclui documentos: assinatura de PDF, texto renomeado recusado, limite de tamanho, vínculos removidos ao excluir, cota de 50, não entram no diário, reset, validade em Próximos cuidados)
+- `npm test` — 77 testes (inclui ciclo: plano igual ao recarregar, troca persiste, virada SP × Tóquio, sem repetição enquanto houver opção, preferências, XP por dia sorteado, foto não pontua duas vezes, especiais só na janela e uma vez por ano, avanço de coleção sem XP, medalha única com requisições simultâneas, M24 antigo conta, níveis sem fim, seed do ciclo = cycle.ts)
+- E2E **60/60** após §7 (inclui missões do dia, troca persistente e aba Coleções)
+- `npm test` (até §5) — 57 testes (inclui documentos: assinatura de PDF, texto renomeado recusado, limite de tamanho, vínculos removidos ao excluir, cota de 50, não entram no diário, reset, validade em Próximos cuidados)
 - Navegador (Chrome, 390 px) da §5: PDF real e foto enviados e abertos em nova aba (application/pdf e image/webp), .pdf falso recusado, aviso de validade em Documentos e em Hoje, excluir, etiqueta da vacina
 - `npm test` (até §4) — 48 testes (inclui cuidados: status de vacinas com limites e fusos SP/Tóquio, dose nova substitui a antiga, próximos cuidados, medicamentos em uso, CRUD de cada tipo, persistência, reset, migração v2→v3)
 - Navegador (Chrome, 360 px) da §4: 5 itens na barra (72×66 px), vacina em 10 dias aparece em Hoje, gráfico e tabela de peso, Ligar/mapa, editar/excluir, sem rolagem horizontal, sem erros
@@ -72,6 +79,10 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 - `npm run typecheck` e `npm run build` — sem erros.
 - `node scripts/contrast.mjs` — contraste de todas as combinações usadas.
 - `scripts/e2e.py` (Chrome headless, 390 px, 360 px e 1280 px) — **56/56**: fluxo completo, EXIF, arquivo falso e corrompido, persistência, várias fotos de uma vez, foto do Diário numa missão, 48 missões e filtro, vacina em 10 dias em Hoje, PDF enviado e aberto, PDF falso recusado, todas as telas de Cuidados sem rolagem horizontal, barra de 5 itens ≥ 44 px em 360 px, sem erros de console, apagar diário. Detalhes em docs/TESTING.md.
+
+## Limitação conhecida (§7)
+
+**“Nada se repete em 14 dias”** não é possível com o banco atual: cada espaço tem 12 missões do dia (o espaço C para quem não passeia tem 6 retratos) e uma é sugerida por dia. O app não repete enquanto houver opção no espaço; esgotado, volta a mais antiga. Para cumprir 14 dias à risca, cada espaço precisa de **pelo menos 15 missões** (decisão de conteúdo do proprietário).
 
 ## Não verificado
 
@@ -89,7 +100,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 ## Próximo passo
 
-MUDANCAS-V2 §7 (ciclo contínuo de missões), depois §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).
+MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).
 
 Anterior:
 

@@ -14,17 +14,18 @@ export default function Missoes() {
   const completed = useMemo(() => new Set(snap?.completions.map((c) => c.missionId) ?? []), [snap]);
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready) return <main className="main"><PageLoading /></main>;
+  const doneOnce = MISSIONS.filter((m) => completed.has(m.id)).length;
   const shown = MISSIONS.filter((m) => (filter === "done") === completed.has(m.id));
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "open", label: "Disponíveis", count: MISSIONS.length - completed.size },
-    { id: "done", label: "Concluídas", count: completed.size },
+    { id: "open", label: "Disponíveis", count: MISSIONS.length - doneOnce },
+    { id: "done", label: "Concluídas", count: doneOnce },
   ];
   return (
     <>
       <TopBar title="Missões" back="/hoje" />
       <main className="main">
         <p className="muted">Convites para registrar momentos naturais — sem pressa e sem sequência obrigatória. Fotos antigas valem. Cada missão dá pontos uma única vez.</p>
-        <p className="small"><strong>{completed.size}</strong> de {MISSIONS.length} concluídas</p>
+        <p className="small"><strong>{doneOnce}</strong> de {MISSIONS.length} concluídas · as missões do dia ficam em Hoje e as coleções em Álbuns</p>
         <div role="group" aria-label="Filtrar missões" className="row" style={{ gap: 8 }}>
           {filters.map((f) => (
             <button key={f.id} type="button" className={`chip ${filter === f.id ? "" : "chip--outline"}`} style={{ minHeight: 44, padding: "0 16px", border: filter === f.id ? "1px solid var(--brand-primary)" : undefined, cursor: "pointer" }} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>

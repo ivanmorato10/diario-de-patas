@@ -3,19 +3,23 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useBlobUrl, useMedia, useStore } from "@/data/store";
+import { cycleContext, useBlobUrl, useMedia, useStore } from "@/data/store";
 import {
   DomainError, findEntryByHash, newId, saveEntry, submitMission, type ProcessedImage, type SubmitResult,
 } from "@/data/demo-repository";
-import { COLLECTIONS, MISSIONS, type CollectionId } from "@/config/catalog";
+import { COLLECTIONS, type CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { isCivilDate } from "@/domain/dates";
-import { missionBySlug, missionState } from "@/domain/missions";
+import { missionById, missionBySlug } from "@/domain/missions";
+import { missionStatus } from "@/domain/cycle";
+import { PERMANENT_SETS } from "@/config/cycle";
+import { STUDIO_THEMES } from "@/config/catalog";
+import { PawBurst } from "@/components/celebrate";
 import type { CivilDate, DiaryEntry } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { PhotoPicker, type PickFailure } from "@/components/photo-picker";
 import { AbuSays } from "@/components/brand";
-import { IconAlert, IconCheck, IconInfo, IconRotate, IconStar, IconTrash, Paw } from "@/components/icons";
+import { IconAlert, IconBrush, IconCheck, IconInfo, IconRotate, IconStar, IconTrash } from "@/components/icons";
 import { rotateProcessed } from "@/lib/image";
 import { collectionTitle } from "@/components/mission-ui";
 
@@ -68,8 +72,8 @@ function GuardarInner() {
   const existingMedia = useMedia(!img && existing ? existing.mediaId : null);
   const previewUrl = useBlobUrl(img?.display ?? existingMedia?.display);
 
-  const completed = useMemo(() => new Set(snap?.completions.map((c) => c.missionId) ?? []), [snap]);
-  const missionStateNow = mission ? missionState(mission, completed) : null;
+  const ctx = useMemo(() => (snap ? cycleContext(snap) : null), [snap]);
+  const missionStateNow = mission && ctx ? missionStatus(mission, ctx) : null;
   const missionAvailable = missionStateNow === "available";
 
   useEffect(() => {
@@ -88,6 +92,8 @@ function GuardarInner() {
     if (entry.source === "studio") return setEntryError("Artes do Estúdio não concluem missões — escolha uma foto.");
     if (entry.missionId && entry.missionId !== mission.id) return setEntryError("Essa foto já foi usada em outra missão.");
     if (missionStateNow === "locked") return setEntryError("Essa missão abre depois de concluir “Olá, mundo”.");
+    if (missionStateNow === "not_today") return setEntryError("Essa missão do dia não está nas sugestões de hoje.");
+    if (missionStateNow === "out_of_window") return setEntryError("Essa missão especial não está disponível agora.");
     submissionKey.current = newId();
     setStep({ kind: "confirm", entry });
   }, [snap, mission, fromEntryId, step.kind, missionStateNow]);
@@ -335,7 +341,8 @@ function GuardarInner() {
         ) : null}
 
         {step.kind === "result" ? (
-          <ResultView step={step} dogName={dog.name} missionTitle={mission?.title} firstAchievement={snap.completions.length === 1 && !!step.result?.xpAwarded} previewUrl={previewUrl} headingRef={headingRef} />
+          <ResultView step={step} dogName={dog.name} missionTitle={mission?.title} firstAchievement={snap.completions.length === 1 && !!step.result?.xpAwarded} previewUrl={previewUrl} headingRef={headingRef}
+            dailyAllDone={!!mission && mission.kind === "daily" && !!snap.dailyPlan && Object.values(snap.dailyPlan.slots).every((id) => ctx && missionStatus(missionById(id)!, ctx) === "completed")} />
         ) : null}
       </main>
     </>
@@ -383,8 +390,9 @@ function BatchRow({
 }
 
 function ResultView({
-  step, dogName, missionTitle, firstAchievement, previewUrl, headingRef,
+  step, dogName, missionTitle, firstAchievement, previewUrl, headingRef, dailyAllDone,
 }: {
+  dailyAllDone: boolean;
   step: Extract<Step, { kind: "result" }>;
   dogName: string;
   missionTitle?: string;
@@ -394,6 +402,9 @@ function ResultView({
 }) {
   const r = step.result;
   const approved = r?.submission.status === "approved";
+  const m = r ? missionById(r.submission.missionId) : undefined;
+  const theme = m?.studioTheme ? STUDIO_THEMES.find((t) => t.id === m.studioTheme) : undefined;
+  const advanced = r?.advancedItem ? missionById(r.advancedItem) : undefined;
   return (
     <section className="stack-lg" aria-live="polite">
       {previewUrl ? (
@@ -411,6 +422,17 @@ function ResultView({
             <p className="muted">{r!.alreadyCompleted ? "Essa missão já estava concluída — a foto foi guardada e os pontos não somam de novo." : `Guardada no álbum ${collectionTitle(collectionOf(r!.submission.missionId))}.`}</p>
             <p className="caption"><IconCheck size={14} style={{ verticalAlign: "-2px" }} /> Confirmada por você</p>
           </div>
+          {r!.medals.map((id) => (
+            <div key={id} className="notice notice--positive" role="status">
+              <span className="mission-stamp mission-stamp--done anim-stamp" aria-hidden="true" style={{ flex: "none" }}><IconStar /></span>
+              <span><strong>Coleção completa: {PERMANENT_SETS.find((s) => s.id === id)?.title}!</strong> Medalha e +50 XP. A capa especial está em Álbuns › Coleções.</span>
+            </div>
+          ))}
+          {advanced ? <p className="small">Também avançou “{advanced.title}” na coleção.</p> : null}
+          {dailyAllDone ? <p className="small"><strong>Aventuras de hoje concluídas!</strong> Amanhã tem mais.</p> : null}
+          {theme ? (
+            <Link href={`/estudio?tema=${theme.id}&entrada=${step.entry.id}`} className="btn btn--secondary btn--block"><IconBrush /> Transformar em arte de {theme.title.split(" ")[0]}?</Link>
+          ) : null}
           {firstAchievement ? <AbuSays>Essa merece um lugar no álbum!</AbuSays> : null}
           <div className="stack">
             <Link href={`/albuns/${collectionOf(r!.submission.missionId)}`} className="btn btn--primary btn--block">Abrir álbum</Link>
@@ -440,29 +462,11 @@ function ResultView({
   );
 }
 
-/** Patinhas que saltam da foto ao conquistar — decorativas; o texto confirma a conquista. */
-function PawBurst() {
-  const pieces = Array.from({ length: 10 }, (_, i) => {
-    const ang = (i / 10) * Math.PI * 2;
-    const dist = 120 + (i % 3) * 30;
-    return { dx: Math.cos(ang) * dist, dy: Math.sin(ang) * dist * 0.8, rot: (i % 2 ? 1 : -1) * (30 + i * 9), delay: (i % 4) * 40 };
-  });
-  return (
-    <div className="burst" aria-hidden="true">
-      {pieces.map((p, i) => (
-        <span key={i} style={{ ["--dx" as string]: `${p.dx}px`, ["--dy" as string]: `${p.dy}px`, ["--rot" as string]: `${p.rot}deg`, animationDelay: `${p.delay}ms`, color: i % 3 === 0 ? "var(--lilac)" : i % 3 === 1 ? "var(--accent)" : "var(--brand-teal)" }}>
-          <Paw size={22} />
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function collectionOf(id: string): CollectionId {
-  return MISSIONS.find((m) => m.id === id)?.collectionId ?? "primeiras-lembrancas";
+  return missionById(id)?.collectionId ?? "primeiras-lembrancas";
 }
 function slugFor(id: string) {
-  return MISSIONS.find((m) => m.id === id)?.slug ?? "";
+  return missionById(id)?.slug ?? "";
 }
 
 export default function GuardarPage() {

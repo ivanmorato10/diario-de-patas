@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { STUDIO_THEMES, type StudioTheme } from "@/config/catalog";
 import { CREDITS, FLAGS } from "@/config/business";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -18,10 +19,21 @@ function ThemeVignette({ id }: { id: StudioTheme["id"] }) {
   return (<svg {...common}><rect width="160" height="84" rx="14" fill="#E5EFE7" /><path d="M80 12 104 66H56Z" fill="#285943" /><rect x="76" y="66" width="8" height="8" fill="#59665F" /><circle cx="72" cy="40" r="3" fill="#E8B84A" /><circle cx="88" cy="52" r="3" fill="#C65D3B" /><circle cx="80" cy="28" r="3" fill="#E8B84A" /><path d="M20 70h30M110 70h30" stroke="#A6BBA6" strokeWidth="4" strokeLinecap="round" /></svg>);
 }
 
-export default function Estudio() {
+export default function EstudioPage() {
+  return (
+    <Suspense fallback={<main className="main"><PageLoading /></main>}>
+      <Estudio />
+    </Suspense>
+  );
+}
+
+function Estudio() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const [photoId, setPhotoId] = useState<string | null>(null);
-  const [theme, setTheme] = useState<StudioTheme["id"] | null>(null);
+  // Vindo de uma missão especial (“Transformar em arte de Natal?”, §7.6): tema e foto já escolhidos.
+  const params = useSearchParams();
+  const presetTheme = STUDIO_THEMES.find((t) => t.id === params.get("tema"))?.id ?? null;
+  const [photoId, setPhotoId] = useState<string | null>(params.get("entrada"));
+  const [theme, setTheme] = useState<StudioTheme["id"] | null>(presetTheme);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;

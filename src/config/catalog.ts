@@ -36,8 +36,12 @@ export const COLLECTIONS: Collection[] = [
 /** Contexto usado para respeitar preferências (§9: sociais só se permitido; externas têm alternativas internas). */
 export type MissionContext = "home" | "outdoor" | "social-dogs" | "people" | "any";
 
+/** Tipo da missão (MUDANCAS-V2 §7): única, do dia, item de coleção permanente ou especial. */
+export type MissionKind = "once" | "daily" | "collection_item" | "special";
+
 export interface MissionTemplate {
-  id: string; // M01..M48
+  id: string; // M01..M48 (únicas), D01..D36 (do dia), C01..C15 (coleções), S01..S03 (especiais)
+  kind: MissionKind;
   slug: string;
   title: string;
   description: string;
@@ -54,10 +58,18 @@ export interface MissionTemplate {
   optional?: boolean;
   /** Missões externas sempre têm uma alternativa em casa (§9, MUDANCAS-V2 §3). */
   homeAlternative?: string;
+  /** Missão do dia: espaço do sorteio (§7.1). */
+  slot?: "A" | "B" | "C";
+  /** Missão do dia de retrato — serve para quem não passeia (†). */
+  portrait?: boolean;
+  /** Item de coleção que esta missão do dia avança, sem XP extra (§7.1, regra 6). */
+  advancesItem?: string;
+  /** Tema do Estúdio ligado à especial (§7.6). */
+  studioTheme?: "aniversario" | "halloween" | "natal";
   version: number;
 }
 
-const base = { acceptsGallery: true, version: 1, subjective: false } as const;
+const base = { acceptsGallery: true, version: 1, subjective: false, kind: "once" } as const;
 
 export const MISSIONS: MissionTemplate[] = [
   { ...base, id: "M01", slug: "ola-mundo", title: "Olá, mundo", description: "A primeira página do diário: uma foto em que dê para ver bem o seu cachorro.", criterion: "Cachorro claramente visível.", xp: 10, collectionId: "primeiras-lembrancas", context: "any", prerequisiteId: null },

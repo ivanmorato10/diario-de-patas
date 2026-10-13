@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { COLLECTIONS, MISSIONS, type CollectionId } from "@/config/catalog";
+import { COLLECTIONS, MISSIONS, type CollectionId, type MissionTemplate } from "@/config/catalog";
+import { COLLECTION_ITEMS } from "@/config/cycle";
+import { activeSpecials, missionStatus, type CycleContext } from "@/domain/cycle";
+import { missionById } from "@/domain/missions";
 import { LIMITS } from "@/config/business";
 import { useStore } from "@/data/store";
 import { deleteEntry, getMedia, updateEntry, DomainError } from "@/data/demo-repository";
 import { isCivilDate } from "@/domain/dates";
-import { missionState } from "@/domain/missions";
 import type { DiaryEntry } from "@/domain/types";
 import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
 import { collectionTitle } from "./mission-ui";
@@ -135,11 +137,15 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
  * “Usar numa missão” (MUDANCAS-V2 §2): leva uma foto livre do diário direto à confirmação de uma missão,
  * sem novo envio. Só aparece para fotos livres — artes não concluem missão e uma foto pontua uma vez.
  */
-export function UseInMission({ entry, completed, label }: { entry: DiaryEntry; completed: ReadonlySet<string>; label: string }) {
+export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: CycleContext; label: string }) {
   const [open, setOpen] = useState(false);
   if (entry.source !== "free" || entry.missionId) return null;
-  const options = MISSIONS.map((m) => ({ m, state: missionState(m, completed) }))
-    .filter((o) => o.state !== "locked")
+  // Do dia (sugestões de hoje), especiais ativas, itens de coleção e o catálogo de missões únicas.
+  const today = ctx.plan ? Object.values(ctx.plan.slots).map((id) => missionById(id)!) : [];
+  const specials = activeSpecials(ctx.today, ctx.birthDate, ctx.dogName).map((w) => w.mission);
+  const pool: MissionTemplate[] = [...today, ...specials, ...COLLECTION_ITEMS, ...MISSIONS];
+  const options = pool.map((m) => ({ m, state: missionStatus(m, ctx) }))
+    .filter((o) => o.state === "available" || (o.state === "completed" && o.m.kind === "once"))
     .sort((a, b) => Number(a.state === "completed") - Number(b.state === "completed"));
   const title = `use-${entry.id}`;
   return (
@@ -156,7 +162,7 @@ export function UseInMission({ entry, completed, label }: { entry: DiaryEntry; c
               <Link href={`/guardar?missao=${m.slug}&entrada=${entry.id}`} className="card mission-card" style={{ padding: 12 }}>
                 <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
                   <strong>{m.title}</strong>
-                  <span className="caption">{collectionTitle(m.collectionId)}{state === "completed" ? " · já concluída, sem pontos" : ""}</span>
+                  <span className="caption">{m.kind === "daily" ? "Missão do dia" : m.kind === "special" ? "Especial" : m.kind === "collection_item" ? "Item de coleção" : collectionTitle(m.collectionId)}{state === "completed" ? " · já concluída, sem pontos" : ""}</span>
                 </span>
                 {state === "available" ? <span className="chip chip--reward">+{m.xp} XP</span> : null}
                 <IconChevron size={18} className="muted" />

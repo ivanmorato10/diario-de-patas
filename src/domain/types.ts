@@ -90,13 +90,38 @@ export interface MissionSubmission {
 }
 
 export interface MissionCompletion {
-  /** `${dogId}:${missionId}` — uma conclusão por missão do catálogo por cachorro. */
+  /**
+   * Instância que recebeu XP (§7): `${dogId}:${missionId}` (única / item de coleção),
+   * `${dogId}:${missionId}:${data}` (missão do dia) ou `${dogId}:${missionId}:${ano}` (especial).
+   */
   instanceKey: string;
   dogId: string;
   missionId: string;
   submissionId: string;
   mode: ValidationMode;
   completedAt: string;
+  /** Foto usada (gravado a partir da v5; conclusões antigas são completadas pela submissão). */
+  entryId?: string;
+  /** Data civil do dia em que foi concluída (missões do dia). */
+  date?: CivilDate;
+}
+
+/** Item de coleção avançado por uma missão do dia, sem XP extra (§7.1 regra 6). */
+export interface CollectionAdvance {
+  key: string; // `${dogId}:${itemId}`
+  dogId: string;
+  itemId: string;
+  entryId: string | null;
+  viaMissionId: string;
+  createdAt: string;
+}
+
+/** Medalha de coleção completa: concedida uma única vez, com +50 XP. */
+export interface Medal {
+  key: string; // `${dogId}:${setId}`
+  dogId: string;
+  setId: string;
+  createdAt: string;
 }
 
 export interface XpLedgerEntry {

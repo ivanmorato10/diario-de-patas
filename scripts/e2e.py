@@ -102,6 +102,19 @@ with sync_playwright() as p:
     check("XP persiste após recarregar", True)
     page.screenshot(path=f"{OUT}/07-hoje-depois.png", full_page=True)
 
+    # --- MUDANCAS-V2 §7: missões do dia, troca que persiste, coleções ---
+    page.goto(BASE + "/hoje"); page.wait_for_timeout(400)
+    daily = page.locator("li.daily-card strong")
+    check("3 missões do dia depois de “Olá, mundo”", daily.count() == 3 and page.get_by_text("0 de 3 hoje").is_visible())
+    first_b = daily.nth(1).inner_text()
+    page.get_by_role("button", name=f"Trocar a missão “{first_b}”").click(); page.wait_for_timeout(400)
+    swapped = page.locator("li.daily-card strong").all_inner_texts()
+    page.reload(); page.wait_for_timeout(500)
+    check("trocar muda a sugestão e persiste ao recarregar", swapped[1] != first_b and page.locator("li.daily-card strong").all_inner_texts() == swapped)
+    page.goto(BASE + "/albuns?aba=colecoes"); page.wait_for_timeout(400)
+    check("aba Coleções com 5 coleções de 6 espaços", page.locator(".set-grid").count() == 5 and page.locator(".set-grid li").count() == 30)
+    page.screenshot(path=f"{OUT}/20-colecoes.png", full_page=True); no_overflow(page, "coleções")
+
     # Reenviar M01 não é possível / não soma
     page.goto(BASE + "/missoes/ola-mundo")
     check("missão concluída não oferece novo envio", page.get_by_role("link", name="Enviar foto").count() == 0)
