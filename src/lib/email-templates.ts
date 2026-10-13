@@ -9,6 +9,7 @@
 
 export const SITE_URL = "https://diario-de-patas.vercel.app";
 export const EMAIL_LOGO_URL = `${SITE_URL}/brand/email-logo.png`;
+export const SUPPORT_EMAIL = "diariodepatas.app@gmail.com";
 
 const C = { brown: "#3D2D1E", soft: "#6B5A4A", teal: "#63B4AD", tealLight: "#9ADCD2", bg: "#EAF6F3", paper: "#FFF8EC", link: "#226760", peach: "#FFD9BF", border: "#CFE3DE" };
 const FONT = `'Baloo 2', 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif`;
@@ -69,6 +70,7 @@ export function layout(l: Layout): string {
   <tr><td align="center" style="padding:18px 10px 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${C.soft};">
     ${paws}<br>
     Diário de Patas · Sempre Juntos<br>
+    Dúvidas? Escreva para <a href="mailto:${SUPPORT_EMAIL}" style="color:${C.link};">${SUPPORT_EMAIL}</a><br>
     Você recebeu este email porque ele foi usado no <a href="${SITE_URL}" style="color:${C.link};">Diário de Patas</a>.
   </td></tr>
 </table>

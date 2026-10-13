@@ -41,6 +41,6 @@ export const FLAGS = {
 } as const;
 
 export const SUPPORT = {
-  /** Não inventar endereço de suporte (§8.11). Preencher via NEXT_PUBLIC_SUPPORT_EMAIL. */
-  email: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "",
+  /** Canal real definido pelo proprietário em 13/10/2026 (pode ser trocado por NEXT_PUBLIC_SUPPORT_EMAIL). */
+  email: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "diariodepatas.app@gmail.com",
 } as const;

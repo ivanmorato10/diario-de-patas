@@ -114,10 +114,13 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 2. **Chave do Gemini** (`ART_GENERATOR_API_KEY` no `.env.local`, plano pago — no gratuito não há geração de imagem pela API) e aprovação dos presets depois do teste de qualidade (adendo §10.8).
 
 **Custo estimado por arte (preços oficiais 12/10/2026):** normal 1K ≈ US$ 0,036 · papel de parede 2K ≈ US$ 0,053 · premium ≈ US$ 0,136 (≈ 4× a normal, mas o adendo define 2 créditos — decidir após o teste).
-3. **Logo**: versão vetorial (SVG) e confirmação de direitos de uso antes do lançamento.
-4. Email de suporte real.
+3. **Logo**: direitos de uso confirmados pelo proprietário (13/10/2026); falta só a versão vetorial (SVG).
+4. ~~Email de suporte real~~ — diariodepatas.app@gmail.com (Sobre e rodapé dos emails, 13/10/2026).
 
 5. **Entrar com Google e Apple:** credenciais OAuth do Google (grátis) e Apple Developer Program (US$ 99/ano) — passo a passo em `docs/SUPABASE.md` §7. Até lá os botões avisam e o email funciona.
+
+6. **Missões do dia:** 30 novas (D37–D66, 10 por espaço) escritas para cumprir os 14 dias sem repetir; aguardam revisão em `docs/missoes/missoes-do-dia-revisao.xlsx` antes de entrar no app e no banco.
+7. **Entrar com Apple:** o proprietário tem conta Apple Developer; faltam Services ID, Key ID, Team ID e a chave .p8 (`docs/SUPABASE.md` §7).
 
 ## Próximo passo
 
