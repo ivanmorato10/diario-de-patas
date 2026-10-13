@@ -197,7 +197,7 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -234,49 +234,50 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# SMTP próprio: Gmail diariodepatas.app@gmail.com com senha de app (SMTP_PASS só no .env.local).
+# Ligado junto com os modelos abaixo. Ver docs/SUPABASE.md §5.
+[auth.email.smtp]
+enabled = true
+host = "smtp.gmail.com"
+port = 465
+user = "diariodepatas.app@gmail.com"
+pass = "env(SMTP_PASS)"
+admin_email = "diariodepatas.app@gmail.com"
+sender_name = "Diário de Patas"
 
 # Emails com a identidade da marca (fonte: src/lib/email-templates.ts → `npm run emails`).
 # O plano gratuito RECUSA modelos próprios com o provedor padrão: descomente junto com [auth.email.smtp]
 # (Gmail com senha de app, por exemplo) e rode `npx supabase config push`. Ver docs/SUPABASE.md §5.
-# [auth.email.template.confirmation]
-# subject = "Bem-vindo ao Diário de Patas! Confirme seu email 🐾"
-# content_path = "./supabase/templates/confirmation.html"
-# [auth.email.template.magic_link]
-# subject = "Seu código para entrar no Diário de Patas"
-# content_path = "./supabase/templates/magic_link.html"
-# [auth.email.template.recovery]
-# subject = "Recuperar o acesso ao Diário de Patas"
-# content_path = "./supabase/templates/recovery.html"
-# [auth.email.template.email_change]
-# subject = "Confirme seu novo email no Diário de Patas"
-# content_path = "./supabase/templates/email_change.html"
-# [auth.email.template.invite]
-# subject = "Você foi convidado para o Diário de Patas 🐾"
-# content_path = "./supabase/templates/invite.html"
-# [auth.email.template.reauthentication]
-# subject = "Seu código de confirmação do Diário de Patas"
-# content_path = "./supabase/templates/reauthentication.html"
-# [auth.email.notification.email_changed]
-# enabled = true
-# subject = "O email da sua conta foi alterado"
-# content_path = "./supabase/templates/email_changed.html"
-# [auth.email.notification.identity_linked]
-# enabled = true
-# subject = "Nova forma de entrar na sua conta"
-# content_path = "./supabase/templates/identity_linked.html"
-# [auth.email.notification.identity_unlinked]
-# enabled = true
-# subject = "Uma forma de entrar foi removida da sua conta"
-# content_path = "./supabase/templates/identity_unlinked.html"
+[auth.email.template.confirmation]
+subject = "Bem-vindo ao Diário de Patas! Confirme seu email 🐾"
+content_path = "./supabase/templates/confirmation.html"
+[auth.email.template.magic_link]
+subject = "Seu código para entrar no Diário de Patas"
+content_path = "./supabase/templates/magic_link.html"
+[auth.email.template.recovery]
+subject = "Recuperar o acesso ao Diário de Patas"
+content_path = "./supabase/templates/recovery.html"
+[auth.email.template.email_change]
+subject = "Confirme seu novo email no Diário de Patas"
+content_path = "./supabase/templates/email_change.html"
+[auth.email.template.invite]
+subject = "Você foi convidado para o Diário de Patas 🐾"
+content_path = "./supabase/templates/invite.html"
+[auth.email.template.reauthentication]
+subject = "Seu código de confirmação do Diário de Patas"
+content_path = "./supabase/templates/reauthentication.html"
+[auth.email.notification.email_changed]
+enabled = true
+subject = "O email da sua conta foi alterado"
+content_path = "./supabase/templates/email_changed.html"
+[auth.email.notification.identity_linked]
+enabled = true
+subject = "Nova forma de entrar na sua conta"
+content_path = "./supabase/templates/identity_linked.html"
+[auth.email.notification.identity_unlinked]
+enabled = true
+subject = "Uma forma de entrar foi removida da sua conta"
+content_path = "./supabase/templates/identity_unlinked.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
