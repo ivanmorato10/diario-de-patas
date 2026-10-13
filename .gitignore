@@ -4,3 +4,9 @@ next-env.d.ts
 *.tsbuildinfo
 .env*
 !.env.example
+
+# Fotos de referência do Abu para o teste do Estúdio (fora do git — MUDANCAS-V2-ADENDO-ESTUDIO §10.8)
+docs/abu-referencias/
+# Cópias locais de documentos e fotos soltas
+docs/*(1)*
+photos/
