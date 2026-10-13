@@ -5,6 +5,8 @@ import { HttpError, requireUser } from "@/server/supabase";
 import { RPC } from "@/server/rpc";
 
 export const dynamic = "force-dynamic";
+// A geração de artes continua depois da resposta (after) — até 5 minutos.
+export const maxDuration = 300;
 
 export async function POST(req: Request, { params }: { params: Promise<{ method: string }> }) {
   if (!REAL_MODE) return NextResponse.json({ code: "DEMO", message: "Contas não estão ativas nesta versão." }, { status: 404 });

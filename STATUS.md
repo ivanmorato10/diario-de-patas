@@ -14,7 +14,8 @@
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
 | 8. Contas reais (Supabase) | ✅ app pronto e testado com contas reais (21/21) e importação (6/6). **Para abrir ao público faltam 2 passos do proprietário:** SMTP próprio e variáveis na Vercel (ver Bloqueado) |
-| 9. Estúdio com IA | 🟡 pesquisa de provedores pronta (`docs/ESTUDIO-PROVEDORES.md`); **aguardando escolha e chave** |
+| 9. Estúdio com IA (Gemini, adendo) | 🟡 servidor pronto e testado sem chave (jobs, créditos de teste, limites, acabamento); tela nova na seção 10; **falta a chave do Gemini** |
+| 10. Estúdio completo (adendo) | ⏳ |
 
 ## Resumo
 
@@ -49,6 +50,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | Projeto Supabase na nuvem: 7 migrations + seed aplicados com `supabase db push`; `rls.sql` e `missions.sql` rodados no banco real via `supabase db query --linked` (passaram; falha proposital confirmou que erros aparecem); nenhum dado de teste ficou | ✅ 12/10/2026 |
 | **Teste automatizado de RLS** (`npm run test:db`): contas A e B em 27 tabelas — B não lê nem altera nada de A (registros, mídia, documentos, links, jobs, créditos, saúde, missões, medalhas), não executa funções do servidor, anônimo não vê nada, link revogado para de funcionar | ✅ local (stub); roda igual no Supabase com `DATABASE_URL` |
 | Supabase CLI no projeto (`supabase/config.toml`, uploads até 10 MB) e guia `docs/SUPABASE.md` (Docker no Ubuntu 24.04, local, nuvem, chaves) | ✅ |
+| **Estúdio — servidor** (§9 + adendo): adapter `ArtGenerator` só no servidor, Gemini via API Interactions com `store: false`; modelos `gemini-nano-banana-2.1` / premium `gemini-3-pro-image` / checagem `gemini-2.5-flash-lite` (conferidos em ai.google.dev, 12/10/2026); prompt [BASE]+[PRESET]+[FORMATO] montado no servidor; jobs `queued→processing→succeeded/failed/cancelled` com chave de idempotência, recuperação e encerramento de job travado; créditos de teste (reserva → consumo só depois de salvar → devolução em falha); limite diário por conta, global e `GENERATION_PAUSED`; custo estimado por job em `usage_events`; figurinha 512×512 WebP transparente (≤100 KB); arte salva em “Datas especiais” como `studio` (nunca conclui missão) | ✅ testado sem chave (unit + SQL na nuvem); ⏸ geração real |
 | 7 níveis (0 → 500 XP, “Sempre juntos”), todos alcançáveis pelo catálogo (teste) | ✅ |
 | Lista de missões agrupada por coleção com filtro “Disponíveis / Concluídas” | ✅ demo |
 | Envio: câmera/galeria, tipo pelos bytes, limites de bytes e pixels, orientação EXIF, remoção de metadados/GPS, girar, legenda, data civil, cancelar, retry sem duplicar | ✅ demo |
@@ -105,7 +107,9 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 0. **§8 — email de login para pessoas reais.** O provedor de email padrão do Supabase (plano gratuito) não aceita modelo próprio e restringe destinatários; para pessoas de fora receberem o link é preciso um **SMTP próprio** (ex.: Gmail com senha de app, ou Resend com domínio). Depois disso, ligar as variáveis na Vercel. Sem isso não dá para rodar Auth, Storage e as duas contas reais. O que depende disso: login por email, middleware, repositório Supabase, upload com `sharp`, import do diário demo, links e exclusão de conta pela interface.
 
 1. **Projeto Supabase** (URL + anon key + service role) para a Etapa C.
-2. **Escolha do provedor de imagem** (§9): comparação em `docs/ESTUDIO-PROVEDORES.md` (recomendação: Gemini `gemini-nano-banana-2.1`, com teste de fidelidade contra OpenAI `gpt-image-2`). Preciso da escolha, da chave no `.env.local` e de 2–3 fotos do Abu. O Estúdio real também depende do §8.
+2. **Chave do Gemini** (`ART_GENERATOR_API_KEY` no `.env.local`, plano pago — no gratuito não há geração de imagem pela API) e aprovação dos presets depois do teste de qualidade (adendo §10.8).
+
+**Custo estimado por arte (preços oficiais 12/10/2026):** normal 1K ≈ US$ 0,036 · papel de parede 2K ≈ US$ 0,053 · premium ≈ US$ 0,136 (≈ 4× a normal, mas o adendo define 2 créditos — decidir após o teste).
 3. **Logo**: versão vetorial (SVG) e confirmação de direitos de uso antes do lançamento.
 4. Email de suporte real.
 

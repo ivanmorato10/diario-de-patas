@@ -19,6 +19,8 @@ import {
 import { missionById } from "@/domain/missions";
 import type { CollectionAdvance, MissionCompletion, Medal } from "@/domain/types";
 import { adminClient, HttpError } from "./supabase";
+import { after } from "next/server";
+import { studioCreateJob, studioJob, studioState } from "./studio";
 import {
   albumClientId, instanceKeyOf, toContact, toCustomAlbum, toDocument, toDog, toEntry, toHealthProfile, toMedication, toPlan, toProfile,
   toVaccine, toVisit, toWeight,
@@ -640,5 +642,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   getDocument, updateDocument, deleteDocument,
   createUpload, confirmUpload, exportMetadata: (c) => exportMetadata(c), deleteAccount: (c) => deleteAccount(c),
   createShare, listShares: (c) => listShares(c), revokeShare,
+  studioState: (c) => studioState(c), studioJob,
+  studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };
