@@ -13,10 +13,13 @@ function transport() {
   return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
 }
 
+/** Domínios reservados para testes (RFC 2606/6761): nunca recebem email — evita devoluções na caixa do app. */
+export const isTestAddress = (to: string) => /\.(test|example|invalid|localhost)$/i.test(to.trim()) || /@example\.(com|net|org)$/i.test(to.trim());
+
 /** Avisa que a conta foi excluída. Nunca derruba a exclusão: erros só vão para o log. */
 export async function sendAccountDeleted(to: string, dogName: string | null) {
   const t = transport();
-  if (!t || !to) return;
+  if (!t || !to || isTestAddress(to)) return;
   const mail = accountDeletedEmail(dogName);
   await t
     .sendMail({ from: process.env.SMTP_FROM || `Diário de Patas <${process.env.SMTP_USER}>`, to, subject: mail.subject, html: mail.html, text: mail.text })
