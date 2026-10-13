@@ -582,3 +582,8 @@ body { background: var(--background); }
   .sp-blob, .sp-trail span, .sp-ring, .sp-stitch, .sp-arc, .sp-abu, .sp-in, .sp-sheet, .sp-top__emblem { animation: none !important; }
   .sp-trail span { opacity: 1; }
 }
+/* No celular, o "elástico" do fim da rolagem e a área da barra inferior mostram o fundo da página:
+   pinta html/body com a cor da tela de entrada para não aparecer uma faixa de outra cor. */
+html:has(.sp), body:has(.sp) { background: #3f8f88; }
+html:has(.sp--sheet), body:has(.sp--sheet) { background: var(--paper); }
+.sp--sheet { background: linear-gradient(to bottom, transparent 0 220px, var(--paper) 220px), radial-gradient(120% 80% at 50% 0%, #7cc7c0 0%, #63b4ad 45%, #3f8f88 100%); }
