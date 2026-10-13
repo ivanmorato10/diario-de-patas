@@ -1,37 +1,48 @@
-# Checklist de testes (resultados reais — 12/10/2026)
+# Checklist de testes (resultados reais — 12/10/2026, após MUDANCAS-V2 §1–5)
 
 Legenda: ✅ verificado · ⚠️ parcial · ⏸ não verificado (não fingir aprovação)
 
-| Fluxo (§23) | Resultado | Como |
+| Fluxo | Resultado | Como |
 |---|---|---|
 | Conta/perfil persiste | ⚠️ perfil persiste após recarregar (demo); login real não existe | E2E |
-| Isolamento entre contas | ⏸ Etapa C | — |
+| Isolamento entre contas | ⚠️ RLS de cuidados e documentos testado num Postgres 16 local com stub de `auth` (B não lê nem grava dados de A); ⏸ Supabase real | SQL manual |
 | Upload inválido/corrompido/orientação | ✅ texto como .jpg recusado; JPEG corrompido tratado; EXIF 6 → retrato | E2E |
-| Upload grande (>10 MB, pixels) | ⚠️ regra implementada, sem arquivo de teste dedicado | código |
-| Missão aprovada: uma conclusão, XP correto, próxima disponível | ✅ | unit + E2E |
+| Upload grande (>10 MB) | ✅ documentos (unit); ⚠️ fotos: regra implementada, sem arquivo dedicado | unit |
+| Missão confirmada pelo dono: uma conclusão, XP correto, próxima disponível | ✅ | unit + E2E |
+| Sem limite diário de missões; XP único | ✅ | unit |
 | Concorrência: XP não duplica | ✅ 3 submissões simultâneas → 10 XP | unit (IndexedDB) |
 | Concorrência de créditos | ✅ lógica pura; ⏸ SQL | unit |
-| Resultado incerto → diário sem prêmio | ✅ | unit |
-| Limite diário | ✅ no cliente (demo); ⏸ no servidor | unit |
-| Álbum: fotos livres × conquistas | ✅ “0 de missão · 1 livres” | E2E |
+| “Não tenho certeza” → diário sem prêmio | ✅ | unit |
+| Várias fotos de uma vez (data do EXIF, retry sem duplicar) | ✅ 5 fotos → 5 lembranças (unit); 3 fotos → 3 (E2E) | unit + E2E |
+| Foto livre do Diário conclui missão sem duplicar | ✅ | unit + E2E |
+| Uma foto não pontua em duas missões; arte não conclui missão | ✅ | unit |
+| Catálogo 48 missões / 650 XP; níveis alcançáveis; seed = catálogo | ✅ | unit |
+| Cuidados: criar, editar e excluir cada tipo; persistir ao recarregar | ✅ | unit + navegador |
+| Status de vacinas (limites de 30 dias, fusos SP × Tóquio, dose nova substitui antiga) | ✅ | unit |
+| Vacina em 10 dias aparece em Hoje | ✅ | E2E |
+| Documentos: PDF real e foto abertos; .pdf falso recusado; validade; excluir | ✅ | unit + E2E |
+| Apagar diário remove fotos, cuidados e documentos; não trava com 2 abas | ✅ | unit + navegador |
+| Migração do banco local v1→v2→v3→v4 sem perder dados | ✅ v1→v2 e v2→v3 testadas | unit |
+| Álbum: fotos livres × conquistas | ✅ | E2E |
 | Compartilhamento | ⏸ desativado; `/s/:token` neutro ✅ | E2E |
 | IA de arte | ⏸ não configurada; botão desativado ✅ | E2E |
-| Exclusão: some da UI e do álbum, conquista fica | ✅ | unit + E2E |
 | Datas não mudam de dia | ✅ fusos São Paulo/Tóquio | unit |
-| Modo demo identificado | ✅ banner + rótulos | E2E |
-| Mobile 360/390 px, desktop | ✅ sem rolagem horizontal (Chromium) | E2E |
+| Mobile 360/390 px, desktop sem rolagem horizontal; barra com 5 itens ≥ 44 px | ✅ (Chrome) | E2E |
 | Safari iOS / Chrome Android reais | ⏸ | — |
 | Leitor de tela real | ⏸ | — |
-| Contraste | ✅ | `scripts/contrast.mjs` |
-| Seed SQL = catálogo | ✅ | unit |
+| Contraste (inclui selos de status e gráfico) | ✅ | `scripts/contrast.mjs` |
+| Migrations SQL aplicam em Postgres 16 | ✅ local descartável; ⏸ Supabase | psql |
 
 ## Comandos
 
 ```bash
-npm test                 # unit (Vitest)
+npm test                 # unit (Vitest) — 57 testes
 npm run typecheck
 npm run build
 node scripts/contrast.mjs
 npm run build && npx next start -p 3100 &
 python3 scripts/e2e.py http://localhost:3100 e2e-out   # requer: pip install playwright pillow && playwright install chromium
+E2E_CHANNEL=chrome python3 scripts/e2e.py …            # ou usa o Google Chrome instalado
 ```
+
+Último E2E: **56/56** (Chrome 151 headless).

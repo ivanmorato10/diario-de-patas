@@ -1,7 +1,8 @@
 """Teste de fumaça E2E do modo demonstração (Playwright/Chromium headless).
 Uso: npm run build && npx next start -p 3100 &  python3 scripts/e2e.py [base_url] [out_dir]
+Com E2E_CHANNEL=chrome usa o Google Chrome instalado em vez do Chromium do Playwright.
 """
-import io, sys, os, tempfile
+import io, sys, os, tempfile, datetime
 from PIL import Image
 from playwright.sync_api import sync_playwright, expect
 
@@ -20,6 +21,17 @@ rot_path = os.path.join(tmp, "rotacionada.jpg"); img.save(rot_path, "JPEG", exif
 ok_path = os.path.join(tmp, "foto.png"); Image.new("RGB", (640, 480), (166, 187, 166)).save(ok_path)
 corrupt = os.path.join(tmp, "corrompida.jpg"); open(corrupt, "wb").write(b"\xff\xd8\xff\xe0" + b"\x00" * 200)
 fake = os.path.join(tmp, "texto.jpg"); open(fake, "w").write("não sou uma foto")
+# MUDANCAS-V2: várias fotos (uma com data no EXIF), PDF real e PDF falso
+batch = []
+for i in range(3):
+    bp = os.path.join(tmp, f"lote{i}.jpg"); bi = Image.new("RGB", (320, 240), (60 * i, 140, 170))
+    if i == 0:
+        bx = Image.Exif(); bx.get_ifd(0x8769)[0x9003] = "2024:07:09 08:15:00"; bi.save(bp, "JPEG", exif=bx.tobytes())
+    else:
+        bi.save(bp, "JPEG")
+    batch.append(bp)
+pdf_path = os.path.join(tmp, "carteira.pdf"); Image.new("RGB", (600, 800), (255, 255, 255)).save(pdf_path, "PDF")
+fake_pdf = os.path.join(tmp, "falso.pdf"); open(fake_pdf, "w").write("isto é só texto")
 
 results = []
 def check(name, cond):
@@ -30,7 +42,7 @@ def no_overflow(page, label):
     check(f"sem rolagem horizontal: {label}", w <= 0)
 
 with sync_playwright() as p:
-    browser = p.chromium.launch()
+    browser = p.chromium.launch(channel=os.environ.get("E2E_CHANNEL") or None)
     ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, locale="pt-BR", timezone_id="America/Sao_Paulo")
     page = ctx.new_page()
     errors = []
@@ -102,6 +114,65 @@ with sync_playwright() as p:
     check("álbum separa fotos de missão e livres", page.get_by_text("0 de missão · 1 livres").is_visible())
     check("estúdio não oferece geração falsa", page.goto(BASE + "/estudio") and page.get_by_role("button", name="Criar desenho").is_disabled())
 
+    # --- MUDANCAS-V2 §2: várias fotos de uma vez ---
+    page.goto(BASE + "/diario"); page.wait_for_timeout(400)
+    before = page.locator("article").count()
+    page.goto(BASE + "/guardar")
+    page.locator("input[type=file][multiple]").set_input_files(batch)
+    expect(page.get_by_role("heading", name="3 fotos para guardar")).to_be_visible()
+    check("data lida do EXIF no lote", page.get_by_label("Data da foto 1").input_value() == "2024-07-09")
+    page.screenshot(path=f"{OUT}/17-varias-fotos.png", full_page=True); no_overflow(page, "várias fotos")
+    page.get_by_role("button", name="Guardar todas").click()
+    expect(page.get_by_role("heading", name="3 lembranças guardadas")).to_be_visible()
+    page.goto(BASE + "/diario"); page.wait_for_timeout(400)
+    after = page.locator("article").count()
+    check(f"várias fotos: 3 lembranças criadas ({before} → {after})", after == before + 3)
+
+    # --- §2: usar uma foto do Diário numa missão (sem novo upload) ---
+    page.get_by_role("button", name="numa missão").first.click()
+    page.get_by_role("dialog").get_by_role("link", name="Cara de capa").click()
+    expect(page.get_by_role("heading", name="A foto mostra isso?")).to_be_visible()
+    page.get_by_role("button", name="Sim, mostra").click()
+    expect(page.get_by_text("+10 XP")).to_be_visible()
+    page.goto(BASE + "/diario"); page.wait_for_timeout(400)
+    check("foto do Diário concluiu missão sem duplicar", page.locator("article").count() == after)
+
+    # --- §3: catálogo e filtro ---
+    page.goto(BASE + "/missoes"); page.wait_for_timeout(400)
+    check("catálogo com 48 missões", page.get_by_text("de 48 concluídas").is_visible())
+    page.get_by_role("button", name="Concluídas (2)").click()
+    check("filtro Concluídas mostra as 2 missões", page.locator("a.mission-card").count() == 2)
+
+    # --- §4: vacina com próxima dose em 10 dias aparece em Hoje ---
+    today = page.evaluate("new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date())")
+    next_dose = (datetime.date.fromisoformat(today) + datetime.timedelta(days=10)).isoformat()
+    page.goto(BASE + "/cuidados/vacinas")
+    page.get_by_role("button", name="Adicionar registro").click()
+    page.get_by_label("Nome").fill("V10")
+    page.get_by_label("Próxima dose").fill(next_dose)
+    page.get_by_role("dialog").get_by_role("button", name="Salvar").click()
+    expect(page.get_by_text("Próxima em até 30 dias")).to_be_visible()
+    page.goto(BASE + "/hoje"); page.wait_for_timeout(400)
+    check("vacina em 10 dias aparece em Próximos cuidados (Hoje)", page.get_by_role("heading", name="Próximos cuidados").is_visible() and page.get_by_text("em 10 dias").first.is_visible())
+    page.screenshot(path=f"{OUT}/18-hoje-cuidados.png", full_page=True)
+
+    # --- §5: enviar e abrir um PDF; PDF falso recusado ---
+    page.goto(BASE + "/cuidados/documentos")
+    page.get_by_role("button", name="Adicionar documento").click()
+    page.locator("dialog[open] input[type=file]").set_input_files(fake_pdf); page.wait_for_timeout(400)
+    check("arquivo de texto renomeado para .pdf é recusado", page.get_by_text("não parece um PDF").is_visible())
+    page.locator("dialog[open] input[type=file]").set_input_files(pdf_path); page.wait_for_timeout(500)
+    page.get_by_label("Título").fill("Carteira de vacinação")
+    page.get_by_role("dialog").get_by_role("button", name="Salvar").click(); page.wait_for_timeout(400)
+    with ctx.expect_page() as newp:
+        page.get_by_role("button", name="Ver Carteira de vacinação").click()
+    tab = newp.value; tab.wait_for_url("blob:**")
+    kind = page.evaluate("u => fetch(u).then(r => r.blob()).then(b => b.type)", tab.url); tab.close()
+    check(f"PDF abre numa nova aba ({kind})", kind == "application/pdf")
+    page.screenshot(path=f"{OUT}/19-documentos.png", full_page=True)
+    for path in ["/cuidados", "/cuidados/dados", "/cuidados/peso", "/cuidados/vacinas", "/cuidados/consultas", "/cuidados/medicamentos", "/cuidados/contatos", "/cuidados/documentos"]:
+        page.goto(BASE + path); page.wait_for_timeout(300); no_overflow(page, path)
+
     # Excluir lembrança mantém conquista
     page.goto(BASE + "/diario"); page.wait_for_timeout(300)
     page.get_by_role("button", name="Excluir lembrança “Primeira página do diário”").click()
@@ -113,10 +184,17 @@ with sync_playwright() as p:
 
     # Largura estreita 360 px
     small = browser.new_context(viewport={"width": 360, "height": 740}, storage_state=None)
-    sp = small.new_page(); sp.goto(BASE + "/bem-vindo"); sp.wait_for_timeout(800); no_overflow(sp, "360px intro"); small.close()
+    sp = small.new_page(); sp.goto(BASE + "/bem-vindo"); sp.wait_for_timeout(800); no_overflow(sp, "360px intro")
+    sp.goto(BASE + "/comecar"); sp.get_by_label("Nome do cachorro").fill("Mini"); sp.get_by_role("button", name="Criar meu diário").click(); sp.wait_for_url("**/hoje")
+    for path in ["/hoje", "/diario", "/missoes", "/albuns", "/cuidados", "/cuidados/peso", "/cuidados/documentos", "/guardar", "/config"]:
+        sp.goto(BASE + path); sp.wait_for_timeout(300); no_overflow(sp, f"360px {path}")
+    nav = sp.locator("nav.bottom-nav a"); boxes = [nav.nth(i).bounding_box() for i in range(nav.count())]
+    check(f"360px: 5 itens na barra numa linha, toque ≥ 44px", nav.count() == 5 and len({round(b["y"]) for b in boxes}) == 1 and min(min(b["width"], b["height"]) for b in boxes) >= 44)
+    small.close()
     # Desktop
     page.set_viewport_size({"width": 1280, "height": 900}); page.goto(BASE + "/hoje"); page.wait_for_timeout(400)
     page.screenshot(path=f"{OUT}/16-desktop-hoje.png"); no_overflow(page, "desktop")
+    page.goto(BASE + "/cuidados"); page.wait_for_timeout(300); no_overflow(page, "desktop cuidados")
 
     # Apagar diário
     page.goto(BASE + "/config"); page.get_by_label("Para confirmar").fill("Luna")

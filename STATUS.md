@@ -11,7 +11,7 @@
 | 3. Catálogo de 48 missões e novos níveis | ✅ |
 | 4. Cuidados (ficha de saúde) | ✅ |
 | 5. Documentos | ✅ |
-| 6. Fechamento 1–5 | ⏳ |
+| 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ⏳ |
 | 8. Contas reais (Supabase) | ⏳ |
 | 9. Estúdio com IA | ⏳ |
@@ -71,7 +71,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 - Verificação no navegador (Chrome, 390 px) da seção 2: 5 fotos → 5 lembranças, data do EXIF preenchida, “Usar numa missão” conclui “Olá, mundo” sem duplicar a foto.
 - `npm run typecheck` e `npm run build` — sem erros.
 - `node scripts/contrast.mjs` — contraste de todas as combinações usadas.
-- `scripts/e2e.py` (Chromium headless, 390 px, 360 px e 1280 px) — 28/28: fluxo completo, EXIF, arquivo falso e corrompido, persistência após recarregar, sem rolagem horizontal, sem erros de console, apagar diário.
+- `scripts/e2e.py` (Chrome headless, 390 px, 360 px e 1280 px) — **56/56**: fluxo completo, EXIF, arquivo falso e corrompido, persistência, várias fotos de uma vez, foto do Diário numa missão, 48 missões e filtro, vacina em 10 dias em Hoje, PDF enviado e aberto, PDF falso recusado, todas as telas de Cuidados sem rolagem horizontal, barra de 5 itens ≥ 44 px em 360 px, sem erros de console, apagar diário. Detalhes em docs/TESTING.md.
 
 ## Não verificado
 
@@ -88,5 +88,9 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 4. Email de suporte real.
 
 ## Próximo passo
+
+MUDANCAS-V2 §7 (ciclo contínuo de missões), depois §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).
+
+Anterior:
 
 **Etapa C — dados reais e privacidade:** aplicar migration, repositório Supabase com a mesma interface, autenticação por email, upload para bucket privado com inspeção no servidor, teste de isolamento entre duas contas, compartilhamento revogável e exclusão de conta. O modo demo continua disponível e separado.

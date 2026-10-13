@@ -1,5 +1,7 @@
 # Diário de Patas — roteiro completo para construir o MVP com Claude
 
+> **Atualizado por MUDANCAS-V2:** IA não valida missões; app inclui ficha de cuidados e documentos como registro do dono, sem função veterinária. Ver [MUDANCAS-V2.md](./MUDANCAS-V2.md), que prevalece onde houver conflito.
+
 Versão 1.0 • 11 de outubro de 2026 • Briefing de produto, marca, experiência e implementação
 
 ## Como usar este documento
