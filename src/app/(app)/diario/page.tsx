@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { COLLECTIONS, type CollectionId } from "@/config/catalog";
+import { COLLECTIONS } from "@/config/catalog";
+import { useAlbumTitle } from "@/components/album-picker";
 import { LIMITS } from "@/config/business";
 import { formatCivilDate, formatMonthKey, monthKey } from "@/domain/dates";
 import { missionById } from "@/domain/missions";
@@ -14,16 +15,17 @@ import { EntryActions, UseInMission } from "@/components/entry-actions";
 import { cycleContext } from "@/data/store";
 import { IconPlus, IconStar } from "@/components/icons";
 
-type Filter = "all" | "mission" | "free" | "studio" | CollectionId;
+type Filter = string; // "all" | "mission" | "free" | "studio" | id de álbum
 
 export default function Diario() {
   const { ready, snap, unavailable } = useRequireDiary();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const ctx = useMemo(() => (snap ? cycleContext(snap) : null), [snap]);
+  const albumTitle = useAlbumTitle();
 
   const albumsByEntry = useMemo(() => {
-    const map = new Map<string, CollectionId[]>();
+    const map = new Map<string, string[]>();
     snap?.albumEntries.forEach((a) => map.set(a.entryId, [...(map.get(a.entryId) ?? []), a.albumId]));
     return map;
   }, [snap]);
@@ -52,6 +54,7 @@ export default function Diario() {
   const filters: { id: Filter; label: string }[] = [
     { id: "all", label: "Tudo" }, { id: "mission", label: "Missões" }, { id: "free", label: "Livres" },
     ...COLLECTIONS.map((c) => ({ id: c.id as Filter, label: c.title })),
+    ...snap.customAlbums.map((a) => ({ id: a.id as Filter, label: a.title })),
   ];
 
   return (
@@ -100,7 +103,7 @@ export default function Diario() {
                         <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
                           {m ? <span className="chip chip--reward"><IconStar size={14} /> {m.title}</span> : null}
                           {e.source === "studio" ? <span className="chip chip--accent">Arte criada com IA</span> : null}
-                          {(albumsByEntry.get(e.id) ?? []).map((a) => <span key={a} className="chip chip--neutral">{COLLECTIONS.find((c) => c.id === a)?.title}</span>)}
+                          {(albumsByEntry.get(e.id) ?? []).map((a) => <span key={a} className="chip chip--neutral">{albumTitle(a)}</span>)}
                         </div>
                         <div className="row-between">
                           <p className="caption">{formatCivilDate(e.occurredDate)}</p>

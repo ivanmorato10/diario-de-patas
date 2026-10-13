@@ -14,6 +14,8 @@ export const LIMITS = {
   captionMaxChars: 280,
   dogNameMaxChars: 40,
   albumTitleMaxChars: 40,
+  /** Álbuns criados pela pessoa, com o nome que quiser. */
+  maxCustomAlbums: 30,
   homeSuggestions: 3,
 } as const;
 

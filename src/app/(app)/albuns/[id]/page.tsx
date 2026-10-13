@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { LIMITS } from "@/config/business";
+import { useStore } from "@/data/store";
+import { DomainError, type Snapshot } from "@/data/demo-repository";
+import { DeleteSheet, Field, FormSheet } from "@/components/care-forms";
+import { Sheet } from "@/components/entry-actions";
+import { IconPencil, IconPlus, IconTrash } from "@/components/icons";
+import { formatCivilDate } from "@/domain/dates";
 import { useMemo, useState } from "react";
 import { COLLECTIONS } from "@/config/catalog";
 import { missionState } from "@/domain/missions";
@@ -30,6 +37,8 @@ export default function AlbumDetalhe() {
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
+  const custom = snap.customAlbums.find((a) => a.id === id);
+  if (!col && custom) return <CustomAlbumView snap={snap} albumId={custom.id} title={custom.title} entries={data.entries} />;
   if (!col) return (<><TopBar back="/albuns" /><main className="main"><div className="card empty"><h1>Álbum não encontrado</h1><Link href="/albuns" className="btn btn--secondary">Ver álbuns</Link></div></main></>);
 
   const missions = collectionMissions(col.id);
@@ -115,6 +124,91 @@ export default function AlbumDetalhe() {
           )}
         </section>
       </main>
+    </>
+  );
+}
+
+/** Álbum criado pela pessoa: só fotos, com o nome que ela quiser (não tem conquistas). */
+function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; albumId: string; title: string; entries: Snapshot["entries"] }) {
+  const { repo, reload } = useStore();
+  const router = useRouter();
+  const [mode, setMode] = useState<"none" | "rename" | "delete" | "add">("none");
+  const [name, setName] = useState(title);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inAlbum = new Set(entries.map((e) => e.id));
+  const candidates = snap.entries.filter((e) => !inAlbum.has(e.id));
+
+  async function run(fn: () => Promise<unknown>, after?: () => void) {
+    if (!repo || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await fn();
+      await reload();
+      setMode("none");
+      after?.();
+    } catch (e) {
+      setError(e instanceof DomainError ? e.message : "Não conseguimos salvar. Tente de novo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <TopBar title={title} back="/albuns" />
+      <main className="main">
+        <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+          <button type="button" className="btn btn--primary btn--small" onClick={() => { setPicked(new Set()); setError(null); setMode("add"); }} disabled={candidates.length === 0}><IconPlus size={18} /> Adicionar fotos do diário</button>
+          <button type="button" className="btn btn--secondary btn--small" onClick={() => { setName(title); setError(null); setMode("rename"); }}><IconPencil size={18} /> Renomear</button>
+          <button type="button" className="btn btn--ghost btn--small" style={{ color: "var(--danger)" }} onClick={() => setMode("delete")}><IconTrash size={18} /> Excluir álbum</button>
+        </div>
+        <p className="caption">{entries.length} {entries.length === 1 ? "foto" : "fotos"}. Para tirar uma foto daqui, edite a lembrança no Diário.</p>
+        {entries.length === 0 ? (
+          <div className="card stitched empty" style={{ boxShadow: "none" }}>
+            <p className="muted">Este álbum ainda está vazio.</p>
+            {candidates.length ? <button type="button" className="btn btn--secondary btn--small" onClick={() => setMode("add")}>Escolher fotos do diário</button> : <Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link>}
+          </div>
+        ) : (
+          <div className="grid-photos">
+            {entries.map((e) => (
+              <Link key={e.id} href={`/diario#${e.id}`}>
+                <MediaImage id={e.mediaId} alt={e.caption || `Foto de ${formatCivilDate(e.occurredDate)}`} />
+              </Link>
+            ))}
+          </div>
+        )}
+      </main>
+
+      <Sheet open={mode === "add"} onClose={() => setMode("none")} labelledBy="add-title">
+        <h2 id="add-title">Adicionar a “{title}”</h2>
+        <p className="small muted">Toque nas fotos que quer colocar neste álbum. Elas continuam no diário e nos outros álbuns.</p>
+        <div className="grid-photos" style={{ maxHeight: "50dvh", overflowY: "auto" }}>
+          {candidates.map((e) => (
+            <button key={e.id} type="button" aria-pressed={picked.has(e.id)} aria-label={`${e.caption || "Foto"} de ${formatCivilDate(e.occurredDate)}`}
+              onClick={() => setPicked((s) => { const n = new Set(s); if (n.has(e.id)) n.delete(e.id); else n.add(e.id); return n; })}
+              style={{ outline: picked.has(e.id) ? "3px solid var(--brand-primary)" : "none", outlineOffset: -3 }}>
+              <MediaImage id={e.mediaId} alt="" />
+              {picked.has(e.id) ? <span className="grid-badge chip">Escolhida</span> : null}
+            </button>
+          ))}
+        </div>
+        {error ? <p className="field-error" role="alert">{error}</p> : null}
+        <div className="stack">
+          <button type="button" className="btn btn--primary btn--block" disabled={busy || picked.size === 0} onClick={() => run(() => repo!.addEntriesToAlbum(albumId, [...picked]))}>
+            {picked.size ? `Adicionar ${picked.size} ${picked.size === 1 ? "foto" : "fotos"}` : "Escolha as fotos"}
+          </button>
+          <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>Cancelar</button>
+        </div>
+      </Sheet>
+
+      <FormSheet open={mode === "rename"} onClose={() => setMode("none")} title="Renomear álbum" onSubmit={() => run(() => repo!.renameAlbum(albumId, name))} busy={busy} error={error}>
+        <Field id="rename" label="Nome do álbum" value={name} onChange={setName} maxLength={LIMITS.albumTitleMaxChars} />
+      </FormSheet>
+      <DeleteSheet open={mode === "delete"} onClose={() => setMode("none")} title="Excluir este álbum?" text={`“${title}” deixa de existir. As fotos continuam no diário e nos outros álbuns.`} busy={busy}
+        onConfirm={() => run(() => repo!.deleteAlbum(albumId), () => router.replace("/albuns"))} />
     </>
   );
 }

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { COLLECTIONS, MISSIONS, type CollectionId, type MissionTemplate } from "@/config/catalog";
+import { MISSIONS, type MissionTemplate } from "@/config/catalog";
+import { AlbumChecklist } from "./album-picker";
 import { COLLECTION_ITEMS } from "@/config/cycle";
 import { activeSpecials, missionStatus, type CycleContext } from "@/domain/cycle";
 import { missionById } from "@/domain/missions";
@@ -29,12 +30,12 @@ export function Sheet({ open, onClose, labelledBy, children }: { open: boolean; 
   );
 }
 
-export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEntry; albumIds: CollectionId[]; today: string; label: string }) {
+export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEntry; albumIds: string[]; today: string; label: string }) {
   const { repo, reload } = useStore();
   const [mode, setMode] = useState<"none" | "edit" | "delete">("none");
   const [caption, setCaption] = useState(entry.caption);
   const [date, setDate] = useState(entry.occurredDate);
-  const [albums, setAlbums] = useState<CollectionId[]>(albumIds);
+  const [albums, setAlbums] = useState<string[]>(albumIds);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -105,15 +106,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
           <label htmlFor={`date-${entry.id}`}>Quando aconteceu</label>
           <input id={`date-${entry.id}`} type="date" className="input" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
         </div>
-        <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend style={{ fontWeight: 600, marginBottom: 8 }}>Álbuns</legend>
-          {COLLECTIONS.map((c) => (
-            <label key={c.id} className="check">
-              <input type="checkbox" checked={albums.includes(c.id)} onChange={(e) => setAlbums((a) => (e.target.checked ? [...a, c.id] : a.filter((x) => x !== c.id)))} />
-              <span>{c.title}</span>
-            </label>
-          ))}
-        </fieldset>
+        <AlbumChecklist legend="Álbuns" value={albums} onChange={setAlbums} hint={false} />
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
           <button type="button" className="btn btn--primary btn--block" onClick={saveEdit} disabled={busy}>Salvar</button>

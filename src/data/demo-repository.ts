@@ -5,7 +5,7 @@
  * se comporte igual; em produção estas regras ficam no backend (Etapa C/D).
  */
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { CollectionId } from "@/config/catalog";
+import { COLLECTIONS, type CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { civilDateInTz } from "@/domain/dates";
 import { missionById } from "@/domain/missions";
@@ -20,7 +20,7 @@ import type { ProcessedDocument } from "@/lib/document-file";
 import { CYCLE_XP, type DailySlot } from "@/config/cycle";
 import { activeSpecials, buildHistory, generatePlan, instanceKey as instanceKeyFor, setProgress, setsContaining, swapInPlan, type DailyPlan } from "@/domain/cycle";
 import type {
-  AlbumEntry, CivilDate, CollectionAdvance, Medal, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
+  AlbumEntry, AlbumId, CivilDate, CollectionAdvance, CustomAlbum, Medal, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
   Profile, SubmissionStatus, XpLedgerEntry, EntrySource,
 } from "@/domain/types";
 
@@ -32,8 +32,9 @@ export const DEMO_DB_NAME = "diario-de-patas-demo";
  * 3: ficha de cuidados — healthProfile, weights, vaccines, visits, medications, contacts (§4)
  * 4: documentos — metadados em documents, arquivo em documentFiles (§5)
  * 5: ciclo contínuo — dailyPlans, collectionAdvances, medals (§7)
+ * 6: álbuns criados pela pessoa — customAlbums
  */
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 interface DemoDB extends DBSchema {
   profile: { key: string; value: Profile };
@@ -55,6 +56,7 @@ interface DemoDB extends DBSchema {
   dailyPlans: { key: string; value: DailyPlan };
   collectionAdvances: { key: string; value: CollectionAdvance };
   medals: { key: string; value: Medal };
+  customAlbums: { key: string; value: CustomAlbum };
 }
 
 export type Db = IDBPDatabase<DemoDB>;
@@ -87,6 +89,7 @@ export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
         db.createObjectStore("collectionAdvances", { keyPath: "key" });
         db.createObjectStore("medals", { keyPath: "key" });
       }
+      if (oldVersion < 6) db.createObjectStore("customAlbums", { keyPath: "id" });
     },
   });
   return db;
@@ -115,7 +118,7 @@ function createV3(db: IDBPDatabase<DemoDB>) {
 const STORES = [
   "profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp",
   "healthProfile", "weights", "vaccines", "visits", "medications", "contacts", "documents", "documentFiles",
-  "dailyPlans", "collectionAdvances", "medals",
+  "dailyPlans", "collectionAdvances", "medals", "customAlbums",
 ] as const;
 
 /**
@@ -163,6 +166,8 @@ export interface Snapshot {
   dailyPlan: DailyPlan | null;
   collectionAdvances: CollectionAdvance[];
   medals: Medal[];
+  /** Álbuns criados pela pessoa, mais antigos primeiro. */
+  customAlbums: CustomAlbum[];
 }
 
 export async function loadSnapshot(db: Db): Promise<Snapshot> {
@@ -188,7 +193,62 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
     dailyPlan: dogs[0] ? await ensureDailyPlan(db, dogs[0], today) : null,
     collectionAdvances: await db.getAll("collectionAdvances"),
     medals: await db.getAll("medals"),
+    customAlbums: (await db.getAll("customAlbums")).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
   };
+}
+
+// ---------- Álbuns criados pela pessoa ----------
+
+const albumTitle = (t: string) => {
+  const title = t.trim().replace(/\s+/g, " ").slice(0, LIMITS.albumTitleMaxChars);
+  if (!title) throw new DomainError("INVALID", "Dê um nome ao álbum.");
+  return title;
+};
+
+export async function createAlbum(db: Db, title: string): Promise<CustomAlbum> {
+  const name = albumTitle(title);
+  const tx = db.transaction("customAlbums", "readwrite");
+  if ((await tx.store.count()) >= LIMITS.maxCustomAlbums) {
+    return fail(tx, new DomainError("ALBUM_QUOTA", `Cabem até ${LIMITS.maxCustomAlbums} álbuns nesta versão de teste.`));
+  }
+  const album: CustomAlbum = { id: `custom-${newId()}`, title: name, createdAt: now() };
+  await tx.store.put(album);
+  await tx.done;
+  return album;
+}
+
+export async function renameAlbum(db: Db, id: string, title: string): Promise<CustomAlbum> {
+  const album = await db.get("customAlbums", id);
+  if (!album) throw new DomainError("NOT_FOUND", "Álbum não encontrado.");
+  const next = { ...album, title: albumTitle(title) };
+  await db.put("customAlbums", next);
+  return next;
+}
+
+/** Exclui o álbum; as fotos continuam no diário (e em outros álbuns). */
+export async function deleteAlbum(db: Db, id: string) {
+  const tx = db.transaction(["customAlbums", "albumEntries"], "readwrite");
+  await tx.objectStore("customAlbums").delete(id);
+  for (const a of await tx.objectStore("albumEntries").index("albumId").getAll(id)) await tx.objectStore("albumEntries").delete(a.key);
+  await tx.done;
+}
+
+/** Só álbuns que existem: coleções do catálogo ou álbuns da pessoa. */
+async function validAlbumIds(db: Db, ids: readonly string[]): Promise<AlbumId[]> {
+  const custom = new Set((await db.getAllKeys("customAlbums")) as string[]);
+  const fixed = new Set<string>(COLLECTIONS.map((c) => c.id));
+  return [...new Set(ids)].filter((id) => fixed.has(id) || custom.has(id)) as AlbumId[];
+}
+
+/** Coloca várias fotos do diário num álbum (sem duplicar). */
+export async function addEntriesToAlbum(db: Db, albumId: string, entryIds: readonly string[]) {
+  const [ok] = await validAlbumIds(db, [albumId]);
+  if (!ok) throw new DomainError("NOT_FOUND", "Álbum não encontrado.");
+  const tx = db.transaction(["entries", "albumEntries"], "readwrite");
+  for (const entryId of new Set(entryIds)) {
+    if (await tx.objectStore("entries").get(entryId)) await tx.objectStore("albumEntries").put({ key: `${ok}:${entryId}`, albumId: ok, entryId, addedAt: now() });
+  }
+  await tx.done;
 }
 
 // ---------- Ciclo contínuo (MUDANCAS-V2 §7) ----------
@@ -317,10 +377,11 @@ export async function saveEntry(
     occurredDate: CivilDate;
     source: EntrySource;
     missionId: string | null;
-    albumIds: CollectionId[];
+    albumIds: string[];
     kind?: MediaAsset["kind"];
   },
 ): Promise<DiaryEntry> {
+  const albumIds = await validAlbumIds(db, input.albumIds);
   const tx = db.transaction(["dogs", "profile", "media", "entries", "albumEntries"], "readwrite");
   const existing = await tx.objectStore("entries").index("requestKey").get(input.requestKey);
   if (existing) {
@@ -349,14 +410,15 @@ export async function saveEntry(
     createdAt: now(),
   };
   await tx.objectStore("entries").put(entry);
-  for (const albumId of new Set(input.albumIds)) {
+  for (const albumId of albumIds) {
     await tx.objectStore("albumEntries").put({ key: `${albumId}:${entry.id}`, albumId, entryId: entry.id, addedAt: now() });
   }
   await tx.done;
   return entry;
 }
 
-export async function updateEntry(db: Db, id: string, patch: { caption?: string; occurredDate?: CivilDate; albumIds?: CollectionId[] }) {
+export async function updateEntry(db: Db, id: string, patch: { caption?: string; occurredDate?: CivilDate; albumIds?: string[] }) {
+  const albumIds = patch.albumIds ? await validAlbumIds(db, patch.albumIds) : undefined;
   const tx = db.transaction(["entries", "albumEntries"], "readwrite");
   const e = await tx.objectStore("entries").get(id);
   if (!e) throw new DomainError("NOT_FOUND", "Lembrança não encontrada.");
@@ -364,10 +426,10 @@ export async function updateEntry(db: Db, id: string, patch: { caption?: string;
   if (patch.caption !== undefined) next.caption = patch.caption.trim().slice(0, LIMITS.captionMaxChars);
   if (patch.occurredDate !== undefined) next.occurredDate = patch.occurredDate;
   await tx.objectStore("entries").put(next);
-  if (patch.albumIds) {
+  if (albumIds) {
     const store = tx.objectStore("albumEntries");
     const current = await store.index("entryId").getAll(id);
-    const wanted = new Set(patch.albumIds);
+    const wanted = new Set<AlbumId>(albumIds);
     for (const a of current) if (!wanted.has(a.albumId)) await store.delete(a.key);
     for (const albumId of wanted) await store.put({ key: `${albumId}:${id}`, albumId, entryId: id, addedAt: now() });
   }
@@ -610,6 +672,7 @@ export async function exportMetadata(db: Db) {
     albums: snap.albumEntries,
     achievements: snap.completions,
     medals: snap.medals,
+    customAlbums: snap.customAlbums,
     collectionAdvances: snap.collectionAdvances,
     xpTotal: snap.xpTotal,
     health: snap.health,

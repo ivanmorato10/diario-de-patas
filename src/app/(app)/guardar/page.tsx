@@ -5,7 +5,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { cycleContext, useBlobUrl, useMediaBlob, useStore } from "@/data/store";
 import { DomainError, newId, type ProcessedImage, type SubmitResult } from "@/data/demo-repository";
-import { COLLECTIONS, type CollectionId } from "@/config/catalog";
+import type { CollectionId } from "@/config/catalog";
+import { AlbumChecklist } from "@/components/album-picker";
 import { LIMITS } from "@/config/business";
 import { isCivilDate } from "@/domain/dates";
 import { missionById, missionBySlug } from "@/domain/missions";
@@ -55,7 +56,7 @@ function GuardarInner() {
   const [img, setImg] = useState<ProcessedImage | null>(null);
   const [caption, setCaption] = useState("");
   const [date, setDate] = useState("");
-  const [albums, setAlbums] = useState<CollectionId[]>([]);
+  const [albums, setAlbums] = useState<string[]>([]);
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [pickNotes, setPickNotes] = useState<string[]>([]);
   const [dupe, setDupe] = useState<DiaryEntry | null>(null);
@@ -196,18 +197,7 @@ function GuardarInner() {
     }
   }
 
-  const albumPicker = (legend: string) => (
-    <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
-      <legend style={{ fontWeight: 600, marginBottom: 8 }}>{legend} <span className="muted">(opcional)</span></legend>
-      <p className="caption">Fotos livres enfeitam o álbum, mas não contam como conquista.</p>
-      {COLLECTIONS.map((c) => (
-        <label key={c.id} className="check">
-          <input type="checkbox" checked={albums.includes(c.id)} onChange={(e) => setAlbums((a) => (e.target.checked ? [...a, c.id] : a.filter((x) => x !== c.id)))} />
-          <span>{c.title}</span>
-        </label>
-      ))}
-    </fieldset>
-  );
+  const albumPicker = (legend: string) => <AlbumChecklist legend={`${legend} (opcional)`} value={albums} onChange={setAlbums} />;
 
   return (
     <>

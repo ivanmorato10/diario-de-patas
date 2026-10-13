@@ -4,6 +4,7 @@ import {
   openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, exportMetadata, type Db, type ProcessedImage,
   saveHealthProfile, addWeight, saveVaccine, saveVisit, saveMedication, saveContact, deleteHealthRecord,
   addDocument, updateDocument, deleteDocument, getDocumentFile, swapDaily,
+  createAlbum, renameAlbum, deleteAlbum, addEntriesToAlbum,
 } from "./demo-repository";
 import { PERMANENT_SETS } from "@/config/cycle";
 import type { ProcessedDocument } from "@/lib/document-file";
@@ -343,6 +344,45 @@ describe("ciclo contínuo de missões (MUDANCAS-V2 §7)", () => {
     expect(snap.medals).toHaveLength(1);
     const itemsXp = set.items.length * 15; // C01–C05 e M17 valem 15 cada
     expect(snap.xpTotal).toBe(10 + itemsXp + 50);
+  });
+});
+
+describe("álbuns criados pela pessoa", () => {
+  it("cria com o nome que quiser, renomeia e recusa nome vazio", async () => {
+    const a = await createAlbum(db, "  Viagem   à praia ");
+    expect(a.title).toBe("Viagem à praia");
+    expect(a.id.startsWith("custom-")).toBe(true);
+    expect((await renameAlbum(db, a.id, "Praia 2026")).title).toBe("Praia 2026");
+    await expect(createAlbum(db, "   ")).rejects.toMatchObject({ code: "INVALID" });
+    expect((await loadSnapshot(db)).customAlbums.map((x) => x.title)).toEqual(["Praia 2026"]);
+  });
+
+  it("guarda foto direto no álbum; ids inexistentes são ignorados; adicionar não duplica", async () => {
+    const a = await createAlbum(db, "Primeiro ano");
+    const e1 = await saveEntry(db, { requestKey: "k1", image: img("1"), caption: "", occurredDate: "2026-10-12", source: "free", missionId: null, albumIds: [a.id, "custom-nao-existe", "vida-em-casa"] });
+    const e2 = await entry("k2");
+    await addEntriesToAlbum(db, a.id, [e1.id, e2.id, e2.id]);
+    const snap = await loadSnapshot(db);
+    expect(snap.albumEntries.filter((x) => x.albumId === a.id).map((x) => x.entryId).sort()).toEqual([e1.id, e2.id].sort());
+    expect(snap.albumEntries.some((x) => x.albumId === ("custom-nao-existe" as never))).toBe(false);
+    expect(snap.albumEntries.filter((x) => x.entryId === e1.id)).toHaveLength(2); // o álbum e “Vida em casa”
+  });
+
+  it("excluir o álbum mantém as fotos no diário e nos outros álbuns", async () => {
+    const a = await createAlbum(db, "Temporário");
+    const e = await saveEntry(db, { requestKey: "k", image: img("k"), caption: "", occurredDate: "2026-10-12", source: "free", missionId: null, albumIds: [a.id, "vida-em-casa"] });
+    await deleteAlbum(db, a.id);
+    const snap = await loadSnapshot(db);
+    expect(snap.customAlbums).toHaveLength(0);
+    expect(snap.entries.map((x) => x.id)).toEqual([e.id]);
+    expect(snap.albumEntries.map((x) => x.albumId)).toEqual(["vida-em-casa"]);
+  });
+
+  it("limite de álbuns e reset", async () => {
+    for (let i = 0; i < LIMITS.maxCustomAlbums; i++) await createAlbum(db, `Álbum ${i}`);
+    await expect(createAlbum(db, "Mais um")).rejects.toMatchObject({ code: "ALBUM_QUOTA" });
+    await resetDemo(db);
+    expect(await db.count("customAlbums")).toBe(0);
   });
 });
 

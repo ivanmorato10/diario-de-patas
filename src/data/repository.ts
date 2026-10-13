@@ -4,14 +4,13 @@
  * - Modo real (NEXT_PUBLIC_SUPABASE_URL definido): API do próprio app + Supabase (`real-repository.ts`),
  *   com o servidor como autoridade de XP, cotas, plano do dia e posse dos dados.
  */
-import type { CollectionId } from "@/config/catalog";
 import type { DailySlot } from "@/config/cycle";
 import type { DailyPlan } from "@/domain/cycle";
 import type { DocumentMetaInput, HealthDocument } from "@/domain/documents";
 import type {
   ContactInput, HealthProfileInput, MedicationInput, VaccineInput, VisitInput, WeightInput,
 } from "@/domain/health";
-import type { CivilDate, DiaryEntry, Dog, EntrySource, MediaAsset, MissionSubmission } from "@/domain/types";
+import type { CivilDate, CustomAlbum, DiaryEntry, Dog, EntrySource, MediaAsset, MissionSubmission } from "@/domain/types";
 import type { ProcessedDocument } from "@/lib/document-file";
 import type { ProcessedImage, Snapshot, SubmitResult } from "./demo-repository";
 
@@ -26,7 +25,7 @@ export interface SaveEntryInput {
   occurredDate: CivilDate;
   source: EntrySource;
   missionId: string | null;
-  albumIds: CollectionId[];
+  albumIds: string[];
   kind?: MediaAsset["kind"];
 }
 
@@ -52,8 +51,14 @@ export interface Repository {
 
   findEntryByHash(hash: string): Promise<DiaryEntry | null>;
   saveEntry(input: SaveEntryInput): Promise<DiaryEntry>;
-  updateEntry(id: string, patch: { caption?: string; occurredDate?: CivilDate; albumIds?: CollectionId[] }): Promise<DiaryEntry>;
+  updateEntry(id: string, patch: { caption?: string; occurredDate?: CivilDate; albumIds?: string[] }): Promise<DiaryEntry>;
   deleteEntry(id: string): Promise<void>;
+
+  createAlbum(title: string): Promise<CustomAlbum>;
+  renameAlbum(id: string, title: string): Promise<CustomAlbum>;
+  /** Exclui o álbum; as fotos continuam no diário. */
+  deleteAlbum(id: string): Promise<void>;
+  addEntriesToAlbum(albumId: string, entryIds: string[]): Promise<void>;
 
   submitMission(input: SubmitInput): Promise<SubmitResult>;
   swapDaily(slot: DailySlot): Promise<DailyPlan>;

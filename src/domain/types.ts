@@ -60,9 +60,18 @@ export interface DiaryEntry {
   createdAt: string;
 }
 
+/** Álbum: uma coleção fixa do catálogo ou um álbum criado pela pessoa (`custom-…`). */
+export type AlbumId = CollectionId | `custom-${string}`;
+
+export interface CustomAlbum {
+  id: `custom-${string}`;
+  title: string;
+  createdAt: string;
+}
+
 export interface AlbumEntry {
   key: string; // `${albumId}:${entryId}` — associação única
-  albumId: CollectionId;
+  albumId: AlbumId;
   entryId: string;
   addedAt: string;
 }

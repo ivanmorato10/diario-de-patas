@@ -186,6 +186,26 @@ with sync_playwright() as p:
     for path in ["/cuidados", "/cuidados/dados", "/cuidados/peso", "/cuidados/vacinas", "/cuidados/consultas", "/cuidados/medicamentos", "/cuidados/contatos", "/cuidados/documentos"]:
         page.goto(BASE + path); page.wait_for_timeout(300); no_overflow(page, path)
 
+    # --- Álbuns criados pela pessoa ---
+    page.goto(BASE + "/albuns"); page.wait_for_timeout(300)
+    page.get_by_role("button", name="Novo álbum").click()
+    page.get_by_label("Nome do álbum").fill("Viagem à praia")
+    page.get_by_role("dialog").get_by_role("button", name="Criar álbum").click()
+    page.wait_for_url("**/albuns/custom-*"); page.wait_for_timeout(300)
+    check("álbum com nome livre criado", page.get_by_role("heading", name="Viagem à praia").is_visible())
+    page.get_by_role("button", name="Adicionar fotos do diário").click()
+    page.get_by_role("dialog").locator("button[aria-pressed]").first.click()
+    page.get_by_role("dialog").get_by_role("button", name="Adicionar 1 foto").click(); page.wait_for_timeout(400)
+    check("foto do diário entrou no álbum", page.locator(".grid-photos a").count() == 1)
+    page.screenshot(path=f"{OUT}/21-album-custom.png", full_page=True); no_overflow(page, "álbum personalizado")
+    page.goto(BASE + "/diario"); page.wait_for_timeout(300)
+    check("álbum aparece nos filtros do Diário", page.get_by_role("button", name="Viagem à praia").is_visible())
+    page.goto(BASE + "/albuns"); page.wait_for_timeout(300)
+    page.get_by_role("link", name="Viagem à praia").click(); page.wait_for_url("**/albuns/custom-*")
+    page.get_by_role("button", name="Renomear").click(); page.get_by_label("Nome do álbum").fill("Praia 2026")
+    page.get_by_role("dialog").get_by_role("button", name="Salvar").click(); page.wait_for_timeout(300)
+    check("renomear álbum", page.get_by_role("heading", name="Praia 2026").is_visible())
+
     # Excluir lembrança mantém conquista
     page.goto(BASE + "/diario"); page.wait_for_timeout(300)
     page.get_by_role("button", name="Excluir lembrança “Primeira página do diário”").click()
