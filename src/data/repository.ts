@@ -16,6 +16,14 @@ import type { ProcessedImage, Snapshot, SubmitResult } from "./demo-repository";
 
 export type { ProcessedImage, Snapshot, SubmitResult };
 
+export interface ShareLink {
+  id: string;
+  title: string;
+  createdAt: string;
+  revokedAt: string | null;
+  count: number;
+}
+
 export type CareStore = "vaccines" | "visits" | "medications" | "contacts" | "weights";
 
 export interface SaveEntryInput {
@@ -75,6 +83,11 @@ export interface Repository {
   updateDocument(id: string, meta: DocumentMetaInput): Promise<HealthDocument>;
   deleteDocument(id: string): Promise<void>;
   getDocumentFile(id: string): Promise<{ file: Blob; thumb: Blob | null } | null>;
+
+  /** Links compartilhados (só com conta: precisam de servidor para serem revogáveis). */
+  createShare(title: string, entryIds: string[]): Promise<{ id: string; path: string }>;
+  listShares(): Promise<ShareLink[]>;
+  revokeShare(id: string): Promise<void>;
 
   exportMetadata(): Promise<unknown>;
   /** Demo: apaga tudo deste aparelho. Real: exclui a conta (acesso, links, jobs e arquivos). */

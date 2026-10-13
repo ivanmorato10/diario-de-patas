@@ -34,6 +34,11 @@ export function demoRepository(db: demo.Db): Repository {
       const f = await demo.getDocumentFile(db, id);
       return f ? { file: f.file, thumb: f.thumb } : null;
     },
+    createShare: async () => {
+      throw new demo.DomainError("NEEDS_ACCOUNT", "Links de compartilhamento precisam de conta para poderem ser revogados com segurança.");
+    },
+    listShares: async () => [],
+    revokeShare: async () => undefined,
     exportMetadata: () => demo.exportMetadata(db),
     wipe: () => demo.resetDemo(db),
   };

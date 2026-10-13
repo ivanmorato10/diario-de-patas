@@ -7,6 +7,7 @@ import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
 import { LIMITS } from "@/config/business";
 import { REAL_MODE } from "@/config/mode";
+import { ShareLinksList } from "@/components/share";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -121,7 +122,7 @@ export default function Config() {
 
         <section className="card stack" aria-labelledby="links">
           <h2 id="links">Links compartilhados</h2>
-          <p className="small muted">{REAL_MODE ? "Nenhum link ativo." : "Nenhum link ativo. Compartilhamento chega junto com contas."}</p>
+          <ShareLinksList />
         </section>
 
         {REAL_MODE ? (

@@ -8,6 +8,7 @@ import { DomainError, type Snapshot } from "@/data/demo-repository";
 import { DeleteSheet, Field, FormSheet } from "@/components/care-forms";
 import { Sheet } from "@/components/entry-actions";
 import { IconPencil, IconPlus, IconTrash } from "@/components/icons";
+import { ShareSelection } from "@/components/share";
 import { formatCivilDate } from "@/domain/dates";
 import { useMemo, useState } from "react";
 import { COLLECTIONS } from "@/config/catalog";
@@ -108,9 +109,8 @@ export default function AlbumDetalhe() {
                 <div className="row"><IconShare /><strong>Compartilhar uma seleção</strong></div>
                 {selecting ? (
                   <>
-                    <p className="small">{selected.size} {selected.size === 1 ? "foto selecionada" : "fotos selecionadas"}.</p>
-                    <button type="button" className="btn btn--primary btn--small" disabled aria-describedby="share-off">Criar link</button>
-                    <p id="share-off" className="caption">Links de compartilhamento precisam de conta e servidor para poderem ser revogados com segurança. Chegam na próxima etapa — nada foi enviado.</p>
+                    <p className="small">{selected.size} {selected.size === 1 ? "foto selecionada" : "fotos selecionadas"}. Toque nas fotos para escolher.</p>
+                    <ShareSelection selected={[...selected]} defaultTitle={`${col.title} de ${snap.dog.name}`} onDone={() => { setSelecting(false); setSelected(new Set()); }} />
                     <button type="button" className="btn btn--ghost btn--small" onClick={() => { setSelecting(false); setSelected(new Set()); }}>Cancelar seleção</button>
                   </>
                 ) : (

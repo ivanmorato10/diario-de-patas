@@ -375,6 +375,8 @@ export async function submitMission(ctx: Ctx, args: unknown) {
   const r = res[0] ?? { xp_awarded: 0, already_completed: true, medals: [] };
   const advAfter = advItem && !advBefore ? await q(admin.from("collection_advances").select("item_id, via_mission_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) as any : null;
   const approved = a.status === "approved";
+  // Foto aprovada entra no álbum da missão (igual ao modo demo).
+  if (approved) await setEntryAlbums(ctx, dog.id, a.entryId, [mission.collectionId], false);
   const instanceKey = instanceKeyOf(dog.id, mission.id, mission.kind === "daily" ? today : period ?? "once");
   return {
     submission: { id: a.requestKey, requestKey: a.requestKey, missionId: mission.id, dogId: dog.id, entryId: a.entryId, status: approved ? "approved" : "uncertain", reasonCode: approved ? "OWNER_CONFIRMED" : "OWNER_UNSURE", mode: "owner", providerVersion: null, createdAt: now() },
@@ -585,6 +587,50 @@ export async function processCleanup(limit = 200) {
   return { removed: jobs.length };
 }
 
+// ---------- Links compartilhados (briefing §12) ----------
+// Token aleatório (32 bytes) entregue uma única vez; no banco só o sha256. A página /s/:token
+// mostra só a seleção, nunca saúde/documentos; revogar corta o acesso imediatamente.
+
+export async function sha256hex(text: string) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Buffer.from(d).toString("hex");
+}
+
+export async function createShare(ctx: Ctx, args: unknown) {
+  const a = parse(z.object({ title: z.string(), entryIds: z.array(z.string().uuid()).min(1, "Escolha pelo menos uma foto.").max(LIMITS.maxEntries) }), args);
+  const title = a.title.trim().replace(/\s+/g, " ").slice(0, 60) || "Lembranças";
+  const own = (await q(ctx.supa.from("diary_entries").select("id").in("id", [...new Set(a.entryIds)]).is("deleted_at", null))) as any[];
+  if (!own.length) throw bad("NOT_FOUND", "Não encontramos essas fotos.");
+  const { count } = await ctx.supa.from("share_links").select("id", { count: "exact", head: true }).is("revoked_at", null);
+  if ((count ?? 0) >= 20) throw bad("SHARE_QUOTA", "Cabem até 20 links ativos. Revogue algum para criar outro.");
+  const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
+  const admin = adminClient();
+  const link = (await q(admin.from("share_links").insert({ owner_id: ctx.user.id, token_hash: await sha256hex(token), title }).select("id").single())) as any;
+  const order = new Map(a.entryIds.map((id, i) => [id, i]));
+  await q(admin.from("share_link_entries").insert(own.map((e) => ({ share_link_id: link.id, entry_id: e.id, sort_order: order.get(e.id) ?? 0 }))));
+  return { id: link.id, path: `/s/${token}` }; // o token só existe nesta resposta
+}
+
+export async function listShares(ctx: Ctx) {
+  const rows = (await q(ctx.supa.from("share_links").select("id, title, created_at, revoked_at, share_link_entries(count)").order("created_at", { ascending: false }))) as any[];
+  return rows.map((r) => ({ id: r.id, title: r.title, createdAt: r.created_at, revokedAt: r.revoked_at, count: r.share_link_entries?.[0]?.count ?? 0 }));
+}
+
+export async function revokeShare(ctx: Ctx, args: unknown) {
+  const a = parse(z.object({ id: z.string().uuid() }), args);
+  const own = (await q(ctx.supa.from("share_links").select("id").eq("id", a.id).maybeSingle())) as any;
+  if (!own) throw bad("NOT_FOUND", "Link não encontrado.");
+  await q(adminClient().from("share_links").update({ revoked_at: now() }).eq("id", a.id).eq("owner_id", ctx.user.id).is("revoked_at", null));
+  return {};
+}
+
+/** Página pública: resolve o link (ativo) para a seleção. Sem sessão. */
+export async function resolveShare(token: string) {
+  if (!/^[A-Za-z0-9_-]{30,60}$/.test(token)) return null;
+  const rows = (await q(adminClient().rpc("resolve_share", { p_token_hash: await sha256hex(token) }))) as any[];
+  return rows.length ? { title: rows[0].title as string, entries: rows.map((r) => ({ id: r.entry_id as string, caption: r.caption as string, occurredDate: r.occurred_date as string, key: r.media_storage_key as string })) } : null;
+}
+
 export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> = {
   snapshot: (c) => snapshot(c), createDiary, updateDog, updateTimezone, ensureProfile: (c, a) => ensureProfile(c, (a as any)?.timezone).then(() => ({})),
   entryByRequestKey, findEntryByHash, saveEntry, updateEntry, deleteEntry,
@@ -593,4 +639,5 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   saveHealthProfile, addWeight, saveCare, deleteCare,
   getDocument, updateDocument, deleteDocument,
   createUpload, confirmUpload, exportMetadata: (c) => exportMetadata(c), deleteAccount: (c) => deleteAccount(c),
+  createShare, listShares: (c) => listShares(c), revokeShare,
 };

@@ -117,6 +117,9 @@ export function realRepository(): Repository {
       const [file, thumb] = await Promise.all(["file", "thumb"].map((v) => fetch(`/api/documents/${id}?v=${v}`, { credentials: "same-origin" }).then((r) => (r.ok ? r.blob() : null))));
       return file ? { file, thumb } : null;
     },
+    createShare: (title, entryIds) => rpc("createShare", { title, entryIds }),
+    listShares: () => rpc("listShares"),
+    revokeShare: (id) => rpc("revokeShare", { id }),
     exportMetadata: () => rpc("exportMetadata"),
     async wipe() {
       await rpc("deleteAccount");

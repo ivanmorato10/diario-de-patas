@@ -148,6 +148,28 @@ with sync_playwright() as p:
     after = rpc(a, "snapshot", {})[1]
     check("dados de A intactos depois das tentativas de B", len(after["entries"]) == 2 and after["entries"][0]["caption"] != "invadido" and len(after["health"]["documents"]) == 1)
 
+    # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
+    a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)
+    a.get_by_role("button", name="Selecionar fotos").click()
+    a.locator(".grid-photos button[aria-pressed]").first.click()
+    a.get_by_label("Título do link").fill("Para a vovó")
+    a.get_by_role("button", name="Criar link com 1 foto").click()
+    link_input = a.get_by_label("Link do álbum compartilhado"); expect(link_input).to_be_visible(timeout=20000)
+    share_url = link_input.input_value()
+    ctxV = browser.new_context(viewport={"width": 390, "height": 844})
+    v = ctxV.new_page(); v.goto(share_url)
+    html = v.content()
+    img_status = v.evaluate("() => fetch(document.querySelector('figure img').src).then(r => r.status)")
+    check(f"visitante sem conta vê só a seleção (1 foto, {img_status})", v.locator("figure.polaroid").count() == 1 and img_status == 200 and v.get_by_role("heading", name="Para a vovó").is_visible())
+    check("página compartilhada sem dados de saúde, email ou noindex ausente",
+          "V10" not in html and emails["A"] not in html and 'name="robots" content="noindex' in html)
+    img_url = v.evaluate("() => document.querySelector('figure img').src")
+    a.goto(BASE + "/config"); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
+    v.goto(share_url)
+    st = v.evaluate("u => fetch(u).then(r => r.status)", img_url)
+    check(f"link revogado para de funcionar (página e foto {st})", v.get_by_role("heading", name="Este álbum não está disponível").is_visible() and st == 404)
+    ctxV.close()
+
     # ---------- Sair e entrar de novo ----------
     a.goto(BASE + "/config"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/bem-vindo")
     a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
