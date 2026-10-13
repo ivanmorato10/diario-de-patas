@@ -124,6 +124,8 @@ A tela de entrada (`/entrar`, primeira tela do app) já tem os botões. Enquanto
 2. Criar uma **Key** com “Sign in with Apple” e baixar o `.p8` (Key ID e Team ID ficam na tela).
 3. Supabase › Authentication › Providers › **Apple**: ligar, Client ID = Services ID, e gerar o *Secret Key* a partir do `.p8` (o painel explica; o segredo vence a cada 6 meses e precisa ser renovado).
 
+**Ligar (depois de preencher APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_SERVICES_ID e APPLE_P8_PATH no `.env.local`):** `npm run apple:secret` e `npm run supabase:push`. O segredo vence em ~6 meses (`APPLE_SECRET_EXPIRES` no `.env.local`): repita os dois comandos antes disso.
+
 Quem usa “Ocultar meu email” da Apple entra com um endereço `@privaterelay.appleid.com` — funciona normalmente.
 
 **Excluir conta:** *Perfil e ajustes › Conta* mostra com qual conta a pessoa entrou e leva a *Excluir conta* (apaga tudo, inclusive o usuário de login). A Apple exige essa opção dentro do app.

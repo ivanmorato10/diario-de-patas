@@ -351,11 +351,12 @@ client_id = "env(GOOGLE_CLIENT_ID)"
 secret = "env(GOOGLE_CLIENT_SECRET)"
 skip_nonce_check = false
 
+# Entrar com Apple (iCloud): Services ID e segredo (JWT da chave .p8, `npm run apple:secret`) só no .env.local.
 [auth.external.apple]
-enabled = false
-client_id = ""
+enabled = true
+client_id = "env(APPLE_SERVICES_ID)"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
-secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+secret = "env(APPLE_SECRET)"
 # Overrides the default auth callback URL derived from auth.external_url.
 redirect_uri = ""
 # Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,

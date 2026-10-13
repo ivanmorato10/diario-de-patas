@@ -10,7 +10,9 @@
     "contrast": "node scripts/contrast.mjs",
     "test:db": "bash scripts/test-db.sh",
     "studio:eval": "tsx --conditions=react-server --tsconfig tsconfig.json scripts/studio-eval.ts",
-    "emails": "tsx --tsconfig tsconfig.json scripts/emails.ts"
+    "emails": "tsx --tsconfig tsconfig.json scripts/emails.ts",
+    "apple:secret": "node scripts/apple-secret.mjs",
+    "supabase:push": "bash scripts/supabase-push.sh"
   },
   "license": "ISC",
   "dependencies": {
