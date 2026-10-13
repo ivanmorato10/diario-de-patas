@@ -78,13 +78,13 @@ with sync_playwright() as p:
 
     # ---------- Splash: a entrada vem antes da apresentação ----------
     a.goto(BASE + "/"); a.wait_for_url("**/entrar")
-    check("sem conta, / abre o splash de entrada", a.get_by_role("button", name="Continuar com Google").is_visible() and a.get_by_role("button", name="Continuar com Apple").is_visible())
+    check("sem conta, / abre o splash de entrada", eventually(lambda t: expect(a.get_by_role("button", name="Continuar com Google")).to_be_visible(timeout=t)) and a.get_by_role("button", name="Continuar com Apple").is_visible())
     a.goto(BASE + "/bem-vindo"); check("a apresentação pede login antes", "/entrar" in a.url)
 
     # ---------- Conta A ----------
     login(a, "A")
     a.goto(BASE + "/"); a.wait_for_url("**/bem-vindo", timeout=20000)
-    check("depois de entrar sem diário, vem a apresentação", a.get_by_role("button", name="Pular").is_visible())
+    check("depois de entrar sem diário, vem a apresentação", eventually(lambda t: expect(a.get_by_role("button", name="Pular")).to_be_visible(timeout=t)))
     a.goto(BASE + "/entrar"); check("quem já entrou não volta ao login", "/entrar" not in a.url)
     a.goto(BASE + "/comecar"); a.get_by_label("Nome do cachorro").fill("Luna")
     a.locator("input[type=file]:not([capture])").first.set_input_files(photo(0)); a.wait_for_timeout(800)

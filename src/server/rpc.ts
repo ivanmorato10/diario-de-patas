@@ -21,6 +21,7 @@ import type { CollectionAdvance, MissionCompletion, Medal } from "@/domain/types
 import { adminClient, HttpError } from "./supabase";
 import { after } from "next/server";
 import { studioCreateJob, studioJob, studioState } from "./studio";
+import { sendAccountDeleted } from "./mailer";
 import {
   albumClientId, instanceKeyOf, toContact, toCustomAlbum, toDocument, toDog, toEntry, toHealthProfile, toMedication, toPlan, toProfile,
   toVaccine, toVisit, toWeight,
@@ -561,11 +562,13 @@ export async function exportMetadata(ctx: Ctx) {
 /** Exclusão de conta (§8.2): corta acesso, revoga links, cancela jobs e apaga os arquivos dos buckets. */
 export async function deleteAccount(ctx: Ctx) {
   const admin = adminClient();
+  const dog = ((await admin.from("dogs").select("name").eq("owner_id", ctx.user.id).maybeSingle()).data as { name: string } | null)?.name ?? null;
   await q(admin.rpc("prepare_account_deletion", { p_owner: ctx.user.id }));
   await processCleanup(500);
   const { error } = await admin.auth.admin.deleteUser(ctx.user.id);
   if (error) throw new HttpError(500, "SERVER", "Não conseguimos excluir a conta agora. Tente de novo.");
   await ctx.supa.auth.signOut().catch(() => undefined);
+  if (ctx.user.email) await sendAccountDeleted(ctx.user.email, dog);
   return {};
 }
 

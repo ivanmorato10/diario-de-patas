@@ -80,12 +80,28 @@ Na Vercel: **Settings › Environment Variables**, as mesmas três. Com a URL de
 
 ## 5. Email de login (antes de abrir para outras pessoas)
 
-O provedor de email padrão do Supabase (plano gratuito) **não permite modelo próprio** e é feito só para testes. Para pessoas reais receberem o link de entrada, configure um **SMTP próprio** em *Authentication › Emails › SMTP Settings* (as credenciais ficam só no painel do Supabase, nunca no chat):
+O provedor de email padrão do Supabase (plano gratuito) **não permite modelo próprio** e é feito só para testes. Para pessoas reais receberem o email de entrada — e para os emails saírem com a cara do Diário de Patas — configure um **SMTP próprio**. Credenciais só nos painéis e no `.env.local`, nunca no chat.
 
-- **Gmail** com “senha de app” (conta Google com verificação em duas etapas) — simples para começar; limites diários do Google.
-- **Resend / Brevo / Postmark** — exigem um domínio próprio verificado.
+**Gmail (mais simples para começar):**
+1. Na conta Google que vai enviar, ligue a *Verificação em duas etapas* (myaccount.google.com › Segurança).
+2. Em myaccount.google.com/apppasswords, crie uma **senha de app** chamada “Diário de Patas” (16 letras).
+3. Supabase › Authentication › Emails › **SMTP Settings**: host `smtp.gmail.com`, porta `465`, usuário = o Gmail, senha = a senha de app, remetente “Diário de Patas”.
+4. Limite do Gmail: cerca de 500 emails por dia. Para mais, troque por Resend/Brevo/Postmark (exigem domínio próprio).
 
-Com SMTP ativo, dá para ligar os modelos em português com código de 6 dígitos (`supabase/templates/entrar.html`; bloco comentado em `config.toml`) e rodar `npx supabase config push`.
+**Modelos com a identidade da marca** (logo do Abu, papel creme, botão marrom): ficam em `supabase/templates/` e são gerados de `src/lib/email-templates.ts` com `npm run emails`.
+
+| Email | Quando o Supabase envia |
+|---|---|
+| `confirmation` — “Bem-vindo! Confirme seu email” | criar conta |
+| `magic_link` — “Seu código para entrar” | entrar com email |
+| `recovery` — “Recuperar o acesso” | esqueci minha senha (o app não usa senha: o email leva de volta à conta) |
+| `email_change` · `reauthentication` · `invite` | trocar email, confirmar ação, convite |
+| `email_changed` · `identity_linked` · `identity_unlinked` | avisos de segurança |
+| **conta excluída** | enviado **pelo app** (o Supabase não tem esse email), com o mesmo SMTP |
+
+Depois do SMTP ligado: descomente o bloco `[auth.email.smtp]` (com `pass = "env(SMTP_PASS)"`) e os blocos de modelo em `supabase/config.toml` e rode `npx supabase config push` — ou cole cada HTML em *Authentication › Emails › Templates*.
+
+Para o email de **conta excluída**, coloque na Vercel (e no `.env.local`) `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `SMTP_FROM` com os mesmos dados. Sem eles, a exclusão funciona normalmente, só não manda o aviso.
 
 ## 6. Ligar na Vercel
 
