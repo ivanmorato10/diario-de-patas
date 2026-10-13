@@ -48,13 +48,12 @@ for e in emails.values():
 
 def login(page, who):
     page.goto(BASE + "/hoje"); page.wait_for_url("**/entrar?next=*")
-    page.get_by_role("button", name="Entrar com email").click(); page.get_by_label("Seu email").fill(emails[who])
+    page.get_by_role("button", name="Já tenho conta").click(); page.get_by_role("button", name="Entrar com email").click(); page.get_by_label("Seu email").fill(emails[who])
     # O teste não envia email: só o pedido de envio é interceptado; o código de uso único (gerado pela
     # API de administração) é conferido pelo Supabase de verdade em verifyOtp.
     page.route("**/auth/v1/otp*", lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
     page.get_by_role("button", name="Receber link de entrada").click()
     expect(page.get_by_role("heading", name="Confira seu email")).to_be_visible()
-    page.get_by_text("O email trouxe um código?").click()
     page.get_by_label("Código").fill(otp_for(emails[who]))
     page.get_by_role("button", name="Entrar com o código").click()
     page.wait_for_url(lambda u: "/entrar" not in u, timeout=20000)
@@ -78,7 +77,9 @@ with sync_playwright() as p:
 
     # ---------- Splash: a entrada vem antes da apresentação ----------
     a.goto(BASE + "/"); a.wait_for_url("**/entrar")
-    check("sem conta, / abre o splash de entrada", eventually(lambda t: expect(a.get_by_role("button", name="Continuar com Google")).to_be_visible(timeout=t)) and a.get_by_role("button", name="Continuar com Apple").is_visible())
+    check("sem conta, / abre o splash com cadastro", eventually(lambda t: expect(a.get_by_role("button", name="Cadastrar meu cachorro")).to_be_visible(timeout=t)))
+    a.get_by_role("button", name="Cadastrar meu cachorro").click()
+    check("cadastro oferece Google, Apple e email", eventually(lambda t: expect(a.get_by_role("button", name="Continuar com Google")).to_be_visible(timeout=t)) and a.get_by_role("button", name="Continuar com Apple").is_visible() and a.get_by_role("button", name="Criar com email").is_visible())
     a.goto(BASE + "/bem-vindo"); check("a apresentação pede login antes", "/entrar" in a.url)
 
     # ---------- Conta A ----------
