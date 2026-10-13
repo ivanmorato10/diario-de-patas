@@ -163,8 +163,13 @@ function Entrar() {
             <span className="sp-brand__name">Diário de Patas</span>
             <span className="sp-brand__tag">Sempre juntos</span>
           </div>
-          <h1 className="sp-headline sp-in sp-in--3">Cada dia com ele<br />vira uma história.</h1>
-          <p className="sp-sub sp-in sp-in--3">Fotos, missões, conquistas e cuidados do seu cachorro, guardados num diário só de vocês.</p>
+          <div className="sp-in sp-in--3">
+            <div className="sp-note">
+              <span className="sp-note__tape" aria-hidden="true" />
+              <h1 className="sp-headline">Cada dia com ele vira uma história.<Paw size={22} className="sp-note__paw" /></h1>
+              <p className="sp-sub">Fotos, missões, conquistas e cuidados do seu cachorro, guardados num diário só de vocês.</p>
+            </div>
+          </div>
           <div className="sp-ctas sp-in sp-in--4">
             <button type="button" className="sp-btn sp-btn--main" onClick={() => go("choose", "criar")}>
               <Paw size={20} /> Cadastrar meu cachorro

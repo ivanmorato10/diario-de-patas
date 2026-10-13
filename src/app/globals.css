@@ -526,8 +526,13 @@ body { background: var(--background); }
 .sp-brand { display: flex; flex-direction: column; align-items: center; margin-top: 6px; }
 .sp-brand__name { font-family: var(--font-heading); font-weight: 800; font-size: clamp(2.1rem, 9vw, 2.6rem); line-height: 1; color: var(--text-primary); text-shadow: 0 2px 0 rgba(255, 248, 236, 0.45); }
 .sp-brand__tag { font-family: var(--font-hand); font-size: 1.45rem; color: var(--paper); margin-top: 2px; text-shadow: 0 1px 2px rgba(31, 22, 13, 0.25); }
-.sp-headline { font-size: clamp(1.45rem, 6vw, 1.75rem); line-height: 1.15; color: var(--text-primary); margin-top: 10px; text-wrap: balance; }
-.sp-sub { color: #2a1f15; max-width: 34ch; line-height: 1.5; margin: 0; }
+/* Bilhete de diário (mesmo papel pautado da apresentação), com fita lilás e letra de mão. */
+.sp-note { position: relative; margin-top: 8px; padding: 18px 22px 10px; border-radius: 6px; rotate: -1.6deg; text-align: left; max-width: 360px;
+  background: var(--paper) repeating-linear-gradient(transparent 0 31px, #e6dccb 31px 32px) 0 16px; box-shadow: 0 3px 0 rgba(61, 45, 30, 0.08), 0 10px 24px rgba(31, 22, 13, 0.22); }
+.sp-note__tape { position: absolute; top: -11px; left: 50%; width: 92px; height: 22px; translate: -50% 0; rotate: 3deg; background: rgba(161, 126, 190, 0.55); border-radius: 2px; }
+.sp-headline { font-family: var(--font-hand); font-weight: 700; font-size: 2.05rem; line-height: 32px; letter-spacing: 0; color: var(--text-primary); text-wrap: balance; padding-bottom: 4px; }
+.sp-note__paw { color: var(--brand-teal); margin-left: 6px; vertical-align: -2px; rotate: 18deg; }
+.sp-sub { font-family: var(--font-hand); font-weight: 500; font-size: 1.4rem; line-height: 32px; color: #4a3826; margin: 0; }
 .sp-ctas { width: 100%; display: grid; gap: 10px; margin-top: 14px; }
 .sp-foot { font-size: 0.8rem; color: #2a1f15; opacity: 0.75; margin: 6px 0 0; }
 
