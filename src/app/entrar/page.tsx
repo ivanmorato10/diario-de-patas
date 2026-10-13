@@ -110,7 +110,11 @@ function Entrar() {
     );
   }
 
-  const redirectTo = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  // O destino depois do login vai num cookie curto, não na URL de retorno: o Google/Supabase devolvem só o código.
+  const redirectTo = () => {
+    document.cookie = `ddp_next=${encodeURIComponent(next)}; path=/auth; max-age=900; samesite=lax; secure`;
+    return `${window.location.origin}/auth/callback`;
+  };
   const go = (s: Step, i?: Intent) => {
     setError(null);
     if (i) setIntent(i);
