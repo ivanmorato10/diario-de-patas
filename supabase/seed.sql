@@ -109,3 +109,37 @@ insert into public.mission_templates (id, slug, localized_title, visual_criterio
 ('D35','dia-retrato-com-luz-bonita','{"pt-BR":"Retrato com luz bonita"}','{"pt-BR":"Retrato do cachorro."}',10,'manias-e-expressoes','any','M01',false,'daily','C',true,null,null),
 ('D36','dia-close-no-focinho','{"pt-BR":"Close no focinho"}','{"pt-BR":"Close do focinho do cachorro."}',10,'manias-e-expressoes','any','M01',false,'daily','C',true,null,null)
 on conflict (id) do nothing;
+
+-- Itens das coleções permanentes (espelha PERMANENT_SETS em src/config/cycle.ts).
+insert into public.permanent_set_items (set_id, item_id) values
+('poses-de-dormir','C01'),
+('poses-de-dormir','C02'),
+('poses-de-dormir','C03'),
+('poses-de-dormir','C04'),
+('poses-de-dormir','C05'),
+('poses-de-dormir','M17'),
+('caras-e-expressoes','M30'),
+('caras-e-expressoes','M31'),
+('caras-e-expressoes','M33'),
+('caras-e-expressoes','M32'),
+('caras-e-expressoes','M16'),
+('caras-e-expressoes','C06'),
+('nossos-passeios','C07'),
+('nossos-passeios','M38'),
+('nossos-passeios','M37'),
+('nossos-passeios','M39'),
+('nossos-passeios','C08'),
+('nossos-passeios','C09'),
+('nos-dois','M24'),
+('nos-dois','M25'),
+('nos-dois','M26'),
+('nos-dois','C10'),
+('nos-dois','C11'),
+('nos-dois','M27'),
+('brinquedos-e-manias','M03'),
+('brinquedos-e-manias','M35'),
+('brinquedos-e-manias','C12'),
+('brinquedos-e-manias','C13'),
+('brinquedos-e-manias','C14'),
+('brinquedos-e-manias','C15')
+on conflict do nothing;

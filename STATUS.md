@@ -13,7 +13,7 @@
 | 5. Documentos | ✅ |
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
-| 8. Contas reais (Supabase) | ⏳ |
+| 8. Contas reais (Supabase) | 🟡 parte do banco pronta e testada; **bloqueado** em Docker / projeto na nuvem (ver abaixo) |
 | 9. Estúdio com IA | ⏳ |
 
 ## Resumo
@@ -40,6 +40,9 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | **Especiais** (aniversário ±7 dias com data informada, Natal 1–26/12, Halloween 24–31/10): cartão em Hoje só na janela, 20 XP uma vez por ano, “Transformar em arte de …?” leva ao Estúdio com tema e foto escolhidos | ✅ demo |
 | Níveis sem fim (“Sempre juntos II, III…” a cada 250 XP), dias com lembranças (sem sequência) e número de medalhas em Hoje | ✅ |
 | Migration `20261015000000_cycle.sql` (tipos de missão, `daily_plans`, avanços, medalhas, `award_medal` idempotente) + seed das 102 missões com teste de paridade | ✅ aplicada em Postgres local descartável; ⚠️ não aplicada no Supabase |
+| **§8 — banco**: migration `20261016000000_accounts.sql` com `confirm_mission` (servidor: tipos de missão, plano do dia, uma foto/uma conquista, avanço de coleção, medalha), `resolve_share` (só a seleção; revogado → nada), `prepare_account_deletion` (revoga links, cancela jobs, enfileira arquivos), fila `storage_cleanup`, posse coerente (álbum e foto de perfil) | ✅ testado em Postgres 16 local (stub); ⏸ Supabase |
+| **Teste automatizado de RLS** (`npm run test:db`): contas A e B em 27 tabelas — B não lê nem altera nada de A (registros, mídia, documentos, links, jobs, créditos, saúde, missões, medalhas), não executa funções do servidor, anônimo não vê nada, link revogado para de funcionar | ✅ local (stub); roda igual no Supabase com `DATABASE_URL` |
+| Supabase CLI no projeto (`supabase/config.toml`, uploads até 10 MB) e guia `docs/SUPABASE.md` (Docker no Ubuntu 24.04, local, nuvem, chaves) | ✅ |
 | 7 níveis (0 → 500 XP, “Sempre juntos”), todos alcançáveis pelo catálogo (teste) | ✅ |
 | Lista de missões agrupada por coleção com filtro “Disponíveis / Concluídas” | ✅ demo |
 | Envio: câmera/galeria, tipo pelos bytes, limites de bytes e pixels, orientação EXIF, remoção de metadados/GPS, girar, legenda, data civil, cancelar, retry sem duplicar | ✅ demo |
@@ -92,6 +95,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 - Fotos HEIC: recusadas com instrução clara; conversão não implementada.
 
 ## Bloqueado (precisa do proprietário)
+
+0. **§8 — Docker e projeto Supabase.** Falta: (a) instalar o Docker (`docs/SUPABASE.md`, passo 1 — precisa de `sudo`); (b) criar o projeto no supabase.com e rodar `npx supabase login` / `link`. Sem isso não dá para rodar Auth, Storage e as duas contas reais. O que depende disso: login por email, middleware, repositório Supabase, upload com `sharp`, import do diário demo, links e exclusão de conta pela interface.
 
 1. **Projeto Supabase** (URL + anon key + service role) para a Etapa C.
 2. **Escolha do provedor de imagem com referência** (Estúdio, MUDANCAS-V2 §9) — vou comparar opções com documentação e preços atuais quando chegar a hora. Validação de fotos por IA foi **removida** do plano (§1).

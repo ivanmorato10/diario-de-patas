@@ -5,7 +5,8 @@ Legenda: ✅ verificado · ⚠️ parcial · ⏸ não verificado (não fingir ap
 | Fluxo | Resultado | Como |
 |---|---|---|
 | Conta/perfil persiste | ⚠️ perfil persiste após recarregar (demo); login real não existe | E2E |
-| Isolamento entre contas | ⚠️ RLS de cuidados e documentos testado num Postgres 16 local com stub de `auth` (B não lê nem grava dados de A); ⏸ Supabase real | SQL manual |
+| Isolamento entre contas | ✅ automatizado em Postgres 16 local com stub de `auth`/`storage` (27 tabelas, funções do servidor, anônimo, link revogado); ⏸ Supabase real (mesmo script com `DATABASE_URL`) | `npm run test:db` |
+| Regras de missão no servidor (`confirm_mission`) | ✅ bloqueio sem M01, fora do plano, XP 1x/dia, foto já usada, incerto sem XP, avanço + medalha única, especial 1x/ano | `npm run test:db` |
 | Upload inválido/corrompido/orientação | ✅ texto como .jpg recusado; JPEG corrompido tratado; EXIF 6 → retrato | E2E |
 | Upload grande (>10 MB) | ✅ documentos (unit); ⚠️ fotos: regra implementada, sem arquivo dedicado | unit |
 | Missão confirmada pelo dono: uma conclusão, XP correto, próxima disponível | ✅ | unit + E2E |
@@ -36,7 +37,8 @@ Legenda: ✅ verificado · ⚠️ parcial · ⏸ não verificado (não fingir ap
 ## Comandos
 
 ```bash
-npm test                 # unit (Vitest) — 57 testes
+npm test                 # unit (Vitest) — 78 testes
+npm run test:db          # migrations + seed + RLS + regras de missão (Postgres descartável ou DATABASE_URL)
 npm run typecheck
 npm run build
 node scripts/contrast.mjs

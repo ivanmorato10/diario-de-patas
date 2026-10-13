@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { MISSIONS } from "./catalog";
-import { COLLECTION_ITEMS, DAILY_MISSIONS, SPECIAL_MISSIONS } from "./cycle";
+import { COLLECTION_ITEMS, DAILY_MISSIONS, PERMANENT_SETS, SPECIAL_MISSIONS } from "./cycle";
 
 describe("seed SQL espelha o catálogo", () => {
   it("ids, slugs, XP, coleção e pré-requisito batem", () => {
@@ -29,6 +29,14 @@ describe("seed SQL espelha o ciclo (§7)", () => {
       expect({ slug, xp: Number(xp), col, ctx, subj: subj === "true", kind, slot: un(slot), portrait: portrait === "true", adv: un(adv), theme: un(theme) })
         .toEqual({ slug: m.slug, xp: m.xp, col: m.collectionId, ctx: m.context, subj: m.subjective, kind: m.kind, slot: m.slot ?? null, portrait: !!m.portrait, adv: m.advancesItem ?? null, theme: m.studioTheme ?? null });
     }
+  });
+});
+
+describe("seed SQL espelha as coleções permanentes", () => {
+  it("30 itens, na mesma coleção", () => {
+    const sql = readFileSync(path.resolve(__dirname, "../../supabase/seed.sql"), "utf8");
+    const rows = [...sql.matchAll(/\('([a-z-]+)','([MC]\d+)'\)/g)].map(([, set, item]) => `${set}:${item}`);
+    expect(rows.sort()).toEqual(PERMANENT_SETS.flatMap((s) => s.items.map((i) => `${s.id}:${i}`)).sort());
   });
 });
 
