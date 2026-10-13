@@ -1,0 +1,172 @@
+"""E2E do modo real (MUDANCAS-V2 §8.3) contra um projeto Supabase de verdade, com duas contas (A e B).
+Uso: com .env.local preenchido, `npm run build && npx next start -p 3000 &` e depois
+     python3 scripts/e2e-real.py [base_url] [out_dir]
+Cria as contas pela API de administração (sem enviar email), entra com o código de uso único,
+testa isolamento e, no fim, exclui as duas contas pela própria tela de “Excluir conta”.
+Nunca imprime chaves.
+"""
+import json, os, sys, tempfile, time, urllib.request, urllib.error, uuid, datetime
+from PIL import Image
+from playwright.sync_api import sync_playwright, expect
+
+BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3000"
+OUT = sys.argv[2] if len(sys.argv) > 2 else "e2e-real-out"
+os.makedirs(OUT, exist_ok=True)
+
+env = {}
+for line in open(os.path.join(os.path.dirname(__file__), "..", ".env.local")):
+    if "=" in line and not line.lstrip().startswith("#"):
+        k, v = line.strip().split("=", 1)
+        env[k] = v
+URL, SERVICE = env["NEXT_PUBLIC_SUPABASE_URL"], env["SUPABASE_SERVICE_ROLE_KEY"]
+
+def admin(method, path, body=None):
+    req = urllib.request.Request(f"{URL}/auth/v1/admin/{path}", method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"apikey": SERVICE, "authorization": f"Bearer {SERVICE}", "content-type": "application/json"})
+    try:
+        with urllib.request.urlopen(req) as r:
+            return json.loads(r.read() or b"null")
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"admin {path}: {e.code} {e.read()[:200]!r}")
+
+def otp_for(email):
+    return admin("POST", "generate_link", {"type": "magiclink", "email": email})["email_otp"]
+
+results = []
+def check(name, cond):
+    results.append((name, bool(cond))); print(("OK  " if cond else "FAIL"), name)
+
+tmp = tempfile.mkdtemp()
+def photo(i):
+    p = os.path.join(tmp, f"p{i}.jpg"); Image.new("RGB", (480, 360), (40 + 30 * i % 200, 140, 170)).save(p, "JPEG"); return p
+pdf = os.path.join(tmp, "carteira.pdf"); Image.new("RGB", (600, 800), (255, 255, 255)).save(pdf, "PDF")
+
+run = uuid.uuid4().hex[:8]
+emails = {"A": f"e2e-a-{run}@diariodepatas.test", "B": f"e2e-b-{run}@diariodepatas.test"}
+for e in emails.values():
+    admin("POST", "users", {"email": e, "email_confirm": True})
+
+def login(page, who):
+    page.goto(BASE + "/hoje"); page.wait_for_url("**/entrar?next=*")
+    page.get_by_label("Seu email").fill(emails[who])
+    # O teste não envia email: só o pedido de envio é interceptado; o código de uso único (gerado pela
+    # API de administração) é conferido pelo Supabase de verdade em verifyOtp.
+    page.route("**/auth/v1/otp*", lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
+    page.get_by_role("button", name="Receber link de entrada").click()
+    expect(page.get_by_role("heading", name="Confira seu email")).to_be_visible()
+    page.get_by_text("O email trouxe um código?").click()
+    page.get_by_label("Código").fill(otp_for(emails[who]))
+    page.get_by_role("button", name="Entrar com o código").click()
+    page.wait_for_url(lambda u: "/entrar" not in u, timeout=20000)
+
+def rpc(page, method, args):
+    return page.evaluate("""async ([m, a]) => { const r = await fetch('/api/rpc/' + m, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(a)}); return [r.status, await r.json().catch(() => null)]; }""", [method, args])
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(channel=os.environ.get("E2E_CHANNEL") or None)
+    errors = []
+    ctxA = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo")
+    a = ctxA.new_page(); a.on("pageerror", lambda e: errors.append(str(e)))
+
+    # ---------- Conta A ----------
+    login(a, "A")
+    a.goto(BASE + "/comecar"); a.get_by_label("Nome do cachorro").fill("Luna")
+    a.locator("input[type=file]:not([capture])").first.set_input_files(photo(0)); a.wait_for_timeout(800)
+    a.get_by_role("button", name="Criar meu diário").click(); a.wait_for_url("**/hoje", timeout=30000)
+    expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible()
+    check("modo real: sem faixa de demonstração", a.locator(".demo-banner").count() == 0)
+    try:
+        expect(a.locator("header img.avatar")).to_have_count(1, timeout=15000)
+    except AssertionError:
+        pass
+    dog = rpc(a, "snapshot", {})[1]["dog"]
+    st = a.evaluate("id => fetch('/api/media/' + id + '?v=thumb').then(r => r.status)", dog["photoMediaId"]) if dog.get("photoMediaId") else None
+    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header img.avatar").count() == 1)
+    a.screenshot(path=f"{OUT}/01-hoje-A.png", full_page=True)
+
+    a.get_by_role("link", name="Olá, mundo").first.click(); a.get_by_role("link", name="Enviar foto").click()
+    a.locator("input[type=file]:not([capture])").set_input_files(photo(1))
+    a.get_by_role("button", name="Guardar e continuar").click()
+    expect(a.get_by_role("heading", name="A foto mostra isso?")).to_be_visible(timeout=30000)
+    a.get_by_role("button", name="Sim, mostra").click()
+    expect(a.get_by_text("+10 XP")).to_be_visible(timeout=20000)
+    check("missão confirmada no servidor (+10 XP)", True)
+
+    a.goto(BASE + "/guardar"); a.locator("input[type=file][multiple]").set_input_files(photo(2))
+    a.get_by_role("button", name="Guardar foto").click()
+    expect(a.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
+
+    a.goto(BASE + "/albuns"); a.get_by_role("button", name="Novo álbum").click()
+    a.get_by_label("Nome do álbum").fill("Viagem à praia"); a.get_by_role("dialog").get_by_role("button", name="Criar álbum").click()
+    a.wait_for_url("**/albuns/custom-*", timeout=20000)
+    a.get_by_role("button", name="Adicionar fotos do diário").click()
+    a.get_by_role("dialog").locator("button[aria-pressed]").first.click()
+    a.get_by_role("dialog").get_by_role("button", name="Adicionar 1 foto").click(); a.wait_for_timeout(1500)
+    check("álbum personalizado com foto (conta real)", a.locator(".grid-photos a").count() == 1)
+
+    today = a.evaluate("new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date())")
+    a.goto(BASE + "/cuidados/vacinas"); a.get_by_role("button", name="Adicionar registro").click()
+    a.get_by_label("Nome").fill("V10"); a.get_by_label("Próxima dose").fill((datetime.date.fromisoformat(today) + datetime.timedelta(days=10)).isoformat())
+    a.get_by_role("dialog").get_by_role("button", name="Salvar").click()
+    expect(a.get_by_text("Próxima em até 30 dias")).to_be_visible(timeout=20000)
+
+    a.goto(BASE + "/cuidados/documentos"); a.get_by_role("button", name="Adicionar documento").click()
+    a.locator("dialog[open] input[type=file]").set_input_files(pdf); a.wait_for_timeout(500)
+    a.get_by_label("Título").fill("Carteira de vacinação"); a.get_by_role("dialog").get_by_role("button", name="Salvar").click()
+    expect(a.get_by_role("button", name="Ver Carteira de vacinação")).to_be_visible(timeout=30000)
+    with ctxA.expect_page() as newp:
+        a.get_by_role("button", name="Ver Carteira de vacinação").click()
+    tab = newp.value; tab.wait_for_url("blob:**")
+    kind = a.evaluate("u => fetch(u).then(r => r.blob()).then(b => b.type)", tab.url); tab.close()
+    check(f"PDF enviado ao bucket privado e aberto ({kind})", kind == "application/pdf")
+
+    snapA = rpc(a, "snapshot", {})[1]
+    entryA = snapA["entries"][0]; mediaA = entryA["mediaId"]; docA = snapA["health"]["documents"][0]["id"]
+    check("snapshot de A: 2 lembranças, 10 XP, 1 álbum, 1 vacina, 1 documento",
+          len(snapA["entries"]) == 2 and snapA["xpTotal"] == 10 and len(snapA["customAlbums"]) == 1 and len(snapA["health"]["vaccines"]) == 1 and len(snapA["health"]["documents"]) == 1)
+
+    # ---------- Conta B: não vê nem mexe em nada de A ----------
+    ctxB = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo")
+    b = ctxB.new_page(); b.on("pageerror", lambda e: errors.append(str(e)))
+    login(b, "B")
+    b.goto(BASE + "/comecar"); b.get_by_label("Nome do cachorro").fill("Thor"); b.get_by_role("button", name="Criar meu diário").click(); b.wait_for_url("**/hoje", timeout=30000)
+    snapB = rpc(b, "snapshot", {})[1]
+    check("B não vê lembranças, álbuns, cuidados nem documentos de A",
+          snapB["entries"] == [] and snapB["customAlbums"] == [] and snapB["health"]["vaccines"] == [] and snapB["health"]["documents"] == [] and snapB["dog"]["name"] == "Thor")
+    st = b.evaluate("id => fetch('/api/media/' + id + '?v=display').then(r => r.status)", mediaA)
+    check(f"B não baixa a foto de A pela URL ({st})", st == 404)
+    st = b.evaluate("id => fetch('/api/documents/' + id).then(r => r.status)", docA)
+    check(f"B não baixa o documento de A pela URL ({st})", st == 404)
+    st, body = rpc(b, "updateEntry", {"id": entryA["id"], "caption": "invadido"})
+    check(f"B não edita a lembrança de A ({st})", st == 400)
+    st, body = rpc(b, "deleteEntry", {"id": entryA["id"]})
+    st2, body2 = rpc(b, "submitMission", {"requestKey": str(uuid.uuid4()), "missionId": "M01", "entryId": entryA["id"], "status": "approved"})
+    check(f"B não conclui missão com a foto de A ({st2})", st2 == 400)
+    st, body = rpc(b, "addEntriesToAlbum", {"albumId": snapA["customAlbums"][0]["id"], "entryIds": [entryA["id"]]})
+    check(f"B não mexe no álbum de A ({st})", st == 400)
+    st, body = rpc(b, "deleteDocument", {"id": docA})
+    after = rpc(a, "snapshot", {})[1]
+    check("dados de A intactos depois das tentativas de B", len(after["entries"]) == 2 and after["entries"][0]["caption"] != "invadido" and len(after["health"]["documents"]) == 1)
+
+    # ---------- Sair e entrar de novo ----------
+    a.goto(BASE + "/config"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/bem-vindo")
+    a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
+    login(a, "A"); a.goto(BASE + "/hoje"); a.wait_for_timeout(1500)
+    check("dados persistem depois de sair e entrar", a.get_by_role("heading", name="Diário de Luna").is_visible() and a.get_by_text("10 XP").first.is_visible())
+
+    # ---------- Excluir as contas (pela tela) ----------
+    for page, name in [(b, "Thor"), (a, "Luna")]:
+        page.goto(BASE + "/config"); page.get_by_label("Para confirmar").fill(name)
+        page.get_by_role("button", name="Excluir minha conta").click(); page.wait_for_timeout(4000)
+    st = a.evaluate("id => fetch('/api/media/' + id + '?v=display').then(r => r.status)", mediaA)
+    check(f"conta excluída: foto de A não abre mais ({st})", st in (401, 404))
+    users = admin("GET", f"users?per_page=200")
+    left = [u for u in users.get("users", []) if u["email"] in emails.values()]
+    check("as duas contas de teste foram excluídas", left == [])
+
+    check(f"sem erros de página ({errors[:2]})", not errors)
+    browser.close()
+
+failed = [n for n, ok in results if not ok]
+print(f"\n{len(results) - len(failed)}/{len(results)} verificações OK")
+sys.exit(1 if failed else 0)

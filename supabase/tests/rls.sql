@@ -151,6 +151,14 @@ begin
   if (select count(*) from public.prepare_account_deletion('aaaaaaaa-0000-4000-8000-000000000001')) is null then raise exception 'FALHOU: exclusão'; end if;
   if exists (select 1 from public.generation_jobs where owner_id = 'aaaaaaaa-0000-4000-8000-000000000001' and state <> 'cancelled') then raise exception 'FALHOU: jobs não cancelados'; end if;
   if (select count(*) from public.storage_cleanup where reason = 'account_deleted') < 2 then raise exception 'FALHOU: arquivos não enfileirados para apagar'; end if;
+  -- Excluir o usuário apaga tudo dele em cascata (nada trava, nada sobra).
+  delete from auth.users where id = 'aaaaaaaa-0000-4000-8000-000000000001';
+  if exists (select 1 from public.dogs where owner_id = 'aaaaaaaa-0000-4000-8000-000000000001')
+     or exists (select 1 from public.diary_entries where owner_id = 'aaaaaaaa-0000-4000-8000-000000000001')
+     or exists (select 1 from public.documents where owner_id = 'aaaaaaaa-0000-4000-8000-000000000001')
+     or exists (select 1 from public.xp_ledger where dog_id = 'd0000000-0000-4000-8000-00000000000a') then
+    raise exception 'FALHOU: exclusão do usuário deixou dados';
+  end if;
   raise notice 'RLS OK';
 end $$;
 

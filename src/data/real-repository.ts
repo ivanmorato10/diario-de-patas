@@ -4,7 +4,9 @@
  * (EXIF, metadados, miniatura) e envia os arquivos direto ao bucket privado por URL assinada.
  */
 import { DomainError } from "./demo-repository";
-import type { Repository } from "./repository";
+import { browserClient } from "./supabase-browser";
+import type { Repository, Snapshot } from "./repository";
+import { EMPTY_HEALTH } from "@/domain/health";
 
 /** Chamada a uma operação do servidor. Erros de regra viram DomainError (mesma mensagem do modo demo). */
 export async function rpc<T>(method: string, args: unknown = {}): Promise<T> {
@@ -16,21 +18,16 @@ export async function rpc<T>(method: string, args: unknown = {}): Promise<T> {
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    if (res.status === 401 && typeof window !== "undefined") window.location.assign("/entrar");
+    // Sem sessão: quem leva para /entrar é o proxy (nas páginas protegidas); aqui só sinaliza.
     throw new DomainError(body?.code ?? "SERVER", body?.message ?? "Não conseguimos falar com o servidor. Tente de novo.");
   }
   return body as T;
 }
 
-/** Envia um arquivo para a URL assinada de upload que o servidor criou. */
-async function putSigned(url: string, file: Blob) {
-  const res = await fetch(url, { method: "PUT", body: file, headers: { "content-type": file.type || "application/octet-stream", "x-upsert": "false" } });
-  if (!res.ok) throw new DomainError("UPLOAD", "Não conseguimos enviar o arquivo. Tente de novo.");
-}
-
 interface UploadTicket {
   id: string;
-  uploads: { variant: "display" | "thumb" | "file"; url: string }[];
+  bucket: "media" | "documents";
+  uploads: { variant: "display" | "thumb" | "file"; path: string; token: string }[];
 }
 
 /** Cria o registro, envia as variantes e pede ao servidor para inspecionar os bytes antes de aceitar. */
@@ -38,7 +35,10 @@ async function upload(kind: "media" | "document", meta: Record<string, unknown>,
   const ticket = await rpc<UploadTicket>("createUpload", { kind, ...meta, sizes: Object.fromEntries(Object.entries(files).map(([k, b]) => [k, b?.size ?? 0])) });
   for (const u of ticket.uploads) {
     const b = files[u.variant];
-    if (b) await putSigned(u.url, b);
+    if (!b) continue;
+    // Direto para o bucket privado, com o token de uso único que o servidor gerou.
+    const { error } = await browserClient().storage.from(ticket.bucket).uploadToSignedUrl(u.path, u.token, b, { contentType: b.type || "application/octet-stream" });
+    if (error) throw new DomainError("UPLOAD", "Não conseguimos enviar o arquivo. Tente de novo.");
   }
   await rpc("confirmUpload", { kind, id: ticket.id });
   return ticket.id;
@@ -46,13 +46,26 @@ async function upload(kind: "media" | "document", meta: Record<string, unknown>,
 
 const blobCache = new Map<string, Promise<Blob | null>>();
 
+function emptySnapshot(): Snapshot {
+  const today = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  return { profile: null, dog: null, entries: [], albumEntries: [], completions: [], xpTotal: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
+}
+
 export function realRepository(): Repository {
   const mediaUpload = (img: { mime: string; width: number; height: number; bytes: number; hash: string; display: Blob; thumb: Blob }, kind: "photo" | "art" = "photo") =>
     upload("media", { mime: img.mime, width: img.width, height: img.height, hash: img.hash, mediaKind: kind }, { display: img.display, thumb: img.thumb });
 
   return {
     mode: "real",
-    loadSnapshot: () => rpc("snapshot"),
+    async loadSnapshot() {
+      try {
+        return await rpc("snapshot");
+      } catch (e) {
+        // Páginas abertas (boas-vindas, entrar, sobre) funcionam sem conta: diário vazio.
+        if (e instanceof DomainError && e.code === "UNAUTHENTICATED") return emptySnapshot();
+        throw e;
+      }
+    },
     getMediaBlob(id, variant) {
       const key = `${id}:${variant}`;
       if (!blobCache.has(key)) {
@@ -61,8 +74,10 @@ export function realRepository(): Repository {
       return blobCache.get(key)!;
     },
     async createDiary(input) {
-      const photoMediaId = input.photo ? await rpc<{ id: string }>("ensureProfile", { timezone: input.timezone }).then(() => mediaUpload(input.photo!)) : null;
-      return rpc("createDiary", { ...input, photo: undefined, photoMediaId });
+      // A foto pertence ao cachorro: cria o diário primeiro e envia a foto em seguida.
+      const dog = await rpc<Awaited<ReturnType<Repository["createDiary"]>>>("createDiary", { ...input, photo: undefined });
+      if (!input.photo) return dog;
+      return rpc("updateDog", { photoMediaId: await mediaUpload(input.photo) });
     },
     async updateDog(patch) {
       const photoMediaId = patch.photo === undefined ? undefined : patch.photo === null ? null : await mediaUpload(patch.photo);

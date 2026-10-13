@@ -1,6 +1,7 @@
 "use client";
 
 import { SUPPORT } from "@/config/business";
+import { REAL_MODE } from "@/config/mode";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
@@ -25,7 +26,8 @@ export default function Sobre() {
           </article>
         </section>
 
-        <section id="demo" className="card stack" aria-labelledby="demo-t">
+        {!REAL_MODE ? (
+          <section id="demo" className="card stack" aria-labelledby="demo-t">
           <h2 id="demo-t">O que é o modo demonstração</h2>
           <ul className="stack small" style={{ paddingLeft: 18, margin: 0 }}>
             <li>As fotos e o diário ficam guardados só neste navegador. Não há conta nem sincronização; limpar os dados do navegador apaga o diário.</li>
@@ -34,10 +36,11 @@ export default function Sobre() {
             <li>Nenhum pagamento existe nesta versão.</li>
           </ul>
         </section>
+        ) : null}
 
         <section className="stack" aria-labelledby="priv">
           <h2 id="priv">Privacidade</h2>
-          <p className="small">O diário é privado. Ao guardar uma foto, removemos dados de localização e outros metadados. Nesta versão, nenhuma foto sai do seu aparelho. Termos e política de privacidade completos serão publicados antes da versão com contas.</p>
+          <p className="small">O diário é privado. Ao guardar uma foto, removemos dados de localização e outros metadados. {REAL_MODE ? "Com conta, as fotos ficam num armazenamento privado: só você vê, até escolher compartilhar." : "Nesta versão, nenhuma foto sai do seu aparelho."} Termos e política de privacidade completos serão publicados antes do lançamento.</p>
         </section>
 
         <section className="stack" aria-labelledby="sup">

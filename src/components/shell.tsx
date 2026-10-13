@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useStore } from "@/data/store";
+import { REAL_MODE } from "@/config/mode";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun } from "./icons";
 import { DogAvatar } from "./media";
 import { AbuFace, BrandLockup } from "./brand";
@@ -17,6 +18,7 @@ const NAV = [
 ];
 
 export function DemoBanner() {
+  if (REAL_MODE) return null; // com contas, o diário fica na conta — não há demonstração
   return (
     <div className="demo-banner" role="note">
       Modo demonstração: tudo fica só neste aparelho, sem conta. <Link href="/sobre#demo">Saiba mais</Link>

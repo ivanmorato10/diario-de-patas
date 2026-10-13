@@ -13,7 +13,7 @@
 | 5. Documentos | ✅ |
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
-| 8. Contas reais (Supabase) | 🟡 banco **aplicado no projeto da nuvem** (`mxpotienvwpetkzcylsi`) e testado lá (RLS A/B e regras de missão; `db advisors` sem avisos); falta a parte do app (login, repositório, upload) |
+| 8. Contas reais (Supabase) | 🟡 **app em modo real funcionando e testado com duas contas reais** (18/18); falta: importar diário demo, links compartilhados pela interface, SMTP para emails reais e ligar na Vercel |
 | 9. Estúdio com IA | 🟡 pesquisa de provedores pronta (`docs/ESTUDIO-PROVEDORES.md`); **aguardando escolha e chave** |
 
 ## Resumo
@@ -41,6 +41,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | Níveis sem fim (“Sempre juntos II, III…” a cada 250 XP), dias com lembranças (sem sequência) e número de medalhas em Hoje | ✅ |
 | Migration `20261015000000_cycle.sql` (tipos de missão, `daily_plans`, avanços, medalhas, `award_medal` idempotente) + seed das 102 missões com teste de paridade | ✅ aplicada em Postgres local descartável; ⚠️ não aplicada no Supabase |
 | **§8 — banco**: migration `20261016000000_accounts.sql` com `confirm_mission` (servidor: tipos de missão, plano do dia, uma foto/uma conquista, avanço de coleção, medalha), `resolve_share` (só a seleção; revogado → nada), `prepare_account_deletion` (revoga links, cancela jobs, enfileira arquivos), fila `storage_cleanup`, posse coerente (álbum e foto de perfil) | ✅ testado em Postgres 16 local (stub); ⏸ Supabase |
+| **Modo real** (com `NEXT_PUBLIC_SUPABASE_URL`): interface `Repository` única (demo/real); login sem senha (link mágico; código quando houver SMTP próprio), sessão em cookie, `proxy.ts` protegendo as rotas; operações no servidor (`/api/rpc`) com posse conferida pela sessão; XP/plano/medalhas pelo servidor (`confirm_mission`); upload direto ao bucket privado por URL assinada e **inspeção dos bytes com `sharp` / `%PDF`** antes de aceitar; mídia e documentos entregues só ao dono; exclusão de conta (links, jobs, arquivos, usuário); limpeza de uploads órfãos (Vercel Cron) | ✅ testado contra o projeto real |
+| `scripts/e2e-real.py`: contas A e B reais — cadastro com foto, missão, foto livre, álbum, vacina, PDF; B não vê/baixa/edita/conclui/mexe em nada de A (por API e URL); sair e entrar mantém os dados; exclusão de conta remove usuário e arquivos (0 objetos restantes) | ✅ 18/18 (12/10/2026) |
 | Projeto Supabase na nuvem: 7 migrations + seed aplicados com `supabase db push`; `rls.sql` e `missions.sql` rodados no banco real via `supabase db query --linked` (passaram; falha proposital confirmou que erros aparecem); nenhum dado de teste ficou | ✅ 12/10/2026 |
 | **Teste automatizado de RLS** (`npm run test:db`): contas A e B em 27 tabelas — B não lê nem altera nada de A (registros, mídia, documentos, links, jobs, créditos, saúde, missões, medalhas), não executa funções do servidor, anônimo não vê nada, link revogado para de funcionar | ✅ local (stub); roda igual no Supabase com `DATABASE_URL` |
 | Supabase CLI no projeto (`supabase/config.toml`, uploads até 10 MB) e guia `docs/SUPABASE.md` (Docker no Ubuntu 24.04, local, nuvem, chaves) | ✅ |
@@ -97,7 +99,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 ## Bloqueado (precisa do proprietário)
 
-0. **§8 — chaves no `.env.local`.** Projeto criado, ligado e com o banco aplicado. Docker continua opcional (só para o Supabase local). Sem isso não dá para rodar Auth, Storage e as duas contas reais. O que depende disso: login por email, middleware, repositório Supabase, upload com `sharp`, import do diário demo, links e exclusão de conta pela interface.
+0. **§8 — email de login para pessoas reais.** O provedor de email padrão do Supabase (plano gratuito) não aceita modelo próprio e restringe destinatários; para pessoas de fora receberem o link é preciso um **SMTP próprio** (ex.: Gmail com senha de app, ou Resend com domínio). Depois disso, ligar as variáveis na Vercel. Sem isso não dá para rodar Auth, Storage e as duas contas reais. O que depende disso: login por email, middleware, repositório Supabase, upload com `sharp`, import do diário demo, links e exclusão de conta pela interface.
 
 1. **Projeto Supabase** (URL + anon key + service role) para a Etapa C.
 2. **Escolha do provedor de imagem** (§9): comparação em `docs/ESTUDIO-PROVEDORES.md` (recomendação: Gemini `gemini-nano-banana-2.1`, com teste de fidelidade contra OpenAI `gpt-image-2`). Preciso da escolha, da chave no `.env.local` e de 2–3 fotos do Abu. O Estúdio real também depende do §8.

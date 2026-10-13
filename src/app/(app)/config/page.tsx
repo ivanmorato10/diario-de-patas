@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
 import { LIMITS } from "@/config/business";
+import { REAL_MODE } from "@/config/mode";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -120,8 +121,14 @@ export default function Config() {
 
         <section className="card stack" aria-labelledby="links">
           <h2 id="links">Links compartilhados</h2>
-          <p className="small muted">Nenhum link ativo. Compartilhamento chega junto com contas.</p>
+          <p className="small muted">{REAL_MODE ? "Nenhum link ativo." : "Nenhum link ativo. Compartilhamento chega junto com contas."}</p>
         </section>
+
+        {REAL_MODE ? (
+          <form method="post" action="/auth/sair">
+            <button type="submit" className="btn btn--secondary btn--block">Sair da conta</button>
+          </form>
+        ) : null}
 
         <section className="stack" aria-labelledby="dados">
           <h2 id="dados">Seus dados</h2>
@@ -131,14 +138,20 @@ export default function Config() {
         </section>
 
         <section className="card stack" aria-labelledby="apagar" style={{ borderColor: "#f1c4bf" }}>
-          <h2 id="apagar">Apagar diário</h2>
-          <p className="small">Remove o perfil, todas as fotos, álbuns e conquistas deste aparelho. Não dá para desfazer.</p>
-          <div className="notice notice--info"><IconInfo /><span>Nesta demonstração não existe conta em servidor: apagar aqui remove tudo o que existe.</span></div>
+          <h2 id="apagar">{REAL_MODE ? "Excluir conta" : "Apagar diário"}</h2>
+          {REAL_MODE ? (
+            <p className="small">Exclui a conta e tudo o que está nela: perfil, fotos, álbuns, conquistas, cuidados e documentos. Links compartilhados param de funcionar na hora. Não dá para desfazer.</p>
+          ) : (
+            <>
+              <p className="small">Remove o perfil, todas as fotos, álbuns e conquistas deste aparelho. Não dá para desfazer.</p>
+              <div className="notice notice--info"><IconInfo /><span>Nesta demonstração não existe conta em servidor: apagar aqui remove tudo o que existe.</span></div>
+            </>
+          )}
           <div className="field">
             <label htmlFor="confirm">Para confirmar, digite o nome: <strong>{dog.name}</strong></label>
             <input id="confirm" className="input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
           </div>
-          <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name} onClick={wipe}>Apagar tudo</button>
+          <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name} onClick={wipe}>{REAL_MODE ? "Excluir minha conta" : "Apagar tudo"}</button>
         </section>
       </main>
     </>

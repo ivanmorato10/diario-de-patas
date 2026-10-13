@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AbuCard, AbuFace, AbuMascot } from "@/components/brand";
 import { IconStar, Paw } from "@/components/icons";
 import { DemoBanner } from "@/components/shell";
+import { REAL_MODE } from "@/config/mode";
 
 /**
  * Introdução emocional (pedido do proprietário): o Abu se apresenta e conta por que o app existe.
@@ -152,9 +153,13 @@ export default function BemVindo() {
           {last ? (
             <>
               <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">Apresentar meu cachorro</Link>
-              <button type="button" className="btn btn--secondary btn--block" onClick={() => setShowAccountInfo((v) => !v)} aria-expanded={showAccountInfo} aria-controls="conta-info">
-                Já tenho conta
-              </button>
+              {REAL_MODE ? (
+                <Link href="/entrar" className="btn btn--secondary btn--block">Já tenho conta</Link>
+              ) : (
+                <button type="button" className="btn btn--secondary btn--block" onClick={() => setShowAccountInfo((v) => !v)} aria-expanded={showAccountInfo} aria-controls="conta-info">
+                  Já tenho conta
+                </button>
+              )}
               {showAccountInfo ? (
                 <p id="conta-info" className="notice notice--info" role="status">
                   Contas ainda não estão ativas nesta versão de teste. Por enquanto o diário fica salvo só neste aparelho.
