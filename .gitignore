@@ -10,3 +10,6 @@ docs/abu-referencias/
 # Cópias locais de documentos e fotos soltas
 docs/*(1)*
 photos/
+
+# Resultados do teste de qualidade do Estúdio (contêm fotos do Abu)
+studio-eval/

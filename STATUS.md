@@ -14,8 +14,8 @@
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
 | 8. Contas reais (Supabase) | ✅ app pronto e testado com contas reais (21/21) e importação (6/6). **Para abrir ao público faltam 2 passos do proprietário:** SMTP próprio e variáveis na Vercel (ver Bloqueado) |
-| 9. Estúdio com IA (Gemini, adendo) | 🟡 servidor pronto e testado sem chave (jobs, créditos de teste, limites, acabamento); tela nova na seção 10; **falta a chave do Gemini** |
-| 10. Estúdio completo (adendo) | ⏳ |
+| 9. Estúdio com IA (Gemini, adendo) | ✅ do meu lado (testado com gerador de teste); **falta a chave do Gemini** para a geração real |
+| 10. Estúdio completo (adendo) | ✅ do meu lado (4 abas, 28 presets, figurinha, cartão, recorte, desligar preset, teste de qualidade pronto); **falta rodar o teste de qualidade com a chave e a aprovação dos presets** |
 
 ## Resumo
 
@@ -51,6 +51,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | **Teste automatizado de RLS** (`npm run test:db`): contas A e B em 27 tabelas — B não lê nem altera nada de A (registros, mídia, documentos, links, jobs, créditos, saúde, missões, medalhas), não executa funções do servidor, anônimo não vê nada, link revogado para de funcionar | ✅ local (stub); roda igual no Supabase com `DATABASE_URL` |
 | Supabase CLI no projeto (`supabase/config.toml`, uploads até 10 MB) e guia `docs/SUPABASE.md` (Docker no Ubuntu 24.04, local, nuvem, chaves) | ✅ |
 | **Estúdio — servidor** (§9 + adendo): adapter `ArtGenerator` só no servidor, Gemini via API Interactions com `store: false`; modelos `gemini-nano-banana-2.1` / premium `gemini-3-pro-image` / checagem `gemini-2.5-flash-lite` (conferidos em ai.google.dev, 12/10/2026); prompt [BASE]+[PRESET]+[FORMATO] montado no servidor; jobs `queued→processing→succeeded/failed/cancelled` com chave de idempotência, recuperação e encerramento de job travado; créditos de teste (reserva → consumo só depois de salvar → devolução em falha); limite diário por conta, global e `GENERATION_PAUSED`; custo estimado por job em `usage_events`; figurinha 512×512 WebP transparente (≤100 KB); arte salva em “Datas especiais” como `studio` (nunca conclui missão) | ✅ testado sem chave (unit + SQL na nuvem); ⏸ geração real |
+| **Estúdio — tela** (adendo §10): 4 abas (Datas, Estilos, Fantasias, Formatos) e 28 presets com vinheta “exemplo de estilo”; escolha de foto com dica e **recorte manual**; proporção; nome/mensagem e 3 molduras **desenhados pelo app** (canvas, Baloo 2, painel legível); custo e saldo de teste; acompanhamento (pode fechar a tela; job recuperado); resultado ao lado da original com selo “Arte criada com IA” e aviso; baixar; nova variação = novo crédito; histórico sem cobrar de novo; figurinha WebP 512×512 transparente com instrução para WhatsApp; Sobre explica o envio ao Google | ✅ `scripts/e2e-studio.py` 12/12 com gerador de teste local |
+| `npm run studio:eval` (teste de qualidade, §10.8): roda os presets com as fotos de `docs/abu-referencias/` no Gemini real, mostra o custo antes (sem `--yes` não gera), mede tempo, checa cachorro/texto, nota de semelhança 1–5 e gera `studio-eval/studio-eval.html` com aprovações → SQL para `studio_presets` | ✅ pronto; ⏸ **não executado (precisa da chave)** — estimativa: 28 presets × 3 fotos ≈ **US$ 3,67** |
 | 7 níveis (0 → 500 XP, “Sempre juntos”), todos alcançáveis pelo catálogo (teste) | ✅ |
 | Lista de missões agrupada por coleção com filtro “Disponíveis / Concluídas” | ✅ demo |
 | Envio: câmera/galeria, tipo pelos bytes, limites de bytes e pixels, orientação EXIF, remoção de metadados/GPS, girar, legenda, data civil, cancelar, retry sem duplicar | ✅ demo |

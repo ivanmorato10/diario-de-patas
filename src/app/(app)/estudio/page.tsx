@@ -1,22 +1,359 @@
 "use client";
 
-import { Suspense, useState } from "react";
 import Link from "next/link";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { STUDIO_THEMES, type StudioTheme } from "@/config/catalog";
-import { CREDITS, FLAGS } from "@/config/business";
+import {
+  STUDIO_FORMATS, STUDIO_PRESETS, STUDIO_TABS, estimateCostUsd, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
+} from "@/config/studio";
+import { REAL_MODE } from "@/config/mode";
+import { DomainError } from "@/data/demo-repository";
+import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
+import { FAILURE_PT, studioCreateJob, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
+import { composeArt } from "@/lib/compose-art";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
-import { IconBrush, IconInfo } from "@/components/icons";
+import { IconBrush, IconCheck, IconDownload, IconInfo, IconStar } from "@/components/icons";
 
-/** Vinhetas decorativas do tema — NÃO são prévias do resultado (§21). */
-function ThemeVignette({ id }: { id: StudioTheme["id"] }) {
-  const common = { width: "100%", height: 84, viewBox: "0 0 160 84", "aria-hidden": true } as const;
-  if (id === "aniversario")
-    return (<svg {...common}><rect width="160" height="84" rx="14" fill="#F9E7DE" /><rect x="58" y="44" width="44" height="26" rx="6" fill="#C65D3B" /><rect x="58" y="44" width="44" height="7" fill="#E8B84A" /><rect x="78" y="32" width="4" height="12" fill="#285943" /><circle cx="80" cy="29" r="3" fill="#E8B84A" /><circle cx="30" cy="30" r="10" fill="#A6BBA6" /><circle cx="132" cy="26" r="9" fill="#E8B84A" /><path d="M30 40v22M132 35v25" stroke="#59665F" /></svg>);
-  if (id === "halloween")
-    return (<svg {...common}><rect width="160" height="84" rx="14" fill="#E5EFE7" /><ellipse cx="80" cy="54" rx="26" ry="20" fill="#C65D3B" /><path d="M66 38c4 6 4 26 0 34M94 38c-4 6-4 26 0 34" stroke="#A5482A" strokeWidth="2" fill="none" /><rect x="77" y="28" width="6" height="10" rx="2" fill="#285943" /><circle cx="128" cy="24" r="10" fill="#E8B84A" /></svg>);
-  return (<svg {...common}><rect width="160" height="84" rx="14" fill="#E5EFE7" /><path d="M80 12 104 66H56Z" fill="#285943" /><rect x="76" y="66" width="8" height="8" fill="#59665F" /><circle cx="72" cy="40" r="3" fill="#E8B84A" /><circle cx="88" cy="52" r="3" fill="#C65D3B" /><circle cx="80" cy="28" r="3" fill="#E8B84A" /><path d="M20 70h30M110 70h30" stroke="#A6BBA6" strokeWidth="4" strokeLinecap="round" /></svg>);
+const CATEGORY_LOOK: Record<StudioCategory, { bg: string; fg: string }> = {
+  datas: { bg: "linear-gradient(135deg, #ffd9bf, #fff1e6)", fg: "#a9461a" },
+  estilos: { bg: "linear-gradient(135deg, #d3efea, #9adcd2)", fg: "#226760" },
+  fantasias: { bg: "linear-gradient(135deg, #e9def3, #f6f0fa)", fg: "#6a4a86" },
+  formatos: { bg: "linear-gradient(135deg, #fff8ec, #f1e6d2)", fg: "#3d2d1e" },
+};
+
+/** Vinheta decorativa do preset — “exemplo de estilo”, NÃO é prévia do resultado (briefing §21). */
+function PresetVignette({ preset }: { preset: StudioPreset }) {
+  const look = CATEGORY_LOOK[preset.category];
+  return (
+    <span className="preset-vignette" style={{ background: look.bg, color: look.fg }} aria-hidden="true">
+      <IconBrush size={22} />
+      <span className="preset-vignette__tag">exemplo de estilo</span>
+    </span>
+  );
+}
+
+type Crop = { x: number; y: number; w: number; h: number };
+
+/** Recorte manual (quando há mais de um cachorro): arraste o quadro sobre a foto. Coordenadas 0..1. */
+function CropBox({ entryMediaId, value, onChange }: { entryMediaId: string; value: Crop; onChange: (v: Crop) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
+  const clamp = (v: number, max: number) => Math.min(Math.max(0, v), max);
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <div ref={ref} className="crop-area"
+        onPointerDown={(e) => { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); drag.current = { px: e.clientX, py: e.clientY, x: value.x, y: value.y }; }}
+        onPointerMove={(e) => {
+          if (!drag.current || !ref.current) return;
+          const r = ref.current.getBoundingClientRect();
+          onChange({ ...value, x: clamp(drag.current.x + (e.clientX - drag.current.px) / r.width, 1 - value.w), y: clamp(drag.current.y + (e.clientY - drag.current.py) / r.height, 1 - value.h) });
+        }}
+        onPointerUp={() => { drag.current = null; }}>
+        <MediaImage id={entryMediaId} variant="display" alt="Foto escolhida para recortar" className="crop-area__img" />
+        <span className="crop-area__box" style={{ left: `${value.x * 100}%`, top: `${value.y * 100}%`, width: `${value.w * 100}%`, height: `${value.h * 100}%` }} />
+      </div>
+      <label className="field" style={{ gap: 4 }}>
+        <span className="small">Tamanho do recorte</span>
+        <input type="range" min={30} max={100} value={Math.round(value.w * 100)}
+          onChange={(e) => { const s = Number(e.target.value) / 100; onChange({ w: s, h: s, x: clamp(value.x, 1 - s), y: clamp(value.y, 1 - s) }); }} />
+      </label>
+      <p className="caption">Arraste o quadro até o cachorro que vai virar arte.</p>
+    </div>
+  );
+}
+
+function StudioEntryThumb({ entryId }: { entryId: string }) {
+  const { snap } = useStore();
+  const e = snap?.entries.find((x) => x.id === entryId);
+  return e ? <MediaImage id={e.mediaId} variant="thumb" alt="Foto original" className="studio-art" /> : <div className="studio-art" style={{ display: "grid", placeItems: "center", background: "var(--brand-soft)", aspectRatio: "1" }}><span className="caption">foto excluída</span></div>;
+}
+
+/** Resultado com a foto original ao lado, selo de IA e texto desenhado pelo app. */
+function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void }) {
+  const preset = presetById(job.presetId);
+  const art = useMediaBlob(job.outputMediaId, "display");
+  const [composed, setComposed] = useState<Blob | null>(null);
+  const mode = preset?.post === "card" ? "card" : preset?.addTextOverlay ? "banner" : "none";
+  useEffect(() => {
+    let alive = true;
+    if (art) composeArt(art, job.overlay, mode).then((b) => alive && setComposed(b), () => alive && setComposed(art));
+    return () => {
+      alive = false;
+    };
+  }, [art, job.overlay, mode]);
+  const url = useBlobUrl(composed);
+  const sticker = preset?.post === "sticker";
+  const download = () => {
+    if (!composed || !url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `diario-de-patas-${job.presetId}.${composed.type === "image/png" ? "png" : "webp"}`;
+    a.click();
+  };
+  return (
+    <section className="stack-lg" aria-live="polite">
+      <div className="studio-compare">
+        <figure className="stack" style={{ margin: 0, gap: 4 }}>
+          {job.inputEntryId ? <StudioEntryThumb entryId={job.inputEntryId} /> : null}
+          <figcaption className="caption">Foto original</figcaption>
+        </figure>
+        <figure className="stack" style={{ margin: 0, gap: 4 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {url ? <img src={url} alt={`Arte ${preset?.labelPt ?? ""} criada com IA`} className={`studio-art${sticker ? " studio-art--sticker" : ""}`} /> : <div className="skeleton studio-art" style={{ aspectRatio: "1" }} aria-hidden="true" />}
+          <figcaption><span className="chip chip--accent">Arte criada com IA</span></figcaption>
+        </figure>
+      </div>
+      <p className="small muted">Uma interpretação artística da foto; alguns detalhes podem variar.</p>
+      {sticker ? (
+        <div className="notice notice--info small"><IconInfo size={18} /><span>Para usar no WhatsApp: baixe a figurinha (WebP 512×512 transparente) e adicione com um app de figurinhas, como o Sticker.ly. O Diário de Patas não acessa o seu WhatsApp.</span></div>
+      ) : null}
+      <div className="stack">
+        <button type="button" className="btn btn--primary btn--block" onClick={download} disabled={!url}><IconDownload /> {sticker ? "Baixar figurinha" : "Baixar arte"}</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={onAgain}>Gerar outra variação (novo crédito)</button>
+        <Link href="/albuns/datas-especiais" className="btn btn--ghost btn--block">Ver em Datas especiais</Link>
+      </div>
+    </section>
+  );
+}
+
+function Estudio() {
+  const { ready, snap, unavailable } = useRequireDiary();
+  const params = useSearchParams();
+  const [state, setState] = useState<StudioState | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const presetFromUrl = presetById(params.get("tema") ?? "");
+  const [tab, setTab] = useState<StudioCategory>(presetFromUrl?.category ?? "datas");
+  const [presetId, setPresetId] = useState<string | null>(presetFromUrl?.id ?? null);
+  const [photoId, setPhotoId] = useState<string | null>(params.get("entrada"));
+  const [aspect, setAspect] = useState<StudioAspect | null>(null);
+  const [cropOn, setCropOn] = useState(false);
+  const [crop, setCrop] = useState<Crop>({ x: 0.15, y: 0.1, w: 0.7, h: 0.7 });
+  const [overlay, setOverlay] = useState<StudioOverlay>({ frame: "simples" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [current, setCurrent] = useState<StudioJob | null>(null);
+  const idem = useRef<string>("");
+
+  const refresh = useCallback(async () => {
+    if (!REAL_MODE) return;
+    try {
+      setState(await studioState());
+    } catch (e) {
+      setLoadError(e instanceof DomainError ? e.message : "Não conseguimos carregar o Estúdio.");
+    }
+  }, []);
+  useEffect(() => {
+    idem.current = crypto.randomUUID();
+    void refresh();
+  }, [refresh]);
+
+  // Reabrir a tela recupera o job em andamento (§9.2).
+  useEffect(() => {
+    if (!current && state) {
+      const pending = state.jobs.find((j) => j.state === "queued" || j.state === "processing");
+      if (pending) setCurrent(pending);
+    }
+  }, [state, current]);
+
+  // Acompanha o job até terminar (a geração continua no servidor mesmo se a tela fechar).
+  useEffect(() => {
+    if (!current || !["queued", "processing"].includes(current.state)) return;
+    const t = setInterval(async () => {
+      try {
+        const j = await studioJob(current.id);
+        if (j.state !== current.state) setCurrent(j);
+        if (!["queued", "processing"].includes(j.state)) void refresh();
+      } catch {
+        /* tenta de novo no próximo intervalo */
+      }
+    }, 3000);
+    return () => clearInterval(t);
+  }, [current, refresh]);
+
+  const preset = presetId ? presetById(presetId) : undefined;
+  const flags = useMemo(() => new Map((state?.presets ?? []).map((p) => [p.id, p])), [state]);
+  const photos = useMemo(() => (snap?.entries ?? []).filter((e) => e.source !== "studio"), [snap]);
+  const dogName = snap?.dog?.name ?? "";
+
+  useEffect(() => {
+    if (preset) {
+      setAspect(preset.aspect);
+      setOverlay((o) => ({ ...o, message: preset.overlayHint ?? "", name: o.name || dogName }));
+    }
+  }, [preset, dogName]);
+
+  if (unavailable) return <main className="main"><StorageUnavailable /></main>;
+  if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
+
+  const credits = preset ? flags.get(preset.id)?.credits ?? preset.credits : 0;
+  const photo = photos.find((p) => p.id === photoId);
+  const canCreate = REAL_MODE && !!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy;
+
+  async function create() {
+    if (!canCreate || !preset || !photo) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const job = await studioCreateJob({
+        entryId: photo.id, presetId: preset.id, aspect: aspect ?? preset.aspect, idempotencyKey: idem.current,
+        crop: cropOn ? crop : null, overlay: preset.addTextOverlay ? overlay : null,
+      });
+      setCurrent(job);
+      void refresh();
+    } catch (e) {
+      setError(e instanceof DomainError ? e.message : "Não conseguimos começar a arte. Tente de novo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function again() {
+    idem.current = crypto.randomUUID(); // nova variação = novo pedido (e novo crédito)
+    setCurrent(null);
+  }
+
+  return (
+    <>
+      <TopBar title="Estúdio" />
+      <main className="main">
+        <div className="stack">
+          <h1>Artes de {snap.dog.name}</h1>
+          <p className="muted">Transforme uma foto em arte de datas, estilos, fantasias ou formatos. A IA usa a foto como referência; nome e mensagem quem escreve é o app.</p>
+        </div>
+
+        {!REAL_MODE ? (
+          <div className="notice notice--info" role="status"><IconInfo /><span><strong>Disponível com conta.</strong> As artes são geradas no servidor e usam créditos da conta — nesta versão de demonstração nada é gerado nem simulado. Explore os temas abaixo.</span></div>
+        ) : loadError ? (
+          <p className="field-error" role="alert">{loadError}</p>
+        ) : state && !state.configured ? (
+          <div className="notice notice--info"><IconInfo /><span><strong>Ainda não disponível.</strong> O provedor de artes está sendo configurado.</span></div>
+        ) : state?.paused ? (
+          <div className="notice notice--warn"><IconInfo /><span>A criação de artes está pausada no momento. O resto do diário segue normal.</span></div>
+        ) : state ? (
+          <p className="caption"><IconStar size={14} /> {state.balance} {state.balance === 1 ? "crédito de teste" : "créditos de teste"} · hoje {state.dailyUsed} de {state.dailyLimit} artes · sem cobrança</p>
+        ) : null}
+
+        {current && ["queued", "processing"].includes(current.state) ? (
+          <section className="card stack" aria-live="polite">
+            <h2 style={{ fontSize: "1.0625rem" }}>Criando a arte “{presetById(current.presetId)?.labelPt}”…</h2>
+            <div className="progress progress--indeterminate" aria-hidden="true"><span /></div>
+            <p className="small muted">Leva de alguns segundos a um minuto. Pode sair desta tela: quando voltar, a arte estará no histórico.</p>
+          </section>
+        ) : current?.state === "succeeded" ? (
+          <StudioResult job={current} onAgain={again} />
+        ) : current && ["failed", "cancelled"].includes(current.state) ? (
+          <section className="notice notice--warn stack" role="alert">
+            <span>{FAILURE_PT[current.failureCode ?? "TECHNICAL"] ?? FAILURE_PT.TECHNICAL}</span>
+            <button type="button" className="btn btn--secondary btn--small" onClick={again}>Tentar de novo</button>
+          </section>
+        ) : (
+          <>
+            <section className="stack" aria-labelledby="st-foto">
+              <h2 id="st-foto">1. Escolha a foto</h2>
+              <p className="caption">Dica: use uma foto com o cachorro bem visível e sozinho.</p>
+              {photos.length === 0 ? (
+                <div className="card stitched empty" style={{ boxShadow: "none" }}><p className="muted">Guarde uma foto no diário para criar a primeira arte.</p><Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link></div>
+              ) : (
+                <div className="photo-strip" role="radiogroup" aria-label="Fotos do diário">
+                  {photos.slice(0, 24).map((e) => (
+                    <button key={e.id} type="button" role="radio" aria-checked={photoId === e.id} className={`photo-strip__item${photoId === e.id ? " is-selected" : ""}`} onClick={() => { setPhotoId(e.id); setCropOn(false); }} aria-label={e.caption ? `Foto: ${e.caption}` : `Foto de ${e.occurredDate}`}>
+                      <MediaImage id={e.mediaId} alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {photo ? (
+                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>Tem mais de um cachorro? Recortar antes de enviar</span></label>
+              ) : null}
+              {photo && cropOn ? <CropBox entryMediaId={photo.mediaId} value={crop} onChange={setCrop} /> : null}
+            </section>
+
+            <section className="stack" aria-labelledby="st-tema">
+              <h2 id="st-tema">2. Escolha o tema</h2>
+              <div role="tablist" aria-label="Tipos de arte" className="tabs">
+                {STUDIO_TABS.map((t) => (
+                  <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{t.labelPt}</button>
+                ))}
+              </div>
+              <div role="tabpanel" id={`st-panel-${tab}`} aria-labelledby={`st-tab-${tab}`} className="preset-grid">
+                {STUDIO_PRESETS.filter((p) => p.category === tab && (flags.get(p.id)?.enabled ?? true)).map((p) => {
+                  const c = flags.get(p.id)?.credits ?? p.credits;
+                  return (
+                    <button key={p.id} type="button" className={`preset-card${presetId === p.id ? " is-selected" : ""}`} aria-pressed={presetId === p.id} onClick={() => setPresetId(p.id)}>
+                      <PresetVignette preset={p} />
+                      <strong>{p.labelPt}</strong>
+                      <span className="caption">{c} {c === 1 ? "crédito" : "créditos"}{p.premium ? " · premium" : ""}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {preset ? (
+              <section className="stack" aria-labelledby="st-opcoes">
+                <h2 id="st-opcoes">3. Detalhes</h2>
+                {preset.aspects.length > 1 ? (
+                  <div role="radiogroup" aria-label="Proporção" className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                    {preset.aspects.map((a) => (
+                      <button key={a} type="button" role="radio" aria-checked={(aspect ?? preset.aspect) === a} className={`chip ${(aspect ?? preset.aspect) === a ? "" : "chip--outline"}`} style={{ minHeight: 44, padding: "0 14px", cursor: "pointer" }} onClick={() => setAspect(a)}>
+                        {STUDIO_FORMATS[a].labelPt} ({a})
+                      </button>
+                    ))}
+                  </div>
+                ) : <p className="caption">Formato: {STUDIO_FORMATS[preset.aspect].labelPt} ({preset.aspect})</p>}
+                {preset.addTextOverlay ? (
+                  <>
+                    <div className="field"><label htmlFor="st-msg">Mensagem <span className="muted">(o app escreve por cima; a IA não escreve texto)</span></label><input id="st-msg" className="input" maxLength={80} value={overlay.message ?? ""} onChange={(e) => setOverlay({ ...overlay, message: e.target.value })} /></div>
+                    <div className="field"><label htmlFor="st-nome">Nome</label><input id="st-nome" className="input" maxLength={40} value={overlay.name ?? ""} onChange={(e) => setOverlay({ ...overlay, name: e.target.value })} /></div>
+                  </>
+                ) : null}
+                {preset.post === "card" ? (
+                  <div role="radiogroup" aria-label="Moldura" className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                    {(["simples", "patinhas", "festa"] as const).map((f) => (
+                      <button key={f} type="button" role="radio" aria-checked={overlay.frame === f} className={`chip ${overlay.frame === f ? "" : "chip--outline"}`} style={{ minHeight: 44, padding: "0 14px", cursor: "pointer" }} onClick={() => setOverlay({ ...overlay, frame: f })}>
+                        Moldura {f}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            <section className="card stack" aria-labelledby="st-custo">
+              <h2 id="st-custo" style={{ fontSize: "1.0625rem" }}>4. Confirmar</h2>
+              <p className="small">{preset ? <>Custa <strong>{credits} {credits === 1 ? "crédito" : "créditos"}</strong>{REAL_MODE && state ? <> · você tem {state.balance}</> : null}. Se a geração falhar, o crédito volta.</> : "Escolha uma foto e um tema."}</p>
+              <p className="caption">A foto escolhida é enviada ao Google (Gemini) só para gerar esta arte. <Link href="/sobre#estudio">Saiba mais</Link></p>
+              {error ? <p className="field-error" role="alert">{error}</p> : null}
+              <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
+                <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
+              </button>
+              {REAL_MODE && state && preset && state.balance < credits ? <p className="small muted">Seus créditos de teste acabaram.</p> : null}
+              {preset && REAL_MODE ? <p className="caption">Custo estimado de IA: US$ {estimateCostUsd(preset, aspect ?? preset.aspect).toFixed(3)} (referência interna de teste).</p> : null}
+            </section>
+          </>
+        )}
+
+        {REAL_MODE && state && state.jobs.some((j) => j.state === "succeeded") ? (
+          <section className="stack" aria-labelledby="st-hist">
+            <h2 id="st-hist">Histórico</h2>
+            <p className="caption">Rever uma arte não cobra de novo.</p>
+            <ul className="preset-grid" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {state.jobs.filter((j) => j.state === "succeeded" && j.outputMediaId).map((j) => (
+                <li key={j.id}>
+                  <button type="button" className="preset-card" onClick={() => setCurrent(j)} aria-label={`Abrir arte ${presetById(j.presetId)?.labelPt ?? ""}`}>
+                    <MediaImage id={j.outputMediaId} alt="" className="studio-history__img" />
+                    <span className="caption">{presetById(j.presetId)?.labelPt}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        <p className="caption"><IconCheck size={14} /> Artes nunca concluem missões de foto: elas vão para o álbum Datas especiais.</p>
+      </main>
+    </>
+  );
 }
 
 export default function EstudioPage() {
@@ -24,93 +361,5 @@ export default function EstudioPage() {
     <Suspense fallback={<main className="main"><PageLoading /></main>}>
       <Estudio />
     </Suspense>
-  );
-}
-
-function Estudio() {
-  const { ready, snap, unavailable } = useRequireDiary();
-  // Vindo de uma missão especial (“Transformar em arte de Natal?”, §7.6): tema e foto já escolhidos.
-  const params = useSearchParams();
-  const presetTheme = STUDIO_THEMES.find((t) => t.id === params.get("tema"))?.id ?? null;
-  const [photoId, setPhotoId] = useState<string | null>(params.get("entrada"));
-  const [theme, setTheme] = useState<StudioTheme["id"] | null>(presetTheme);
-
-  if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
-  const photos = snap.entries.filter((e) => e.source !== "studio");
-  const balance = 0; // sem provedor e sem pagamentos: nenhum crédito real existe ainda
-  const providerConfigured = false;
-
-  return (
-    <>
-      <TopBar title="Estúdio" />
-      <main className="main">
-        <div className="stack">
-          <h1>Artes comemorativas</h1>
-          <p className="muted">Transforme uma foto em uma ilustração de aniversário, Halloween ou Natal. Cada arte é uma interpretação artística da foto; alguns detalhes podem variar.</p>
-        </div>
-
-        <div className="notice notice--warn" role="status">
-          <IconInfo />
-          <span><strong>Ainda não disponível.</strong> A geração de artes precisa de um provedor de IA de imagem configurado. Nada aqui é gerado, cobrado ou simulado — você pode explorar o fluxo.</span>
-        </div>
-
-        <section className="stack" aria-labelledby="st1">
-          <h2 id="st1">1. Escolha a foto</h2>
-          {photos.length === 0 ? (
-            <div className="card stitched empty" style={{ boxShadow: "none" }}>
-              <p className="muted">Guarde uma foto no diário para usá-la aqui.</p>
-              <Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link>
-            </div>
-          ) : (
-            <div className="grid-photos" role="radiogroup" aria-label="Foto de referência">
-              {photos.slice(0, 12).map((e) => (
-                <button key={e.id} type="button" role="radio" aria-checked={photoId === e.mediaId} onClick={() => setPhotoId(e.mediaId)} style={{ outline: photoId === e.mediaId ? "3px solid var(--brand-primary)" : "none", outlineOffset: -3 }}>
-                  <MediaImage id={e.mediaId} alt={e.caption || "Foto do diário"} />
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="stack" aria-labelledby="st2">
-          <h2 id="st2">2. Escolha o tema</h2>
-          <div role="radiogroup" aria-label="Tema" className="stack">
-            {STUDIO_THEMES.map((t) => (
-              <button key={t.id} type="button" role="radio" aria-checked={theme === t.id} onClick={() => setTheme(t.id)} className="card" style={{ textAlign: "left", cursor: "pointer", padding: 12, borderColor: theme === t.id ? "var(--brand-primary)" : undefined, borderWidth: theme === t.id ? 2 : 1 }}>
-                <div className="row" style={{ alignItems: "center" }}>
-                  <div style={{ width: 120, flex: "none" }}><ThemeVignette id={t.id} /></div>
-                  <div className="stack" style={{ gap: 2 }}>
-                    <strong>{t.title}</strong>
-                    <span className="small muted">{t.description}</span>
-                    <span className="caption">Vinheta do tema, não prévia do resultado</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="card stack" aria-labelledby="st3">
-          <h2 id="st3">3. Confirme</h2>
-          <dl className="stack small" style={{ margin: 0, gap: 6 }}>
-            <div className="row-between"><dt className="muted">Custo</dt><dd style={{ margin: 0 }}>{CREDITS.costPerGeneration} crédito por arte</dd></div>
-            <div className="row-between"><dt className="muted">Seu saldo</dt><dd style={{ margin: 0 }}>{balance} créditos</dd></div>
-          </dl>
-          <button type="button" className="btn btn--primary btn--block" disabled aria-describedby="gen-off">
-            <IconBrush /> Criar desenho
-          </button>
-          <p id="gen-off" className="caption">
-            {FLAGS.generationPaused ? "A criação de artes está pausada no momento." : !providerConfigured ? "Disponível quando a geração por IA for configurada." : ""}
-            {!CREDITS.paymentsEnabled ? " Compra de créditos ainda não existe nesta versão." : ""}
-          </p>
-        </section>
-
-        <section className="stack" aria-labelledby="hist">
-          <h2 id="hist">Suas artes</h2>
-          <p className="muted small">As artes criadas ficarão aqui, para reencontrar sem pagar de novo. Nenhuma ainda.</p>
-        </section>
-      </main>
-    </>
   );
 }

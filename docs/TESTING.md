@@ -28,7 +28,10 @@ Legenda: ✅ verificado · ⚠️ parcial · ⏸ não verificado (não fingir ap
 | Migração do banco local v1→v2→v3→v4 sem perder dados | ✅ v1→v2 e v2→v3 testadas | unit |
 | Álbum: fotos livres × conquistas | ✅ | E2E |
 | Compartilhamento | ⏸ desativado; `/s/:token` neutro ✅ | E2E |
-| IA de arte | ⏸ não configurada; botão desativado ✅ | E2E |
+| Estúdio (fluxo, créditos, acabamentos) | ✅ 12/12 com gerador de teste local: arte salva em Datas especiais, crédito consumido 1×, duplo clique = 1 job, figurinha 512×512 transparente ≤100 KB, cartão com texto do app, preset desligado some, sem créditos recusa, arte não conclui missão | `scripts/e2e-studio.py` |
+| Estúdio — créditos no banco | ✅ concedido 1×, reserva idempotente, consumo XOR liberação, sem saldo negativo (local e nuvem) | `npm run test:db` |
+| Estúdio — geração real e qualidade | ⏸ precisa da chave do Gemini | `npm run studio:eval -- --yes` |
+| Estúdio no modo demo | ✅ “disponível com conta”, nada simulado | E2E |
 | Datas não mudam de dia | ✅ fusos São Paulo/Tóquio | unit |
 | Mobile 360/390 px, desktop sem rolagem horizontal; barra com 5 itens ≥ 44 px | ✅ (Chrome) | E2E |
 | Safari iOS / Chrome Android reais | ⏸ | — |
@@ -39,7 +42,7 @@ Legenda: ✅ verificado · ⚠️ parcial · ⏸ não verificado (não fingir ap
 ## Comandos
 
 ```bash
-npm test                 # unit (Vitest) — 78 testes
+npm test                 # unit (Vitest) — 92 testes
 npm run test:db          # migrations + seed + RLS + regras de missão (Postgres descartável ou DATABASE_URL)
 npm run typecheck
 npm run build

@@ -43,6 +43,11 @@ export default function Sobre() {
           <p className="small">O diário é privado. Ao guardar uma foto, removemos dados de localização e outros metadados. {REAL_MODE ? "Com conta, as fotos ficam num armazenamento privado: só você vê, até escolher compartilhar." : "Nesta versão, nenhuma foto sai do seu aparelho."} Termos e política de privacidade completos serão publicados antes do lançamento.</p>
         </section>
 
+        <section id="estudio" className="stack" aria-labelledby="estudio-t">
+          <h2 id="estudio-t">Estúdio de artes</h2>
+          <p className="small">Quando você cria uma arte, a foto escolhida é enviada ao Google (Gemini) só para gerar aquela arte. Pedimos que nada fique guardado do lado deles (<em>store: false</em>); pela política da API paga, o conteúdo não é usado para treinar ou melhorar produtos, e o Google mantém registros por um tempo limitado apenas para detectar abuso. A arte vem com a marca d’água invisível SynthID e aparece no app com o selo “Arte criada com IA”. Nunca usamos as fotos para outra finalidade.</p>
+        </section>
+
         <section className="stack" aria-labelledby="sup">
           <h2 id="sup">Suporte</h2>
           {SUPPORT.email ? <p className="small"><a href={`mailto:${SUPPORT.email}`}>{SUPPORT.email}</a></p> : <p className="small muted">Canal de suporte ainda não definido.</p>}

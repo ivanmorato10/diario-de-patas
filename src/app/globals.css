@@ -483,3 +483,24 @@ body { background: var(--background); }
 .about-letter .intro__text { font-size: 1.35rem; }
 .about-letter .intro__text + .intro__text { margin-top: 0; }
 .about-letter__sign { text-align: right; padding-top: 4px; }
+
+/* ================= Estúdio (V2 §10) ================= */
+.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.preset-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left; padding: 8px; border-radius: 16px; border: 2px solid var(--border); background: var(--surface); cursor: pointer; font: inherit; color: inherit; min-height: 44px; }
+.preset-card.is-selected { border-color: var(--brand-primary); box-shadow: 0 0 0 2px var(--brand-teal-light); }
+.preset-vignette { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; display: grid; place-items: center; }
+.preset-vignette__tag { position: absolute; bottom: 6px; left: 6px; font-size: 0.6875rem; font-weight: 700; background: rgba(255, 255, 255, 0.85); color: var(--text-secondary); padding: 1px 6px; border-radius: 999px; }
+.photo-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.photo-strip__item { flex: none; width: 76px; height: 76px; border-radius: 12px; overflow: hidden; border: 3px solid transparent; padding: 0; background: var(--brand-soft); cursor: pointer; }
+.photo-strip__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-strip__item.is-selected { border-color: var(--brand-primary); }
+.crop-area { position: relative; touch-action: none; user-select: none; border-radius: 12px; overflow: hidden; }
+.crop-area__img { display: block; width: 100%; height: auto; }
+.crop-area__box { position: absolute; border: 3px solid var(--paper); box-shadow: 0 0 0 9999px rgba(61, 45, 30, 0.45); border-radius: 8px; cursor: move; }
+.studio-compare { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; align-items: start; }
+.studio-art { display: block; width: 100%; height: auto; border-radius: 12px; box-shadow: var(--shadow-photo); }
+.studio-art--sticker { background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 50% / 20px 20px; box-shadow: none; }
+.studio-history__img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; }
+.progress--indeterminate span { width: 40%; animation: indeterminate 1.2s var(--ease) infinite; }
+@keyframes indeterminate { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .progress--indeterminate span { animation: none; width: 100%; opacity: 0.5; } }

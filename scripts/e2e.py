@@ -125,7 +125,7 @@ with sync_playwright() as p:
 
     page.goto(BASE + "/albuns/vida-em-casa"); page.wait_for_timeout(300)
     check("álbum separa fotos de missão e livres", page.get_by_text("0 de missão · 1 livres").is_visible())
-    check("estúdio não oferece geração falsa", page.goto(BASE + "/estudio") and page.get_by_role("button", name="Criar desenho").is_disabled())
+    check("estúdio não oferece geração falsa", page.goto(BASE + "/estudio") and page.get_by_role("button", name="Criar arte").is_disabled() and page.get_by_text("Disponível com conta").is_visible())
 
     # --- MUDANCAS-V2 §2: várias fotos de uma vez ---
     page.goto(BASE + "/diario"); page.wait_for_timeout(400)
@@ -219,7 +219,7 @@ with sync_playwright() as p:
     small = browser.new_context(viewport={"width": 360, "height": 740}, storage_state=None)
     sp = small.new_page(); sp.goto(BASE + "/bem-vindo"); sp.wait_for_timeout(800); no_overflow(sp, "360px intro")
     sp.goto(BASE + "/comecar"); sp.get_by_label("Nome do cachorro").fill("Mini"); sp.get_by_role("button", name="Criar meu diário").click(); sp.wait_for_url("**/hoje")
-    for path in ["/hoje", "/diario", "/missoes", "/albuns", "/cuidados", "/cuidados/peso", "/cuidados/documentos", "/guardar", "/config"]:
+    for path in ["/hoje", "/diario", "/missoes", "/albuns", "/cuidados", "/cuidados/peso", "/cuidados/documentos", "/guardar", "/config", "/estudio"]:
         sp.goto(BASE + path); sp.wait_for_timeout(300); no_overflow(sp, f"360px {path}")
     nav = sp.locator("nav.bottom-nav a"); boxes = [nav.nth(i).bounding_box() for i in range(nav.count())]
     check(f"360px: 5 itens na barra numa linha, toque ≥ 44px", nav.count() == 5 and len({round(b["y"]) for b in boxes}) == 1 and min(min(b["width"], b["height"]) for b in boxes) >= 44)

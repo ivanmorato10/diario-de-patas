@@ -29,7 +29,7 @@
 |---|---|---|
 | 21 | Ciclo contínuo: missões do dia, coleções permanentes, especiais, níveis sem fim | 7 |
 | 22 | Contas reais com Supabase (auth, repositório, upload com `sharp`, import do demo, links revogáveis, exclusão de conta, teste de RLS automatizado) | 8 |
-| 23 | Estúdio com IA (pesquisa de provedores → escolha do proprietário → adapter, jobs, créditos de teste, limites) | 9 |
+| 23 | Estúdio: rodar `studio:eval` com a chave, aprovar presets, decidir créditos do premium (custa ~4× a normal) e preço | 9–10 |
 | 24 | Repositório Supabase para cuidados e documentos (bucket `documents`) | 8 |
 
 ## P1 — após validar o ciclo
