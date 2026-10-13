@@ -15,7 +15,7 @@
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
 | 8. Contas reais (Supabase) | ✅ app pronto e testado com contas reais (21/21) e importação (6/6). **Para abrir ao público faltam 2 passos do proprietário:** SMTP próprio e variáveis na Vercel (ver Bloqueado) |
 | Splash de entrada antes da apresentação; Google/Apple/email; conta e exclusão em Ajustes | ✅ (E2E real 25/25). Site no ar já em modo contas (variáveis na Vercel 13/10). **Google e Apple precisam ser ligados no Supabase** (`docs/SUPABASE.md` §7) |
-| Emails com a identidade da marca (criar conta, entrar, esqueci a senha, trocar email, avisos) + email de conta excluída enviado pelo app | ✅ modelos prontos e testados; **valem quando o SMTP próprio for ligado** (`docs/SUPABASE.md` §5) |
+| Emails com a identidade da marca (criar conta, entrar, esqueci a senha, trocar email, avisos) + email de conta excluída enviado pelo app | ✅ **ativos** desde 13/10: SMTP Gmail diariodepatas.app@gmail.com ligado no Supabase e na Vercel (senha de app só no `.env.local`/painéis) |
 | 9. Estúdio com IA (Gemini, adendo) | ✅ do meu lado (testado com gerador de teste); **falta a chave do Gemini** para a geração real |
 | 10. Estúdio completo (adendo) | ✅ do meu lado (4 abas, 28 presets, figurinha, cartão, recorte, desligar preset, teste de qualidade pronto); **falta rodar o teste de qualidade com a chave e a aprovação dos presets** |
 
