@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addDocument, deleteDocument, updateDocument } from "@/data/demo-repository";
+
 import { useStore } from "@/data/store";
 import { LIMITS } from "@/config/business";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -17,14 +17,14 @@ interface Form { title: string; category: DocumentCategory; docDate: string; exp
 
 export default function Documentos() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [file, setFile] = useState<PickedDocument[]>([]);
   const [toDelete, setToDelete] = useState<HealthDocument | null>(null);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const docs = snap.health.documents;
   const today = snap.today;
   const full = docs.length >= LIMITS.maxDocuments;
@@ -37,7 +37,7 @@ export default function Documentos() {
     if (!editing) return;
     const meta = { ...editing.form, docDate: editing.form.docDate || null, expiresOn: editing.form.expiresOn || null };
     if (!editing.id && !file[0]) return setError("Escolha o arquivo do documento.");
-    const ok = await run(() => (editing.id ? updateDocument(db!, editing.id, meta) : addDocument(db!, meta, file[0].doc)));
+    const ok = await run(() => (editing.id ? repo!.updateDocument(editing.id, meta) : repo!.addDocument(meta, file[0].doc)));
     if (ok) setEditing(null);
   }
 
@@ -95,7 +95,7 @@ export default function Documentos() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este documento?" text={toDelete ? `“${toDelete.title}” e o arquivo serão apagados deste aparelho.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => deleteDocument(db!, toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteDocument(toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

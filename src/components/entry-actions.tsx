@@ -8,7 +8,7 @@ import { activeSpecials, missionStatus, type CycleContext } from "@/domain/cycle
 import { missionById } from "@/domain/missions";
 import { LIMITS } from "@/config/business";
 import { useStore } from "@/data/store";
-import { deleteEntry, getMedia, updateEntry, DomainError } from "@/data/demo-repository";
+import { getMedia, DomainError } from "@/data/demo-repository";
 import { isCivilDate } from "@/domain/dates";
 import type { DiaryEntry } from "@/domain/types";
 import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
@@ -30,7 +30,7 @@ export function Sheet({ open, onClose, labelledBy, children }: { open: boolean; 
 }
 
 export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEntry; albumIds: CollectionId[]; today: string; label: string }) {
-  const { db, reload } = useStore();
+  const { repo, reload } = useStore();
   const [mode, setMode] = useState<"none" | "edit" | "delete">("none");
   const [caption, setCaption] = useState(entry.caption);
   const [date, setDate] = useState(entry.occurredDate);
@@ -47,11 +47,11 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   }
 
   async function saveEdit() {
-    if (!db) return;
+    if (!repo) return;
     if (!isCivilDate(date) || date > today) return setError("Escolha uma data até hoje.");
     setBusy(true);
     try {
-      await updateEntry(db, entry.id, { caption, occurredDate: date, albumIds: albums });
+      await repo!.updateEntry(entry.id, { caption, occurredDate: date, albumIds: albums });
       await reload();
       setMode("none");
     } catch (e) {
@@ -62,10 +62,10 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   }
 
   async function confirmDelete() {
-    if (!db) return;
+    if (!repo) return;
     setBusy(true);
     try {
-      await deleteEntry(db, entry.id);
+      await repo!.deleteEntry(entry.id);
       setMode("none");
       await reload();
     } finally {
@@ -74,13 +74,13 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   }
 
   async function download() {
-    if (!db) return;
-    const m = await getMedia(db, entry.mediaId);
-    if (!m) return;
-    const url = URL.createObjectURL(m.display);
+    if (!repo) return;
+    const blob = await repo.getMediaBlob(entry.mediaId, "display");
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `diario-de-patas-${entry.occurredDate}.${m.mime === "image/webp" ? "webp" : "jpg"}`;
+    a.download = `diario-de-patas-${entry.occurredDate}.${blob.type === "image/webp" ? "webp" : "jpg"}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }

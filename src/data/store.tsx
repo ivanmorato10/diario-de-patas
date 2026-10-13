@@ -1,16 +1,21 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { getMedia, loadSnapshot, openDemoDb, resetDemo, type Db, type Snapshot } from "./demo-repository";
-import type { MediaAsset } from "@/domain/types";
+import { openDemoDb, type Snapshot } from "./demo-repository";
+import { demoRepository } from "./demo-adapter";
+import { realRepository } from "./real-repository";
+import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
+import { REAL_MODE } from "@/config/mode";
 
 interface StoreValue {
-  db: Db | null;
+  /** Dados: IndexedDB (demonstração) ou conta real, pela mesma interface. */
+  repo: Repository | null;
   snap: Snapshot | null;
-  /** IndexedDB indisponível (ex.: navegação privada em alguns navegadores). */
+  /** Demo: IndexedDB indisponível (ex.: navegação privada). Real: não deu para carregar a conta. */
   unavailable: boolean;
   reload: () => Promise<void>;
+  /** Demo: apaga o diário deste aparelho. Real: exclui a conta. */
   reset: () => Promise<void>;
 }
 
@@ -20,28 +25,27 @@ const Ctx = createContext<StoreValue | null>(null);
 const CHANNEL = "ddp-store";
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [db, setDb] = useState<Db | null>(null);
+  const [repo, setRepo] = useState<Repository | null>(null);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [unavailable, setUnavailable] = useState(false);
-  const dbRef = useRef<Db | null>(null);
+  const repoRef = useRef<Repository | null>(null);
 
   useEffect(() => {
     let alive = true;
-    openDemoDb()
-      .then(async (d) => {
-        if (!alive) return;
-        dbRef.current = d;
-        setDb(d);
-        setSnap(await loadSnapshot(d));
-      })
-      .catch(() => alive && setUnavailable(true));
+    (async () => {
+      const r = REAL_MODE ? realRepository() : demoRepository(await openDemoDb());
+      if (!alive) return;
+      repoRef.current = r;
+      setRepo(r);
+      setSnap(await r.loadSnapshot());
+    })().catch(() => alive && setUnavailable(true));
     return () => {
       alive = false;
     };
   }, []);
 
   const reload = useCallback(async () => {
-    if (dbRef.current) setSnap(await loadSnapshot(dbRef.current));
+    if (repoRef.current) setSnap(await repoRef.current.loadSnapshot());
   }, []);
 
   useEffect(() => {
@@ -54,9 +58,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [reload]);
 
   const reset = useCallback(async () => {
-    if (!dbRef.current) return;
-    await resetDemo(dbRef.current);
-    await reload();
+    if (!repoRef.current) return;
+    await repoRef.current.wipe();
+    await reload().catch(() => setSnap(null));
     if (typeof BroadcastChannel !== "undefined") {
       const ch = new BroadcastChannel(CHANNEL);
       ch.postMessage("reset");
@@ -64,7 +68,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [reload]);
 
-  const value = useMemo(() => ({ db, snap, unavailable, reload, reset }), [db, snap, unavailable, reload, reset]);
+  const value = useMemo(() => ({ repo, snap, unavailable, reload, reset }), [repo, snap, unavailable, reload, reset]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
@@ -89,21 +93,23 @@ export function useBlobUrl(blob: Blob | null | undefined): string | null {
   return url;
 }
 
-export function useMedia(id: string | null | undefined): MediaAsset | null | undefined {
-  const { db } = useStore();
-  const [m, setM] = useState<MediaAsset | null | undefined>(undefined);
+/** Arquivo de uma foto do diário: undefined = carregando, null = indisponível. */
+export function useMediaBlob(id: string | null | undefined, variant: "thumb" | "display"): Blob | null | undefined {
+  const { repo } = useStore();
+  const [b, setB] = useState<Blob | null | undefined>(undefined);
   useEffect(() => {
     let alive = true;
-    if (!db || !id) {
-      setM(id ? undefined : null);
+    if (!repo || !id) {
+      setB(id ? undefined : null);
       return;
     }
-    getMedia(db, id).then((r) => alive && setM(r ?? null));
+    setB(undefined);
+    repo.getMediaBlob(id, variant).then((r) => alive && setB(r), () => alive && setB(null));
     return () => {
       alive = false;
     };
-  }, [db, id]);
-  return m;
+  }, [repo, id, variant]);
+  return b;
 }
 
 /** Contexto do ciclo de missões a partir do snapshot (§7). */

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { addDocument, deleteHealthRecord, saveVisit } from "@/data/demo-repository";
+
 import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/components/document-ui";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -16,14 +16,14 @@ interface Form { date: string; clinic: string; vet: string; reason: string; note
 
 export default function Consultas() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Visit | null>(null);
   const [attach, setAttach] = useState<PickedDocument[]>([]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const { visits } = snap.health;
   const today = snap.today;
   const latestId = visits[0]?.id;
@@ -40,8 +40,8 @@ export default function Consultas() {
     const ok = await run(async () => {
       // Anexos viram Documentos (§4.3, §5) ligados à consulta.
       const ids = [...(prev?.documentIds ?? [])];
-      for (const a of attach) ids.push((await addDocument(db!, { title: `Consulta ${f.date.split("-").reverse().join("/")}: ${a.name}`.slice(0, 80), category: "exams", docDate: f.date }, a.doc)).id);
-      await saveVisit(db!, { ...f, nextDate: f.nextDate || null, documentIds: ids }, editing.id);
+      for (const a of attach) ids.push((await repo!.addDocument({ title: `Consulta ${f.date.split("-").reverse().join("/")}: ${a.name}`.slice(0, 80), category: "exams", docDate: f.date }, a.doc)).id);
+      await repo!.saveVisit({ ...f, nextDate: f.nextDate || null, documentIds: ids }, editing.id);
     });
     if (ok) setEditing(null);
   }
@@ -99,7 +99,7 @@ export default function Consultas() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir esta consulta?" text={toDelete ? `Consulta de ${formatCivilDate(toDelete.date)}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => deleteHealthRecord(db!, "visits", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("visits", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

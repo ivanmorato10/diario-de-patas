@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addDocument, deleteHealthRecord, saveVaccine } from "@/data/demo-repository";
+
 import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/components/document-ui";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -15,14 +15,14 @@ interface Form { kind: VaccineKind; name: string; appliedDate: string; nextDate:
 
 export default function Vacinas() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Vaccine | null>(null);
   const [label, setLabel] = useState<PickedDocument[]>([]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const { vaccines } = snap.health;
   const today = snap.today;
 
@@ -37,8 +37,8 @@ export default function Vacinas() {
     const prev = editing.id ? vaccines.find((v) => v.id === editing.id) : null;
     const ok = await run(async () => {
       // A foto da etiqueta/carteirinha vira um Documento (§4.2, §5).
-      const doc = label[0] ? await addDocument(db!, { title: `Etiqueta: ${f.name || "vacina"}`.slice(0, 80), category: "vaccination_card", docDate: f.appliedDate }, label[0].doc) : null;
-      await saveVaccine(db!, { ...f, nextDate: f.nextDate || null, documentId: doc?.id ?? prev?.documentId ?? null }, editing.id);
+      const doc = label[0] ? await repo!.addDocument({ title: `Etiqueta: ${f.name || "vacina"}`.slice(0, 80), category: "vaccination_card", docDate: f.appliedDate }, label[0].doc) : null;
+      await repo!.saveVaccine({ ...f, nextDate: f.nextDate || null, documentId: doc?.id ?? prev?.documentId ?? null }, editing.id);
     });
     if (ok) setEditing(null);
   }
@@ -96,7 +96,7 @@ export default function Vacinas() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este registro?" text={toDelete ? `${VACCINE_KINDS[toDelete.kind]} ${toDelete.name}, aplicada em ${formatCivilDate(toDelete.appliedDate)}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => deleteHealthRecord(db!, "vaccines", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("vaccines", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

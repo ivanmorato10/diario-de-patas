@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { deleteHealthRecord, saveContact } from "@/data/demo-repository";
+
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { HealthDisclaimer } from "@/components/health-ui";
@@ -17,19 +17,19 @@ const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 
 export default function Contatos() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const contacts = snap.health.contacts;
 
   const openNew = () => { setError(null); setEditing({ form: { kind: "vet", name: "", phone: "", address: "", notes: "" } }); };
   const openEdit = (c: Contact) => { setError(null); setEditing({ id: c.id, form: { kind: c.kind, name: c.name, phone: c.phone, address: c.address, notes: c.notes } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
-  const submit = async () => { if (editing && (await run(() => saveContact(db!, editing.form, editing.id)))) setEditing(null); };
+  const submit = async () => { if (editing && (await run(() => repo!.saveContact(editing.form, editing.id)))) setEditing(null); };
 
   return (
     <>
@@ -79,7 +79,7 @@ export default function Contatos() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este contato?" text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => deleteHealthRecord(db!, "contacts", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("contacts", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

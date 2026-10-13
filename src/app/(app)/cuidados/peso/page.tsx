@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addWeight, deleteHealthRecord } from "@/data/demo-repository";
+
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { HealthDisclaimer, WeightChart } from "@/components/health-ui";
@@ -11,21 +11,21 @@ import type { WeightRecord } from "@/domain/health";
 
 export default function Peso() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, setError, run } = useCareMutation();
   const [date, setDate] = useState("");
   const [kg, setKg] = useState("");
   const [toDelete, setToDelete] = useState<WeightRecord | null>(null);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const weights = snap.health.weights;
   const fmt = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
   async function add() {
     const value = Number(kg.replace(",", "."));
     if (!kg.trim() || Number.isNaN(value)) return setError("Informe o peso em kg, por exemplo 8,4.");
-    if (await run(() => addWeight(db!, { date: date || snap!.today, kg: value }))) setKg("");
+    if (await run(() => repo!.addWeight({ date: date || snap!.today, kg: value }))) setKg("");
   }
 
   return (
@@ -63,7 +63,7 @@ export default function Peso() {
         <HealthDisclaimer />
       </main>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este peso?" text={toDelete ? `${fmt(toDelete.kg)} kg em ${formatCivilDate(toDelete.date)}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => deleteHealthRecord(db!, "weights", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("weights", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

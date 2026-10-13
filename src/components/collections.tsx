@@ -61,7 +61,7 @@ export function CollectionsView({ snap }: { snap: Snapshot }) {
 
 /** Capa especial: colagem 2×3 das 6 fotos, desenhada no navegador com canvas (não é IA). */
 function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapshot }) {
-  const { db } = useStore();
+  const { repo } = useStore();
   const [url, setUrl] = useState<string | null>(null);
   const entries = useMemo(() => new Map(snap.entries.map((e) => [e.id, e])), [snap]);
 
@@ -69,7 +69,7 @@ function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapsho
     let alive = true;
     let made: string | null = null;
     (async () => {
-      if (!db) return;
+      if (!repo) return;
       const W = 600, H = 900, cell = 280, gap = 14, top = 110;
       const canvas = document.createElement("canvas");
       canvas.width = W;
@@ -88,9 +88,9 @@ function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapsho
         ctx.fillStyle = "#d3efea";
         ctx.fillRect(x, y, cell, cell);
         const entry = it.entryId ? entries.get(it.entryId) : undefined;
-        const media = entry ? await getMedia(db, entry.mediaId) : undefined;
-        if (media) {
-          const bmp = await createImageBitmap(media.thumb);
+        const thumb = entry ? await repo.getMediaBlob(entry.mediaId, "thumb") : null;
+        if (thumb) {
+          const bmp = await createImageBitmap(thumb);
           const s = Math.max(cell / bmp.width, cell / bmp.height);
           const w = bmp.width * s, h = bmp.height * s;
           ctx.save();
@@ -115,7 +115,7 @@ function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapsho
       alive = false;
       if (made) URL.revokeObjectURL(made);
     };
-  }, [db, progress, entries, snap.dog?.name]);
+  }, [repo, progress, entries, snap.dog?.name]);
 
   if (!url) return <div className="skeleton" style={{ aspectRatio: "2 / 3", maxWidth: 240 }} aria-hidden="true" />;
   return (

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore, useBlobUrl } from "@/data/store";
-import { createDiary, DomainError, type ProcessedImage } from "@/data/demo-repository";
+import { DomainError, type ProcessedImage } from "@/data/demo-repository";
 import { detectTimezone, isCivilDate } from "@/domain/dates";
 import { LIMITS } from "@/config/business";
 import { PhotoPicker } from "@/components/photo-picker";
@@ -15,7 +15,7 @@ import { AbuSays } from "@/components/brand";
 import type { DogPreferences } from "@/domain/types";
 
 export default function Comecar() {
-  const { db, snap, reload, unavailable } = useStore();
+  const { repo, snap, reload, unavailable } = useStore();
   const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
@@ -33,7 +33,7 @@ export default function Comecar() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!db || saving) return;
+    if (!repo || saving) return;
     if (!name.trim()) {
       setError("Conte para a gente o nome do seu cachorro.");
       document.getElementById("dog-name")?.focus();
@@ -46,7 +46,7 @@ export default function Comecar() {
     setSaving(true);
     setError(null);
     try {
-      await createDiary(db, { timezone: tz, name, birthDate: birth || null, preferences: prefs, photo });
+      await repo!.createDiary({ timezone: tz, name, birthDate: birth || null, preferences: prefs, photo });
       await reload();
       router.replace("/hoje");
     } catch (err) {
@@ -103,7 +103,7 @@ export default function Comecar() {
             </div>
 
             {error ? <p className="field-error" role="alert">{error}</p> : null}
-            <button type="submit" className="btn btn--primary btn--block" disabled={saving || !db}>
+            <button type="submit" className="btn btn--primary btn--block" disabled={saving || !repo}>
               {saving ? "Criando…" : "Criar meu diário"}
             </button>
           </form>

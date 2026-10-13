@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { cycleContext, useBlobUrl, useMedia, useStore } from "@/data/store";
-import {
-  DomainError, findEntryByHash, newId, saveEntry, submitMission, type ProcessedImage, type SubmitResult,
-} from "@/data/demo-repository";
+import { cycleContext, useBlobUrl, useMediaBlob, useStore } from "@/data/store";
+import { DomainError, newId, type ProcessedImage, type SubmitResult } from "@/data/demo-repository";
 import { COLLECTIONS, type CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
 import { isCivilDate } from "@/domain/dates";
@@ -51,7 +49,7 @@ function GuardarInner() {
   // Data sugerida vinda de outra tela (ex.: “Guardar uma foto desta visita”).
   const presetDate = params.get("data");
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db, reload } = useStore();
+  const { repo, reload } = useStore();
 
   const [step, setStep] = useState<Step>({ kind: "pick" });
   const [img, setImg] = useState<ProcessedImage | null>(null);
@@ -69,8 +67,8 @@ function GuardarInner() {
 
   // Foto já guardada no diário (“Usar numa missão”): nada é enviado de novo.
   const existing = step.kind === "confirm" || step.kind === "result" ? step.entry : null;
-  const existingMedia = useMedia(!img && existing ? existing.mediaId : null);
-  const previewUrl = useBlobUrl(img?.display ?? existingMedia?.display);
+  const existingDisplay = useMediaBlob(!img && existing ? existing.mediaId : null, "display");
+  const previewUrl = useBlobUrl(img?.display ?? existingDisplay);
 
   const ctx = useMemo(() => (snap ? cycleContext(snap) : null), [snap]);
   const missionStateNow = mission && ctx ? missionStatus(mission, ctx) : null;
@@ -99,7 +97,7 @@ function GuardarInner() {
   }, [snap, mission, fromEntryId, step.kind, missionStateNow]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
   const back = fromEntryId ? "/diario" : mission ? `/missoes/${mission.slug}` : "/diario";
   const room = Math.max(0, LIMITS.maxEntries - snap.entries.length);
@@ -110,7 +108,7 @@ function GuardarInner() {
     setPickNotes([]);
     entryKey.current = newId(); // nova tentativa = nova chave; retries reutilizam
     setDate(p.takenDate && p.takenDate <= snap!.today ? p.takenDate : presetDate && isCivilDate(presetDate) && presetDate <= snap!.today ? presetDate : snap!.today);
-    setDupe(await findEntryByHash(db!, p.hash));
+    setDupe(await repo!.findEntryByHash(p.hash));
     setStep({ kind: "edit" });
   }
 
@@ -134,7 +132,7 @@ function GuardarInner() {
     setBusy(true);
     setError(null);
     try {
-      const entry = await saveEntry(db!, {
+      const entry = await repo!.saveEntry({
         requestKey: entryKey.current, image: img, caption, occurredDate: date,
         source: "free", missionId: null, albumIds: mission ? [] : albums,
       });
@@ -164,7 +162,7 @@ function GuardarInner() {
         continue;
       }
       try {
-        await saveEntry(db!, { requestKey: item.key, image: item.img, caption: item.caption, occurredDate: item.date, source: "free", missionId: null, albumIds: albums });
+        await repo!.saveEntry({ requestKey: item.key, image: item.img, caption: item.caption, occurredDate: item.date, source: "free", missionId: null, albumIds: albums });
         next[i] = { ...item, state: "saved", message: undefined };
       } catch (err) {
         next[i] = { ...item, state: "error", message: err instanceof DomainError ? err.message : "Não conseguimos guardar esta foto. Tente de novo." };
@@ -184,7 +182,7 @@ function GuardarInner() {
     setBusy(true);
     setError(null);
     try {
-      const result = await submitMission(db!, {
+      const result = await repo!.submitMission({
         requestKey: submissionKey.current, missionId: mission.id, entryId: entry.id,
         status: matches ? "approved" : "uncertain", reasonCode: matches ? "OWNER_CONFIRMED" : "OWNER_UNSURE",
         mode: "owner", providerVersion: null,

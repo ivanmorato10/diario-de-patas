@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { saveHealthProfile } from "@/data/demo-repository";
+
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { HealthDisclaimer } from "@/components/health-ui";
 import { Field, useCareMutation } from "@/components/care-forms";
@@ -12,7 +12,7 @@ const EMPTY: HealthProfileData = { breed: "", sex: null, neutered: null, microch
 
 export default function DadosDoCachorro() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, run } = useCareMutation();
   const [form, setForm] = useState<HealthProfileData | null>(null);
   const [saved, setSaved] = useState(false);
@@ -25,7 +25,7 @@ export default function DadosDoCachorro() {
   }, [snap, form]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !form || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !form || !repo) return <main className="main"><PageLoading /></main>;
   const set = (patch: Partial<HealthProfileData>) => { setSaved(false); setForm({ ...form, ...patch }); };
 
   return (
@@ -33,7 +33,7 @@ export default function DadosDoCachorro() {
       <TopBar title={`Dados de ${snap.dog.name}`} back="/cuidados" />
       <main className="main">
         <p className="muted">Tudo opcional. Preencha o que fizer sentido — dá para mudar quando quiser.</p>
-        <form className="stack-lg" onSubmit={async (e) => { e.preventDefault(); setSaved(await run(() => saveHealthProfile(db, form))); }} noValidate>
+        <form className="stack-lg" onSubmit={async (e) => { e.preventDefault(); setSaved(await run(() => repo!.saveHealthProfile(form))); }} noValidate>
           <Field id="breed" label="Raça" optional value={form.breed} onChange={(v) => set({ breed: v })} maxLength={60} placeholder="Ex.: SRD, Poodle…" />
           <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
             <legend style={{ fontWeight: 600, marginBottom: 8 }}>Sexo <span className="muted">(opcional)</span></legend>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
-import { exportMetadata, updateDog, updateTimezone, DomainError } from "@/data/demo-repository";
+import { DomainError } from "@/data/demo-repository";
 import { LIMITS } from "@/config/business";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
@@ -16,7 +16,7 @@ import { IconChevron, IconDownload, IconInfo } from "@/components/icons";
 
 export default function Config() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db, reload, reset } = useStore();
+  const { repo, reload, reset } = useStore();
   const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
@@ -35,7 +35,7 @@ export default function Config() {
   }, [snap, prefs]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !prefs || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !prefs || !repo) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
 
   async function run(fn: () => Promise<unknown>, ok: string) {
@@ -54,13 +54,13 @@ export default function Config() {
     if (birth && !isCivilDate(birth)) return setMsg({ kind: "error", text: "Essa data não parece válida." });
     if (!isValidTimezone(tz)) return setMsg({ kind: "error", text: "Fuso horário inválido." });
     await run(async () => {
-      await updateDog(db!, { name, birthDate: birth || null, preferences: prefs! });
-      await updateTimezone(db!, tz);
+      await repo!.updateDog({ name, birthDate: birth || null, preferences: prefs! });
+      await repo!.updateTimezone(tz);
     }, "Perfil salvo.");
   }
 
   async function doExport() {
-    const data = await exportMetadata(db!);
+    const data = await repo!.exportMetadata();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -85,8 +85,8 @@ export default function Config() {
             <div className="row">
               <DogAvatar mediaId={dog.photoMediaId} name={dog.name} size="xl" />
               <div className="stack" style={{ gap: 6 }}>
-                <PhotoPicker compact onPicked={(p) => run(() => updateDog(db, { photo: p }), "Foto atualizada.")} />
-                {dog.photoMediaId ? <button type="button" className="btn btn--ghost btn--small" onClick={() => run(() => updateDog(db, { photo: null }), "Foto removida.")}>Remover foto</button> : null}
+                <PhotoPicker compact onPicked={(p) => run(() => repo!.updateDog({ photo: p }), "Foto atualizada.")} />
+                {dog.photoMediaId ? <button type="button" className="btn btn--ghost btn--small" onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}>Remover foto</button> : null}
               </div>
             </div>
             <div className="field">

@@ -10,7 +10,7 @@ import { collectionMissions, collectionTitle } from "@/components/mission-ui";
 import { UpcomingCareCard } from "@/components/health-ui";
 import { PawBurst } from "@/components/celebrate";
 import { cycleContext, useStore } from "@/data/store";
-import { DomainError, swapDaily } from "@/data/demo-repository";
+import { DomainError } from "@/data/demo-repository";
 import { DAILY_SLOTS, type DailySlot } from "@/config/cycle";
 import { activeSpecials, daysWithMemories, missionStatus } from "@/domain/cycle";
 import { levelFor, missionById } from "@/domain/missions";
@@ -19,13 +19,13 @@ import { upcomingCare } from "@/domain/health";
 
 export default function Hoje() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db, reload } = useStore();
+  const { repo, reload } = useStore();
   const [swapping, setSwapping] = useState<DailySlot | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
   const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
 
   const dog = snap.dog;
   const ctx = cycleContext(snap)!;
@@ -46,7 +46,7 @@ export default function Hoje() {
     setSwapping(slot);
     setSwapError(null);
     try {
-      await swapDaily(db!, slot);
+      await repo!.swapDaily(slot);
       await reload();
     } catch (e) {
       setSwapError(e instanceof DomainError ? e.message : "Não conseguimos trocar agora. Tente de novo.");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { deleteHealthRecord, saveMedication } from "@/data/demo-repository";
+
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { HealthDisclaimer } from "@/components/health-ui";
@@ -14,13 +14,13 @@ interface Form { name: string; dose: string; frequency: string; startDate: strin
 
 export default function Medicamentos() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { db } = useStore();
+  const { repo } = useStore();
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Medication | null>(null);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
-  if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
+  if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const today = snap.today;
   const meds = snap.health.medications;
   const active = meds.filter((m) => medicationActive(m, today));
@@ -29,7 +29,7 @@ export default function Medicamentos() {
   const openNew = () => { setError(null); setEditing({ form: { name: "", dose: "", frequency: "", startDate: today, endDate: "", notes: "" } }); };
   const openEdit = (m: Medication) => { setError(null); setEditing({ id: m.id, form: { name: m.name, dose: m.dose, frequency: m.frequency, startDate: m.startDate, endDate: m.endDate ?? "", notes: m.notes } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
-  const submit = async () => { if (editing && (await run(() => saveMedication(db!, { ...editing.form, endDate: editing.form.endDate || null }, editing.id)))) setEditing(null); };
+  const submit = async () => { if (editing && (await run(() => repo!.saveMedication({ ...editing.form, endDate: editing.form.endDate || null }, editing.id)))) setEditing(null); };
 
   const row = (m: Medication) => {
     const on = medicationActive(m, today);
@@ -89,7 +89,7 @@ export default function Medicamentos() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este medicamento?" text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => deleteHealthRecord(db!, "medications", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("medications", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }
