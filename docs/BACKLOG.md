@@ -34,9 +34,7 @@
 
 ## P1 — após validar o ciclo
 
-Notificações push de cuidados (hoje só lembretes dentro do app); exportação com os arquivos de documentos (zip); 
-
-Compra real de créditos (webhook assinado, dedupe, estornos); pacotes visuais; retrospectiva animada; notificações opt-in; acessibilidade refinada pós-teste; exportação com fotos (zip); convites familiares; mascote do Abu a partir de fotos.
+Notificações push de cuidados (hoje só lembretes dentro do app); exportação com os arquivos de documentos (zip); compra real de créditos (webhook assinado, dedupe, estornos); pacotes visuais; retrospectiva animada; notificações opt-in; acessibilidade refinada pós-teste; exportação com fotos (zip); convites familiares; mascote do Abu a partir de fotos.
 
 ## P2 — fora desta entrega
 
