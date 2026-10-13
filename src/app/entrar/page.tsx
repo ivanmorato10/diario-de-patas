@@ -184,7 +184,7 @@ function Entrar() {
             <button type="button" className="sp-back" onClick={() => go(step === "choose" ? "splash" : "choose")} aria-label="Voltar">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            <div className="sp-top__emblem"><Emblem size={128} /></div>
+            <div className="sp-top__emblem"><Emblem size={150} /></div>
           </header>
 
           <main className="sp-sheet" key={step}>
