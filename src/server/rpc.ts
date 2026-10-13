@@ -640,4 +640,5 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   getDocument, updateDocument, deleteDocument,
   createUpload, confirmUpload, exportMetadata: (c) => exportMetadata(c), deleteAccount: (c) => deleteAccount(c),
   createShare, listShares: (c) => listShares(c), revokeShare,
+  markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

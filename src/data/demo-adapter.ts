@@ -39,6 +39,7 @@ export function demoRepository(db: demo.Db): Repository {
     },
     listShares: async () => [],
     revokeShare: async () => undefined,
+    markDemoImported: () => demo.markDemoImported(db),
     exportMetadata: () => demo.exportMetadata(db),
     wipe: () => demo.resetDemo(db),
   };

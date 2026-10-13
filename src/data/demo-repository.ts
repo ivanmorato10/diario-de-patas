@@ -356,6 +356,11 @@ export async function updateDog(db: Db, patch: Partial<Pick<Dog, "name" | "birth
   return next;
 }
 
+export async function markDemoImported(db: Db) {
+  const p = await db.get("profile", "me");
+  if (p) await db.put("profile", { ...p, demoImportedAt: now() });
+}
+
 export async function updateTimezone(db: Db, timezone: string) {
   const p = await db.get("profile", "me");
   if (p) await db.put("profile", { ...p, timezone });

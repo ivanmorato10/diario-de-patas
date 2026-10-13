@@ -59,6 +59,14 @@ def login(page, who):
     page.get_by_role("button", name="Entrar com o código").click()
     page.wait_for_url(lambda u: "/entrar" not in u, timeout=20000)
 
+def eventually(fn, timeout=15000):
+    """Espera uma condição de interface (rede até o Supabase pode demorar)."""
+    try:
+        fn(timeout)
+        return True
+    except AssertionError:
+        return False
+
 def rpc(page, method, args):
     return page.evaluate("""async ([m, a]) => { const r = await fetch('/api/rpc/' + m, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(a)}); return [r.status, await r.json().catch(() => null)]; }""", [method, args])
 
@@ -101,8 +109,8 @@ with sync_playwright() as p:
     a.wait_for_url("**/albuns/custom-*", timeout=20000)
     a.get_by_role("button", name="Adicionar fotos do diário").click()
     a.get_by_role("dialog").locator("button[aria-pressed]").first.click()
-    a.get_by_role("dialog").get_by_role("button", name="Adicionar 1 foto").click(); a.wait_for_timeout(1500)
-    check("álbum personalizado com foto (conta real)", a.locator(".grid-photos a").count() == 1)
+    a.get_by_role("dialog").get_by_role("button", name="Adicionar 1 foto").click()
+    check("álbum personalizado com foto (conta real)", eventually(lambda t: expect(a.locator(".grid-photos a")).to_have_count(1, timeout=t)))
 
     today = a.evaluate("new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date())")
     a.goto(BASE + "/cuidados/vacinas"); a.get_by_role("button", name="Adicionar registro").click()
@@ -173,8 +181,9 @@ with sync_playwright() as p:
     # ---------- Sair e entrar de novo ----------
     a.goto(BASE + "/config"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/bem-vindo")
     a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
-    login(a, "A"); a.goto(BASE + "/hoje"); a.wait_for_timeout(1500)
-    check("dados persistem depois de sair e entrar", a.get_by_role("heading", name="Diário de Luna").is_visible() and a.get_by_text("10 XP").first.is_visible())
+    login(a, "A"); a.goto(BASE + "/hoje")
+    check("dados persistem depois de sair e entrar",
+          eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)) and eventually(lambda t: expect(a.get_by_text("10 XP").first).to_be_visible(timeout=t)))
 
     # ---------- Excluir as contas (pela tela) ----------
     for page, name in [(b, "Thor"), (a, "Luna")]:

@@ -5,6 +5,7 @@
  */
 import { DomainError } from "./demo-repository";
 import { browserClient } from "./supabase-browser";
+import { isPublicPath } from "@/config/routes";
 import type { Repository, Snapshot } from "./repository";
 import { EMPTY_HEALTH } from "@/domain/health";
 
@@ -62,7 +63,13 @@ export function realRepository(): Repository {
         return await rpc("snapshot");
       } catch (e) {
         // Páginas abertas (boas-vindas, entrar, sobre) funcionam sem conta: diário vazio.
-        if (e instanceof DomainError && e.code === "UNAUTHENTICATED") return emptySnapshot();
+        if (e instanceof DomainError && e.code === "UNAUTHENTICATED") {
+          // Sessão que o servidor não aceita mais (ex.: conta excluída, token revogado): limpa e pede login.
+          await browserClient().auth.signOut({ scope: "local" }).catch(() => undefined);
+          const path = window.location.pathname;
+          if (!isPublicPath(path)) window.location.assign(`/entrar?next=${encodeURIComponent(path)}`);
+          return emptySnapshot();
+        }
         throw e;
       }
     },
@@ -120,6 +127,7 @@ export function realRepository(): Repository {
     createShare: (title, entryIds) => rpc("createShare", { title, entryIds }),
     listShares: () => rpc("listShares"),
     revokeShare: (id) => rpc("revokeShare", { id }),
+    markDemoImported: () => rpc("markDemoImported"),
     exportMetadata: () => rpc("exportMetadata"),
     async wipe() {
       await rpc("deleteAccount");

@@ -17,6 +17,8 @@ export interface Profile {
   timezone: string;
   locale: "pt-BR";
   createdAt: string;
+  /** Quando o diário do modo demonstração foi trazido para a conta (uma única vez, §8.2). */
+  demoImportedAt?: string | null;
 }
 
 export interface Dog {

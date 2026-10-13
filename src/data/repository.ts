@@ -89,6 +89,9 @@ export interface Repository {
   listShares(): Promise<ShareLink[]>;
   revokeShare(id: string): Promise<void>;
 
+  /** Marca que o diário deste aparelho já foi importado para a conta. */
+  markDemoImported(): Promise<void>;
+
   exportMetadata(): Promise<unknown>;
   /** Demo: apaga tudo deste aparelho. Real: exclui a conta (acesso, links, jobs e arquivos). */
   wipe(): Promise<void>;

@@ -8,6 +8,7 @@ import { DomainError, type ProcessedImage } from "@/data/demo-repository";
 import { detectTimezone, isCivilDate } from "@/domain/dates";
 import { LIMITS } from "@/config/business";
 import { PhotoPicker } from "@/components/photo-picker";
+import { ImportDemoCard } from "@/components/import-demo";
 import { PreferencesFields, TimezoneSelect } from "@/components/profile-fields";
 import { DemoBanner, StorageUnavailable } from "@/components/shell";
 import { IconArrowLeft, IconInfo } from "@/components/icons";
@@ -60,6 +61,7 @@ export default function Comecar() {
       <DemoBanner />
       <header className="topbar"><div className="topbar__inner"><Link href="/bem-vindo" className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link></div></header>
       <main className="main main--bare">
+        <ImportDemoCard />
         {unavailable ? <StorageUnavailable /> : (
           <form className="stack-lg" onSubmit={submit} noValidate>
             <div className="stack">

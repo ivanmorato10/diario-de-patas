@@ -9,6 +9,7 @@ import { IconCheck, IconPlus, IconShuffle, IconStar } from "@/components/icons";
 import { collectionMissions, collectionTitle } from "@/components/mission-ui";
 import { UpcomingCareCard } from "@/components/health-ui";
 import { PawBurst } from "@/components/celebrate";
+import { ImportDemoCard } from "@/components/import-demo";
 import { cycleContext, useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
 import { DAILY_SLOTS, type DailySlot } from "@/config/cycle";
@@ -158,6 +159,8 @@ export default function Hoje() {
             <Link href="/missoes" className="btn btn--ghost" style={{ alignSelf: "flex-start" }}>Ver todas as missões</Link>
           </section>
         )}
+
+        <ImportDemoCard />
 
         {care.length ? <UpcomingCareCard items={care} today={snap.today} compact /> : null}
 

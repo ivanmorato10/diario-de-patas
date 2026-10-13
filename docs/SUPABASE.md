@@ -77,3 +77,17 @@ SUPABASE_SERVICE_ROLE_KEY=...      # só servidor; nunca com NEXT_PUBLIC_
 ```
 
 Na Vercel: **Settings › Environment Variables**, as mesmas três. Com a URL definida, o app entra em modo real e o banner de demonstração some.
+
+## 5. Email de login (antes de abrir para outras pessoas)
+
+O provedor de email padrão do Supabase (plano gratuito) **não permite modelo próprio** e é feito só para testes. Para pessoas reais receberem o link de entrada, configure um **SMTP próprio** em *Authentication › Emails › SMTP Settings* (as credenciais ficam só no painel do Supabase, nunca no chat):
+
+- **Gmail** com “senha de app” (conta Google com verificação em duas etapas) — simples para começar; limites diários do Google.
+- **Resend / Brevo / Postmark** — exigem um domínio próprio verificado.
+
+Com SMTP ativo, dá para ligar os modelos em português com código de 6 dígitos (`supabase/templates/entrar.html`; bloco comentado em `config.toml`) e rodar `npx supabase config push`.
+
+## 6. Ligar na Vercel
+
+Em *Vercel › Project › Settings › Environment Variables* (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` (qualquer texto aleatório longo, para a limpeza diária). Depois, **Redeploy** — as variáveis `NEXT_PUBLIC_` entram no build.
+

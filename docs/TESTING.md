@@ -5,6 +5,8 @@ Legenda: ✅ verificado · ⚠️ parcial · ⏸ não verificado (não fingir ap
 | Fluxo | Resultado | Como |
 |---|---|---|
 | Conta/perfil persiste | ⚠️ perfil persiste após recarregar (demo); login real não existe | E2E |
+| Contas reais (Supabase na nuvem) | ✅ `scripts/e2e-real.py` 21/21: login por código, cadastro com foto, missão, foto livre, álbum, vacina, PDF, B isolado de A (API e URL), link compartilhado e revogação, sair/entrar, exclusão de conta (0 arquivos restantes) | e2e |
+| Importar diário demo para a conta | ✅ 6/6 em duas fases no mesmo navegador + unit (sem duplicar ao repetir) | `scripts/e2e-import.py` |
 | Isolamento entre contas | ✅ automatizado em Postgres 16 local com stub de `auth`/`storage` (27 tabelas, funções do servidor, anônimo, link revogado); ⏸ Supabase real (mesmo script com `DATABASE_URL`) | `npm run test:db` |
 | Regras de missão no servidor (`confirm_mission`) | ✅ bloqueio sem M01, fora do plano, XP 1x/dia, foto já usada, incerto sem XP, avanço + medalha única, especial 1x/ano | `npm run test:db` |
 | Upload inválido/corrompido/orientação | ✅ texto como .jpg recusado; JPEG corrompido tratado; EXIF 6 → retrato | E2E |

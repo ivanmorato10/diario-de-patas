@@ -8,6 +8,7 @@ import { DomainError } from "@/data/demo-repository";
 import { LIMITS } from "@/config/business";
 import { REAL_MODE } from "@/config/mode";
 import { ShareLinksList } from "@/components/share";
+import { ImportDemoCard } from "@/components/import-demo";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -130,6 +131,8 @@ export default function Config() {
             <button type="submit" className="btn btn--secondary btn--block">Sair da conta</button>
           </form>
         ) : null}
+
+        <ImportDemoCard />
 
         <section className="stack" aria-labelledby="dados">
           <h2 id="dados">Seus dados</h2>

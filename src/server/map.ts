@@ -8,7 +8,7 @@ import type { AlbumId, CustomAlbum, DiaryEntry, Dog, Profile } from "@/domain/ty
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 
-export const toProfile = (r: Row): Profile => ({ id: "me", timezone: r.timezone, locale: "pt-BR", createdAt: r.created_at });
+export const toProfile = (r: Row): Profile => ({ id: "me", timezone: r.timezone, locale: "pt-BR", createdAt: r.created_at, demoImportedAt: r.demo_imported_at ?? null });
 
 export const toDog = (r: Row): Dog => ({
   id: r.id, name: r.name, photoMediaId: r.photo_asset_id ?? null, birthDate: r.birth_date ?? null,

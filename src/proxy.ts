@@ -6,9 +6,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { REAL_MODE, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
+import { isPublicPath } from "@/config/routes";
 
-/** Páginas abertas sem conta. */
-const PUBLIC = [/^\/$/, /^\/bem-vindo$/, /^\/entrar$/, /^\/auth\//, /^\/s\//, /^\/sobre$/, /^\/api\//, /^\/offline\.html$/];
 
 export async function proxy(request: NextRequest) {
   if (!REAL_MODE) return NextResponse.next();
@@ -26,7 +25,7 @@ export async function proxy(request: NextRequest) {
   });
   const { data } = await supa.auth.getClaims();
   const path = request.nextUrl.pathname;
-  if (!data?.claims && !PUBLIC.some((re) => re.test(path))) {
+  if (!data?.claims && !isPublicPath(path)) {
     const to = request.nextUrl.clone();
     to.pathname = "/entrar";
     to.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
