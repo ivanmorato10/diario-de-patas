@@ -14,7 +14,7 @@
 | 6. Fechamento 1–5 | ✅ (E2E 56/56) |
 | 7. Ciclo contínuo de missões | ✅ (ver limitação dos 14 dias abaixo) |
 | 8. Contas reais (Supabase) | 🟡 parte do banco pronta e testada; **bloqueado** em Docker / projeto na nuvem (ver abaixo) |
-| 9. Estúdio com IA | ⏳ |
+| 9. Estúdio com IA | 🟡 pesquisa de provedores pronta (`docs/ESTUDIO-PROVEDORES.md`); **aguardando escolha e chave** |
 
 ## Resumo
 
@@ -99,7 +99,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 0. **§8 — Docker e projeto Supabase.** Falta: (a) instalar o Docker (`docs/SUPABASE.md`, passo 1 — precisa de `sudo`); (b) criar o projeto no supabase.com e rodar `npx supabase login` / `link`. Sem isso não dá para rodar Auth, Storage e as duas contas reais. O que depende disso: login por email, middleware, repositório Supabase, upload com `sharp`, import do diário demo, links e exclusão de conta pela interface.
 
 1. **Projeto Supabase** (URL + anon key + service role) para a Etapa C.
-2. **Escolha do provedor de imagem com referência** (Estúdio, MUDANCAS-V2 §9) — vou comparar opções com documentação e preços atuais quando chegar a hora. Validação de fotos por IA foi **removida** do plano (§1).
+2. **Escolha do provedor de imagem** (§9): comparação em `docs/ESTUDIO-PROVEDORES.md` (recomendação: Gemini `gemini-nano-banana-2.1`, com teste de fidelidade contra OpenAI `gpt-image-2`). Preciso da escolha, da chave no `.env.local` e de 2–3 fotos do Abu. O Estúdio real também depende do §8.
 3. **Logo**: versão vetorial (SVG) e confirmação de direitos de uso antes do lançamento.
 4. Email de suporte real.
 
