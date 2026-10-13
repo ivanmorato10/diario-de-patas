@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { deleteHealthRecord, saveVisit } from "@/data/demo-repository";
+import { addDocument, deleteHealthRecord, saveVisit } from "@/data/demo-repository";
+import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/components/document-ui";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { DueBadge, HealthDisclaimer } from "@/components/health-ui";
@@ -19,6 +20,7 @@ export default function Consultas() {
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Visit | null>(null);
+  const [attach, setAttach] = useState<PickedDocument[]>([]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
@@ -26,8 +28,8 @@ export default function Consultas() {
   const today = snap.today;
   const latestId = visits[0]?.id;
 
-  const openNew = () => { setError(null); setEditing({ form: { date: today, clinic: "", vet: "", reason: "", notes: "", nextDate: "" } }); };
-  const openEdit = (v: Visit) => { setError(null); setEditing({ id: v.id, form: { date: v.date, clinic: v.clinic, vet: v.vet, reason: v.reason, notes: v.notes, nextDate: v.nextDate ?? "" } }); };
+  const openNew = () => { setError(null); setAttach([]); setEditing({ form: { date: today, clinic: "", vet: "", reason: "", notes: "", nextDate: "" } }); };
+  const openEdit = (v: Visit) => { setError(null); setAttach([]); setEditing({ id: v.id, form: { date: v.date, clinic: v.clinic, vet: v.vet, reason: v.reason, notes: v.notes, nextDate: v.nextDate ?? "" } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
 
   async function submit() {
@@ -35,7 +37,13 @@ export default function Consultas() {
     const f = editing.form;
     if (f.date > today) return setError("A data da consulta deve ser até hoje. Para uma consulta marcada, use “Próxima consulta”.");
     const prev = editing.id ? visits.find((v) => v.id === editing.id) : null;
-    if (await run(() => saveVisit(db!, { ...f, nextDate: f.nextDate || null, documentIds: prev?.documentIds ?? [] }, editing.id))) setEditing(null);
+    const ok = await run(async () => {
+      // Anexos viram Documentos (§4.3, §5) ligados à consulta.
+      const ids = [...(prev?.documentIds ?? [])];
+      for (const a of attach) ids.push((await addDocument(db!, { title: `Consulta ${f.date.split("-").reverse().join("/")}: ${a.name}`.slice(0, 80), category: "exams", docDate: f.date }, a.doc)).id);
+      await saveVisit(db!, { ...f, nextDate: f.nextDate || null, documentIds: ids }, editing.id);
+    });
+    if (ok) setEditing(null);
   }
 
   return (
@@ -62,6 +70,12 @@ export default function Consultas() {
                   {v.id === latestId ? <DueBadge status={dueStatus(v.nextDate, today)} label={dueStatus(v.nextDate, today) === "overdue" ? "Atrasada" : dueStatus(v.nextDate, today) === "soon" ? "Em breve" : "Marcada"} /> : null}
                 </div>
               ) : null}
+              {v.documentIds.length ? (
+                <div className="stack" style={{ gap: 6 }}>
+                  <span className="caption">Anexos</span>
+                  {v.documentIds.map((id) => snap.health.documents.find((d) => d.id === id)).filter((d) => !!d).map((d) => <DocumentButtons key={d!.id} doc={d!} compact />)}
+                </div>
+              ) : null}
               <Link href={`/guardar?missao=visita-ao-veterinario&data=${v.date}`} className="btn btn--ghost btn--small" style={{ alignSelf: "flex-start" }}>
                 <IconCamera size={18} /> Guardar uma foto desta visita
               </Link>
@@ -80,6 +94,7 @@ export default function Consultas() {
             <Field id="creason" label="Motivo" optional value={editing.form.reason} onChange={(v) => set({ reason: v })} maxLength={200} placeholder="Ex.: consulta de rotina" />
             <Field id="cnotes" label="O que foi feito / orientações" optional multiline value={editing.form.notes} onChange={(v) => set({ notes: v })} maxLength={2000} />
             <Field id="cnext" label="Próxima consulta" optional type="date" value={editing.form.nextDate} onChange={(v) => set({ nextDate: v })} />
+            <DocumentFileInput label="Anexos (receitas, exames…)" optional multiple value={attach} onChange={setAttach} />
           </>
         ) : null}
       </FormSheet>

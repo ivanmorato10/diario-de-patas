@@ -15,6 +15,8 @@ import {
   type Vaccine, type VaccineInput, type Visit, type VisitInput, type WeightInput, type WeightRecord,
 } from "@/domain/health";
 import type { ZodType } from "zod";
+import { DocumentMetaSchema, type DocumentFile, type DocumentMetaInput, type HealthDocument } from "@/domain/documents";
+import type { ProcessedDocument } from "@/lib/document-file";
 import type {
   AlbumEntry, CivilDate, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
   Profile, SubmissionStatus, XpLedgerEntry, EntrySource,
@@ -26,8 +28,9 @@ export const DEMO_DB_NAME = "diario-de-patas-demo";
  * tabelas com dados do usuário.
  * 1: esquema inicial · 2: remove o contador de validações diárias (MUDANCAS-V2 §1)
  * 3: ficha de cuidados — healthProfile, weights, vaccines, visits, medications, contacts (§4)
+ * 4: documentos — metadados em documents, arquivo em documentFiles (§5)
  */
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 interface DemoDB extends DBSchema {
   profile: { key: string; value: Profile };
@@ -44,6 +47,8 @@ interface DemoDB extends DBSchema {
   visits: { key: string; value: Visit };
   medications: { key: string; value: Medication };
   contacts: { key: string; value: Contact };
+  documents: { key: string; value: HealthDocument };
+  documentFiles: { key: string; value: DocumentFile };
 }
 
 export type Db = IDBPDatabase<DemoDB>;
@@ -67,6 +72,10 @@ export function openDemoDb(name = DEMO_DB_NAME): Promise<Db> {
       // v2: o limite diário de validações deixou de existir.
       if (oldVersion === 1) db.deleteObjectStore("usage" as never);
       if (oldVersion < 3) createV3(db);
+      if (oldVersion < 4) {
+        db.createObjectStore("documents", { keyPath: "id" });
+        db.createObjectStore("documentFiles", { keyPath: "id" });
+      }
     },
   });
   return db;
@@ -94,7 +103,7 @@ function createV3(db: IDBPDatabase<DemoDB>) {
 
 const STORES = [
   "profile", "dogs", "media", "entries", "albumEntries", "submissions", "completions", "xp",
-  "healthProfile", "weights", "vaccines", "visits", "medications", "contacts",
+  "healthProfile", "weights", "vaccines", "visits", "medications", "contacts", "documents", "documentFiles",
 ] as const;
 
 /**
@@ -171,6 +180,7 @@ async function loadHealth(db: Db, dogId: string): Promise<HealthData> {
     visits: (await db.getAll("visits")).sort(byDesc<Visit>("date")),
     medications: (await db.getAll("medications")).sort(byDesc<Medication>("startDate")),
     contacts: (await db.getAll("contacts")).sort((a, b) => CONTACT_ORDER.indexOf(a.kind) - CONTACT_ORDER.indexOf(b.kind) || a.name.localeCompare(b.name, "pt-BR")),
+    documents: (await db.getAll("documents")).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   };
 }
 
@@ -442,6 +452,47 @@ export const saveContact = (db: Db, input: ContactInput, id?: string) => upsertC
 
 export async function deleteHealthRecord(db: Db, store: CareStore | "weights", id: string) {
   await db.delete(store, id);
+}
+
+// ---------- Documentos (MUDANCAS-V2 §5) — nunca entram no Diário, nos Álbuns ou em links ----------
+
+export async function addDocument(db: Db, meta: DocumentMetaInput, file: ProcessedDocument): Promise<HealthDocument> {
+  const data = parse(DocumentMetaSchema, meta);
+  const dogId = await currentDogId(db);
+  const tx = db.transaction(["documents", "documentFiles"], "readwrite");
+  if ((await tx.objectStore("documents").count()) >= LIMITS.maxDocuments) {
+    return fail(tx, new DomainError("DOC_QUOTA", `Cabem até ${LIMITS.maxDocuments} documentos nesta versão de teste. Exclua algum para guardar outro.`));
+  }
+  const doc: HealthDocument = { ...data, id: newId(), dogId, mime: file.mime, bytes: file.bytes, hasThumb: !!file.thumb, createdAt: now(), updatedAt: now() };
+  await tx.objectStore("documents").put(doc);
+  await tx.objectStore("documentFiles").put({ id: doc.id, file: file.file, thumb: file.thumb });
+  await tx.done;
+  return doc;
+}
+
+export async function updateDocument(db: Db, id: string, meta: DocumentMetaInput): Promise<HealthDocument> {
+  const data = parse(DocumentMetaSchema, meta);
+  const prev = await db.get("documents", id);
+  if (!prev) throw new DomainError("NOT_FOUND", "Documento não encontrado.");
+  const next = { ...prev, ...data, updatedAt: now() };
+  await db.put("documents", next);
+  return next;
+}
+
+export const getDocumentFile = (db: Db, id: string) => db.get("documentFiles", id);
+
+/** Exclui o documento e o arquivo, e tira os vínculos de vacinas e consultas. */
+export async function deleteDocument(db: Db, id: string) {
+  const tx = db.transaction(["documents", "documentFiles", "vaccines", "visits"], "readwrite");
+  await tx.objectStore("documents").delete(id);
+  await tx.objectStore("documentFiles").delete(id);
+  for (const v of await tx.objectStore("vaccines").getAll()) {
+    if (v.documentId === id) await tx.objectStore("vaccines").put({ ...v, documentId: null });
+  }
+  for (const v of await tx.objectStore("visits").getAll()) {
+    if (v.documentIds.includes(id)) await tx.objectStore("visits").put({ ...v, documentIds: v.documentIds.filter((d) => d !== id) });
+  }
+  await tx.done;
 }
 
 /** Exportação simples (metadados). Exportação elaborada com fotos é P1. */

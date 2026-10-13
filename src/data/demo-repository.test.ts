@@ -3,7 +3,10 @@ import { describe, expect, it, beforeEach } from "vitest";
 import {
   openDemoDb, resetDemo, createDiary, saveEntry, submitMission, deleteEntry, loadSnapshot, exportMetadata, type Db, type ProcessedImage,
   saveHealthProfile, addWeight, saveVaccine, saveVisit, saveMedication, saveContact, deleteHealthRecord,
+  addDocument, updateDocument, deleteDocument, getDocumentFile,
 } from "./demo-repository";
+import type { ProcessedDocument } from "@/lib/document-file";
+import { LIMITS } from "@/config/business";
 
 const img = (hash = "h"): ProcessedImage => ({
   mime: "image/webp", width: 10, height: 10, bytes: 3, hash, display: new Blob(["abc"]), thumb: new Blob(["a"]),
@@ -215,5 +218,44 @@ describe("ficha de cuidados (MUDANCAS-V2 §4)", () => {
     expect([...migrated.objectStoreNames]).toEqual(expect.arrayContaining(["vaccines", "contacts", "healthProfile"]));
     expect((await loadSnapshot(migrated)).dog?.name).toBe("Thor");
     migrated.close();
+  });
+});
+
+describe("documentos (MUDANCAS-V2 §5)", () => {
+  const pdf = (): ProcessedDocument => ({ mime: "application/pdf", bytes: 20, file: new Blob(["%PDF-1.4 conteúdo"], { type: "application/pdf" }), thumb: null });
+
+  it("guarda, abre, edita e exclui; excluir tira os vínculos de vacina e consulta", async () => {
+    const d = await addDocument(db, { title: "Carteira", category: "vaccination_card", expiresOn: "2027-01-01" }, pdf());
+    const f = await getDocumentFile(db, d.id);
+    expect(await f!.file.text()).toContain("%PDF");
+    await updateDocument(db, d.id, { title: "Carteira 2026", category: "vaccination_card", expiresOn: "2027-01-01" });
+    const v = await saveVaccine(db, { kind: "vaccine", name: "V10", appliedDate: "2026-10-01", documentId: d.id });
+    const c = await saveVisit(db, { date: "2026-10-01", documentIds: [d.id] });
+    let h = (await loadSnapshot(db)).health;
+    expect(h.documents[0]).toMatchObject({ title: "Carteira 2026", mime: "application/pdf" });
+    await deleteDocument(db, d.id);
+    h = (await loadSnapshot(db)).health;
+    expect(h.documents).toHaveLength(0);
+    expect(await getDocumentFile(db, d.id)).toBeUndefined();
+    expect(h.vaccines.find((x) => x.id === v.id)?.documentId).toBeNull();
+    expect(h.visits.find((x) => x.id === c.id)?.documentIds).toEqual([]);
+  });
+
+  it("documentos nunca aparecem no diário nem nos álbuns", async () => {
+    await addDocument(db, { title: "Exame", category: "exams" }, pdf());
+    const snap = await loadSnapshot(db);
+    expect(snap.entries).toHaveLength(0);
+    expect(snap.albumEntries).toHaveLength(0);
+  });
+
+  it("respeita o limite de documentos", async () => {
+    for (let i = 0; i < LIMITS.maxDocuments; i++) await addDocument(db, { title: `Doc ${i}`, category: "other" }, pdf());
+    await expect(addDocument(db, { title: "Mais um", category: "other" }, pdf())).rejects.toMatchObject({ code: "DOC_QUOTA" });
+  });
+
+  it("apagar diário remove documentos e arquivos", async () => {
+    await addDocument(db, { title: "RG", category: "id_chip" }, pdf());
+    await resetDemo(db);
+    expect([await db.count("documents"), await db.count("documentFiles")]).toEqual([0, 0]);
   });
 });

@@ -9,8 +9,8 @@
 | 1. Missões confirmadas pelo dono (sem IA) | ✅ |
 | 2. Fotos livres, várias de uma vez, usar foto do Diário numa missão | ✅ |
 | 3. Catálogo de 48 missões e novos níveis | ✅ |
-| 4. Cuidados (ficha de saúde) | ✅ (anexos de documentos entram na §5) |
-| 5. Documentos | ⏳ |
+| 4. Cuidados (ficha de saúde) | ✅ |
+| 5. Documentos | ✅ |
 | 6. Fechamento 1–5 | ⏳ |
 | 7. Ciclo contínuo de missões | ⏳ |
 | 8. Contas reais (Supabase) | ⏳ |
@@ -32,6 +32,8 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 | Hoje: nível/XP, até 3 sugestões filtradas por preferências, trocar sugestões, progresso do álbum, última lembrança | ✅ demo |
 | Catálogo de **48 missões** (650 XP) em 7 coleções com missões + “Datas especiais” só para artes; novas coleções “Estações e datas” e “Cuidados”; pré-requisito M01; XP único por missão; missões externas com alternativa em casa; datas especiais opcionais (fora das sugestões) | ✅ demo |
 | **Cuidados** (5º item da navegação): dados do cachorro, peso com histórico e gráfico, vacinas/vermífugos com status pela data (em dia / em até 30 dias / atrasada, com ícone e texto), consultas (+ “Guardar uma foto desta visita” → M47), medicamentos “em uso”, contatos com Ligar e Abrir no mapa; aviso fixo; cartão “Próximos cuidados” em Hoje; banco local v3 com migração sem perda; entra na exportação e é apagado com o diário | ✅ demo |
+| **Documentos** em Cuidados: 8 categorias, PDF/JPEG/PNG/WebP até 10 MB validados pelos bytes (`%PDF-` e assinaturas de imagem; texto renomeado .pdf é recusado), imagens processadas como fotos (EXIF, sem metadados, miniatura), PDF guardado como está; ver em nova aba (blob URL), baixar, editar, excluir com confirmação; limite de 50; validade “vence em breve”/“vencido” também em Próximos cuidados; foto da etiqueta da vacina e anexos de consulta viram documentos; nunca entram no Diário, Álbuns ou links | ✅ demo |
+| Migration `20261014000000_documents.sql` (tabela + bucket privado separado `documents` + cota de 50 + vínculos) | ✅ aplicada e testada em Postgres local descartável; ⚠️ não aplicada no Supabase |
 | Migration `20261013000000_health.sql` com RLS por dono | ✅ aplicada e testada num Postgres 16 local descartável (stub de `auth`); ⚠️ não aplicada no Supabase |
 | 7 níveis (0 → 500 XP, “Sempre juntos”), todos alcançáveis pelo catálogo (teste) | ✅ |
 | Lista de missões agrupada por coleção com filtro “Disponíveis / Concluídas” | ✅ demo |
@@ -60,7 +62,9 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 
 ## Verificado
 
-- `npm test` — 48 testes (inclui cuidados: status de vacinas com limites e fusos SP/Tóquio, dose nova substitui a antiga, próximos cuidados, medicamentos em uso, CRUD de cada tipo, persistência, reset, migração v2→v3)
+- `npm test` — 57 testes (inclui documentos: assinatura de PDF, texto renomeado recusado, limite de tamanho, vínculos removidos ao excluir, cota de 50, não entram no diário, reset, validade em Próximos cuidados)
+- Navegador (Chrome, 390 px) da §5: PDF real e foto enviados e abertos em nova aba (application/pdf e image/webp), .pdf falso recusado, aviso de validade em Documentos e em Hoje, excluir, etiqueta da vacina
+- `npm test` (até §4) — 48 testes (inclui cuidados: status de vacinas com limites e fusos SP/Tóquio, dose nova substitui a antiga, próximos cuidados, medicamentos em uso, CRUD de cada tipo, persistência, reset, migração v2→v3)
 - Navegador (Chrome, 360 px) da §4: 5 itens na barra (72×66 px), vacina em 10 dias aparece em Hoje, gráfico e tabela de peso, Ligar/mapa, editar/excluir, sem rolagem horizontal, sem erros
 - `npm test` (até §3) — 35 testes (inclui catálogo v2: 48 missões, 650 XP, níveis alcançáveis, alternativas em casa, opcionais nunca pré-requisito, seed = catálogo)
 - `npm test` (até §2) — 31 testes (datas civis, sugestões, níveis, regras do validador desligado, ledger, idempotência de XP com requisições simultâneas, sem limite diário, migração v1→v2, exclusão e reset com outra aba aberta, paridade do seed, data do EXIF em JPEG/PNG/WebP, lote de 5 fotos, foto livre → missão, foto não pontua duas vezes, arte não conclui missão).

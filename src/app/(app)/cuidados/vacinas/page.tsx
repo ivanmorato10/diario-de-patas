@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { deleteHealthRecord, saveVaccine } from "@/data/demo-repository";
+import { addDocument, deleteHealthRecord, saveVaccine } from "@/data/demo-repository";
+import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/components/document-ui";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { DueBadge, HealthDisclaimer } from "@/components/health-ui";
@@ -18,14 +19,15 @@ export default function Vacinas() {
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Vaccine | null>(null);
+  const [label, setLabel] = useState<PickedDocument[]>([]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !db) return <main className="main"><PageLoading /></main>;
   const { vaccines } = snap.health;
   const today = snap.today;
 
-  const openNew = () => { setError(null); setEditing({ form: { kind: "vaccine", name: "", appliedDate: today, nextDate: "", clinic: "" } }); };
-  const openEdit = (v: Vaccine) => { setError(null); setEditing({ id: v.id, form: { kind: v.kind, name: v.name, appliedDate: v.appliedDate, nextDate: v.nextDate ?? "", clinic: v.clinic } }); };
+  const openNew = () => { setError(null); setLabel([]); setEditing({ form: { kind: "vaccine", name: "", appliedDate: today, nextDate: "", clinic: "" } }); };
+  const openEdit = (v: Vaccine) => { setError(null); setLabel([]); setEditing({ id: v.id, form: { kind: v.kind, name: v.name, appliedDate: v.appliedDate, nextDate: v.nextDate ?? "", clinic: v.clinic } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
 
   async function submit() {
@@ -33,7 +35,11 @@ export default function Vacinas() {
     const f = editing.form;
     if (f.appliedDate > today) return setError("A data aplicada deve ser até hoje.");
     const prev = editing.id ? vaccines.find((v) => v.id === editing.id) : null;
-    const ok = await run(() => saveVaccine(db!, { ...f, nextDate: f.nextDate || null, documentId: prev?.documentId ?? null }, editing.id));
+    const ok = await run(async () => {
+      // A foto da etiqueta/carteirinha vira um Documento (§4.2, §5).
+      const doc = label[0] ? await addDocument(db!, { title: `Etiqueta: ${f.name || "vacina"}`.slice(0, 80), category: "vaccination_card", docDate: f.appliedDate }, label[0].doc) : null;
+      await saveVaccine(db!, { ...f, nextDate: f.nextDate || null, documentId: doc?.id ?? prev?.documentId ?? null }, editing.id);
+    });
     if (ok) setEditing(null);
   }
 
@@ -63,6 +69,7 @@ export default function Vacinas() {
                     {old ? <span className="caption">Substituída por uma dose mais nova</span> : <DueBadge status={st} />}
                   </div>
                 ) : <p className="caption">Sem próxima dose anotada.</p>}
+                {(() => { const d = v.documentId ? snap.health.documents.find((x) => x.id === v.documentId) : null; return d ? <DocumentButtons doc={d} compact /> : null; })()}
               </li>
             );
           })}
@@ -83,6 +90,8 @@ export default function Vacinas() {
             <Field id="vapplied" label="Data aplicada" type="date" max={today} value={editing.form.appliedDate} onChange={(v) => set({ appliedDate: v })} />
             <Field id="vnext" label="Próxima dose" optional type="date" value={editing.form.nextDate} onChange={(v) => set({ nextDate: v })} hint="Usada para avisar quando estiver chegando." />
             <Field id="vclinic" label="Veterinário ou clínica" optional value={editing.form.clinic} onChange={(v) => set({ clinic: v })} maxLength={120} />
+            <DocumentFileInput label="Foto da etiqueta ou da carteirinha" optional value={label} onChange={setLabel} />
+            {editing.id && vaccines.find((x) => x.id === editing.id)?.documentId && !label.length ? <p className="caption">Já tem um documento ligado. Escolher outro arquivo cria um documento novo.</p> : null}
           </>
         ) : null}
       </FormSheet>

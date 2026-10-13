@@ -7,6 +7,7 @@ import { HealthDisclaimer, UpcomingCareCard } from "@/components/health-ui";
 import { IconChevron } from "@/components/icons";
 import { formatCivilDate } from "@/domain/dates";
 import { dueStatus, latestVaccines, medicationActive, upcomingCare } from "@/domain/health";
+import { expiryStatus } from "@/domain/documents";
 
 export default function Cuidados() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -17,6 +18,7 @@ export default function Cuidados() {
 
   const overdue = latestVaccines(h.vaccines).filter((v) => dueStatus(v.nextDate, today) === "overdue").length;
   const lastWeight = h.weights[h.weights.length - 1];
+  const expiring = h.documents.filter((d) => ["soon", "overdue"].includes(expiryStatus(d.expiresOn, today))).length;
   const activeMeds = h.medications.filter((m) => medicationActive(m, today)).length;
   const p = h.profile;
   const filled = p ? [p.breed, p.sex, p.neutered !== null ? "x" : "", p.microchip, p.coat, p.allergies, p.notes].filter(Boolean).length : 0;
@@ -27,6 +29,7 @@ export default function Cuidados() {
     { href: "/cuidados/vacinas", title: "Vacinas e vermífugos", sub: h.vaccines.length ? `${h.vaccines.length} ${h.vaccines.length === 1 ? "registro" : "registros"}${overdue ? ` · ${overdue} atrasada${overdue > 1 ? "s" : ""}` : ""}` : "Nenhum registro ainda" },
     { href: "/cuidados/consultas", title: "Consultas e visitas", sub: h.visits[0] ? `Última: ${formatCivilDate(h.visits[0].date)}` : "Nenhuma consulta registrada" },
     { href: "/cuidados/medicamentos", title: "Medicamentos", sub: activeMeds ? `${activeMeds} em uso` : h.medications.length ? "Nenhum em uso agora" : "Nenhum registro ainda" },
+    { href: "/cuidados/documentos", title: "Documentos", sub: h.documents.length ? `${h.documents.length} ${h.documents.length === 1 ? "documento" : "documentos"}${expiring ? ` · ${expiring} vencendo ou vencido${expiring > 1 ? "s" : ""}` : ""}` : "Carteira de vacinação, RG pet, exames…" },
     { href: "/cuidados/contatos", title: "Contatos", sub: h.contacts.length ? `${h.contacts.length} ${h.contacts.length === 1 ? "contato" : "contatos"}` : "Veterinário, emergência 24h, pet sitter…" },
   ];
 
@@ -48,7 +51,7 @@ export default function Cuidados() {
             </Link>
           ))}
         </nav>
-        <p className="caption">Estas informações ficam só neste aparelho, entram na exportação e são apagadas junto com o diário. Nunca aparecem em links compartilhados.</p>
+        <p className="caption">Estas informações ficam só neste aparelho, entram na exportação (os arquivos de documentos você baixa um a um) e são apagadas junto com o diário. Nunca aparecem em links compartilhados.</p>
       </main>
     </>
   );

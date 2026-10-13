@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { civilDayNumber, isCivilDate } from "./dates";
 import type { CivilDate } from "./types";
+import type { HealthDocument } from "./documents";
 
 export const HEALTH_DISCLAIMER = "Estas anotações não substituem o veterinário. Em emergência, procure atendimento.";
 
@@ -133,9 +134,11 @@ export interface HealthData {
   visits: Visit[];
   medications: Medication[];
   contacts: Contact[];
+  /** Só metadados; o arquivo fica num store separado (§5). */
+  documents: HealthDocument[];
 }
 
-export const EMPTY_HEALTH: HealthData = { profile: null, weights: [], vaccines: [], visits: [], medications: [], contacts: [] };
+export const EMPTY_HEALTH: HealthData = { profile: null, weights: [], vaccines: [], visits: [], medications: [], contacts: [], documents: [] };
 
 // ---------- Regras de data (puras e testadas) ----------
 
@@ -212,8 +215,8 @@ export interface CareItem {
   href: string;
 }
 
-/** Próximos cuidados: próximas datas em até 30 dias e as atrasadas, mais urgentes primeiro. */
-export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits">, today: CivilDate, windowDays = CARE_WINDOW_DAYS): CareItem[] {
+/** Próximos cuidados: próximas datas em até 30 dias e as atrasadas, mais urgentes primeiro; inclui validade de documentos. */
+export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits"> & { documents?: HealthDocument[] }, today: CivilDate, windowDays = CARE_WINDOW_DAYS): CareItem[] {
   const items: CareItem[] = [];
   for (const v of latestVaccines(h.vaccines)) {
     const s = dueStatus(v.nextDate, today, windowDays);
@@ -224,6 +227,10 @@ export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits">, today: 
   if (lastVisit?.nextDate) {
     const s = dueStatus(lastVisit.nextDate, today, windowDays);
     if (s === "soon" || s === "overdue") items.push({ kind: "visit", id: lastVisit.id, title: "Próxima consulta", date: lastVisit.nextDate, status: s, href: "/cuidados/consultas" });
+  }
+  for (const d of h.documents ?? []) {
+    const s = dueStatus(d.expiresOn, today, windowDays);
+    if (s === "soon" || s === "overdue") items.push({ kind: "document", id: d.id, title: `Documento: ${d.title}`, date: d.expiresOn!, status: s, href: "/cuidados/documentos" });
   }
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }

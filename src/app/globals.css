@@ -454,3 +454,6 @@ body { background: var(--background); }
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
 .data-table th { text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 0.8125rem; padding: 6px 4px; border-bottom: 1px solid var(--border); }
 .data-table td { padding: 4px; border-bottom: 1px solid var(--border); }
+.doc-thumb { position: relative; width: 56px; height: 56px; flex: none; border-radius: 10px; background: var(--brand-soft); display: grid; place-items: center; color: var(--text-secondary); overflow: hidden; }
+.doc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.doc-thumb__tag { position: absolute; bottom: 3px; right: 3px; background: var(--surface); color: var(--text-primary); font-size: 0.625rem; font-weight: 800; padding: 0 4px; border-radius: 4px; }

@@ -86,3 +86,12 @@ describe("validação dos registros", () => {
     expect(ContactSchema.safeParse({ kind: "emergency", name: "Hospital 24h", phone: "+55 (11) 4000-0000" }).success).toBe(true);
   });
 });
+
+describe("validade de documentos (§5)", () => {
+  const doc = (id: string, expiresOn: string | null) => ({ id, dogId: "d", title: id, category: "insurance" as const, docDate: null, expiresOn, notes: "", mime: "application/pdf" as const, bytes: 1, hasThumb: false, createdAt: "x", updatedAt: "x" });
+  it("vence em breve (30 dias) e vencido aparecem em Próximos cuidados", () => {
+    const care = upcomingCare({ vaccines: [], visits: [], documents: [doc("seguro", "2026-11-01"), doc("velho", "2026-10-01"), doc("longe", "2027-06-01"), doc("sem", null)] }, "2026-10-12");
+    expect(care.map((c) => [c.id, c.kind, c.status])).toEqual([["velho", "document", "overdue"], ["seguro", "document", "soon"]]);
+  });
+});
+

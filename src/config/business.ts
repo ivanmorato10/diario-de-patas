@@ -6,6 +6,8 @@
 export const LIMITS = {
   dogsPerAccount: 1,
   maxEntries: 100,
+  /** Documentos importantes em Cuidados (MUDANCAS-V2 §5). */
+  maxDocuments: 50,
   maxUploadBytes: 10 * 1024 * 1024,
   /** Limite de pixels para evitar imagens que exaurem memória ao decodificar. */
   maxUploadPixels: 40_000_000,

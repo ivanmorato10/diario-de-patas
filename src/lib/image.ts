@@ -88,7 +88,9 @@ function readDimensions(buf: Uint8Array, mime: string): { w: number; h: number }
   return null;
 }
 
-export async function processImage(file: Blob): Promise<ProcessedImage> {
+/** `displayMaxEdge` maior serve para documentos, onde o texto precisa continuar legível. */
+export async function processImage(file: Blob, opts: { displayMaxEdge?: number } = {}): Promise<ProcessedImage> {
+  const maxEdge = opts.displayMaxEdge ?? IMAGE.displayMaxEdge;
   if (file.size > LIMITS.maxUploadBytes) {
     throw new ImageError("TOO_LARGE", `A foto passa de ${Math.round(LIMITS.maxUploadBytes / 1024 / 1024)} MB. Escolha uma versão menor.`);
   }
@@ -114,9 +116,9 @@ export async function processImage(file: Blob): Promise<ProcessedImage> {
   }
   const out = supportsWebpEncode() ? "image/webp" : "image/jpeg";
   try {
-    const display = await encode(bmp, IMAGE.displayMaxEdge, IMAGE.displayQuality, out);
+    const display = await encode(bmp, maxEdge, IMAGE.displayQuality, out);
     const thumb = await encode(bmp, IMAGE.thumbMaxEdge, IMAGE.thumbQuality, out);
-    const { w, h } = fit(bmp.width, bmp.height, IMAGE.displayMaxEdge);
+    const { w, h } = fit(bmp.width, bmp.height, maxEdge);
     return { mime: out, width: w, height: h, bytes: display.size, hash: await sha256Hex(buf), display, thumb, takenDate };
   } finally {
     bmp.close();
