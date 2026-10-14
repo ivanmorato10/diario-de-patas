@@ -138,6 +138,12 @@ with sync_playwright() as p:
     ics = a.evaluate("id => fetch('/api/calendario?tipo=medicamento&id=' + id).then(async r => [r.status, r.headers.get('content-type'), await r.text()])", med["id"])
     check(f"lembrete .ics semanal ({ics[0]})", ics[0] == 200 and "text/calendar" in (ics[1] or "") and "RRULE:FREQ=WEEKLY" in ics[2])
     b_ics = rpc(a, "deleteCare", {"store": "medications", "id": med["id"]})
+    a.goto(BASE + "/cuidados"); a.wait_for_timeout(1500)
+    with a.expect_download(timeout=30000) as dl:
+        a.get_by_role("button", name=re.compile("PDF para o veterinário")).click()
+    pdf_path = os.path.join(OUT, "ficha.pdf"); dl.value.save_as(pdf_path)
+    head = open(pdf_path, "rb").read(5)
+    check(f"PDF para o veterinário gerado ({os.path.getsize(pdf_path)} bytes)", head == b"%PDF-" and os.path.getsize(pdf_path) > 20000)
     a.goto(BASE + "/cuidados/documentos"); a.get_by_role("button", name="Adicionar documento").click()
     a.locator("dialog[open] input[type=file]").set_input_files(pdf); a.wait_for_timeout(500)
     a.get_by_label("Título").fill("Carteira de vacinação"); a.get_by_role("dialog").get_by_role("button", name="Salvar").click()
