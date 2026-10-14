@@ -41,7 +41,7 @@ with sync_playwright() as p:
         admin("POST", "users", {"email": email, "email_confirm": True})
         pg.goto(BASE + "/hoje"); pg.wait_for_url("**/entrar?next=*")
         pg.route("**/auth/v1/otp*", lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
-        pg.get_by_role("button", name="Já tenho conta").click(); pg.get_by_role("button", name="Entrar com email").click(); pg.get_by_label("Seu email").fill(email); pg.get_by_role("button", name="Receber link de entrada").click()
+        pg.get_by_role("button", name="Já tenho conta").click(); pg.get_by_role("button", name="Entrar com email").click(); pg.get_by_role("button", name="Prefiro receber um código no email").click(); pg.get_by_label("Seu email").fill(email); pg.get_by_role("button", name="Receber código de entrada").click()
         pg.get_by_label("Código").fill(admin("POST", "generate_link", {"type": "magiclink", "email": email})["email_otp"])
         pg.get_by_role("button", name="Entrar com o código").click(); pg.wait_for_url(lambda u: "/entrar" not in u, timeout=20000)
         pg.goto(BASE + "/comecar"); pg.wait_for_timeout(2000)

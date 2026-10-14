@@ -29,7 +29,7 @@ with sync_playwright() as p:
     rpc = lambda m, a: pg.evaluate("async ([m, a]) => { const r = await fetch('/api/rpc/' + m, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(a)}); return [r.status, await r.json().catch(() => null)]; }", [m, a])
     pg.goto(BASE + "/hoje"); pg.wait_for_url("**/entrar?next=*")
     pg.route("**/auth/v1/otp*", lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
-    pg.get_by_role("button", name="Já tenho conta").click(); pg.get_by_role("button", name="Entrar com email").click(); pg.get_by_label("Seu email").fill(email); pg.get_by_role("button", name="Receber link de entrada").click()
+    pg.get_by_role("button", name="Já tenho conta").click(); pg.get_by_role("button", name="Entrar com email").click(); pg.get_by_role("button", name="Prefiro receber um código no email").click(); pg.get_by_label("Seu email").fill(email); pg.get_by_role("button", name="Receber código de entrada").click()
     pg.get_by_label("Código").fill(admin("POST", "generate_link", {"type": "magiclink", "email": email})["email_otp"])
     pg.get_by_role("button", name="Entrar com o código").click(); pg.wait_for_url(lambda u: "/entrar" not in u, timeout=20000)
     pg.goto(BASE + "/comecar"); pg.get_by_label("Nome do cachorro").fill("Luna"); pg.get_by_role("button", name="Criar meu diário").click(); pg.wait_for_url("**/hoje", timeout=30000)

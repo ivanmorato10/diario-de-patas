@@ -172,7 +172,7 @@ Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com fatura
 - "Só ver": aviso no topo, sem atalhos de guardar/editar; o servidor recusa escritas (403).
 - Diário mostra "guardada por Bianca" nas fotos de outras pessoas.
 - Banco: `20261027000000_family.sql` (dog_members, dog_invites, RLS por participação, créditos por diário). Testes: `supabase/tests/family.sql`.
-- Pendente: aplicar a migração na nuvem (`npx supabase db push`) e o tamanho mínimo de senha (`npm run supabase:push`), depois rodar o e2e-real e publicar.
+- Migração aplicada na nuvem em 14/10/2026. E2E: real 54/54, pagamentos 9/9, Estúdio 12/12. Pendente: `npm run supabase:push` (senha mínima de 8 no servidor; o app já exige 8).
 
 ## Próximo passo
 

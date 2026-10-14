@@ -96,12 +96,12 @@ with sync_playwright() as p:
     expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible()
     check("modo real: sem faixa de demonstração", a.locator(".demo-banner").count() == 0)
     try:
-        expect(a.locator("header .avatar img")).to_have_count(1, timeout=15000)
+        expect(a.locator("header .dog-switch .avatar img")).to_have_count(1, timeout=15000)
     except AssertionError:
         pass
     dog = rpc(a, "snapshot", {})[1]["dog"]
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=thumb').then(r => r.status)", dog["photoMediaId"]) if dog.get("photoMediaId") else None
-    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header .avatar img").count() == 1)
+    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header .dog-switch .avatar img").count() == 1)
     a.screenshot(path=f"{OUT}/01-hoje-A.png", full_page=True)
 
     a.get_by_role("link", name="Olá, mundo").first.click(); a.get_by_role("link", name="Enviar foto").click()
@@ -208,11 +208,11 @@ with sync_playwright() as p:
     check("convite mostra o cachorro e o papel antes de entrar", eventually(lambda t: expect(inv.get_by_role("heading", name=re.compile("convidou você para o diário de Luna"))).to_be_visible(timeout=t)) and inv.get_by_text("Pode editar").first.is_visible())
     inv.get_by_role("link", name="Já tenho conta").click()
     inv.get_by_role("button", name="Entrar com email").click()
-    check("entrar com email pede senha e tem 'Esqueci minha senha'", eventually(lambda t: expect(inv.get_by_label("Senha")).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Esqueci minha senha").is_visible())
-    inv.get_by_label("Seu email").fill(emails["C"]); inv.get_by_label("Senha").fill("senha-errada-123")
+    check("entrar com email pede senha e tem 'Esqueci minha senha'", eventually(lambda t: expect(inv.get_by_label("Senha", exact=True)).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Esqueci minha senha").is_visible())
+    inv.get_by_label("Seu email").fill(emails["C"]); inv.get_by_label("Senha", exact=True).fill("senha-errada-123")
     inv.get_by_role("button", name="Entrar", exact=True).click()
     check("senha errada mostra aviso", eventually(lambda t: expect(inv.get_by_text(re.compile("Email ou senha não conferem"))).to_be_visible(timeout=t)))
-    inv.get_by_label("Senha").fill(pw_c); inv.get_by_role("button", name="Entrar", exact=True).click()
+    inv.get_by_label("Senha", exact=True).fill(pw_c); inv.get_by_role("button", name="Entrar", exact=True).click()
     inv.wait_for_url("**/convite?codigo=*", timeout=20000)
     inv.get_by_role("button", name=re.compile("Aceitar e abrir o diário de Luna")).click()
     inv.wait_for_url("**/hoje", timeout=30000)
@@ -248,7 +248,7 @@ with sync_playwright() as p:
     check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
     a.get_by_label("Zoom").fill("2.2")
     a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(300)
-    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header .avatar img").get_attribute("style") or ""))
+    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header .dog-switch .avatar img").get_attribute("style") or ""))
     a.wait_for_timeout(2500)
     saved = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"ajuste da foto de perfil salvo pela tela ({saved})", abs(float(saved.get("zoom", 0)) - 2.2) < 0.01)
@@ -261,7 +261,7 @@ with sync_playwright() as p:
     dragged = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"arrastar e fechar a janela salva a posição ({dragged})", abs(float(dragged.get("x", 40)) - 40) > 1 and abs(float(dragged.get("zoom", 0)) - 2.2) < 0.01)
     a.reload(); a.wait_for_timeout(2000)
-    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header .avatar img").get_attribute("style") or ""))
+    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header .dog-switch .avatar img").get_attribute("style") or ""))
 
     # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
     a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)
