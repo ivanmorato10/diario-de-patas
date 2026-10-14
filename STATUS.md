@@ -122,6 +122,14 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 6. ~~Missões do dia~~ — 30 novas (D37–D66) aprovadas pelo proprietário em 13/10/2026 e ativas no app e no banco: 22 por espaço, 14 dias sem repetir.
 7. ~~Entrar com Apple~~ — ligado em 13/10/2026 (Services ID app.diariodepatas.web, chave 69MAPTUX9G fora do repositório). **O segredo vence em 11/04/2027:** rodar `npm run apple:secret` e `npm run supabase:push` antes disso.
 
+## PWA, validação de foto e exemplos do Estúdio (13/10/2026)
+
+- **PWA (iPhone):** manifesto, ícones (192/512/maskable/apple-touch), tela de início sem barra, áreas seguras, "Instalar aplicativo" com instruções do Safari, offline amigável, atualizações sem cache preso. Checagem emulada de iPhone 15/15; E2E real 26/26. Não testado num iPhone físico.
+- **Validação da foto do Estúdio:** luz, foco e resolução (grátis) + IA barata (há cachorro? rosto visível? tamanho?). Foto inadequada bloqueia antes de cobrar; problemas leves só avisam.
+- **Modelo de checagem trocado** para `gemini-3.5-flash-lite` (o 2.5 não está disponível para contas novas).
+- **Exemplos dos 28 estilos** com o Abu nos cartões do Estúdio (`public/estudio/`, feitos pelo proprietário no Gemini).
+- **Gemini:** chave da conta diariodepatas.app no `.env.local`; o projeto ainda responde como **Free tier** (geração de imagem bloqueada) — faturamento pendente.
+
 ## Próximo passo
 
 MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).

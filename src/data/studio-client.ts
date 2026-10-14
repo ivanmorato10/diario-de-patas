@@ -43,6 +43,9 @@ export const studioCreateJob = (input: {
   crop: { x: number; y: number; w: number; h: number } | null; overlay: StudioOverlay | null;
 }) => rpc<StudioJob>("studioCreateJob", input);
 
+export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad"; message: string }[] }
+export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y: number; w: number; h: number } | null }) => rpc<PhotoCheck>("studioCheckPhoto", input);
+
 export const FAILURE_PT: Record<string, string> = {
   PROVIDER_REFUSED: "Não conseguimos usar esta foto. Tente outra em que o cachorro apareça sozinho. O crédito foi devolvido.",
   QUALITY_REJECTED: "A arte não ficou boa o bastante (faltou o cachorro ou apareceu texto). O crédito foi devolvido.",

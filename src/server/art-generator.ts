@@ -28,7 +28,11 @@ export interface ArtGenerator {
   generate(input: GenerateInput): Promise<{ image: Buffer; mime: string; model: string }>;
   /** Checagem barata só para devolver crédito: há um cachorro? há texto escrito? */
   check(image: Buffer, mime: string): Promise<{ dog: boolean; text: boolean }>;
+  /** Avaliação barata da FOTO de entrada, antes de cobrar (src/server/photo-quality.ts). */
+  assessPhoto(image: Buffer, mime: string): Promise<PhotoAssessment>;
 }
+
+export interface PhotoAssessment { dogs: number; faceVisible: boolean; dogSize: "small" | "ok"; sharp: boolean }
 
 const API = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -118,6 +122,19 @@ export function geminiGenerator(key: string): ArtGenerator {
         return { dog: true, text: false }; // checagem inconclusiva não pune ninguém: segue com a arte
       }
     },
+    async assessPhoto(image, mime) {
+      const model = process.env.STUDIO_MODEL_CHECK || STUDIO_MODELS.check;
+      const json = await post(`models/${model}:generateContent`, key, {
+        contents: [{ parts: [
+          { text: 'You check if a photo is good input to turn a pet dog into an illustration. Answer only JSON: {"dogs": number of real dogs visible, "faceVisible": true if the main dog\'s face (eyes and muzzle) is clearly visible and not turned away, covered or cut off, "dogSize": "small" if the main dog fills less than about 15% of the photo else "ok", "sharp": false only if the dog is clearly blurry}.' },
+          { inline_data: { mime_type: mime, data: image.toString("base64") } },
+        ] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0 },
+      }, 30_000);
+      const raw = (json as { candidates?: { content?: { parts?: { text?: string }[] } }[] })?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      const r = JSON.parse(raw);
+      return { dogs: Math.max(0, Math.round(Number(r.dogs) || 0)), faceVisible: r.faceVisible !== false, dogSize: r.dogSize === "small" ? "small" : "ok", sharp: r.sharp !== false };
+    },
   };
 }
 
@@ -137,6 +154,9 @@ export function fakeGenerator(): ArtGenerator {
     },
     async check() {
       return { dog: true, text: false };
+    },
+    async assessPhoto() {
+      return { dogs: 1, faceVisible: true, dogSize: "ok", sharp: true };
     },
   };
 }

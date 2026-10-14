@@ -13,6 +13,7 @@ import {
 import { civilDateInTz } from "@/domain/dates";
 import { adminClient, HttpError } from "./supabase";
 import { ProviderError, artGenerator } from "./art-generator";
+import { assessPhoto, type PhotoCheck } from "./photo-quality";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { user: User; supa: SupabaseClient };
@@ -94,6 +95,44 @@ const CreateJob = z.object({
 });
 
 /** Cria o job (idempotente), reserva os créditos e agenda a geração. */
+type Crop = { x: number; y: number; w: number; h: number } | null | undefined;
+
+/** Lê a foto do diário (bytes do bucket privado) e aplica o recorte escolhido. */
+async function loadInputPhoto(mediaAssetId: string, crop: Crop) {
+  const admin = adminClient();
+  const media = (await q(admin.from("media_assets").select("private_storage_key").eq("id", mediaAssetId).single())) as any;
+  const { data: file } = await admin.storage.from("media").download(media.private_storage_key);
+  if (!file) throw new ProviderError("PROVIDER_UNAVAILABLE", "foto de entrada indisponível");
+  let input = Buffer.from(await file.arrayBuffer());
+  if (crop) {
+    input = await sharp(input).rotate().toBuffer();
+    const m = await sharp(input).metadata();
+    const W = m.width ?? 1, H = m.height ?? 1;
+    input = await sharp(input).extract({ left: Math.round(crop.x * W), top: Math.round(crop.y * H), width: Math.max(16, Math.min(W - Math.round(crop.x * W), Math.round(crop.w * W))), height: Math.max(16, Math.min(H - Math.round(crop.y * H), Math.round(crop.h * H))) }).toBuffer();
+  }
+  return input;
+}
+
+const CheckPhoto = z.object({
+  entryId: z.string().uuid(),
+  crop: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), w: z.number().min(0.1).max(1), h: z.number().min(0.1).max(1) }).nullable().optional(),
+});
+
+/** Valida a foto escolhida antes de gastar crédito (chamado ao escolher a foto e ao mudar o recorte). */
+export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCheck> {
+  const a = CheckPhoto.safeParse(args);
+  if (!a.success) throw bad("INVALID", "Pedido inválido.");
+  const entry = (await q(ctx.supa.from("diary_entries").select("id, source, media_asset_id").eq("id", a.data.entryId).is("deleted_at", null).maybeSingle())) as any;
+  if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
+  if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
+  if (!artGenerator()) return { verdict: "good", issues: [] };
+  try {
+    return await assessPhoto(await loadInputPhoto(entry.media_asset_id, a.data.crop), artGenerator());
+  } catch {
+    return { verdict: "good", issues: [] }; // falha nossa não impede ninguém de tentar
+  }
+}
+
 export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: () => Promise<void>) => void) {
   const a = CreateJob.safeParse(args);
   if (!a.success) throw bad("INVALID", "Pedido inválido.");
@@ -112,6 +151,9 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
   if ((await countToday(ctx.user.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "Você chegou ao limite de artes de hoje. Amanhã tem mais.");
   if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "O Estúdio atingiu o limite de artes de hoje. Tente amanhã.");
+  // Foto inadequada não vira cobrança: bloqueia antes de reservar o crédito (avisos leves deixam seguir).
+  const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), gen).catch(() => null);
+  if (photoCheck?.verdict === "bad") throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
   const job = (await q(admin.from("generation_jobs").insert({
     owner_id: ctx.user.id, dog_id: entry.dog_id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
     aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
@@ -192,15 +234,7 @@ export async function processJob(jobId: string) {
       await q(admin.rpc("settle_credit", { p_job: jobId, p_op: "release" }));
       return;
     }
-    const media = (await q(admin.from("media_assets").select("private_storage_key, mime").eq("id", entry.media_asset_id).single())) as any;
-    const { data: file } = await admin.storage.from("media").download(media.private_storage_key);
-    if (!file) throw new ProviderError("PROVIDER_UNAVAILABLE", "foto de entrada indisponível");
-    let input = Buffer.from(await file.arrayBuffer());
-    if (job.crop) {
-      const m = await sharp(input).metadata();
-      const W = m.width ?? 1, H = m.height ?? 1;
-      input = await sharp(input).extract({ left: Math.round(job.crop.x * W), top: Math.round(job.crop.y * H), width: Math.max(16, Math.min(W - Math.round(job.crop.x * W), Math.round(job.crop.w * W))), height: Math.max(16, Math.min(H - Math.round(job.crop.y * H), Math.round(job.crop.h * H))) }).toBuffer();
-    }
+    let input = await loadInputPhoto(entry.media_asset_id, job.crop);
     input = await sharp(input).rotate().resize(1536, 1536, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
     const aspect = job.aspect as StudioAspect;
     const out = await gen.generate({ image: input, mime: "image/jpeg", prompt: buildStudioPrompt(preset, aspect), aspect, imageSize: imageSizeFor(aspect), premium: preset.premium });

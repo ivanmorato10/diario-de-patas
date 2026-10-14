@@ -292,7 +292,7 @@ describe("ciclo contínuo de missões (MUDANCAS-V2 §7)", () => {
 
     // Dias depois a mesma missão volta a ser sorteada e rende de novo.
     let day = "2026-10-13";
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 150; i++) {
       setDay(day);
       const p = (await loadSnapshot(db)).dailyPlan!;
       if (Object.values(p.slots).includes(plan.slots.A)) break;

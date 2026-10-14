@@ -9,7 +9,7 @@ import {
 import { REAL_MODE } from "@/config/mode";
 import { DomainError } from "@/data/demo-repository";
 import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
-import { FAILURE_PT, studioCreateJob, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
+import { FAILURE_PT, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
 import { composeArt } from "@/lib/compose-art";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
@@ -23,8 +23,18 @@ const CATEGORY_LOOK: Record<StudioCategory, { bg: string; fg: string }> = {
 };
 
 /** Vinheta decorativa do preset — “exemplo de estilo”, NÃO é prévia do resultado (briefing §21). */
+/** Exemplo real do estilo, feito com o Abu (public/estudio/<id>.webp); sem exemplo, a vinheta de cor da aba. */
 function PresetVignette({ preset }: { preset: StudioPreset }) {
   const look = CATEGORY_LOOK[preset.category];
+  const [broken, setBroken] = useState(false);
+  if (!broken) {
+    return (
+      <span className="preset-vignette preset-vignette--photo" style={{ background: look.bg }} aria-hidden="true">
+        <img src={`/estudio/${preset.id}.webp`} alt="" loading="lazy" width={180} height={180} onError={() => setBroken(true)} />
+        <span className="preset-vignette__tag">exemplo com o Abu</span>
+      </span>
+    );
+  }
   return (
     <span className="preset-vignette" style={{ background: look.bg, color: look.fg }} aria-hidden="true">
       <IconBrush size={22} />
@@ -117,6 +127,22 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
   );
 }
 
+function PhotoCheckNote({ check }: { check: PhotoCheck | "checking" | null }) {
+  if (!check) return null;
+  if (check === "checking") return <p className="caption" role="status">Conferindo se a foto vai dar uma arte bonita…</p>;
+  if (check.verdict === "good") return <p className="notice notice--positive small" role="status"><span>Foto boa para arte! 🐾</span></p>;
+  const bad = check.verdict === "bad";
+  return (
+    <div className={`notice ${bad ? "notice--error" : "notice--warn"} small`} role="status">
+      <span>
+        <strong>{bad ? "Essa foto não vai dar uma boa arte" : "A arte pode não ficar tão boa"}</strong>
+        <ul style={{ margin: "4px 0 0", paddingLeft: "1.1em" }}>{check.issues.map((i) => <li key={i.code}>{i.message}</li>)}</ul>
+        {bad ? <>Escolha outra foto ou use o recorte. Nenhum crédito foi usado.</> : <>Você pode seguir assim ou escolher outra foto.</>}
+      </span>
+    </div>
+  );
+}
+
 function Estudio() {
   const { ready, snap, unavailable } = useRequireDiary();
   const params = useSearchParams();
@@ -134,6 +160,7 @@ function Estudio() {
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<StudioJob | null>(null);
   const idem = useRef<string>("");
+  const [photoCheck, setPhotoCheck] = useState<PhotoCheck | "checking" | null>(null);
 
   const refresh = useCallback(async () => {
     if (!REAL_MODE) return;
@@ -171,6 +198,19 @@ function Estudio() {
     return () => clearInterval(t);
   }, [current, refresh]);
 
+  // Valida a foto (e o recorte) antes de gastar crédito: foto ruim dá arte ruim.
+  useEffect(() => {
+    if (!REAL_MODE || !photoId) return setPhotoCheck(null);
+    setPhotoCheck("checking");
+    let alive = true;
+    const t = setTimeout(() => {
+      studioCheckPhoto({ entryId: photoId, crop: cropOn ? crop : null })
+        .then((c) => { if (alive) setPhotoCheck(c); })
+        .catch(() => { if (alive) setPhotoCheck(null); });
+    }, cropOn ? 700 : 0);
+    return () => { alive = false; clearTimeout(t); };
+  }, [photoId, cropOn, crop]);
+
   const preset = presetId ? presetById(presetId) : undefined;
   const flags = useMemo(() => new Map((state?.presets ?? []).map((p) => [p.id, p])), [state]);
   const photos = useMemo(() => (snap?.entries ?? []).filter((e) => e.source !== "studio"), [snap]);
@@ -188,7 +228,7 @@ function Estudio() {
 
   const credits = preset ? flags.get(preset.id)?.credits ?? preset.credits : 0;
   const photo = photos.find((p) => p.id === photoId);
-  const canCreate = REAL_MODE && !!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy;
+  const canCreate = REAL_MODE && !!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad");
 
   async function create() {
     if (!canCreate || !preset || !photo) return;
@@ -251,7 +291,7 @@ function Estudio() {
           <>
             <section className="stack" aria-labelledby="st-foto">
               <h2 id="st-foto">1. Escolha a foto</h2>
-              <p className="caption">Dica: use uma foto com o cachorro bem visível e sozinho.</p>
+              <p className="caption">Dica: rostinho de frente, boa luz e o cachorro bem visível. A foto é conferida antes de gastar crédito.</p>
               {photos.length === 0 ? (
                 <div className="card stitched empty" style={{ boxShadow: "none" }}><p className="muted">Guarde uma foto no diário para criar a primeira arte.</p><Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link></div>
               ) : (
@@ -264,9 +304,10 @@ function Estudio() {
                 </div>
               )}
               {photo ? (
-                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>Tem mais de um cachorro? Recortar antes de enviar</span></label>
+                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>Recortar a foto (aproximar o cachorro ou escolher um só)</span></label>
               ) : null}
               {photo && cropOn ? <CropBox entryMediaId={photo.mediaId} value={crop} onChange={setCrop} /> : null}
+              {photo ? <PhotoCheckNote check={photoCheck} /> : null}
             </section>
 
             <section className="stack" aria-labelledby="st-tema">

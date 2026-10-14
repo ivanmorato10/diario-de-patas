@@ -91,7 +91,7 @@ export const STUDIO_MODELS = {
   normal: "gemini-nano-banana-2.1",
   premium: "gemini-3-pro-image",
   /** Checagem barata “há cachorro? há texto?” — só para devolver crédito, nunca para julgar a foto. */
-  check: "gemini-2.5-flash-lite",
+  check: "gemini-3.5-flash-lite",
 } as const;
 
 /** Custo estimado por arte em US$ (preços oficiais de 12/10/2026; confirmar antes de definir preço). */
