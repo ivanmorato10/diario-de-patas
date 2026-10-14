@@ -1,5 +1,6 @@
 "use client";
 
+import { XpRewardBar } from "@/components/xp-reward";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -344,7 +345,10 @@ function Estudio() {
         ) : state?.paused ? (
           <div className="notice notice--warn"><IconInfo /><span>A criação de artes está pausada no momento. O resto do diário segue normal.</span></div>
         ) : state ? (
-          <CreditMeter state={state} />
+          <>
+            <CreditMeter state={state} />
+            <XpRewardBar xpTotal={snap.xpTotal} compact />
+          </>
         ) : null}
 
         {current && ["queued", "processing"].includes(current.state) ? (

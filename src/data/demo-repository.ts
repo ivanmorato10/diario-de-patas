@@ -459,6 +459,8 @@ export interface SubmitResult {
   completion: MissionCompletion | null;
   /** XP total desta conclusão, incluindo medalhas. */
   xpAwarded: number;
+  /** Créditos do Estúdio ganhos por XP (só com conta). */
+  creditsEarned?: number;
   alreadyCompleted: boolean;
   /** Item de coleção avançado por uma missão do dia (sem XP extra). */
   advancedItem?: string;

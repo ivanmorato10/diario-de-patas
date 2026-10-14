@@ -1,5 +1,6 @@
 "use client";
 
+import { CreditEarned } from "@/components/xp-reward";
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -410,6 +411,7 @@ function ResultView({
             <p className="muted">{r!.alreadyCompleted ? "Essa missão já estava concluída — a foto foi guardada e os pontos não somam de novo." : `Guardada no álbum ${collectionTitle(collectionOf(r!.submission.missionId))}.`}</p>
             <p className="caption"><IconCheck size={14} style={{ verticalAlign: "-2px" }} /> Confirmada por você</p>
           </div>
+          <CreditEarned n={r!.creditsEarned ?? 0} />
           {r!.medals.map((id) => (
             <div key={id} className="notice notice--positive" role="status">
               <span className="mission-stamp mission-stamp--done anim-stamp" aria-hidden="true" style={{ flex: "none" }}><IconStar /></span>

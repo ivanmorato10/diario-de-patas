@@ -21,3 +21,10 @@ export const perCredit = (p: CreditPackage) => formatBRL(Math.round(p.priceCents
 
 /** Validade do Pix gerado (minutos). */
 export const PIX_EXPIRES_MINUTES = 30;
+
+/** Recompensa por usar o app: a cada XP_PER_CREDIT de XP em missões, 1 crédito grátis no Estúdio. */
+export const XP_PER_CREDIT = 200;
+export const xpReward = (xpTotal: number) => {
+  const into = xpTotal % XP_PER_CREDIT;
+  return { earned: Math.floor(xpTotal / XP_PER_CREDIT), into, missing: XP_PER_CREDIT - into, pct: Math.round((into / XP_PER_CREDIT) * 100) };
+};

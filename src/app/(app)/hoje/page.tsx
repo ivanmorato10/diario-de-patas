@@ -15,6 +15,7 @@ import { DomainError } from "@/data/demo-repository";
 import { DAILY_SLOTS, type DailySlot } from "@/config/cycle";
 import { activeSpecials, daysWithMemories, missionStatus } from "@/domain/cycle";
 import { levelFor, missionById } from "@/domain/missions";
+import { XpRewardBar } from "@/components/xp-reward";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -78,6 +79,8 @@ export default function Hoje() {
           </div>
           <p className="caption">{days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</p>
         </section>
+
+        <XpRewardBar xpTotal={snap.xpTotal} />
 
         {!hasFirst ? (
           <>

@@ -45,4 +45,15 @@ begin
   select * into x from pg_temp.c('S03', 12, true, '2027-10-25', '2027'); if x.xp <> 20 then raise exception 'S03 no ano seguinte'; end if;
   raise notice 'MISSÕES OK';
 end $$;
+-- Recompensa por XP: 1 crédito por marco, nunca em dobro.
+do $$
+declare total int; added int; u uuid := 'aaaaaaaa-0000-4000-8000-0000000000f1';
+begin
+  select coalesce(sum(amount), 0) into total from public.xp_ledger where dog_id = 'd0000000-0000-4000-8000-0000000000f1';
+  added := public.grant_xp_credits(u, 25);
+  if added <> total / 25 or added = 0 then raise exception 'XP→crédito: esperava %, veio %', total / 25, added; end if;
+  if public.grant_xp_credits(u, 25) <> 0 then raise exception 'XP→crédito em dobro'; end if;
+  if public.credit_available(u) <> added then raise exception 'saldo XP→crédito errado'; end if;
+  raise notice 'XP→CRÉDITO OK (% XP, % créditos)', total, added;
+end $$;
 rollback;

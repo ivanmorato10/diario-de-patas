@@ -23,6 +23,7 @@ import { after } from "next/server";
 import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
+import { XP_PER_CREDIT } from "@/config/credits";
 import {
   albumClientId, instanceKeyOf, toContact, toCustomAlbum, toDocument, toDog, toEntry, toHealthProfile, toMedication, toPlan, toProfile,
   toVaccine, toVisit, toWeight,
@@ -379,6 +380,8 @@ export async function submitMission(ctx: Ctx, args: unknown) {
   const r = res[0] ?? { xp_awarded: 0, already_completed: true, medals: [] };
   const advAfter = advItem && !advBefore ? await q(admin.from("collection_advances").select("item_id, via_mission_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) as any : null;
   const approved = a.status === "approved";
+  // Recompensa: cada 200 XP de missões vira 1 crédito do Estúdio (idempotente por marco).
+  const creditsEarned = approved && r.xp_awarded > 0 ? Number(await q(admin.rpc("grant_xp_credits", { p_owner: ctx.user.id, p_step: XP_PER_CREDIT }))) || 0 : 0;
   // Foto aprovada entra no álbum da missão (igual ao modo demo).
   if (approved) await setEntryAlbums(ctx, dog.id, a.entryId, [mission.collectionId], false);
   const instanceKey = instanceKeyOf(dog.id, mission.id, mission.kind === "daily" ? today : period ?? "once");
@@ -387,6 +390,7 @@ export async function submitMission(ctx: Ctx, args: unknown) {
     completion: approved ? { instanceKey, dogId: dog.id, missionId: mission.id, submissionId: a.requestKey, mode: "owner", completedAt: now(), entryId: a.entryId } : null,
     xpAwarded: r.xp_awarded, alreadyCompleted: approved && r.already_completed, medals: r.medals ?? [],
     advancedItem: advAfter && advAfter.via_mission_id === mission.id ? advItem : undefined,
+    creditsEarned,
   };
 }
 
