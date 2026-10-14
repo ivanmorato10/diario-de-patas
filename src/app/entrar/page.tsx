@@ -14,7 +14,7 @@ import { InstallAppLink, isStandalone } from "@/components/install-app";
  * 1) Splash: Abu com anéis pulsando, "Criar conta" e "Já tenho conta".
  * 2) Folha de entrada: Google (Gmail), Apple (iCloud), email com senha ou com link/código.
  * 3) Convite da família: leva para /convite (cada pessoa usa a própria conta).
- * Conta nova sem diário segue para a apresentação (/bem-vindo) e o cadastro do cachorro (/comecar).
+ * Conta nova sem diário vai para /adicionar: cadastrar um cachorro (apresentação + /comecar) ou usar um convite.
  */
 const safeNext = (n: string | null) => (n && n.startsWith("/") && !n.startsWith("//") ? n : "/");
 

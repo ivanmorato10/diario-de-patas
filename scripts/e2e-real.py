@@ -87,8 +87,10 @@ with sync_playwright() as p:
 
     # ---------- Conta A ----------
     login(a, "A")
-    a.goto(BASE + "/"); a.wait_for_url("**/bem-vindo", timeout=20000)
-    check("depois de entrar sem diário, vem a apresentação", eventually(lambda t: expect(a.get_by_role("button", name="Pular")).to_be_visible(timeout=t)))
+    a.goto(BASE + "/"); a.wait_for_url("**/adicionar", timeout=20000)
+    check("conta nova escolhe: cadastrar cachorro ou usar convite", eventually(lambda t: expect(a.get_by_role("link", name=re.compile("Cadastrar um cachorro"))).to_be_visible(timeout=t)) and a.get_by_role("button", name=re.compile("Tenho um código de convite")).is_visible())
+    a.get_by_role("link", name=re.compile("Cadastrar um cachorro")).click(); a.wait_for_url("**/bem-vindo", timeout=20000)
+    check("cadastrar leva à apresentação", eventually(lambda t: expect(a.get_by_role("button", name="Pular")).to_be_visible(timeout=t)))
     a.goto(BASE + "/entrar"); check("quem já entrou não volta ao login", "/entrar" not in a.url)
     a.goto(BASE + "/comecar"); a.get_by_label("Nome do cachorro").fill("Luna")
     a.locator("input[type=file]:not([capture])").first.set_input_files(photo(0)); a.wait_for_timeout(800)
@@ -240,6 +242,7 @@ with sync_playwright() as p:
     check(f"segundo cachorro com diário próprio ({st}, {snapP['dog']['name']}, {len(snapP.get('diaries') or [])} diários, créditos {credP})", st == 200 and snapP["dog"]["name"] == "Pepe" and len(snapP["diaries"]) == 2 and len(snapP["entries"]) == 0 and credP == 0)
     check("Bianca continua vendo só Luna", len(rpc(inv, "snapshot", {})[1].get("diaries") or []) == 1)
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
+    check("seletor tem 'Adicionar cachorro'", a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
     a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")
     check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     ctxI.close()

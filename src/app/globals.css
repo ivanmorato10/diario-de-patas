@@ -841,3 +841,13 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 /* Família: quem pode só ver não vê atalhos de guardar/editar. */
 html[data-role="viewer"] a[href^="/guardar"], html[data-role="viewer"] .edit-only { display: none !important; }
 .viewer-banner { background: var(--paper); color: var(--text-primary); text-align: center; font: 700 0.875rem/1.3 var(--font-body); padding: 8px 16px; border-bottom: 1px solid var(--border); }
+.choice-card { display: block; text-decoration: none; color: inherit; background: var(--surface, #fff); border: 2px solid var(--border); border-radius: 18px; padding: 16px; transition: border-color 150ms var(--ease), transform 150ms var(--ease); }
+a.choice-card, .choice-card__head { display: flex; align-items: center; gap: 14px; }
+a.choice-card:hover, .choice-card__head:hover { border-color: var(--brand-teal); }
+a.choice-card:active { transform: translateY(1px); }
+.choice-card__head { width: 100%; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.choice-card.is-open { border-color: var(--brand-teal); display: grid; gap: 14px; }
+.choice-card__icon { font-size: 2rem; line-height: 1; flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--paper); display: grid; place-items: center; }
+.choice-card__text { display: grid; gap: 4px; text-align: left; }
+.choice-card__text strong { font-size: 1.0625rem; }
+.choice-card__text span { font-size: 0.9375rem; color: var(--text-secondary, #6b5a48); }

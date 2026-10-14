@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /** Só caminhos internos conhecidos; qualquer outra coisa volta para o início (que decide entre Hoje e a apresentação). */
 const safeNext = (n: string | null | undefined) => {
   if (!n || !n.startsWith("/") || n.startsWith("//")) return "/";
-  return /^\/(hoje|missoes|guardar|diario|albuns|cuidados|config|sobre|estudio|comecar|bem-vindo|achadinhos|convite|redefinir-senha)(\/|\?|#|$)/.test(n) ? n : "/";
+  return /^\/(hoje|missoes|guardar|diario|albuns|cuidados|config|sobre|estudio|comecar|bem-vindo|achadinhos|convite|redefinir-senha|adicionar)(\/|\?|#|$)/.test(n) ? n : "/";
 };
 
 export async function GET(req: Request) {

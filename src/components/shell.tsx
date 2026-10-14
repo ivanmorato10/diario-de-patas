@@ -94,7 +94,7 @@ export function useRequireDiary() {
   const { snap, unavailable } = useStore();
   const router = useRouter();
   useEffect(() => {
-    if (snap && !snap.dog) router.replace("/bem-vindo");
+    if (snap && !snap.dog) router.replace(REAL_MODE ? "/adicionar" : "/bem-vindo");
   }, [snap, router]);
   return { ready: !!snap?.dog, snap, unavailable };
 }
