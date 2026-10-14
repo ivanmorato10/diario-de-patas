@@ -12,6 +12,7 @@ import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { InstallAppLink } from "@/components/install-app";
 import { AvatarCropSheet } from "@/components/avatar-crop";
+import { SharedAccess } from "@/components/shared-access";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -147,6 +148,7 @@ export default function Config() {
             <a href="#apagar" className="small">Excluir conta</a>
           </section>
         ) : null}
+        {REAL_MODE ? <SharedAccess /> : null}
 
         <ImportDemoCard />
 

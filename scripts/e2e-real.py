@@ -179,6 +179,7 @@ with sync_playwright() as p:
     # ---------- Foto de perfil: zoom e posição ----------
     rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
     a.goto(BASE + "/config"); a.wait_for_timeout(1500)
+    check("Ajustes mostra quem pode entrar e opção de ligar outra conta", eventually(lambda t: expect(a.get_by_role("heading", name="Quem pode entrar neste diário")).to_be_visible(timeout=t)) and a.get_by_role("button", name="+ Ligar outra conta Google").is_visible() and a.get_by_text("Email ·").count() >= 1)
     a.get_by_role("button", name="Ajustar zoom e posição").click()
     check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
     a.get_by_label("Zoom").fill("2.2")
