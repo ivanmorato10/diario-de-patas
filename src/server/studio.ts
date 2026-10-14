@@ -61,10 +61,11 @@ export async function studioState(ctx: Ctx) {
   if (gen) await q(admin.rpc("grant_test_credits", { p_owner: ctx.user.id, p_amount: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits) }));
   await reconcileStuck(ctx.user.id);
   await q(admin.rpc("grant_xp_credits", { p_owner: ctx.user.id, p_step: XP_PER_CREDIT })); // recompensa por missões
-  const [balance, jobs, usedToday] = await Promise.all([
+  const [balance, jobs, usedToday, consumed] = await Promise.all([
     q(admin.rpc("credit_available", { p_owner: ctx.user.id })),
     q(ctx.supa.from("generation_jobs").select("*").order("created_at", { ascending: false }).limit(30)),
     countToday(ctx.user.id),
+    admin.from("credit_ledger").select("amount").eq("owner_id", ctx.user.id).eq("operation", "consume"),
   ]);
   const presets = await presetsWithFlags();
   return {
@@ -74,6 +75,7 @@ export async function studioState(ctx: Ctx) {
     balance: balance as number,
     testCredits: true,
     creditsGranted: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits),
+    creditsUsed: ((consumed.data ?? []) as { amount: number }[]).reduce((t, r) => t + r.amount, 0),
     dailyUsed: usedToday,
     dailyLimit: env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount),
     presets: presets.map((p) => ({ id: p.id, enabled: p.enabled, credits: p.credits })),

@@ -763,3 +763,4 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .avatar-crop:active { cursor: grabbing; }
 .shared-avatar { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; background: var(--brand-soft); box-shadow: 0 0 0 5px var(--paper), 0 0 0 8px #63b4ad, 0 10px 24px rgba(31, 22, 13, 0.2); margin-bottom: 6px; }
 .shared-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.credit-meter__more { align-self: center; font-weight: 800; color: #fff; }

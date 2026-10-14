@@ -12,9 +12,12 @@ export default function Sobre() {
       <TopBar title="Sobre" back="/config" />
       <main className="main">
         <section className="stack-lg" aria-labelledby="historia">
-          <div className="intro-visual" style={{ minHeight: 230 }}>
-            <div className="intro-halo intro-halo--warm" aria-hidden="true" />
-            <div className="anim-pop"><div className="anim-float"><AbuMascot width={170} alt="Abu, o cachorro que inspirou o Diário de Patas, segurando o livro" /></div></div>
+          <div className="achados-hero">
+            <div className="achados-hero__abu"><AbuMascot width={96} alt="Abu, o cachorro que inspirou o Diário de Patas, segurando o livro" /></div>
+            <div>
+              <p className="studio-title" style={{ fontSize: "2rem", margin: 0 }}>Sobre o Diário</p>
+              <p className="muted" style={{ margin: 0 }}>Quem somos, como cuidamos dos seus dados e como o app funciona.</p>
+            </div>
           </div>
           <article className="stack intro-diary anim-rise about-letter" style={{ rotate: "-1deg" }}>
             <h1 id="historia">Nossa história</h1>

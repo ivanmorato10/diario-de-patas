@@ -14,7 +14,11 @@ export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave }:
 }) {
   const [crop, setCrop] = useState<AvatarCrop>(value ?? CENTER);
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
-  const SIZE = 220;
+  const SIZE = 200;
+  const start = value ?? CENTER;
+  const dirty = crop.x !== start.x || crop.y !== start.y || crop.zoom !== start.zoom;
+  // Fechar a janela (tocar fora, arrastar para baixo, voltar) também salva: ninguém perde o ajuste.
+  const close = () => { if (dirty) onSave(crop); onClose(); };
 
   function down(e: React.PointerEvent) {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -30,13 +34,14 @@ export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave }:
   const up = () => { drag.current = null; };
 
   return (
-    <Sheet open={open} onClose={onClose} labelledBy="crop-title">
+    <Sheet open={open} onClose={close} labelledBy="crop-title">
       <h2 id="crop-title">Ajustar foto de {name}</h2>
-      <p className="small muted">Arraste a foto para posicionar e use o zoom para aproximar o rostinho.</p>
+      <p className="small muted">Arraste a foto para posicionar e use o zoom para aproximar o rostinho. O ajuste é salvo ao fechar.</p>
       <div className="avatar-crop" style={{ width: SIZE, height: SIZE }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         role="img" aria-label="Prévia da foto de perfil">
         <MediaImage id={mediaId} variant="display" alt="" className="avatar__img" style={{ ...avatarImgStyle(crop), pointerEvents: "none" }} />
       </div>
+      <button type="button" className="btn btn--primary btn--block" onClick={close}>{dirty ? "Salvar ajuste" : "Pronto"}</button>
       <div className="field">
         <label htmlFor="crop-zoom">Zoom</label>
         <input id="crop-zoom" type="range" min={1} max={3} step={0.05} value={crop.zoom} onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })} />
@@ -51,10 +56,7 @@ export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave }:
           <input id="crop-y" type="range" min={0} max={100} value={crop.y} onChange={(e) => setCrop({ ...crop, y: Number(e.target.value) })} />
         </div>
       </div>
-      <div className="stack">
-        <button type="button" className="btn btn--primary btn--block" onClick={() => { onSave(crop); onClose(); }}>Salvar ajuste</button>
-        <button type="button" className="btn btn--ghost btn--block" onClick={() => setCrop(CENTER)}>Voltar ao centro</button>
-      </div>
+      <button type="button" className="btn btn--ghost btn--block" onClick={() => setCrop(CENTER)}>Voltar ao centro</button>
     </Sheet>
   );
 }

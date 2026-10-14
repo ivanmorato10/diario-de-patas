@@ -222,8 +222,13 @@ export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits"> & { docu
     const s = dueStatus(v.nextDate, today, windowDays);
     if (s === "soon" || s === "overdue") items.push({ kind: "vaccine", id: v.id, title: `${VACCINE_KINDS[v.kind]}: ${v.name}`, date: v.nextDate!, status: s, href: "/cuidados/vacinas" });
   }
+  // Consultas agendadas (data no futuro) aparecem como compromisso.
+  for (const v of h.visits.filter((x) => x.date > today)) {
+    const s = dueStatus(v.date, today, windowDays);
+    if (s === "soon") items.push({ kind: "visit", id: v.id, title: `Consulta marcada${v.reason ? `: ${v.reason}` : ""}`, date: v.date, status: s, href: "/cuidados/consultas" });
+  }
   // Consulta: só a próxima marcada mais recente conta (uma consulta nova cumpre a anterior).
-  const lastVisit = [...h.visits].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const lastVisit = [...h.visits].filter((x) => x.date <= today).sort((a, b) => b.date.localeCompare(a.date))[0];
   if (lastVisit?.nextDate) {
     const s = dueStatus(lastVisit.nextDate, today, windowDays);
     if (s === "soon" || s === "overdue") items.push({ kind: "visit", id: lastVisit.id, title: "Próxima consulta", date: lastVisit.nextDate, status: s, href: "/cuidados/consultas" });

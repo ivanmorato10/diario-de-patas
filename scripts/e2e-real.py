@@ -170,7 +170,12 @@ with sync_playwright() as p:
     a.goto(BASE + "/config"); a.wait_for_timeout(1500)
     a.get_by_role("button", name="Ajustar zoom e posição").click()
     check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
-    a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(1000)
+    a.get_by_label("Zoom").fill("2.2")
+    a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(2500)
+    saved = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
+    check(f"ajuste da foto de perfil salvo pela tela ({saved})", abs(float(saved.get("zoom", 0)) - 2.2) < 0.01)
+    a.reload(); a.wait_for_timeout(2000)
+    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header .avatar img").get_attribute("style") or ""))
 
     # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
     a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)
@@ -186,7 +191,7 @@ with sync_playwright() as p:
     html = v.content()
     img_status = v.evaluate("() => fetch(document.querySelector('figure img').src).then(r => r.status)")
     av_status = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")
-    check(f"álbum compartilhado mostra a foto de perfil com o ajuste ({av_status})", av_status == 200 and "scale(1.6)" in (v.locator(".shared-avatar img").get_attribute("style") or ""))
+    check(f"álbum compartilhado mostra a foto de perfil com o ajuste ({av_status})", av_status == 200 and "scale(2.2)" in (v.locator(".shared-avatar img").get_attribute("style") or ""))
     v.wait_for_timeout(800); v.screenshot(path=f"{OUT}/02-compartilhado.png", full_page=True)
     check("página compartilhada convida a criar conta (logo e botão)", v.locator('a[href="/entrar?modo=criar"]').count() >= 3)
     check(f"visitante sem conta vê só a seleção (1 foto, {img_status})", v.locator("figure.shared-photo").count() == 1 and img_status == 200 and v.get_by_role("heading", name="Para a vovó").is_visible())

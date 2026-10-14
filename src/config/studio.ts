@@ -114,4 +114,4 @@ export function buildStudioPrompt(preset: StudioPreset, aspect: StudioAspect): s
 }
 
 /** Limites de custo (variáveis de ambiente no servidor; estes são os padrões). */
-export const STUDIO_DEFAULTS = { testCredits: 5, dailyPerAccount: 5, maxDailyGenerations: 50, jobTimeoutMinutes: 10 } as const;
+export const STUDIO_DEFAULTS = { testCredits: 3, dailyPerAccount: 5, maxDailyGenerations: 50, jobTimeoutMinutes: 10 } as const;

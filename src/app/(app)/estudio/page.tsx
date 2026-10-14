@@ -82,22 +82,22 @@ function StudioEntryThumb({ entryId }: { entryId: string }) {
 
 /** Créditos com patinhas (disponíveis × usados) e barra de artes do dia. */
 function CreditMeter({ state }: { state: StudioState }) {
-  const total = Math.max(state.creditsGranted ?? state.balance, state.balance);
-  const used = Math.max(0, total - state.balance);
+  const used = state.creditsUsed ?? 0;
   const dayPct = state.dailyLimit ? Math.min(100, (state.dailyUsed / state.dailyLimit) * 100) : 0;
   return (
     <section className="credit-meter" aria-label="Seus créditos">
       <div className="credit-meter__top">
         <div>
           <span className="credit-meter__label">Seus créditos</span>
-          <span className="credit-meter__big">{state.balance}<small> de {total}</small></span>
+          <span className="credit-meter__big">{state.balance}<small> {state.balance === 1 ? "crédito" : "créditos"}</small></span>
         </div>
-        <span className="credit-meter__badge">{state.testCredits ? "teste · grátis" : "créditos"}</span>
+        <span className="credit-meter__badge">{state.creditsGranted ?? 3} de boas-vindas</span>
       </div>
       <div className="credit-meter__paws" role="img" aria-label={`${state.balance} disponíveis, ${used} usados`}>
-        {Array.from({ length: Math.min(total, 12) }, (_, i) => (
+        {Array.from({ length: Math.min(Math.max(state.balance, 1), 12) }, (_, i) => (
           <span key={i} className={i < state.balance ? "is-on" : ""} style={{ animationDelay: `${i * 70}ms` }}><Paw size={20} /></span>
         ))}
+        {state.balance > 12 ? <span className="credit-meter__more">+{state.balance - 12}</span> : null}
       </div>
       <p className="credit-meter__legend">{state.balance} {state.balance === 1 ? "disponível" : "disponíveis"} · {used} {used === 1 ? "usado" : "usados"}</p>
       <div className="credit-meter__day">
@@ -329,7 +329,7 @@ function Estudio() {
 
   return (
     <>
-      <TopBar title="Estúdio" />
+      <TopBar title="Estúdio" back="/hoje" />
       <main className="main">
         <div className="stack">
           <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>

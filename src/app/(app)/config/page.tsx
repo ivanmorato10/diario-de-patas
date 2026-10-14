@@ -18,7 +18,7 @@ import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/comp
 import { PhotoPicker } from "@/components/photo-picker";
 import { PreferencesFields, TimezoneSelect } from "@/components/profile-fields";
 import { DogAvatar } from "@/components/media";
-import { IconChevron, IconDownload, IconInfo } from "@/components/icons";
+import { IconChevron, IconInfo } from "@/components/icons";
 
 export default function Config() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -55,6 +55,8 @@ export default function Config() {
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !prefs || !repo) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
+  // Salvar perfil só fica ativo quando algo mudou.
+  const dirty = name.trim() !== dog.name || birth !== (dog.birthDate ?? "") || JSON.stringify(prefs) !== JSON.stringify(dog.preferences) || tz !== (snap.profile?.timezone ?? "");
 
   async function run(fn: () => Promise<unknown>, ok: string) {
     setMsg(null);
@@ -75,17 +77,6 @@ export default function Config() {
       await repo!.updateDog({ name, birthDate: birth || null, preferences: prefs! });
       await repo!.updateTimezone(tz);
     }, "Perfil salvo.");
-  }
-
-  async function doExport() {
-    const data = await repo!.exportMetadata();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `diario-de-patas-${snap!.today}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function wipe() {
@@ -128,7 +119,7 @@ export default function Config() {
             <span className="hint">Usado para organizar as datas do diário.</span>
           </div>
           {msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block">Salvar perfil</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={!dirty}>{dirty ? "Salvar alterações" : "Perfil salvo"}</button>
         </form>
 
         <section className="card stack" aria-labelledby="uso">
@@ -160,9 +151,7 @@ export default function Config() {
         <ImportDemoCard />
 
         <section className="stack" aria-labelledby="dados">
-          <h2 id="dados">Seus dados</h2>
-          <button type="button" className="btn btn--secondary btn--block" onClick={doExport}><IconDownload /> Exportar dados (JSON)</button>
-          <p className="caption">Inclui perfil, legendas, datas, álbuns e conquistas. As fotos você baixa uma a uma pelo Diário.</p>
+          <h2 id="dados">Mais</h2>
           <Link href="/achadinhos" className="card row-between" style={{ padding: 16 }}><span>🛍️ Achadinhos do Abu</span><IconChevron /></Link>
           <Link href="/sobre" className="card row-between" style={{ padding: 16 }}><span>Sobre o Diário de Patas</span><IconChevron /></Link>
           <InstallAppLink />

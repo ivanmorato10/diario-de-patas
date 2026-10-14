@@ -26,7 +26,7 @@ export default function Consultas() {
   if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
   const { visits } = snap.health;
   const today = snap.today;
-  const latestId = visits[0]?.id;
+  const latestId = visits.find((v) => v.date <= today)?.id;
 
   const openNew = () => { setError(null); setAttach([]); setEditing({ form: { date: today, clinic: "", vet: "", reason: "", notes: "", nextDate: "" } }); };
   const openEdit = (v: Visit) => { setError(null); setAttach([]); setEditing({ id: v.id, form: { date: v.date, clinic: v.clinic, vet: v.vet, reason: v.reason, notes: v.notes, nextDate: v.nextDate ?? "" } }); };
@@ -35,7 +35,6 @@ export default function Consultas() {
   async function submit() {
     if (!editing) return;
     const f = editing.form;
-    if (f.date > today) return setError("A data da consulta deve ser até hoje. Para uma consulta marcada, use “Próxima consulta”.");
     const prev = editing.id ? visits.find((v) => v.id === editing.id) : null;
     const ok = await run(async () => {
       // Anexos viram Documentos (§4.3, §5) ligados à consulta.
@@ -50,14 +49,14 @@ export default function Consultas() {
     <>
       <TopBar title="Consultas e visitas" back="/cuidados" />
       <main className="main">
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Registrar consulta</button>
+        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Registrar ou agendar consulta</button>
         {visits.length === 0 ? <p className="muted">Nenhuma consulta registrada. Anote data, clínica, motivo e as orientações que recebeu.</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {visits.map((v) => (
             <li key={v.id} className="card stack" style={{ padding: 14, gap: 6 }}>
               <div className="row-between" style={{ alignItems: "flex-start" }}>
                 <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <span className="caption">{formatCivilDate(v.date)}</span>
+                  <span className="caption">{formatCivilDate(v.date)}{v.date > today ? <> · <span className="chip" style={{ padding: "1px 8px" }}>Agendada · {dueText(v.date, today)}</span></> : null}</span>
                   <strong style={{ overflowWrap: "anywhere" }}>{v.reason || "Consulta"}</strong>
                 </span>
                 <RowActions label={`consulta de ${formatCivilDate(v.date)}`} onEdit={() => openEdit(v)} onDelete={() => setToDelete(v)} />
@@ -76,9 +75,9 @@ export default function Consultas() {
                   {v.documentIds.map((id) => snap.health.documents.find((d) => d.id === id)).filter((d) => !!d).map((d) => <DocumentButtons key={d!.id} doc={d!} compact />)}
                 </div>
               ) : null}
-              <Link href={`/guardar?missao=visita-ao-veterinario&data=${v.date}`} className="btn btn--ghost btn--small" style={{ alignSelf: "flex-start" }}>
+              {v.date <= today ? <Link href={`/guardar?missao=visita-ao-veterinario&data=${v.date}`} className="btn btn--ghost btn--small" style={{ alignSelf: "flex-start" }}>
                 <IconCamera size={18} /> Guardar uma foto desta visita
-              </Link>
+              </Link> : null}
             </li>
           ))}
         </ul>
@@ -88,7 +87,7 @@ export default function Consultas() {
       <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Editar consulta" : "Nova consulta"} onSubmit={submit} busy={busy} error={error}>
         {editing ? (
           <>
-            <Field id="cdate" label="Data" type="date" max={today} value={editing.form.date} onChange={(v) => set({ date: v })} />
+            <Field id="cdate" label="Data (pode ser uma consulta marcada no futuro)" type="date" value={editing.form.date} onChange={(v) => set({ date: v })} />
             <Field id="cclinic" label="Clínica" optional value={editing.form.clinic} onChange={(v) => set({ clinic: v })} maxLength={120} />
             <Field id="cvet" label="Veterinário" optional value={editing.form.vet} onChange={(v) => set({ vet: v })} maxLength={120} />
             <Field id="creason" label="Motivo" optional value={editing.form.reason} onChange={(v) => set({ reason: v })} maxLength={200} placeholder="Ex.: consulta de rotina" />
