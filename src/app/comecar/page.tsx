@@ -74,6 +74,7 @@ export default function Comecar() {
               <h1>{another && snap?.dog ? "Mais um cachorro na família!" : "Vamos criar o diário"}</h1>
               <AbuSays>{another && snap?.dog ? "Que legal, mais um amigo! Ele ganha um diário só dele, com missões e créditos próprios." : "Me conta: como se chama o seu melhor amigo?"}</AbuSays>
               <p className="muted">Só o nome é obrigatório. O resto você ajusta quando quiser.</p>
+              {another ? null : <p className="small">Recebeu um convite da família? <Link href="/convite">Usar código de convite</Link></p>}
             </div>
 
             <div className="field">

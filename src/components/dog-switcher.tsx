@@ -59,6 +59,7 @@ export function DogSwitcher({ dog }: { dog: Dog }) {
         <div className="stack" style={{ gap: 8 }}>
           <button type="button" className="btn btn--secondary btn--block" onClick={() => go("/comecar?novo=1")}>+ Novo cachorro</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => go("/config#familia")}>👨‍👩‍👧 Família e convites</button>
+          <button type="button" className="btn btn--ghost btn--block" onClick={() => go("/convite")}>🎟️ Tenho um código de convite</button>
           <Link href="/config" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>⚙️ Perfil de {dog.name} e ajustes</Link>
         </div>
       </Sheet>
