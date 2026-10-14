@@ -58,7 +58,6 @@ export function DogSwitcher({ dog }: { dog: Dog }) {
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack" style={{ gap: 8 }}>
           <button type="button" className="btn btn--secondary btn--block" onClick={() => go("/adicionar")}>+ Adicionar cachorro</button>
-          <button type="button" className="btn btn--ghost btn--block" onClick={() => go("/config#familia")}>👨‍👩‍👧 Família e convites</button>
           <Link href="/config" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>⚙️ Perfil de {dog.name} e ajustes</Link>
         </div>
       </Sheet>
