@@ -1,5 +1,6 @@
 "use client";
 
+import { petText } from "@/domain/pet-text";
 import { CreditEarned } from "@/components/xp-reward";
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -212,7 +213,7 @@ function GuardarInner() {
             {mission ? (
               <div className="card card--soft stack" style={{ gap: 4 }}>
                 <span className="caption">O que precisa aparecer</span>
-                <p style={{ fontWeight: 600 }}>{mission.criterion}</p>
+                <p style={{ fontWeight: 600 }}>{petText(mission.criterion, snap.dog.name)}</p>
               </div>
             ) : <p className="page-note">Qualquer momento vale. Fotos antigas da galeria também — dá para escolher várias de uma vez.</p>}
             {room === 0 ? (
@@ -316,7 +317,7 @@ function GuardarInner() {
             ) : <div className="skeleton photo" aria-hidden="true" />}
             <div className="card card--soft stack" style={{ gap: 4 }}>
               <span className="caption">Critério</span>
-              <p style={{ fontWeight: 600 }}>{mission!.criterion}</p>
+              <p style={{ fontWeight: 600 }}>{petText(mission!.criterion, snap.dog.name)}</p>
             </div>
             {missionStateNow === "completed" ? (
               <div className="notice notice--info" role="status"><IconInfo /><span>Essa missão já foi concluída. A foto entra no álbum, mas os pontos não somam de novo.</span></div>

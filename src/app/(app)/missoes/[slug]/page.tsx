@@ -1,5 +1,6 @@
 "use client";
 
+import { petText } from "@/domain/pet-text";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { missionById, missionBySlug } from "@/domain/missions";
@@ -24,6 +25,7 @@ export default function MissaoDetalhe() {
     return (<><TopBar back="/missoes" /><main className="main"><div className="card empty"><h1>Missão não encontrada</h1><Link href="/missoes" className="btn btn--secondary">Ver missões</Link></div></main></>);
   }
   const ctx = cycleContext(snap)!;
+  const dogName = snap.dog.name;
   const state: CycleState = missionStatus(mission, ctx);
   const prereq = mission.prerequisiteId ? missionById(mission.prerequisiteId) : null;
   const sets = setsContaining(mission.id).map((id) => PERMANENT_SETS.find((s) => s.id === id)!.title);
@@ -42,14 +44,14 @@ export default function MissaoDetalhe() {
             <span className="caption" style={{ fontWeight: 600 }}>{KIND_LABEL[mission.kind] ? `${KIND_LABEL[mission.kind]} · ` : ""}{collectionTitle(mission.collectionId)}</span>
           </div>
           <h1>{title}</h1>
-          <p>{mission.description}</p>
+          <p>{petText(mission.description, dogName)}</p>
           {mission.optional && mission.kind === "once" ? <span className="chip chip--neutral" style={{ alignSelf: "flex-start" }}>Opcional</span> : null}
         </section>
 
         <section className="card stack" aria-label="Detalhes da missão">
           <div className="stack" style={{ gap: 4 }}>
             <span className="caption">O que precisa aparecer na foto</span>
-            <p style={{ fontWeight: 600 }}>{mission.criterion}</p>
+            <p style={{ fontWeight: 600 }}>{petText(mission.criterion, dogName)}</p>
           </div>
           <dl className="stack small" style={{ margin: 0, gap: 8 }}>
             <div className="row-between"><dt className="muted">Pontos</dt><dd style={{ margin: 0 }}><span className="chip chip--reward">+{mission.xp} XP</span></dd></div>
@@ -63,7 +65,7 @@ export default function MissaoDetalhe() {
           {mission.homeAlternative ? (
             <div className="stack" style={{ gap: 4 }}>
               <span className="caption">Alternativa em casa</span>
-              <p className="small">{mission.homeAlternative}</p>
+              <p className="small">{petText(mission.homeAlternative, dogName)}</p>
             </div>
           ) : null}
         </section>

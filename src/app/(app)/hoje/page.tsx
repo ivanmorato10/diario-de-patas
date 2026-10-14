@@ -1,5 +1,6 @@
 "use client";
 
+import { petText } from "@/domain/pet-text";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -113,7 +114,7 @@ export default function Hoje() {
                   </div>
                 </div>
                 <div className="stack" style={{ padding: 20 }}>
-                  <p>{w.mission.description}</p>
+                  <p>{petText(w.mission.description, dog.name)}</p>
                   <div className="row-between"><span className="chip chip--reward">+{w.mission.xp} XP</span><span className="btn btn--primary btn--small">Ver especial</span></div>
                 </div>
               </Link>
@@ -141,7 +142,7 @@ export default function Hoje() {
                       <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
                         <span className="caption">{slot.title}</span>
                         <strong>{m.title}</strong>
-                        <span className="small muted">{done ? "Feita hoje" : m.description}</span>
+                        <span className="small muted">{done ? "Feita hoje" : petText(m.description, dog.name)}</span>
                       </span>
                       <span className="chip chip--reward">{done ? <IconCheck size={14} /> : null}+{m.xp} XP</span>
                     </Link>

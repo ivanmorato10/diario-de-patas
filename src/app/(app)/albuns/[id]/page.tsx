@@ -1,5 +1,6 @@
 "use client";
 
+import { petText } from "@/domain/pet-text";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { LIMITS } from "@/config/business";
@@ -49,7 +50,7 @@ export default function AlbumDetalhe() {
     <>
       <TopBar title={col.title} back="/albuns" />
       <main className="main">
-        <p className="page-note">{col.description}</p>
+        <p className="page-note">{petText(col.description, snap?.dog?.name)}</p>
         <div><ShareAlbumButton entries={data.entries} defaultTitle={`${col.title} de ${snap.dog.name}`} /></div>
 
         {col.hasMissions ? (
