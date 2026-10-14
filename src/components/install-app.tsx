@@ -88,7 +88,7 @@ export function InstallAppLink({ variant = "default" }: { variant?: "default" | 
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="install-title">
         <h2 id="install-title">Diário de Patas na Tela de Início</h2>
-        <p className="muted">Fica com ícone próprio e abre em tela cheia, como um aplicativo. É grátis e não precisa da App Store.</p>
+        <p className="page-note">Fica com ícone próprio e abre em tela cheia, como um aplicativo. É grátis e não precisa da App Store.</p>
         {iosOtherBrowser ? (
           <p className="notice notice--info small"><span>Se não aparecer a opção, abra <strong>diario-de-patas.vercel.app</strong> no <strong>Safari</strong> e repita os passos.</span></p>
         ) : null}

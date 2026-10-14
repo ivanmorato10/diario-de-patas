@@ -36,7 +36,7 @@ export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave }:
   return (
     <Sheet open={open} onClose={close} labelledBy="crop-title">
       <h2 id="crop-title">Ajustar foto de {name}</h2>
-      <p className="small muted">Arraste a foto para posicionar e use o zoom para aproximar o rostinho. O ajuste é salvo ao fechar.</p>
+      <p className="page-note">Arraste a foto para posicionar e use o zoom para aproximar o rostinho. O ajuste é salvo ao fechar.</p>
       <div className="avatar-crop" style={{ width: SIZE, height: SIZE }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         role="img" aria-label="Prévia da foto de perfil">
         <MediaImage id={mediaId} variant="display" alt="" className="avatar__img" style={{ ...avatarImgStyle(crop), pointerEvents: "none" }} />

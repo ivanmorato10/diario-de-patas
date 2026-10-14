@@ -38,7 +38,7 @@ export default function Contatos() {
       <main className="main">
         <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Adicionar contato</button>
         <a className="btn btn--secondary btn--block" href={mapsUrl("veterinário", true)} target="_blank" rel="noopener">📍 Achar veterinário perto de mim</a>
-        {contacts.length === 0 ? <p className="muted">Guarde aqui o veterinário, uma emergência 24h, o pet sitter… para achar rápido quando precisar.</p> : null}
+        {contacts.length === 0 ? <p className="page-note">Guarde aqui o veterinário, uma emergência 24h, o pet sitter… para achar rápido quando precisar.</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {contacts.map((c) => (
             <li key={c.id} className="card stack" style={{ padding: 14, gap: 8 }}>

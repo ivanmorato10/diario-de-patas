@@ -55,7 +55,7 @@ export function SharedAccess() {
   return (
     <section className="card stack" id="acesso" aria-labelledby="acesso-titulo">
       <h2 id="acesso-titulo">Compartilhar o diário</h2>
-      <p className="small muted">Para outra pessoa (família, sócia) usar este mesmo diário no celular dela: gere um código e mande para ela. Ela toca em “Tenho um código de convite” na tela de entrada e digita. Fotos, missões, cuidados e créditos ficam compartilhados.</p>
+      <p className="page-note">Para outra pessoa (família, sócia) usar este mesmo diário no celular dela: gere um código e mande para ela. Ela toca em “Tenho um código de convite” na tela de entrada e digita. Fotos, missões, cuidados e créditos ficam compartilhados.</p>
       {code && left > 0 ? (
         <div className="invite-code">
           <span className="invite-code__label">Código de convite</span>

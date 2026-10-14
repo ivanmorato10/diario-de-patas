@@ -148,7 +148,7 @@ export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: Cy
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy={title}>
         <h2 id={title}>Usar esta foto numa missão</h2>
-        <p className="small muted">A foto continua a mesma — nada é enviado de novo. Depois você confirma se ela mostra o que a missão pede.</p>
+        <p className="page-note">A foto continua a mesma — nada é enviado de novo. Depois você confirma se ela mostra o que a missão pede.</p>
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: "55dvh", overflowY: "auto" }}>
           {options.map(({ m, state }) => (
             <li key={m.id}>

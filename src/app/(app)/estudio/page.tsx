@@ -364,7 +364,7 @@ function Estudio() {
           <>
             <section className="stack" aria-labelledby="st-foto">
               <h2 id="st-foto">1. Escolha a foto</h2>
-              <p className="caption">Dica: rostinho de frente, boa luz e o cachorro bem visível. A foto é conferida antes de gastar crédito.</p>
+              <p className="page-note">Dica: rostinho de frente, boa luz e o cachorro bem visível. A foto é conferida antes de gastar crédito.</p>
               {photos.length === 0 ? (
                 <div className="card stitched empty" style={{ boxShadow: "none" }}><p className="muted">Guarde uma foto no diário para criar a primeira arte.</p><Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link></div>
               ) : (

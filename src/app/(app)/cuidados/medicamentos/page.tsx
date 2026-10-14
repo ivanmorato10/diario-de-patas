@@ -75,7 +75,7 @@ export default function Medicamentos() {
       <TopBar title="Medicamentos" back="/cuidados" />
       <main className="main">
         <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Adicionar medicamento</button>
-        <p className="caption">Anote como foi orientado pelo veterinário. O app não calcula nem sugere doses.</p>
+        <p className="page-note">Anote como foi orientado pelo veterinário. O app não calcula nem sugere doses.</p>
         {meds.length === 0 ? <p className="muted">Nenhum medicamento registrado.</p> : null}
         {active.length ? (
           <section className="stack" aria-labelledby="em-uso">

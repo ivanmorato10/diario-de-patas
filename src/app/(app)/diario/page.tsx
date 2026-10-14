@@ -66,7 +66,7 @@ export default function Diario() {
             <AbuSays>Uma soneca também é uma grande conquista. Que tal guardar o primeiro momento?</AbuSays>
             <div className="card stitched empty" style={{ boxShadow: "none" }}>
               <h2>O diário de {dog.name} está em branco</h2>
-              <p className="muted">Toque em “Guardar momento” e escolha uma foto — pode ser antiga.</p>
+              <p className="page-note">Toque em “Guardar momento” e escolha uma foto — pode ser antiga.</p>
               <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>
             </div>
           </div>

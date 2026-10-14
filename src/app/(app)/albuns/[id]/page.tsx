@@ -117,7 +117,7 @@ function ShareAlbumButton({ entries, defaultTitle }: { entries: Snapshot["entrie
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="share-album-title">
         <h2 id="share-album-title">Compartilhar “{defaultTitle}”</h2>
-        <p className="small muted">Todas as fotos já estão marcadas. Toque numa foto para tirar do link. Quem recebe vê só estas fotos, sem precisar de conta, e você pode cancelar o link quando quiser em Ajustes.</p>
+        <p className="page-note">Todas as fotos já estão marcadas. Toque numa foto para tirar do link. Quem recebe vê só estas fotos, sem precisar de conta, e você pode cancelar o link quando quiser em Ajustes.</p>
         <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
           <button type="button" className="btn btn--ghost btn--small" onClick={() => setSelected(new Set(entries.map((e) => e.id)))}>Marcar todas</button>
           <button type="button" className="btn btn--ghost btn--small" onClick={() => setSelected(new Set())}>Desmarcar todas</button>
@@ -197,7 +197,7 @@ function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; al
 
       <Sheet open={mode === "add"} onClose={() => setMode("none")} labelledBy="add-title">
         <h2 id="add-title">Adicionar a “{title}”</h2>
-        <p className="small muted">Toque nas fotos que quer colocar neste álbum. Elas continuam no diário e nos outros álbuns.</p>
+        <p className="page-note">Toque nas fotos que quer colocar neste álbum. Elas continuam no diário e nos outros álbuns.</p>
         <div className="grid-photos" style={{ maxHeight: "50dvh", overflowY: "auto" }}>
           {candidates.map((e) => (
             <button key={e.id} type="button" aria-pressed={picked.has(e.id)} aria-label={`${e.caption || "Foto"} de ${formatCivilDate(e.occurredDate)}`}
