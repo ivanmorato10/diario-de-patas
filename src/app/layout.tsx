@@ -1,13 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import { StoreProvider } from "@/data/store";
 import { ServiceWorker } from "@/components/service-worker";
+import { OfflineBanner } from "@/components/install-app";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Diário de Patas", template: "%s · Diário de Patas" },
   description: "Um diário com missões, fotos e lembranças do seu melhor amigo.",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/brand/favicon-64.png", apple: "/brand/apple-touch-icon.png" },
+  icons: { icon: "/brand/favicon-64.png", apple: [{ url: "/brand/apple-touch-icon.png", sizes: "180x180" }] },
+  // Tela de início do iPhone: abre sem a barra do navegador, com o nome curto e barra de status clara.
+  appleWebApp: { capable: true, title: "Diário de Patas", statusBarStyle: "default" },
+  other: { "mobile-web-app-capable": "yes", "apple-mobile-web-app-capable": "yes" },
+  formatDetection: { telephone: false },
   // Conteúdo é privado: nada de pré-visualização com fotos em Open Graph (§12).
   openGraph: { title: "Diário de Patas", description: "Pequenas aventuras. Memórias para sempre." },
   robots: { index: false, follow: false },
@@ -25,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body>
         <StoreProvider>{children}</StoreProvider>
+        <OfflineBanner />
         <ServiceWorker />
       </body>
     </html>

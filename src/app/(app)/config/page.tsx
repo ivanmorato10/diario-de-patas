@@ -10,6 +10,7 @@ import { REAL_MODE } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
+import { InstallAppLink } from "@/components/install-app";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -156,6 +157,7 @@ export default function Config() {
           <button type="button" className="btn btn--secondary btn--block" onClick={doExport}><IconDownload /> Exportar dados (JSON)</button>
           <p className="caption">Inclui perfil, legendas, datas, álbuns e conquistas. As fotos você baixa uma a uma pelo Diário.</p>
           <Link href="/sobre" className="card row-between" style={{ padding: 16 }}><span>Sobre o Diário de Patas</span><IconChevron /></Link>
+          <InstallAppLink />
         </section>
 
         <section className="card stack" aria-labelledby="apagar" style={{ borderColor: "#f1c4bf" }}>

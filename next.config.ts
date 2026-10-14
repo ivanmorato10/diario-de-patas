@@ -14,6 +14,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Service worker e manifesto sempre conferidos com o servidor (atualizações não ficam presas no cache).
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }, { key: "Service-Worker-Allowed", value: "/" }],
+      },
+      {
+        source: "/manifest.webmanifest",
+        headers: [{ key: "Cache-Control", value: "no-cache" }],
+      },
+      {
         // Página compartilhada: preferência para buscadores, não controle de acesso.
         source: "/s/:token*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],

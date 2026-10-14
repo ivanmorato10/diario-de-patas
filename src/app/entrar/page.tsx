@@ -7,6 +7,7 @@ import { REAL_MODE, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { AbuMascot } from "@/components/brand";
 import { IconInfo, Paw } from "@/components/icons";
+import { InstallAppLink, isStandalone } from "@/components/install-app";
 
 /**
  * Splash + entrada (primeira tela do app no modo real), nas cores do logo (verde-água, marrom, creme).
@@ -181,6 +182,7 @@ function Entrar() {
             <button type="button" className="sp-btn sp-btn--ghost" onClick={() => go("choose", "entrar")}>Já tenho conta</button>
           </div>
           <p className="sp-foot sp-in sp-in--5">Grátis · sem senha · privado até você compartilhar</p>
+          <div className="sp-in sp-in--5"><InstallAppLink variant="splash" /></div>
         </main>
       ) : (
         <>
@@ -231,7 +233,11 @@ function Entrar() {
                   <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" /></svg>
                 </div>
                 <h1 className="sp-sheet__title">Confira seu email</h1>
-                <p>Enviamos para <strong>{email.trim()}</strong>. Abra o email <strong>neste mesmo aparelho</strong> e toque no link, ou digite o código abaixo.</p>
+                {isStandalone() ? (
+                  <p>Enviamos para <strong>{email.trim()}</strong>. <strong>Digite aqui o código do email.</strong> No app instalado, o link do email abre no Safari, e não aqui.</p>
+                ) : (
+                  <p>Enviamos para <strong>{email.trim()}</strong>. Abra o email <strong>neste mesmo aparelho</strong> e toque no link, ou digite o código abaixo.</p>
+                )}
                 <form className="stack" onSubmit={verify}>
                   <div className="field">
                     <label htmlFor="code">Código</label>

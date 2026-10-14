@@ -19,3 +19,7 @@ e2e-studio-out/
 
 # Chaves privadas (Apple .p8 etc.) nunca no git
 *.p8
+
+# Artes de teste do Estúdio geradas pelo proprietário (fotos do Abu)
+Estudio Template/
+docs/*.png
