@@ -347,7 +347,7 @@ function Estudio() {
         ) : state ? (
           <>
             <CreditMeter state={state} />
-            <XpRewardBar xpMonth={snap.xpMonth} xpTotal={snap.xpTotal} compact />
+            <XpRewardBar xpMonth={snap.xpMonth} compact />
           </>
         ) : null}
 

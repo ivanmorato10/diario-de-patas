@@ -773,3 +773,6 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .xp-reward.is-done .xp-reward__bar > span { background: linear-gradient(90deg, #9adcd2, #63b4ad); }
 .xp-reward.is-done .xp-reward__bar i { border-color: #63b4ad; color: #63b4ad; }
 .med-due { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fff7f0; border-radius: 12px; padding: 8px 10px; font-size: 0.875rem; }
+.profile-xp { display: flex; flex-direction: column; gap: 2px; background: #fff7f0; border: 1px solid #ffd9bf; border-radius: 14px; padding: 10px 14px; }
+.profile-xp__num { font-family: var(--font-heading); font-weight: 800; font-size: 1.15rem; display: inline-flex; align-items: center; gap: 6px; }
+.profile-xp__num svg { color: var(--accent); }

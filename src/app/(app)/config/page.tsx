@@ -19,7 +19,8 @@ import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/comp
 import { PhotoPicker } from "@/components/photo-picker";
 import { PreferencesFields, TimezoneSelect } from "@/components/profile-fields";
 import { DogAvatar } from "@/components/media";
-import { IconChevron, IconInfo } from "@/components/icons";
+import { IconChevron, IconInfo, IconStar } from "@/components/icons";
+import { levelFor } from "@/domain/missions";
 
 export default function Config() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -104,6 +105,16 @@ export default function Config() {
                 {dog.photoMediaId ? <button type="button" className="btn btn--ghost btn--small" onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}>Remover foto</button> : null}
               </div>
             </div>
+            {(() => {
+              const lv = levelFor(snap.xpTotal);
+              return (
+                <div className="profile-xp">
+                  <span className="profile-xp__num"><IconStar size={16} /> {snap.xpTotal} XP total</span>
+                  <span className="small">Nível <strong>{lv.title}</strong>{lv.nextAt ? ` · faltam ${lv.nextAt - snap.xpTotal} XP para “${lv.nextTitle}”` : ""}</span>
+                  <span className="caption">O XP total soma todas as missões e nunca zera. Ele define o nível de {dog.name}.</span>
+                </div>
+              );
+            })()}
             <div className="field">
               <label htmlFor="name">Nome</label>
               <input id="name" className="input" value={name} maxLength={LIMITS.dogNameMaxChars} onChange={(e) => setName(e.target.value)} required />

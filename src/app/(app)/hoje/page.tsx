@@ -72,7 +72,7 @@ export default function Hoje() {
         </section>
 
 
-        <XpRewardBar xpMonth={snap.xpMonth} xpTotal={snap.xpTotal} levelLine={<><IconStar size={14} /> {level.title}{level.nextAt ? ` · ${level.nextAt - snap.xpTotal} XP até “${level.nextTitle}”` : ""} · {days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</>} />
+        <XpRewardBar xpMonth={snap.xpMonth} />
         <AchadinhosCard />
         <MedAlert meds={snap.health.medications} today={snap.today} dogName={dog.name} />
 
@@ -161,16 +161,6 @@ export default function Hoje() {
 
         {care.length ? <UpcomingCareCard items={care} today={snap.today} compact /> : null}
 
-        <section className="card stack" aria-labelledby="album-prog">
-          <div className="row-between">
-            <h2 id="album-prog" style={{ fontSize: "1.0625rem" }}>{collectionTitle(focusCollection)}</h2>
-            <Link href={`/albuns/${focusCollection}`} className="small">Abrir álbum</Link>
-          </div>
-          <p className="small muted">{colDone} de {colMissions.length} conquistas neste álbum</p>
-          <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={colMissions.length} aria-valuenow={colDone} aria-label={`Conquistas em ${collectionTitle(focusCollection)}`}>
-            <span style={{ width: `${(colDone / colMissions.length) * 100}%` }} />
-          </div>
-        </section>
 
         <section className="stack" aria-labelledby="last-title">
           <h2 id="last-title">Última lembrança</h2>
