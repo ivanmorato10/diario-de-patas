@@ -128,7 +128,42 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 - **Validação da foto do Estúdio:** luz, foco e resolução (grátis) + IA barata (há cachorro? rosto visível? tamanho?). Foto inadequada bloqueia antes de cobrar; problemas leves só avisam.
 - **Modelo de checagem trocado** para `gemini-3.5-flash-lite` (o 2.5 não está disponível para contas novas).
 - **Exemplos dos 28 estilos** com o Abu nos cartões do Estúdio (`public/estudio/`, feitos pelo proprietário no Gemini).
-- **Gemini:** chave da conta diariodepatas.app no `.env.local`; o projeto ainda responde como **Free tier** (geração de imagem bloqueada) — faturamento pendente.
+- **Gemini:** chave do projeto pago "Diario de Patas" (conta diariodepatas.app) no `.env.local` e na Vercel.
+
+## Teste de qualidade do Estúdio (13/10/2026) — aprovado
+
+Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com faturamento pré-pago), 28 estilos × 1 foto do Abu: 28/28 geradas, semelhança 5/5 em todas (checagem automática), nenhuma com texto. Custo total **US$ 1,22**. **Todos os 28 estilos aprovados pelo proprietário** para o lançamento. Estúdio ligado no site (GENERATION_PAUSED removido).
+
+| Estilo | Créditos | Custo médio | Tempo | Semelhança |
+|---|---|---|---|---|
+| Aniversário | 1 | US$ 0.036 | 15 s | 5/5 |
+| Natal acolhedor | 1 | US$ 0.036 | 14 s | 5/5 |
+| Halloween divertido | 1 | US$ 0.036 | 18 s | 5/5 |
+| Dia dos Animais (4/10) | 1 | US$ 0.036 | 14 s | 5/5 |
+| Festa Junina | 1 | US$ 0.036 | 13 s | 5/5 |
+| Páscoa | 1 | US$ 0.036 | 15 s | 5/5 |
+| Ano Novo | 1 | US$ 0.036 | 14 s | 5/5 |
+| Mãe/Pai de pet | 1 | US$ 0.036 | 13 s | 5/5 |
+| Estilo Diário de Patas | 1 | US$ 0.036 | 14 s | 5/5 |
+| Aquarela | 1 | US$ 0.036 | 13 s | 5/5 |
+| Desenho a lápis | 1 | US$ 0.036 | 12 s | 5/5 |
+| Retrato clássico | premium · 2 | US$ 0.136 | 17 s | 5/5 |
+| Pop art | 1 | US$ 0.036 | 9 s | 5/5 |
+| Animação 3D | 1 | US$ 0.036 | 15 s | 5/5 |
+| Pixel art | 1 | US$ 0.036 | 9 s | 5/5 |
+| Vitral | 1 | US$ 0.036 | 15 s | 5/5 |
+| Astronauta | 1 | US$ 0.036 | 23 s | 5/5 |
+| Super-herói | 1 | US$ 0.036 | 12 s | 5/5 |
+| Realeza | premium · 2 | US$ 0.136 | 17 s | 5/5 |
+| Chef | 1 | US$ 0.036 | 15 s | 5/5 |
+| Explorador | 1 | US$ 0.036 | 12 s | 5/5 |
+| Detetive | 1 | US$ 0.036 | 15 s | 5/5 |
+| Surfista | 1 | US$ 0.036 | 14 s | 5/5 |
+| Craque do futebol | 1 | US$ 0.036 | 15 s | 5/5 |
+| Figurinha para WhatsApp | 1 | US$ 0.036 | 14 s | 5/5 |
+| Papel de parede | 1 | US$ 0.052 | 20 s | 5/5 |
+| Cartão com mensagem | 1 | US$ 0.036 | 12 s | 5/5 |
+| Capa do álbum | 1 | US$ 0.036 | 15 s | 5/5 |
 
 ## Próximo passo
 
