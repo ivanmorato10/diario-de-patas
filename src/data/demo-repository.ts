@@ -4,6 +4,7 @@
  * Espelha as regras do servidor (idempotência, ledger único de XP, cotas) para que o fluxo
  * se comporte igual; em produção estas regras ficam no backend (Etapa C/D).
  */
+import { xpMonthOf } from "@/config/credits";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import { COLLECTIONS, type CollectionId } from "@/config/catalog";
 import { LIMITS } from "@/config/business";
@@ -159,6 +160,8 @@ export interface Snapshot {
   albumEntries: AlbumEntry[];
   completions: MissionCompletion[];
   xpTotal: number;
+  /** XP ganho no mês atual (fuso fixo do XP); zera na virada do mês. */
+  xpMonth: number;
   today: CivilDate;
   /** Ficha de cuidados — privada; nunca vai para compartilhamentos (§4). */
   health: HealthData;
@@ -188,6 +191,7 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
     albumEntries: await db.getAll("albumEntries"),
     completions,
     xpTotal: xp.reduce((s, e) => s + e.amount, 0),
+    xpMonth: xp.filter((e) => xpMonthOf(e.createdAt) === xpMonthOf(new Date())).reduce((s, e) => s + e.amount, 0),
     today,
     health: dogs[0] ? await loadHealth(db, dogs[0].id) : EMPTY_HEALTH,
     dailyPlan: dogs[0] ? await ensureDailyPlan(db, dogs[0], today) : null,

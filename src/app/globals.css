@@ -764,3 +764,11 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .shared-avatar { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; background: var(--brand-soft); box-shadow: 0 0 0 5px var(--paper), 0 0 0 8px #63b4ad, 0 10px 24px rgba(31, 22, 13, 0.2); margin-bottom: 6px; }
 .shared-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .credit-meter__more { align-self: center; font-weight: 800; color: #fff; }
+.xp-reward__counters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.xp-reward__counters span { background: #fff7f0; border-radius: 12px; padding: 8px 10px; display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+.xp-reward__counters small { font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; }
+.xp-reward__counters small:first-child { width: 100%; text-transform: uppercase; letter-spacing: 0.05em; }
+.xp-reward__counters b { font-family: var(--font-heading); font-size: 1.4rem; line-height: 1; }
+.xp-reward.is-done { border-color: #63b4ad; }
+.xp-reward.is-done .xp-reward__bar > span { background: linear-gradient(90deg, #9adcd2, #63b4ad); }
+.xp-reward.is-done .xp-reward__bar i { border-color: #63b4ad; color: #63b4ad; }

@@ -22,9 +22,16 @@ export const perCredit = (p: CreditPackage) => formatBRL(Math.round(p.priceCents
 /** Validade do Pix gerado (minutos). */
 export const PIX_EXPIRES_MINUTES = 30;
 
-/** Recompensa por usar o app: a cada XP_PER_CREDIT de XP em missões, 1 crédito grátis no Estúdio. */
-export const XP_PER_CREDIT = 200;
-export const xpReward = (xpTotal: number) => {
-  const into = xpTotal % XP_PER_CREDIT;
-  return { earned: Math.floor(xpTotal / XP_PER_CREDIT), into, missing: XP_PER_CREDIT - into, pct: Math.round((into / XP_PER_CREDIT) * 100) };
+/** Arte do mês: ao somar XP_MONTH_GOAL de XP no mês (fuso XP_TIMEZONE), 1 crédito — no máximo 1 por mês. */
+export const XP_MONTH_GOAL = 200;
+export const XP_TIMEZONE = "America/Sao_Paulo";
+/** Compatibilidade com o nome antigo. */
+export const XP_PER_CREDIT = XP_MONTH_GOAL;
+
+/** Mês civil (AAAA-MM) de um instante no fuso fixo do XP. */
+export const xpMonthOf = (d: Date | string) => new Intl.DateTimeFormat("en-CA", { timeZone: XP_TIMEZONE, year: "numeric", month: "2-digit" }).format(new Date(d)).slice(0, 7);
+
+export const monthReward = (xpMonth: number) => {
+  const reached = xpMonth >= XP_MONTH_GOAL;
+  return { reached, missing: Math.max(0, XP_MONTH_GOAL - xpMonth), pct: Math.min(100, Math.round((xpMonth / XP_MONTH_GOAL) * 100)) };
 };

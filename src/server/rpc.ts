@@ -23,7 +23,7 @@ import { after } from "next/server";
 import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
-import { XP_PER_CREDIT } from "@/config/credits";
+import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
 import { achadinhosInfo } from "./amazon";
 import {
   albumClientId, instanceKeyOf, toContact, toCustomAlbum, toDocument, toDog, toEntry, toHealthProfile, toMedication, toPlan, toProfile,
@@ -123,14 +123,14 @@ export async function snapshot(ctx: Ctx) {
   const dog = await dogOf(ctx, false);
   const today = todayOf(profile);
   if (!dog) {
-    return { profile: profile ? toProfile(profile) : null, dog: null, entries: [], albumEntries: [], completions: [], xpTotal: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
+    return { profile: profile ? toProfile(profile) : null, dog: null, entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
   }
   const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals] = await Promise.all([
     q(supa.from("diary_entries").select("*").is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*")),
     q(supa.from("album_entries").select("album_id, entry_id")),
     q(supa.from("mission_completions").select("id, completed_at, mission_instances!inner(template_id, period_key, dog_id), mission_submissions!mission_completions_accepted_submission_id_fkey(entry_id, id)")),
-    q(supa.from("xp_ledger").select("amount")),
+    q(supa.from("xp_ledger").select("amount, created_at")),
     q(supa.from("health_profiles").select("*").eq("dog_id", dog.id).maybeSingle()),
     q(supa.from("weights").select("*").order("date").order("created_at")),
     q(supa.from("vaccines").select("*").order("applied_date", { ascending: false })),
@@ -166,6 +166,7 @@ export async function snapshot(ctx: Ctx) {
     }),
     completions: comps,
     xpTotal: xp.reduce((s: number, r: any) => s + r.amount, 0),
+    xpMonth: xp.filter((r: any) => xpMonthOf(r.created_at) === xpMonthOf(new Date())).reduce((s: number, r: any) => s + r.amount, 0),
     today,
     health: {
       profile: hp ? toHealthProfile(hp) : null,
@@ -385,7 +386,8 @@ export async function submitMission(ctx: Ctx, args: unknown) {
   const advAfter = advItem && !advBefore ? await q(admin.from("collection_advances").select("item_id, via_mission_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) as any : null;
   const approved = a.status === "approved";
   // Recompensa: cada 200 XP de missões vira 1 crédito do Estúdio (idempotente por marco).
-  const creditsEarned = approved && r.xp_awarded > 0 ? Number(await q(admin.rpc("grant_xp_credits", { p_owner: ctx.user.id, p_step: XP_PER_CREDIT }))) || 0 : 0;
+  // Arte do mês: 200 XP no mês liberam 1 crédito, uma única vez por mês (idempotente no banco).
+  const creditsEarned = approved && r.xp_awarded > 0 && (await q(admin.rpc("grant_monthly_xp_credit", { p_owner: ctx.user.id, p_goal: XP_MONTH_GOAL }))) ? 1 : 0;
   // Foto aprovada entra no álbum da missão (igual ao modo demo).
   if (approved) await setEntryAlbums(ctx, dog.id, a.entryId, [mission.collectionId], false);
   const instanceKey = instanceKeyOf(dog.id, mission.id, mission.kind === "daily" ? today : period ?? "once");

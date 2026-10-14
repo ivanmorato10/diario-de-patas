@@ -14,7 +14,7 @@ import { civilDateInTz } from "@/domain/dates";
 import { adminClient, HttpError } from "./supabase";
 import { ProviderError, artGenerator } from "./art-generator";
 import { assessPhoto, type PhotoCheck } from "./photo-quality";
-import { XP_PER_CREDIT } from "@/config/credits";
+import { XP_MONTH_GOAL } from "@/config/credits";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { user: User; supa: SupabaseClient };
@@ -60,7 +60,7 @@ export async function studioState(ctx: Ctx) {
   const gen = artGenerator();
   if (gen) await q(admin.rpc("grant_test_credits", { p_owner: ctx.user.id, p_amount: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits) }));
   await reconcileStuck(ctx.user.id);
-  await q(admin.rpc("grant_xp_credits", { p_owner: ctx.user.id, p_step: XP_PER_CREDIT })); // recompensa por missões
+  await q(admin.rpc("grant_monthly_xp_credit", { p_owner: ctx.user.id, p_goal: XP_MONTH_GOAL })); // arte do mês
   const [balance, jobs, usedToday, consumed] = await Promise.all([
     q(admin.rpc("credit_available", { p_owner: ctx.user.id })),
     q(ctx.supa.from("generation_jobs").select("*").order("created_at", { ascending: false }).limit(30)),

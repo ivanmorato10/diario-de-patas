@@ -56,4 +56,17 @@ begin
   if public.credit_available(u) <> added then raise exception 'saldo XP→crédito errado'; end if;
   raise notice 'XP→CRÉDITO OK (% XP, % créditos)', total, added;
 end $$;
+-- Arte do mês: XP do mês = pontos do mês; 1 crédito por mês, nunca em dobro; outro mês sem XP não ganha.
+do $$
+declare u uuid := 'aaaaaaaa-0000-4000-8000-0000000000f1'; m text := to_char(now() at time zone 'America/Sao_Paulo', 'YYYY-MM'); before int;
+begin
+  if public.monthly_xp(u, m) <> (select sum(amount) from public.xp_ledger where dog_id = 'd0000000-0000-4000-8000-0000000000f1') then raise exception 'XP do mês errado'; end if;
+  before := public.credit_available(u);
+  if not public.grant_monthly_xp_credit(u, 25) then raise exception 'arte do mês não liberada'; end if;
+  if public.grant_monthly_xp_credit(u, 25) then raise exception 'arte do mês em dobro'; end if;
+  if public.credit_available(u) <> before + 1 then raise exception 'saldo da arte do mês errado'; end if;
+  if public.grant_monthly_xp_credit(u, 25, '1999-01') then raise exception 'mês sem XP não pode liberar'; end if;
+  if public.grant_monthly_xp_credit(u, 100000) then raise exception 'abaixo da meta não pode liberar'; end if;
+  raise notice 'ARTE DO MÊS OK';
+end $$;
 rollback;

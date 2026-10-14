@@ -49,7 +49,7 @@ const blobCache = new Map<string, Promise<Blob | null>>();
 
 function emptySnapshot(): Snapshot {
   const today = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  return { profile: null, dog: null, entries: [], albumEntries: [], completions: [], xpTotal: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
+  return { profile: null, dog: null, entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
 }
 
 export function realRepository(): Repository {

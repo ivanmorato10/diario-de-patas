@@ -66,12 +66,12 @@ export default function Hoje() {
           <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="lg" />
           <div className="stack" style={{ gap: 2, minWidth: 0 }}>
             <h1 id="dog-title" style={{ overflowWrap: "anywhere" }}>Diário de {dog.name}</h1>
-            <p className="small muted">{level.title} · {snap.xpTotal} XP</p>
+            <p className="small muted">{level.title} · {snap.xpTotal} XP total</p>
           </div>
         </section>
 
 
-        <XpRewardBar xpTotal={snap.xpTotal} levelLine={<><IconStar size={14} /> <strong>{snap.xpTotal} XP</strong> · {level.title}{level.nextAt ? ` · ${level.nextAt - snap.xpTotal} XP até “${level.nextTitle}”` : ""} · {days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</>} />
+        <XpRewardBar xpMonth={snap.xpMonth} xpTotal={snap.xpTotal} levelLine={<><IconStar size={14} /> {level.title}{level.nextAt ? ` · ${level.nextAt - snap.xpTotal} XP até “${level.nextTitle}”` : ""} · {days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</>} />
         <AchadinhosCard />
 
         {!hasFirst ? (
