@@ -178,7 +178,9 @@ with sync_playwright() as p:
     v = ctxV.new_page(); v.goto(share_url)
     html = v.content()
     img_status = v.evaluate("() => fetch(document.querySelector('figure img').src).then(r => r.status)")
-    check(f"visitante sem conta vê só a seleção (1 foto, {img_status})", v.locator("figure.polaroid").count() == 1 and img_status == 200 and v.get_by_role("heading", name="Para a vovó").is_visible())
+    v.wait_for_timeout(800); v.screenshot(path=f"{OUT}/02-compartilhado.png", full_page=True)
+    check("página compartilhada convida a criar conta (logo e botão)", v.locator('a[href="/entrar?modo=criar"]').count() >= 3)
+    check(f"visitante sem conta vê só a seleção (1 foto, {img_status})", v.locator("figure.shared-photo").count() == 1 and img_status == 200 and v.get_by_role("heading", name="Para a vovó").is_visible())
     check("página compartilhada sem dados de saúde, email ou noindex ausente",
           "V10" not in html and emails["A"] not in html and 'name="robots" content="noindex' in html)
     img_url = v.evaluate("() => document.querySelector('figure img').src")

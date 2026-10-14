@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AbuMascot } from "@/components/brand";
+import { Paw } from "@/components/icons";
 import { REAL_MODE } from "@/config/mode";
 import { formatCivilDate } from "@/domain/dates";
 import { resolveShare } from "@/server/rpc";
@@ -11,6 +13,40 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const SIGNUP = "/entrar?modo=criar";
+
+/** Faixa do topo: logo do Diário de Patas, que leva quem não tem conta para criar a sua. */
+function Brand() {
+  return (
+    <header className="shared-top">
+      <Link href={SIGNUP} className="shared-brand" aria-label="Diário de Patas — criar meu diário">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/favicon-64.png" alt="" width={40} height={40} />
+        <span>
+          <span className="shared-brand__name">Diário de Patas</span>
+          <span className="shared-brand__tag">Sempre juntos</span>
+        </span>
+      </Link>
+      <Link href={SIGNUP} className="shared-top__cta">Criar meu diário</Link>
+    </header>
+  );
+}
+
+/** Convite para quem recebeu o link: o diário do próprio cachorro, grátis. */
+function Invite() {
+  return (
+    <section className="shared-invite" aria-labelledby="convite">
+      <div className="shared-invite__art" aria-hidden="true"><AbuMascot width={120} /></div>
+      <div className="stack" style={{ gap: 8 }}>
+        <h2 id="convite">Seu cachorro também merece um diário</h2>
+        <p>Guarde as fotos, cumpra missões divertidas, acompanhe vacinas e transforme momentos em arte. Tudo privado, só seu, até você decidir compartilhar.</p>
+        <Link href={SIGNUP} className="shared-btn"><Paw size={18} /> Criar meu diário grátis</Link>
+        <span className="shared-invite__note">Sem senha · entre com Google, Apple ou email</span>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Página compartilhada (briefing §8.10, §12): só a seleção escolhida pelo dono, somente leitura,
  * sem login. Link inexistente, revogado ou expirado → a mesma mensagem neutra (não revela se existiu).
@@ -18,33 +54,58 @@ export const metadata: Metadata = {
 export default async function SharedPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const share = REAL_MODE ? await resolveShare(token).catch(() => null) : null;
+
   if (!share) {
     return (
-      <main className="main main--bare" style={{ alignItems: "center", textAlign: "center", paddingTop: 64 }}>
-        <AbuMascot width={150} className="anim-float" />
-        <h1>Este álbum não está disponível</h1>
-        <p className="muted">O link pode ter sido desativado ou não existir mais.</p>
-        <p className="caption">Diário de Patas</p>
-      </main>
+      <div className="shared">
+        <Brand />
+        <main className="shared-main">
+          <section className="shared-empty">
+            <AbuMascot width={140} className="anim-float" />
+            <h1>Este álbum não está disponível</h1>
+            <p>O link pode ter sido desativado por quem compartilhou ou não existir mais.</p>
+          </section>
+          <Invite />
+        </main>
+        <footer className="shared-foot">Diário de Patas · Sempre juntos</footer>
+      </div>
     );
   }
+
+  const dates = share.entries.map((e) => e.occurredDate).sort();
+  const range = dates.length ? (dates[0] === dates[dates.length - 1] ? formatCivilDate(dates[0]) : `${formatCivilDate(dates[0])} a ${formatCivilDate(dates[dates.length - 1])}`) : "";
+
   return (
-    <main className="main main--bare stack-lg" style={{ paddingTop: 24 }}>
-      <header className="stack" style={{ textAlign: "center", alignItems: "center" }}>
-        <h1 style={{ overflowWrap: "anywhere" }}>{share.title}</h1>
-        <p className="caption">{share.entries.length} {share.entries.length === 1 ? "lembrança" : "lembranças"} · Diário de Patas</p>
-      </header>
-      {share.entries.map((e, i) => (
-        <figure key={e.id} className="polaroid" style={{ margin: "6px 4px 14px", rotate: `${i % 2 ? 0.8 : -0.8}deg` }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/s/${token}/foto/${e.id}`} alt={e.caption ? `Foto: ${e.caption}` : "Foto do álbum"} className="photo" loading="lazy" decoding="async" />
-          <figcaption className="stack" style={{ gap: 2, padding: "8px 4px 4px" }}>
-            {e.caption ? <span className="polaroid__note">{e.caption}</span> : null}
-            <span className="caption">{formatCivilDate(e.occurredDate)}</span>
-          </figcaption>
-        </figure>
-      ))}
-      <p className="caption" style={{ textAlign: "center" }}>Diário de Patas · Sempre Juntos</p>
-    </main>
+    <div className="shared">
+      <Brand />
+      <main className="shared-main">
+        <section className="shared-hero">
+          <span className="shared-hero__kicker"><Paw size={16} /> Álbum compartilhado com você</span>
+          <h1>{share.title}</h1>
+          <p>{share.entries.length} {share.entries.length === 1 ? "lembrança" : "lembranças"}{range ? ` · ${range}` : ""}</p>
+        </section>
+
+        <section className={`shared-grid${share.entries.length === 1 ? " shared-grid--one" : ""}`} aria-label="Fotos do álbum">
+          {share.entries.map((e, i) => (
+            <figure key={e.id} className="shared-photo" style={{ rotate: `${[-1.2, 0.9, -0.5, 1.3][i % 4]}deg` }}>
+              <span className="shared-photo__tape" aria-hidden="true" />
+              <a href={`/s/${token}/foto/${e.id}`} target="_blank" rel="noopener" aria-label={`Abrir foto${e.caption ? `: ${e.caption}` : ""} em tamanho grande`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/s/${token}/foto/${e.id}`} alt={e.caption ? `Foto: ${e.caption}` : "Foto do álbum"} loading={i < 4 ? "eager" : "lazy"} decoding="async" />
+              </a>
+              <figcaption>
+                {e.caption ? <span className="shared-photo__note">{e.caption}</span> : null}
+                <span className="shared-photo__date">{formatCivilDate(e.occurredDate)}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </section>
+
+        <Invite />
+      </main>
+      <footer className="shared-foot">
+        Feito com carinho no <Link href={SIGNUP}>Diário de Patas</Link> · Este álbum é privado e só pode ser visto por quem tem o link.
+      </footer>
+    </div>
   );
 }
