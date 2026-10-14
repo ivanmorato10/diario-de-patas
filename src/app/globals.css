@@ -681,3 +681,31 @@ body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-are
 @keyframes making-shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
 @keyframes making-wand { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(12deg) scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .making__frame--art img, .making__shine, .making__wand, .credit-meter__paws span.is-on { animation: none !important; } }
+.credit-meter__buy { align-self: stretch; display: inline-flex; justify-content: center; align-items: center; gap: 8px; background: var(--paper); color: var(--text-primary); font-weight: 800; text-decoration: none; padding: 12px 16px; border-radius: 14px; box-shadow: 0 3px 0 rgba(31, 22, 13, 0.25); }
+
+/* Loja de créditos (Pix) */
+.shop-balance { margin: 0; display: inline-flex; align-items: center; gap: 6px; background: var(--paper); padding: 8px 14px; border-radius: 999px; font-weight: 600; align-self: flex-start; }
+.shop-balance svg { color: var(--accent); }
+.shop-packs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.shop-pack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 22px 8px 14px; border-radius: 18px; border: 2px solid var(--border); background: var(--surface); cursor: pointer; font: inherit; color: inherit; transition: transform 150ms var(--ease), border-color 150ms; }
+.shop-pack:hover { transform: translateY(-2px); }
+.shop-pack.is-selected { border-color: var(--brand-teal); background: #effaf7; box-shadow: 0 6px 18px rgba(99, 180, 173, 0.35); }
+.shop-pack__badge { position: absolute; top: -10px; left: 50%; translate: -50% 0; white-space: nowrap; background: var(--accent); color: #fff; font-size: 0.6875rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; }
+.shop-pack__credits { font-family: var(--font-heading); font-weight: 800; font-size: 2.2rem; line-height: 1; }
+.shop-pack__unit { font-size: 0.8125rem; color: var(--text-secondary); font-weight: 600; }
+.shop-pack__price { margin-top: 8px; font-weight: 800; font-size: 1.05rem; }
+.shop-pack__per { font-size: 0.75rem; color: var(--link); font-weight: 700; }
+.shop-history { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.shop-history li { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--surface); padding: 10px 14px; border-radius: 14px; font-size: 0.9375rem; }
+.pix-card { position: relative; background: var(--paper); border-radius: 24px; padding: 20px 18px; box-shadow: 0 10px 28px rgba(31, 22, 13, 0.12); display: flex; flex-direction: column; align-items: stretch; gap: 14px; overflow: hidden; }
+.pix-card--done { text-align: center; align-items: center; }
+.pix-card--done h2 { font-family: var(--font-hand); font-size: 2.4rem; letter-spacing: 0; }
+.pix-card__head { display: flex; justify-content: space-between; align-items: center; }
+.pix-card__amount { font-family: var(--font-heading); font-weight: 800; font-size: 1.8rem; }
+.pix-card__credits { display: inline-flex; align-items: center; gap: 6px; background: #effaf7; color: var(--link); font-weight: 800; padding: 6px 12px; border-radius: 999px; }
+.pix-qr { align-self: center; width: 220px; height: 220px; border-radius: 12px; background: #fff; padding: 8px; box-shadow: 0 2px 10px rgba(31, 22, 13, 0.1); image-rendering: pixelated; }
+.pix-qr--placeholder { display: grid; place-items: center; border: 2px dashed var(--border); color: var(--text-secondary); font-weight: 700; }
+.pix-steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; line-height: 1.45; font-size: 0.9375rem; }
+.pix-code { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; resize: none; }
+.pix-wait { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; font-weight: 700; color: var(--link); }
+.pix-timer { font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }

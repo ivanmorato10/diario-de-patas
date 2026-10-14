@@ -58,3 +58,15 @@ export const FAILURE_PT: Record<string, string> = {
   NOT_CONFIGURED: "O Estúdio ainda não está disponível. O crédito foi devolvido.",
   TECHNICAL: "Algo deu errado do nosso lado. O crédito foi devolvido.",
 };
+
+// ---------- Compra de créditos (Pix) ----------
+export interface CreditPurchase {
+  id: string; packageId: string; credits: number; amountCents: number;
+  status: "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
+  pixQr: string | null; pixQrBase64: string | null; expiresAt: string | null; createdAt: string; test: boolean;
+}
+export interface CreditShop { enabled: boolean; test: boolean; packages: { id: string; credits: number; priceCents: number; badge?: string }[]; purchases: CreditPurchase[] }
+export const creditShop = () => rpc<CreditShop>("creditShop");
+export const createPurchase = (packageId: string, idempotencyKey: string) => rpc<CreditPurchase>("createPurchase", { packageId, idempotencyKey });
+export const purchaseStatus = (id: string) => rpc<CreditPurchase>("purchaseStatus", { id });
+export const fakePayPurchase = (id: string) => rpc<{ ok: boolean }>("fakePayPurchase", { id });

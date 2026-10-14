@@ -103,6 +103,7 @@ function CreditMeter({ state }: { state: StudioState }) {
         <span>Hoje: {state.dailyUsed} de {state.dailyLimit} artes</span>
         <span className="credit-meter__bar" aria-hidden="true"><span style={{ width: `${dayPct}%` }} /></span>
       </div>
+      <Link href="/estudio/creditos" className="credit-meter__buy"><Paw size={16} /> Comprar créditos</Link>
     </section>
   );
 }
@@ -437,7 +438,7 @@ function Estudio() {
               <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
                 <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
               </button>
-              {REAL_MODE && state && preset && state.balance < credits ? <p className="small muted">Seus créditos de teste acabaram.</p> : null}
+              {REAL_MODE && state && preset && state.balance < credits ? <p className="small">Seus créditos acabaram. <Link href="/estudio/creditos">Comprar créditos</Link></p> : null}
               {preset && REAL_MODE ? <p className="caption">Custo estimado de IA: US$ {estimateCostUsd(preset, aspect ?? preset.aspect).toFixed(3)} (referência interna de teste).</p> : null}
             </section>
           </>
