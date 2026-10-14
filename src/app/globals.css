@@ -851,3 +851,5 @@ a.choice-card:active { transform: translateY(1px); }
 .choice-card__text { display: grid; gap: 4px; text-align: left; }
 .choice-card__text strong { font-size: 1.0625rem; }
 .choice-card__text span { font-size: 0.9375rem; color: var(--text-secondary, #6b5a48); }
+/* Selos do Hoje: mesma altura fixa (o emoji ✨ não pode esticar um deles). */
+.hoje-level, .hoje-xp { box-sizing: border-box; height: 28px; padding: 0 10px; font-size: 0.8125rem; line-height: 1; white-space: nowrap; }

@@ -69,7 +69,7 @@ export default function Hoje() {
             <h1 id="dog-title" className="hoje-title">Diário de {dog.name}</h1>
             <div className="hoje-badges">
               <span className="hoje-level"><IconStar size={14} /> {level.title}</span>
-              <span className="hoje-xp">{snap.xpTotal} XP total</span>
+              <span className="hoje-xp">✨ {snap.xpTotal} XP total</span>
             </div>
           </div>
         </section>
