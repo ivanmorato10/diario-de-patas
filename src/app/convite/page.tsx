@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { REAL_MODE } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { useStore } from "@/data/store";
-import { ROLE_PT, acceptInvite, previewInvite } from "@/data/family-client";
+import { ROLE_PT, acceptInvite, inviteFormatError, previewInvite } from "@/data/family-client";
 import type { DiaryRole } from "@/domain/types";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
@@ -30,6 +30,8 @@ function Convite() {
   }, []);
 
   async function look(c = code) {
+    const bad = inviteFormatError(c);
+    if (bad) return setError(bad);
     setError(null);
     setBusy(true);
     try { setInfo(await previewInvite(c)); } catch (e) { setInfo(null); setError(e instanceof Error ? e.message : "Convite inválido."); } finally { setBusy(false); }
@@ -57,6 +59,9 @@ function Convite() {
   return (
     <div className="sp sp--sheet">
       <header className="sp-top">
+        <button type="button" className="sp-back" aria-label="Voltar" onClick={() => (info ? (setInfo(null), setError(null)) : window.history.length > 1 ? router.back() : router.replace("/"))}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
         <div className="sp-top__emblem" style={{ width: 120, height: 120, borderRadius: "50%", background: "var(--paper)", display: "grid", placeItems: "end center", overflow: "hidden" }}><AbuMascot width={96} /></div>
       </header>
       <main className="sp-sheet">
@@ -66,9 +71,10 @@ function Convite() {
             <p className="page-note">Digite o código que a família mandou para você. Você entra com a sua própria conta.</p>
             <div className="field">
               <label htmlFor="codigo">Código do convite</label>
-              <input id="codigo" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" placeholder="PATA-XXXX-XXXX" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 16))} autoFocus />
+              <input id="codigo" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" placeholder="PATA-XXXX-XXXX" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().slice(0, 16)); setError(null); }} autoFocus />
             </div>
-            <button type="submit" className="sp-btn sp-btn--main" disabled={busy || code.replace(/[^A-Z0-9]/g, "").replace(/^PATA/, "").length < 8}>{busy ? "Conferindo…" : "Ver convite"}</button>
+            {error ? <p className="field-error" role="alert" style={{ margin: 0 }}>{error}</p> : null}
+            <button type="submit" className="sp-btn sp-btn--main" disabled={busy}>{busy ? "Conferindo…" : "Ver convite"}</button>
           </form>
         ) : (
           <div className="stack">
@@ -85,7 +91,7 @@ function Convite() {
             )}
           </div>
         )}
-        {error ? <p className="field-error" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
+        {error && info ? <p className="field-error" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
       </main>
     </div>
   );

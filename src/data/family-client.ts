@@ -10,6 +10,14 @@ export const acceptInvite = (code: string) => rpc<{ dogId: string }>("acceptInvi
 export const updateMember = (userId: string, role: DiaryRole) => rpc("updateMember", { userId, role });
 export const removeMember = (userId: string) => rpc("removeMember", { userId });
 
+/** Confere o formato antes de ir ao servidor; devolve a mensagem de erro ou null. */
+export function inviteFormatError(code: string) {
+  const n = code.toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^PATA/, "");
+  if (!n) return "Digite o código que você recebeu.";
+  if (n.length !== 8) return "Esse código não está completo. Ele tem este formato: PATA-XXXX-XXXX.";
+  return null;
+}
+
 /** Prévia pública do convite (funciona antes de entrar na conta). */
 export async function previewInvite(code: string): Promise<{ dogName: string; invitedBy: string; role: DiaryRole }> {
   const res = await fetch("/api/convite", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }) });

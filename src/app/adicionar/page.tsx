@@ -6,28 +6,50 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
+import { inviteFormatError, previewInvite } from "@/data/family-client";
 
 /**
  * Adicionar cachorro: um caminho só, para conta nova e para quem já tem diário.
  * 1) Cadastrar um cachorro (diário novo, a pessoa vira administradora).
  * 2) Entrar no diário de alguém com o código de convite da família.
  */
+const BACK = <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>;
+
 export default function Adicionar() {
   const { snap } = useStore();
   const router = useRouter();
   const [code, setCode] = useState("");
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const hasDog = !!snap?.dog;
-  const ok = code.replace(/[^A-Z0-9]/g, "").replace(/^PATA/, "").length === 8;
+
+  async function check(e: React.FormEvent) {
+    e.preventDefault();
+    const bad = inviteFormatError(code);
+    if (bad) return setError(bad);
+    setBusy(true);
+    setError(null);
+    try {
+      await previewInvite(code);
+      router.push(`/convite?codigo=${encodeURIComponent(code)}`);
+    } catch (er) {
+      setBusy(false);
+      setError(er instanceof Error ? er.message : "Convite inválido.");
+    }
+  }
 
   return (
     <div className="sp sp--sheet">
       <header className="sp-top">
         {hasDog ? (
-          <Link href="/hoje" className="sp-back" aria-label="Voltar">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
-          </Link>
-        ) : null}
+          <Link href="/hoje" className="sp-back" aria-label="Voltar">{BACK}</Link>
+        ) : (
+          // Conta nova sem diário: voltar = sair da conta e voltar para a tela de entrada.
+          <form method="post" action="/auth/sair" style={{ display: "contents" }}>
+            <button type="submit" className="sp-back" aria-label="Voltar para a tela de entrada (sai da conta)">{BACK}</button>
+          </form>
+        )}
         <div className="sp-top__emblem" style={{ width: 120, height: 120, borderRadius: "50%", background: "var(--paper)", display: "grid", placeItems: "end center", overflow: "hidden" }}><AbuMascot width={96} /></div>
       </header>
       <main className="sp-sheet">
@@ -46,13 +68,19 @@ export default function Adicionar() {
               <span className="choice-card__text"><strong>Tenho um código de convite</strong><span>Alguém da família me convidou para o diário do cachorro dele.</span></span>
             </button>
             {open ? (
-              <form className="stack" style={{ gap: 10 }} onSubmit={(e) => { e.preventDefault(); if (ok) router.push(`/convite?codigo=${encodeURIComponent(code)}`); }}>
+              <form className="stack" style={{ gap: 10 }} onSubmit={check} noValidate>
                 <label htmlFor="codigo" className="caption">Código do convite</label>
-                <input id="codigo" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" autoComplete="off" placeholder="PATA-XXXX-XXXX" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 16))} autoFocus />
-                <button type="submit" className="sp-btn sp-btn--main" disabled={!ok}><Paw size={18} /> Ver convite</button>
+                <input id="codigo" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" autoComplete="off" placeholder="PATA-XXXX-XXXX" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().slice(0, 16)); setError(null); }} aria-invalid={!!error} aria-describedby={error ? "codigo-erro" : undefined} autoFocus />
+                {error ? <p id="codigo-erro" className="field-error" role="alert" style={{ margin: 0 }}>{error}</p> : null}
+                <button type="submit" className="sp-btn sp-btn--main" disabled={busy}><Paw size={18} /> {busy ? "Conferindo…" : "Ver convite"}</button>
               </form>
             ) : null}
           </div>
+          {!hasDog ? (
+            <form method="post" action="/auth/sair" className="sp-switch" style={{ textAlign: "center" }}>
+              Entrou com a conta errada? <button type="submit">Sair</button>
+            </form>
+          ) : null}
         </div>
       </main>
     </div>

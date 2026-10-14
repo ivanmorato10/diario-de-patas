@@ -8,6 +8,7 @@ import { browserClient } from "@/data/supabase-browser";
 import { AbuMascot } from "@/components/brand";
 import { IconInfo, Paw } from "@/components/icons";
 import { InstallAppLink, isStandalone } from "@/components/install-app";
+import { inviteFormatError } from "@/data/family-client";
 
 /**
  * Splash + entrada (primeira tela do app no modo real), nas cores do logo (verde-água, marrom, creme).
@@ -200,6 +201,8 @@ function Entrar() {
 
   function redeem(e: React.FormEvent) {
     e.preventDefault();
+    const bad = inviteFormatError(invite);
+    if (bad) return setError(bad);
     window.location.assign(`/convite?codigo=${encodeURIComponent(invite)}`);
   }
 
@@ -285,7 +288,7 @@ function Entrar() {
                   <label htmlFor="invite">Código</label>
                   <input id="invite" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" autoComplete="one-time-code" placeholder="PATA-XXXX-XXXX" value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase().slice(0, 16))} autoFocus />
                 </div>
-                <button type="submit" className="sp-btn sp-btn--main" disabled={invite.replace(/[^A-Z0-9]/g, "").replace(/^PATA/, "").length < 8}>Ver convite</button>
+                <button type="submit" className="sp-btn sp-btn--main">Ver convite</button>
               </form>
             ) : step === "email" ? (
               <form className="stack" onSubmit={withPassword} noValidate>
