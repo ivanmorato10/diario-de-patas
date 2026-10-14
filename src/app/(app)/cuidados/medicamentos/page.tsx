@@ -1,5 +1,6 @@
 "use client";
 
+import { REAL_MODE } from "@/config/mode";
 import { useState } from "react";
 
 import { useStore } from "@/data/store";
@@ -8,9 +9,9 @@ import { HealthDisclaimer } from "@/components/health-ui";
 import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
 import { IconCheck, IconPlus } from "@/components/icons";
 import { formatCivilDate } from "@/domain/dates";
-import { medicationActive, type Medication } from "@/domain/health";
+import { MED_REPEAT, medNextDue, medicationActive, type MedRepeat, type Medication } from "@/domain/health";
 
-interface Form { name: string; dose: string; frequency: string; startDate: string; endDate: string; notes: string }
+interface Form { name: string; dose: string; frequency: string; repeat: MedRepeat; startDate: string; endDate: string; notes: string }
 
 export default function Medicamentos() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -26,10 +27,15 @@ export default function Medicamentos() {
   const active = meds.filter((m) => medicationActive(m, today));
   const others = meds.filter((m) => !medicationActive(m, today));
 
-  const openNew = () => { setError(null); setEditing({ form: { name: "", dose: "", frequency: "", startDate: today, endDate: "", notes: "" } }); };
-  const openEdit = (m: Medication) => { setError(null); setEditing({ id: m.id, form: { name: m.name, dose: m.dose, frequency: m.frequency, startDate: m.startDate, endDate: m.endDate ?? "", notes: m.notes } }); };
+  const openNew = () => { setError(null); setEditing({ form: { name: "", dose: "", frequency: "", repeat: "", startDate: today, endDate: "", notes: "" } }); };
+  const openEdit = (m: Medication) => { setError(null); setEditing({ id: m.id, form: { name: m.name, dose: m.dose, frequency: m.frequency, repeat: m.repeat ?? "", startDate: m.startDate, endDate: m.endDate ?? "", notes: m.notes } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
-  const submit = async () => { if (editing && (await run(() => repo!.saveMedication({ ...editing.form, endDate: editing.form.endDate || null }, editing.id)))) setEditing(null); };
+  const submit = async () => {
+    if (!editing) return;
+    const prev = editing.id ? meds.find((m) => m.id === editing.id) : null;
+    if (await run(() => repo!.saveMedication({ ...editing.form, endDate: editing.form.endDate || null, lastGiven: prev?.lastGiven ?? null }, editing.id))) setEditing(null);
+  };
+  const markGiven = (m: Medication) => run(() => repo!.saveMedication({ ...m, lastGiven: today }, m.id));
 
   const row = (m: Medication) => {
     const on = medicationActive(m, today);
@@ -49,6 +55,16 @@ export default function Medicamentos() {
             {m.endDate ? ` · ${m.endDate < today ? "terminou" : "até"} ${formatCivilDate(m.endDate)}` : " · sem data de fim"}
           </span>
         </div>
+        {m.repeat ? (() => {
+          const due = medNextDue(m);
+          return (
+            <div className="med-due">
+              <span>🔔 {MED_REPEAT[m.repeat]} · {due ? <>próxima dose: <strong>{formatCivilDate(due)}</strong>{due < today ? " (atrasada)" : due === today ? " (hoje)" : ""}</> : "tratamento encerrado"}{m.lastGiven ? ` · última: ${formatCivilDate(m.lastGiven)}` : ""}</span>
+              {due && due <= today ? <button type="button" className="btn btn--secondary btn--small" onClick={() => markGiven(m)}>Já dei hoje</button> : null}
+              {due && REAL_MODE ? <a className="btn btn--ghost btn--small" href={`/api/calendario?tipo=medicamento&id=${m.id}`}>📅 Lembrete no celular</a> : null}
+            </div>
+          );
+        })() : null}
         {m.notes ? <p className="small" style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{m.notes}</p> : null}
       </li>
     );
@@ -81,7 +97,14 @@ export default function Medicamentos() {
           <>
             <Field id="mname" label="Nome" value={editing.form.name} onChange={(v) => set({ name: v })} maxLength={80} />
             <Field id="mdose" label="Dose" optional value={editing.form.dose} onChange={(v) => set({ dose: v })} maxLength={80} placeholder="Como está na receita" />
-            <Field id="mfreq" label="Frequência" optional value={editing.form.frequency} onChange={(v) => set({ frequency: v })} maxLength={80} placeholder="Ex.: a cada 12 horas" />
+            <div className="field">
+              <label htmlFor="mrepeat">Repetir e avisar</label>
+              <select id="mrepeat" className="select" value={editing.form.repeat} onChange={(e) => set({ repeat: e.target.value as MedRepeat })}>
+                {(Object.keys(MED_REPEAT) as MedRepeat[]).map((k) => <option key={k} value={k}>{MED_REPEAT[k]}</option>)}
+              </select>
+              <span className="caption">O app avisa no dia da dose (ao abrir) e você pode pôr um lembrete no calendário do celular.</span>
+            </div>
+            <Field id="mfreq" label="Horário / como dar" optional value={editing.form.frequency} onChange={(v) => set({ frequency: v })} maxLength={80} placeholder="Ex.: de manhã, com comida" />
             <Field id="mstart" label="Início" type="date" value={editing.form.startDate} onChange={(v) => set({ startDate: v })} />
             <Field id="mend" label="Fim" optional type="date" value={editing.form.endDate} onChange={(v) => set({ endDate: v })} hint="Sem fim, o medicamento aparece como em uso." />
             <Field id="mnotes" label="Observações" optional multiline value={editing.form.notes} onChange={(v) => set({ notes: v })} maxLength={500} />

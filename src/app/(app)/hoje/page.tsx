@@ -17,6 +17,7 @@ import { activeSpecials, daysWithMemories, missionStatus } from "@/domain/cycle"
 import { levelFor, missionById } from "@/domain/missions";
 import { XpRewardBar } from "@/components/xp-reward";
 import { AchadinhosCard } from "@/components/achadinhos-card";
+import { MedAlert } from "@/components/med-alert";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -73,6 +74,7 @@ export default function Hoje() {
 
         <XpRewardBar xpMonth={snap.xpMonth} xpTotal={snap.xpTotal} levelLine={<><IconStar size={14} /> {level.title}{level.nextAt ? ` · ${level.nextAt - snap.xpTotal} XP até “${level.nextTitle}”` : ""} · {days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</>} />
         <AchadinhosCard />
+        <MedAlert meds={snap.health.medications} today={snap.today} dogName={dog.name} />
 
         {!hasFirst ? (
           <>

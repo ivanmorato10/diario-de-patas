@@ -772,3 +772,4 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .xp-reward.is-done { border-color: #63b4ad; }
 .xp-reward.is-done .xp-reward__bar > span { background: linear-gradient(90deg, #9adcd2, #63b4ad); }
 .xp-reward.is-done .xp-reward__bar i { border-color: #63b4ad; color: #63b4ad; }
+.med-due { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fff7f0; border-radius: 12px; padding: 8px 10px; font-size: 0.875rem; }

@@ -37,7 +37,7 @@ export const toVisit = (r: Row, documentIds: string[]): Visit => ({
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const toMedication = (r: Row): Medication => ({
-  id: r.id, dogId: r.dog_id, name: r.name, dose: r.dose, frequency: r.frequency, startDate: r.start_date, endDate: r.end_date, notes: r.notes,
+  id: r.id, dogId: r.dog_id, name: r.name, dose: r.dose, frequency: r.frequency, repeat: r.repeat ?? "", lastGiven: r.last_given ?? null, startDate: r.start_date, endDate: r.end_date, notes: r.notes,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const toContact = (r: Row): Contact => ({

@@ -418,7 +418,7 @@ export async function swapDaily(ctx: Ctx, args: unknown) {
 const CARE = {
   vaccines: { schema: VaccineSchema, row: (d: any) => ({ kind: d.kind, name: d.name, applied_date: d.appliedDate, next_date: d.nextDate, clinic: d.clinic, document_id: d.documentId }) },
   visits: { schema: VisitSchema, row: (d: any) => ({ date: d.date, clinic: d.clinic, vet: d.vet, reason: d.reason, notes: d.notes, next_date: d.nextDate }) },
-  medications: { schema: MedicationSchema, row: (d: any) => ({ name: d.name, dose: d.dose, frequency: d.frequency, start_date: d.startDate, end_date: d.endDate, notes: d.notes }) },
+  medications: { schema: MedicationSchema, row: (d: any) => ({ name: d.name, dose: d.dose, frequency: d.frequency, repeat: d.repeat, last_given: d.lastGiven, start_date: d.startDate, end_date: d.endDate, notes: d.notes }) },
   contacts: { schema: ContactSchema, row: (d: any) => ({ kind: d.kind, name: d.name, phone: d.phone, address: d.address, notes: d.notes }) },
 } as const;
 

@@ -5,7 +5,7 @@ Cria as contas pela API de administração (sem enviar email), entra com o códi
 testa isolamento e, no fim, exclui as duas contas pela própria tela de “Excluir conta”.
 Nunca imprime chaves.
 """
-import json, os, sys, tempfile, time, urllib.request, urllib.error, uuid, datetime
+import re, json, os, sys, tempfile, time, urllib.request, urllib.error, uuid, datetime
 from PIL import Image
 from playwright.sync_api import sync_playwright, expect
 
@@ -127,6 +127,17 @@ with sync_playwright() as p:
     a.get_by_role("dialog").get_by_role("button", name="Salvar").click()
     expect(a.get_by_text("Próxima em até 30 dias")).to_be_visible(timeout=20000)
 
+    # ---------- Remédio semanal: aviso na Hoje, "Já dei" e lembrete no calendário ----------
+    today = rpc(a, "snapshot", {})[1]["today"]
+    st, med = rpc(a, "saveCare", {"store": "medications", "input": {"name": "Vermífugo teste", "dose": "1 comprimido", "repeat": "weekly", "startDate": today}})
+    a.goto(BASE + "/hoje")
+    check("aviso 'Hora do remédio' na tela Hoje", eventually(lambda t: expect(a.get_by_text(re.compile("Hora do remédio"))).to_be_visible(timeout=t)))
+    a.get_by_role("button", name="Já dei").click(); a.wait_for_timeout(2500)
+    meds = rpc(a, "snapshot", {})[1]["health"]["medications"]
+    check("'Já dei' marca a dose de hoje", any(m["name"] == "Vermífugo teste" and m.get("lastGiven") == today for m in meds))
+    ics = a.evaluate("id => fetch('/api/calendario?tipo=medicamento&id=' + id).then(async r => [r.status, r.headers.get('content-type'), await r.text()])", med["id"])
+    check(f"lembrete .ics semanal ({ics[0]})", ics[0] == 200 and "text/calendar" in (ics[1] or "") and "RRULE:FREQ=WEEKLY" in ics[2])
+    b_ics = rpc(a, "deleteCare", {"store": "medications", "id": med["id"]})
     a.goto(BASE + "/cuidados/documentos"); a.get_by_role("button", name="Adicionar documento").click()
     a.locator("dialog[open] input[type=file]").set_input_files(pdf); a.wait_for_timeout(500)
     a.get_by_label("Título").fill("Carteira de vacinação"); a.get_by_role("dialog").get_by_role("button", name="Salvar").click()

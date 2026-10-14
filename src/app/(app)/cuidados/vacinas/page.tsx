@@ -1,5 +1,6 @@
 "use client";
 
+import { REAL_MODE } from "@/config/mode";
 import { useState } from "react";
 
 import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/components/document-ui";
@@ -67,6 +68,7 @@ export default function Vacinas() {
                   <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
                     <span className="small">Próxima: {formatCivilDate(v.nextDate)}{old ? "" : ` (${dueText(v.nextDate, today)})`}</span>
                     {old ? <span className="caption">Substituída por uma dose mais nova</span> : <DueBadge status={st} />}
+                    {!old && REAL_MODE && v.nextDate >= today ? <a className="btn btn--ghost btn--small" href={`/api/calendario?tipo=vacina&id=${v.id}`}>📅 Lembrete no celular</a> : null}
                   </div>
                 ) : <p className="caption">Sem próxima dose anotada.</p>}
                 {(() => { const d = v.documentId ? snap.health.documents.find((x) => x.id === v.documentId) : null; return d ? <DocumentButtons doc={d} compact /> : null; })()}

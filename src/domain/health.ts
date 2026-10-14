@@ -95,6 +95,10 @@ export const MedicationSchema = z
     name: text(80).min(1, "Informe o nome."),
     dose: optionalText(80),
     frequency: optionalText(80),
+    /** Repetição para o aviso ("" = sem aviso; uso contínuo descrito em `frequency`). */
+    repeat: z.enum(["", "daily", "weekly", "monthly", "quarterly", "yearly"]).default(""),
+    /** Última dose marcada como dada (a próxima conta a partir dela). */
+    lastGiven: civil.nullable().default(null),
     startDate: civil,
     endDate: civil.nullable().default(null),
     notes: optionalText(500),
@@ -206,8 +210,43 @@ export function medicationActive(m: Pick<Medication, "startDate" | "endDate">, t
   return m.startDate <= today && (!m.endDate || m.endDate >= today);
 }
 
+export const MED_REPEAT = { "": "Sem aviso", daily: "Todo dia", weekly: "Toda semana", monthly: "Todo mês", quarterly: "A cada 3 meses", yearly: "Todo ano" } as const;
+export type MedRepeat = keyof typeof MED_REPEAT;
+
+export function addMonths(date: CivilDate, months: number): CivilDate {
+  const [y, m, d] = date.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+  t.setUTCDate(Math.min(d, last));
+  return t.toISOString().slice(0, 10);
+}
+
+/** Avança uma repetição a partir de uma data. */
+export function nextRepeat(date: CivilDate, repeat: MedRepeat): CivilDate {
+  switch (repeat) {
+    case "daily": return addDays(date, 1);
+    case "weekly": return addDays(date, 7);
+    case "monthly": return addMonths(date, 1);
+    case "quarterly": return addMonths(date, 3);
+    case "yearly": return addMonths(date, 12);
+    default: return date;
+  }
+}
+
+/** Próxima dose: o início, ou a repetição seguinte à última dose dada. Null se sem aviso ou já terminou. */
+export function medNextDue(m: Pick<Medication, "repeat" | "lastGiven" | "startDate" | "endDate">): CivilDate | null {
+  if (!m.repeat) return null;
+  const next = m.lastGiven ? nextRepeat(m.lastGiven, m.repeat) : m.startDate;
+  return m.endDate && next > m.endDate ? null : next;
+}
+
+/** Remédios com dose para hoje ou atrasada (para o aviso na tela Hoje). */
+export function medsDue(meds: Medication[], today: CivilDate) {
+  return meds.map((m) => ({ m, due: medNextDue(m) })).filter((x): x is { m: Medication; due: CivilDate } => !!x.due && x.due <= today);
+}
+
 export interface CareItem {
-  kind: "vaccine" | "visit" | "document";
+  kind: "vaccine" | "visit" | "document" | "medication";
   id: string;
   title: string;
   date: CivilDate;
@@ -216,7 +255,7 @@ export interface CareItem {
 }
 
 /** Próximos cuidados: próximas datas em até 30 dias e as atrasadas, mais urgentes primeiro; inclui validade de documentos. */
-export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits"> & { documents?: HealthDocument[] }, today: CivilDate, windowDays = CARE_WINDOW_DAYS): CareItem[] {
+export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits"> & { documents?: HealthDocument[]; medications?: Medication[] }, today: CivilDate, windowDays = CARE_WINDOW_DAYS): CareItem[] {
   const items: CareItem[] = [];
   for (const v of latestVaccines(h.vaccines)) {
     const s = dueStatus(v.nextDate, today, windowDays);
@@ -232,6 +271,11 @@ export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits"> & { docu
   if (lastVisit?.nextDate) {
     const s = dueStatus(lastVisit.nextDate, today, windowDays);
     if (s === "soon" || s === "overdue") items.push({ kind: "visit", id: lastVisit.id, title: "Próxima consulta", date: lastVisit.nextDate, status: s, href: "/cuidados/consultas" });
+  }
+  for (const m of h.medications ?? []) {
+    const due = medNextDue(m);
+    const s = dueStatus(due, today, Math.min(windowDays, 7));
+    if (due && (s === "soon" || s === "overdue")) items.push({ kind: "medication", id: m.id, title: `Remédio: ${m.name}`, date: due, status: s, href: "/cuidados/medicamentos" });
   }
   for (const d of h.documents ?? []) {
     const s = dueStatus(d.expiresOn, today, windowDays);

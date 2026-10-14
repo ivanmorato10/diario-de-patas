@@ -1,5 +1,6 @@
 "use client";
 
+import { mapsUrl } from "@/lib/maps";
 import { useState } from "react";
 
 import { useStore } from "@/data/store";
@@ -12,7 +13,7 @@ import { CONTACT_KINDS, type Contact, type ContactKind } from "@/domain/health";
 interface Form { kind: ContactKind; name: string; phone: string; address: string; notes: string }
 
 /** Link de busca no mapa — o app não coleta localização. */
-const mapHref = (address: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+const mapHref = (address: string) => mapsUrl(address);
 const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 
 export default function Contatos() {
@@ -36,6 +37,7 @@ export default function Contatos() {
       <TopBar title="Contatos" back="/cuidados" />
       <main className="main">
         <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Adicionar contato</button>
+        <a className="btn btn--secondary btn--block" href={mapsUrl("veterinário", true)} target="_blank" rel="noopener">📍 Achar veterinário perto de mim</a>
         {contacts.length === 0 ? <p className="muted">Guarde aqui o veterinário, uma emergência 24h, o pet sitter… para achar rápido quando precisar.</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {contacts.map((c) => (
