@@ -26,9 +26,9 @@ export default function Missoes() {
       <main className="main">
         <p className="page-note">Convites para registrar momentos naturais — sem pressa e sem sequência obrigatória. Fotos antigas valem. Cada missão dá pontos uma única vez.</p>
         <p className="small"><strong>{doneOnce}</strong> de {MISSIONS.length} concluídas · as missões do dia ficam em Hoje e as coleções em Álbuns</p>
-        <div role="group" aria-label="Filtrar missões" className="row" style={{ gap: 8 }}>
+        <div role="group" aria-label="Filtrar missões" className="filter-row">
           {filters.map((f) => (
-            <button key={f.id} type="button" className={`chip ${filter === f.id ? "" : "chip--outline"}`} style={{ minHeight: 44, padding: "0 16px", border: filter === f.id ? "1px solid var(--brand-primary)" : undefined, cursor: "pointer" }} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+            <button key={f.id} type="button" className={`filter-chip${filter === f.id ? " is-active" : ""}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
               {f.label} ({f.count})
             </button>
           ))}

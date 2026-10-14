@@ -51,9 +51,9 @@ export default function Achadinhos() {
           </div>
         </section>
 
-        <div className="achados-filter" role="tablist" aria-label="Categorias">
+        <div className="filter-row" role="tablist" aria-label="Categorias">
           {[{ id: "todos" as const, label: "Todos", emoji: "🐾" }, ...used].map((c) => (
-            <button key={c.id} type="button" role="tab" aria-selected={cat === c.id} className={`achados-chip${cat === c.id ? " is-active" : ""}`} onClick={() => setCat(c.id)}>
+            <button key={c.id} type="button" role="tab" aria-selected={cat === c.id} className={`filter-chip${cat === c.id ? " is-active" : ""}`} onClick={() => setCat(c.id)}>
               <span aria-hidden="true">{c.emoji}</span> {c.label}
             </button>
           ))}

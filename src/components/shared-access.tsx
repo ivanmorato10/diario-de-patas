@@ -15,6 +15,7 @@ export function SharedAccess() {
   const [left, setLeft] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const name = snap?.dog?.name ?? "meu cachorro";
 
   useEffect(() => {
@@ -32,7 +33,13 @@ export function SharedAccess() {
   }
   async function copy() {
     if (!code) return;
-    try { await navigator.clipboard.writeText(code.code); setMsg("Código copiado."); } catch { setMsg(code.code); }
+    try {
+      await navigator.clipboard.writeText(code.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setMsg("Não deu para copiar automaticamente: toque e segure no código para copiar.");
+    }
   }
   async function others() {
     setBusy(true);
@@ -56,7 +63,7 @@ export function SharedAccess() {
           <span className="caption">Vale por {mm}:{String(ss).padStart(2, "0")} e só pode ser usado uma vez.</span>
           <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
             <a className="btn btn--primary btn--small" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener">Enviar pelo WhatsApp</a>
-            <button type="button" className="btn btn--secondary btn--small" onClick={copy}>Copiar código</button>
+            <button type="button" className={`btn btn--small ${copied ? "btn--primary" : "btn--secondary"}`} onClick={copy} aria-live="polite">{copied ? "✓ Copiado!" : "Copiar código"}</button>
           </div>
         </div>
       ) : (

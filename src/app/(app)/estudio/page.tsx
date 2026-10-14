@@ -408,9 +408,9 @@ function Estudio() {
               <section className="stack" aria-labelledby="st-opcoes">
                 <h2 id="st-opcoes">3. Detalhes</h2>
                 {preset.aspects.length > 1 ? (
-                  <div role="radiogroup" aria-label="Proporção" className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                  <div role="radiogroup" aria-label="Proporção" className="filter-row filter-row--wrap">
                     {preset.aspects.map((a) => (
-                      <button key={a} type="button" role="radio" aria-checked={(aspect ?? preset.aspect) === a} className={`chip ${(aspect ?? preset.aspect) === a ? "" : "chip--outline"}`} style={{ minHeight: 44, padding: "0 14px", cursor: "pointer" }} onClick={() => setAspect(a)}>
+                      <button key={a} type="button" role="radio" aria-checked={(aspect ?? preset.aspect) === a} className={`filter-chip${(aspect ?? preset.aspect) === a ? " is-active" : ""}`} onClick={() => setAspect(a)}>
                         {STUDIO_FORMATS[a].labelPt} ({a})
                       </button>
                     ))}
@@ -423,9 +423,9 @@ function Estudio() {
                   </>
                 ) : null}
                 {preset.post === "card" ? (
-                  <div role="radiogroup" aria-label="Moldura" className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                  <div role="radiogroup" aria-label="Moldura" className="filter-row filter-row--wrap">
                     {(["simples", "patinhas", "festa"] as const).map((f) => (
-                      <button key={f} type="button" role="radio" aria-checked={overlay.frame === f} className={`chip ${overlay.frame === f ? "" : "chip--outline"}`} style={{ minHeight: 44, padding: "0 14px", cursor: "pointer" }} onClick={() => setOverlay({ ...overlay, frame: f })}>
+                      <button key={f} type="button" role="radio" aria-checked={overlay.frame === f} className={`filter-chip${overlay.frame === f ? " is-active" : ""}`} onClick={() => setOverlay({ ...overlay, frame: f })}>
                         Moldura {f}
                       </button>
                     ))}

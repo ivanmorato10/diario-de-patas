@@ -213,7 +213,7 @@ function GuardarInner() {
                 <span className="caption">O que precisa aparecer</span>
                 <p style={{ fontWeight: 600 }}>{mission.criterion}</p>
               </div>
-            ) : <p className="muted">Qualquer momento vale. Fotos antigas da galeria também — dá para escolher várias de uma vez.</p>}
+            ) : <p className="page-note">Qualquer momento vale. Fotos antigas da galeria também — dá para escolher várias de uma vez.</p>}
             {room === 0 ? (
               <div className="notice notice--warn" role="alert"><IconAlert /><span>O diário chegou ao limite de {LIMITS.maxEntries} lembranças desta versão de teste. Nada foi apagado; para guardar novas, exclua alguma antiga.</span></div>
             ) : (
@@ -268,7 +268,7 @@ function GuardarInner() {
         {step.kind === "batch" ? (
           <section className="stack-lg">
             <h1 ref={headingRef} tabIndex={-1}>{batch.length} fotos para guardar</h1>
-            <p className="muted">Legenda e data são opcionais. A data vem da própria foto quando ela tiver; senão, fica a de hoje.</p>
+            <p className="page-note">Legenda e data são opcionais. A data vem da própria foto quando ela tiver; senão, fica a de hoje.</p>
             {pickNotes.length ? <div className="notice notice--warn" role="alert"><IconAlert /><span>{pickNotes.join(" · ")}</span></div> : null}
             <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }} aria-label="Fotos escolhidas">
               {batch.map((item, i) => (

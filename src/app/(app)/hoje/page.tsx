@@ -155,7 +155,7 @@ export default function Hoje() {
               })}
             </ul>
             {swapError ? <p className="field-error" role="alert">{swapError}</p> : null}
-            <p className="hoje-note">🐾 Sem pressa: o que não for feito hoje não tira pontos. Amanhã chegam outras.</p>
+            <p className="page-note">Sem pressa: o que não for feito hoje não tira pontos. Amanhã chegam outras.</p>
             <Link href="/missoes" className="btn btn--secondary btn--block hoje-all"><IconStar size={18} /> Ver todas as missões</Link>
           </section>
         )}

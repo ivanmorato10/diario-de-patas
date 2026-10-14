@@ -77,9 +77,9 @@ export default function Diario() {
                 <label htmlFor="busca" className="sr-only">Buscar nas legendas</label>
                 <input id="busca" type="search" className="input" placeholder="Buscar nas legendas" value={query} onChange={(e) => setQuery(e.target.value)} />
               </div>
-              <div role="group" aria-label="Filtrar lembranças" className="row" style={{ overflowX: "auto", gap: 8, paddingBottom: 4, flexWrap: "nowrap" }}>
+              <div role="group" aria-label="Filtrar lembranças" className="filter-row">
                 {filters.map((f) => (
-                  <button key={f.id} type="button" className={`chip ${filter === f.id ? "" : "chip--outline"}`} style={{ minHeight: 36, border: filter === f.id ? "1px solid var(--brand-primary)" : undefined, cursor: "pointer", whiteSpace: "nowrap" }} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+                  <button key={f.id} type="button" className={`filter-chip${filter === f.id ? " is-active" : ""}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
                     {f.label}
                   </button>
                 ))}

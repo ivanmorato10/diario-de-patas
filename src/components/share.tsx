@@ -32,7 +32,7 @@ export function ShareSelection({ selected, defaultTitle, onDone }: { selected: s
         <p className="small"><strong>Link criado.</strong> Guarde agora — por segurança ele não é mostrado de novo.</p>
         <input className="input" readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Link do álbum compartilhado" />
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-          <button type="button" className="btn btn--primary btn--small" onClick={async () => { await navigator.clipboard?.writeText(url).catch(() => undefined); setCopied(true); }}>{copied ? "Copiado" : "Copiar link"}</button>
+          <button type="button" className="btn btn--primary btn--small" onClick={async () => { await navigator.clipboard?.writeText(url).catch(() => undefined); setCopied(true); }}>{copied ? "✓ Copiado!" : "Copiar link"}</button>
           <button type="button" className="btn btn--ghost btn--small" onClick={onDone}>Concluir</button>
         </div>
         <p className="caption">Quem tiver o link pode ver e copiar estas fotos. Você pode revogar em Perfil e ajustes; revogar não apaga cópias já baixadas.</p>
