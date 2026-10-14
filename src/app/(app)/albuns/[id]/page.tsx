@@ -49,7 +49,7 @@ export default function AlbumDetalhe() {
     <>
       <TopBar title={col.title} back="/albuns" />
       <main className="main">
-        <p className="muted">{col.description}</p>
+        <p className="page-note">{col.description}</p>
         <div><ShareAlbumButton entries={data.entries} defaultTitle={`${col.title} de ${snap.dog.name}`} /></div>
 
         {col.hasMissions ? (

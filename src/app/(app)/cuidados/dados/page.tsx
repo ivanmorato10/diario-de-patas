@@ -32,7 +32,7 @@ export default function DadosDoCachorro() {
     <>
       <TopBar title={`Dados de ${snap.dog.name}`} back="/cuidados" />
       <main className="main">
-        <p className="muted">Tudo opcional. Preencha o que fizer sentido — dá para mudar quando quiser.</p>
+        <p className="page-note">Tudo opcional. Preencha o que fizer sentido — dá para mudar quando quiser.</p>
         <form className="stack-lg" onSubmit={async (e) => { e.preventDefault(); setSaved(await run(() => repo!.saveHealthProfile(form))); }} noValidate>
           <Field id="breed" label="Raça" optional value={form.breed} onChange={(v) => set({ breed: v })} maxLength={60} placeholder="Ex.: SRD, Poodle…" />
           <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>

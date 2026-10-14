@@ -791,3 +791,11 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .hoje-note { margin: 0; font-family: var(--font-hand); font-size: 1.3rem; line-height: 1.25; color: #4a3826; background: var(--paper) repeating-linear-gradient(transparent 0 25px, #efe2cc 25px 26px) 0 8px; padding: 8px 14px 6px; border-radius: 6px; rotate: -0.6deg; box-shadow: 0 2px 8px rgba(31, 22, 13, 0.08); }
 .hoje-all { gap: 8px; }
 .hoje-all svg { color: var(--accent); }
+
+/* Bilhete de caderno nos textos de abertura de todas as seções (mesmo visual da Hoje) */
+.page-note { margin: 0; font-family: var(--font-hand); font-size: 1.3rem; line-height: 26px; color: #4a3826; background: var(--paper) repeating-linear-gradient(transparent 0 25px, #efe2cc 25px 26px) 0 8px; padding: 8px 14px 6px; border-radius: 6px; rotate: -0.5deg; box-shadow: 0 2px 8px rgba(31, 22, 13, 0.08); }
+.levels { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.levels li { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; background: var(--paper); border-radius: 12px; padding: 8px 12px; }
+.levels__n { width: 26px; height: 26px; border-radius: 50%; background: #63b4ad; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 0.8125rem; }
+.levels__t { font-weight: 700; }
+.levels__xp { font-size: 0.8125rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }

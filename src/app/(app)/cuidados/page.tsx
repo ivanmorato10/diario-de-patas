@@ -39,7 +39,7 @@ export default function Cuidados() {
       <TopBar title="Cuidados" />
       <main className="main">
         <CarePdfButton />
-        <p className="muted">Um lugar para guardar as informações de cuidado de {dog.name}. Você anota; o app organiza as datas e lembra o que está chegando.</p>
+        <p className="page-note">Um lugar para guardar as informações de cuidado de {dog.name}. Você anota; o app organiza as datas e lembra o que está chegando.</p>
         <HealthDisclaimer />
         <UpcomingCareCard items={care} today={today} />
         <nav aria-label="Áreas de cuidados" className="stack">

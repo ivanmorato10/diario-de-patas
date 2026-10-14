@@ -47,7 +47,7 @@ export default function Achadinhos() {
           <div className="achados-hero__abu" aria-hidden="true"><AbuMascot width={96} /></div>
           <div>
             <h1 className="studio-title" style={{ fontSize: "2rem" }}>Achadinhos do Abu</h1>
-            <p className="muted">As coisas que eu uso, roo e aprovo. Escolhidas com carinho, sem patrocínio de marca.</p>
+            <p className="page-note">As coisas que eu uso, roo e aprovo. Escolhidas com carinho, sem patrocínio de marca.</p>
           </div>
         </section>
 

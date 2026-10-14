@@ -1,5 +1,6 @@
 "use client";
 
+import { AbuMascot } from "@/components/brand";
 import { XpRewardBar } from "@/components/xp-reward";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -329,11 +330,14 @@ function Estudio() {
 
   return (
     <>
-      <TopBar title="Estúdio" back="/hoje" />
+      <TopBar title="Estúdio" />
       <main className="main">
         <div className="stack">
-          <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>
-          <p className="muted">Transforme uma foto em arte de datas, estilos, fantasias ou formatos. A IA usa a foto como referência; nome e mensagem quem escreve é o app.</p>
+          <div className="achados-hero">
+            <div className="achados-hero__abu" aria-hidden="true"><AbuMascot width={96} /></div>
+            <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>
+          </div>
+          <p className="page-note">Transforme uma foto em arte de datas, estilos, fantasias ou formatos. A IA usa a foto como referência; nome e mensagem quem escreve é o app.</p>
         </div>
 
         {!REAL_MODE ? (

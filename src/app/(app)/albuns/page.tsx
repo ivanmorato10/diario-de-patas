@@ -87,7 +87,7 @@ function Albuns() {
           <div role="tabpanel" id="panel-colecoes" aria-labelledby="tab-colecoes"><CollectionsView snap={snap} /></div>
         ) : (
         <div role="tabpanel" id="panel-albuns" aria-labelledby="tab-albuns" className="stack">
-        <p className="muted">Cada missão concluída vira uma conquista no álbum. Fotos livres também podem morar aqui — e você pode criar álbuns com o nome que quiser.</p>
+        <p className="page-note">Cada missão concluída vira uma conquista no álbum. Fotos livres também podem morar aqui — e você pode criar álbuns com o nome que quiser.</p>
         <button type="button" className="btn btn--secondary" style={{ alignSelf: "flex-start" }} onClick={() => { setError(null); setCreating(true); }} disabled={(snap.customAlbums?.length ?? 0) >= LIMITS.maxCustomAlbums}>
           <IconPlus /> Novo álbum
         </button>

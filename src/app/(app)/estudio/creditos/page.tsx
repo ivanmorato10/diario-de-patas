@@ -153,7 +153,7 @@ export default function Creditos() {
       <main className="main">
         <div className="stack">
           <h1 className="studio-title">Mais artes para {snap.dog.name}</h1>
-          <p className="muted">Cada crédito vira uma arte (as premium usam 2). Os créditos ficam na sua conta e não vencem.</p>
+          <p className="page-note">Cada crédito vira uma arte (as premium usam 2). Os créditos ficam na sua conta e não vencem.</p>
           {balance !== null ? <p className="shop-balance"><Paw size={16} /> Você tem <strong>{balance}</strong> {balance === 1 ? "crédito" : "créditos"}</p> : null}
         </div>
 

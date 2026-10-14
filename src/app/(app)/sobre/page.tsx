@@ -1,5 +1,7 @@
 "use client";
 
+import { LEVELS } from "@/config/catalog";
+import { XP_MONTH_GOAL } from "@/config/credits";
 import { SUPPORT } from "@/config/business";
 import { REAL_MODE } from "@/config/mode";
 import { TopBar } from "@/components/shell";
@@ -44,6 +46,25 @@ export default function Sobre() {
         <section className="stack" aria-labelledby="priv">
           <h2 id="priv">Privacidade</h2>
           <p className="small">O diário é privado. Ao guardar uma foto, removemos dados de localização e outros metadados. {REAL_MODE ? "Com conta, as fotos ficam num armazenamento privado: só você vê, até escolher compartilhar." : "Nesta versão, nenhuma foto sai do seu aparelho."} Termos e política de privacidade completos serão publicados antes do lançamento.</p>
+        </section>
+
+        <section id="niveis" className="card stack" aria-labelledby="niveis-t">
+          <h2 id="niveis-t">Níveis, XP e a arte do mês</h2>
+          <p className="small">XP são pontos de experiência ganhos nas missões (10 ou 20 por missão). O app conta de dois jeitos:</p>
+          <ul className="small" style={{ margin: 0, paddingLeft: "1.2em", display: "grid", gap: 4 }}>
+            <li><strong>XP total:</strong> soma tudo, nunca zera e define o nível do seu cachorro.</li>
+            <li><strong>XP do mês:</strong> zera no dia 1º. Ao chegar a {XP_MONTH_GOAL} XP no mês, você ganha 1 arte no Estúdio (uma por mês).</li>
+          </ul>
+          <ol className="levels">
+            {LEVELS.map((l, i) => (
+              <li key={l.title}>
+                <span className="levels__n">{i + 1}</span>
+                <span className="levels__t">{l.title}</span>
+                <span className="levels__xp">{l.minXp === 0 ? "início" : `${l.minXp} XP`}</span>
+              </li>
+            ))}
+            <li><span className="levels__n">∞</span><span className="levels__t">Sempre juntos II, III…</span><span className="levels__xp">+250 XP cada</span></li>
+          </ol>
         </section>
 
         <section id="estudio" className="stack" aria-labelledby="estudio-t">

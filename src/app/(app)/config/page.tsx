@@ -115,7 +115,7 @@ export default function Config() {
                 <div className="profile-xp">
                   <span className="profile-xp__num"><IconStar size={16} /> {snap.xpTotal} XP total</span>
                   <span className="small">Nível <strong>{lv.title}</strong>{lv.nextAt ? ` · faltam ${lv.nextAt - snap.xpTotal} XP para “${lv.nextTitle}”` : ""}</span>
-                  <span className="caption">O XP total soma todas as missões e nunca zera. Ele define o nível de {dog.name}.</span>
+                  <span className="caption">O XP total soma todas as missões e nunca zera. Ele define o nível de {dog.name}. <Link href="/sobre#niveis">Ver todos os níveis</Link></span>
                 </div>
               );
             })()}

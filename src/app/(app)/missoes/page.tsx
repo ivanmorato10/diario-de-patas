@@ -24,7 +24,7 @@ export default function Missoes() {
     <>
       <TopBar title="Missões" back="/hoje" />
       <main className="main">
-        <p className="muted">Convites para registrar momentos naturais — sem pressa e sem sequência obrigatória. Fotos antigas valem. Cada missão dá pontos uma única vez.</p>
+        <p className="page-note">Convites para registrar momentos naturais — sem pressa e sem sequência obrigatória. Fotos antigas valem. Cada missão dá pontos uma única vez.</p>
         <p className="small"><strong>{doneOnce}</strong> de {MISSIONS.length} concluídas · as missões do dia ficam em Hoje e as coleções em Álbuns</p>
         <div role="group" aria-label="Filtrar missões" className="row" style={{ gap: 8 }}>
           {filters.map((f) => (
