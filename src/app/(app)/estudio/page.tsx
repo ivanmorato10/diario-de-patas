@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  STUDIO_FORMATS, STUDIO_PRESETS, STUDIO_TABS, estimateCostUsd, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
+  STUDIO_FORMATS, STUDIO_PRESETS, STUDIO_TABS, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
 } from "@/config/studio";
 import { REAL_MODE } from "@/config/mode";
 import { DomainError } from "@/data/demo-repository";
@@ -443,7 +443,6 @@ function Estudio() {
                 <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
               </button>
               {REAL_MODE && state && preset && state.balance < credits ? <p className="small">Seus créditos acabaram. <Link href="/estudio/creditos">Comprar créditos</Link></p> : null}
-              {preset && REAL_MODE ? <p className="caption">Custo estimado de IA: US$ {estimateCostUsd(preset, aspect ?? preset.aspect).toFixed(3)} (referência interna de teste).</p> : null}
             </section>
           </>
         )}
