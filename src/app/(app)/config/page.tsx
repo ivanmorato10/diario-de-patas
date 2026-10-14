@@ -12,7 +12,7 @@ import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { InstallAppLink } from "@/components/install-app";
 import { AvatarCropSheet } from "@/components/avatar-crop";
-import { SharedAccess } from "@/components/shared-access";
+import { FamilySection } from "@/components/family-section";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -57,6 +57,7 @@ export default function Config() {
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !prefs || !repo) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
+  const viewer = snap.role === "viewer";
   // Salvar perfil só fica ativo quando algo mudou.
   const dirty = name.trim() !== dog.name || birth !== (dog.birthDate ?? "") || JSON.stringify(prefs) !== JSON.stringify(dog.preferences) || tz !== (snap.profile?.timezone ?? "");
 
@@ -99,6 +100,8 @@ export default function Config() {
             }} />
         ) : null}
         <form className="stack-lg" onSubmit={saveProfile}>
+          {viewer ? <p className="notice notice--info small"><IconInfo size={18} /><span>Você pode só ver o diário de {dog.name}. Para mudar o perfil, peça para o administrador mudar seu papel.</span></p> : null}
+          <fieldset disabled={viewer} className="stack-lg" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <section className="stack" aria-labelledby="perfil">
             <h2 id="perfil">Perfil</h2>
             <div className="row">
@@ -136,6 +139,7 @@ export default function Config() {
           </div>
           {msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null}
           <button type="submit" className="btn btn--primary btn--block" disabled={!dirty}>{dirty ? "Salvar alterações" : "Perfil salvo"}</button>
+          </fieldset>
         </form>
 
         <section className="card stack" aria-labelledby="uso">
@@ -163,7 +167,7 @@ export default function Config() {
             <a href="#apagar" className="small">Excluir conta</a>
           </section>
         ) : null}
-        {REAL_MODE ? <SharedAccess /> : null}
+        {REAL_MODE ? <FamilySection /> : null}
 
         <ImportDemoCard />
 
@@ -177,7 +181,7 @@ export default function Config() {
         <section className="card stack" aria-labelledby="apagar" style={{ borderColor: "#f1c4bf" }}>
           <h2 id="apagar">{REAL_MODE ? "Excluir conta" : "Apagar diário"}</h2>
           {REAL_MODE ? (
-            <p className="small">Exclui a conta e tudo o que está nela: perfil, fotos, álbuns, conquistas, cuidados e documentos. Links compartilhados param de funcionar na hora. Não dá para desfazer.</p>
+            <p className="small">Exclui a sua conta. Os diários que <strong>você criou</strong> são excluídos com tudo o que está neles (fotos, álbuns, conquistas, cuidados e documentos), inclusive para a família convidada. Diários de outras pessoas continuam com elas. Links compartilhados param de funcionar na hora. Não dá para desfazer.</p>
           ) : (
             <>
               <p className="small">Remove o perfil, todas as fotos, álbuns e conquistas deste aparelho. Não dá para desfazer.</p>

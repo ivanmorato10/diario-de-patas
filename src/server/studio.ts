@@ -3,6 +3,7 @@
  * Estados: queued → processing → succeeded | failed | cancelled. Crédito: reserva antes, consumo só depois de salvar,
  * liberação em falha confirmada. A arte vai para “Datas especiais” com o selo de IA e nunca conclui missão.
  */
+import { currentDog, requireEditor } from "./family";
 import "server-only";
 import { z } from "zod";
 import sharp from "sharp";
@@ -58,14 +59,16 @@ const toJob = (r: any) => ({
 export async function studioState(ctx: Ctx) {
   const admin = adminClient();
   const gen = artGenerator();
-  if (gen) await q(admin.rpc("grant_test_credits", { p_owner: ctx.user.id, p_amount: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits) }));
-  await reconcileStuck(ctx.user.id);
-  await q(admin.rpc("grant_monthly_xp_credit", { p_owner: ctx.user.id, p_goal: XP_MONTH_GOAL })); // arte do mês
+  const dog = (await currentDog(ctx))!;
+  // Créditos são do diário: boas-vindas (uma vez por pessoa, só no diário que ela criou: convidados não somam) e arte do mês do cachorro.
+  if (gen && dog.owner_id === ctx.user.id) await q(admin.rpc("grant_welcome_credits", { p_owner: ctx.user.id, p_dog: dog.id, p_amount: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits) }));
+  await reconcileStuck(dog.id);
+  await q(admin.rpc("grant_monthly_xp_credit_dog", { p_dog: dog.id, p_goal: XP_MONTH_GOAL }));
   const [balance, jobs, usedToday, consumed] = await Promise.all([
-    q(admin.rpc("credit_available", { p_owner: ctx.user.id })),
-    q(ctx.supa.from("generation_jobs").select("*").order("created_at", { ascending: false }).limit(30)),
-    countToday(ctx.user.id),
-    admin.from("credit_ledger").select("amount").eq("owner_id", ctx.user.id).eq("operation", "consume"),
+    q(admin.rpc("credit_available_dog", { p_dog: dog.id })),
+    q(ctx.supa.from("generation_jobs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(30)),
+    countToday(dog.id),
+    admin.from("credit_ledger").select("amount").eq("dog_id", dog.id).eq("operation", "consume"),
   ]);
   const presets = await presetsWithFlags();
   return {
@@ -83,9 +86,9 @@ export async function studioState(ctx: Ctx) {
   };
 }
 
-async function countToday(owner?: string) {
+async function countToday(dogId?: string) {
   let query = adminClient().from("generation_jobs").select("id", { count: "exact", head: true }).gte("created_at", todayUtcStart()).or("failure_code.is.null,failure_code.neq.NO_CREDITS");
-  if (owner) query = query.eq("owner_id", owner);
+  if (dogId) query = query.eq("dog_id", dogId);
   const { count } = await query;
   return count ?? 0;
 }
@@ -127,7 +130,8 @@ const CheckPhoto = z.object({
 export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCheck> {
   const a = CheckPhoto.safeParse(args);
   if (!a.success) throw bad("INVALID", "Pedido inválido.");
-  const entry = (await q(ctx.supa.from("diary_entries").select("id, source, media_asset_id").eq("id", a.data.entryId).is("deleted_at", null).maybeSingle())) as any;
+  const dog = (await currentDog(ctx))!;
+  const entry = (await q(ctx.supa.from("diary_entries").select("id, source, media_asset_id").eq("id", a.data.entryId).eq("dog_id", dog.id).is("deleted_at", null).maybeSingle())) as any;
   if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
   try {
@@ -142,7 +146,9 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   if (!a.success) throw bad("INVALID", "Pedido inválido.");
   const { entryId, presetId, idempotencyKey, crop, overlay } = a.data;
   const admin = adminClient();
-  const prior = (await q(admin.from("generation_jobs").select("*").eq("owner_id", ctx.user.id).eq("idempotency_key", idempotencyKey).maybeSingle())) as any;
+  const dog = (await currentDog(ctx))!;
+  requireEditor(dog);
+  const prior = (await q(admin.from("generation_jobs").select("*").eq("dog_id", dog.id).eq("idempotency_key", idempotencyKey).maybeSingle())) as any;
   if (prior) return toJob(prior); // duplo clique / retry: mesmo job, mesma cobrança
   if (paused()) throw bad("PAUSED", "A criação de artes está pausada no momento. O resto do diário segue normal.");
   const gen = artGenerator();
@@ -150,22 +156,22 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   const preset = (await presetsWithFlags()).find((p) => p.id === presetId);
   if (!preset || !preset.enabled) throw bad("PRESET_OFF", "Esse tema não está disponível agora.");
   const aspect: StudioAspect = a.data.aspect && preset.aspects.includes(a.data.aspect) ? a.data.aspect : preset.aspect;
-  const entry = (await q(ctx.supa.from("diary_entries").select("id, dog_id, source, media_asset_id").eq("id", entryId).is("deleted_at", null).maybeSingle())) as any;
+  const entry = (await q(ctx.supa.from("diary_entries").select("id, dog_id, source, media_asset_id").eq("id", entryId).eq("dog_id", dog.id).is("deleted_at", null).maybeSingle())) as any;
   if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
-  if ((await countToday(ctx.user.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "Você chegou ao limite de artes de hoje. Amanhã tem mais.");
+  if ((await countToday(dog.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "Você chegou ao limite de artes de hoje. Amanhã tem mais.");
   if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "O Estúdio atingiu o limite de artes de hoje. Tente amanhã.");
   // Foto inadequada não vira cobrança: bloqueia antes de reservar o crédito (avisos leves deixam seguir).
   const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), gen).catch(() => null);
   if (photoCheck?.verdict === "bad") throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
   const job = (await q(admin.from("generation_jobs").insert({
-    owner_id: ctx.user.id, dog_id: entry.dog_id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
+    owner_id: dog.owner_id, dog_id: dog.id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
     aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
   }).select("*").single())) as any;
-  const reserved = await q(admin.rpc("reserve_credit", { p_owner: ctx.user.id, p_job: job.id, p_cost: preset.credits }));
+  const reserved = await q(admin.rpc("reserve_credit_dog", { p_dog: dog.id, p_owner: dog.owner_id, p_job: job.id, p_cost: preset.credits }));
   if (!reserved) {
     await q(admin.from("generation_jobs").update({ state: "failed", failure_code: "NO_CREDITS", finished_at: now() }).eq("id", job.id));
-    throw bad("NO_CREDITS", "Seus créditos de teste acabaram.");
+    throw bad("NO_CREDITS", "Os créditos deste diário acabaram.");
   }
   schedule(() => processJob(job.id));
   return toJob(job);
@@ -173,8 +179,9 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
 
 export async function studioJob(ctx: Ctx, args: unknown) {
   const id = z.object({ id: z.string().uuid() }).parse(args).id;
-  await reconcileStuck(ctx.user.id);
-  const job = (await q(ctx.supa.from("generation_jobs").select("*").eq("id", id).maybeSingle())) as any;
+  const dog = (await currentDog(ctx))!;
+  await reconcileStuck(dog.id);
+  const job = (await q(ctx.supa.from("generation_jobs").select("*").eq("id", id).eq("dog_id", dog.id).maybeSingle())) as any;
   if (!job) throw bad("NOT_FOUND", "Pedido não encontrado.");
   return toJob(job);
 }
@@ -190,10 +197,10 @@ async function fail(jobId: string, code: string) {
  * Jobs travados: com `store: false` o provedor não guarda o pedido, então não há resultado a recuperar —
  * se passou do tempo, nada foi entregue: falha confirmada e o crédito volta. Fila esquecida é retomada.
  */
-async function reconcileStuck(owner: string) {
+async function reconcileStuck(dogId: string) {
   const admin = adminClient();
   const limit = new Date(Date.now() - env("STUDIO_JOB_TIMEOUT_MINUTES", STUDIO_DEFAULTS.jobTimeoutMinutes) * 60_000).toISOString();
-  const stuck = ((await admin.from("generation_jobs").select("id, state, created_at").eq("owner_id", owner).in("state", ["queued", "processing"]).lt("updated_at", limit)).data ?? []) as any[];
+  const stuck = ((await admin.from("generation_jobs").select("id, state, created_at").eq("dog_id", dogId).in("state", ["queued", "processing"]).lt("updated_at", limit)).data ?? []) as any[];
   for (const j of stuck) await fail(j.id, "PROVIDER_TIMEOUT");
 }
 

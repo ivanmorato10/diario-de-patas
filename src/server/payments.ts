@@ -5,6 +5,7 @@
  * - Créditos são concedidos uma única vez por compra (grant_purchase_credits é idempotente).
  * - Desligado sem PAYMENTS_ENABLED=true. PAYMENTS_FAKE=1 (só local, nunca na Vercel) simula o Pix para testes.
  */
+import { currentDog, requireEditor } from "./family";
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -104,7 +105,8 @@ const toPurchase = (p: any) => ({
 // ---------- RPC ----------
 
 export async function creditShop(ctx: Ctx) {
-  const recent = (await ctx.supa.from("credit_purchases").select("*").order("created_at", { ascending: false }).limit(10)).data ?? [];
+  const dog = (await currentDog(ctx))!;
+  const recent = (await ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10)).data ?? [];
   return { enabled: paymentsEnabled(), test: paymentsFake() || (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"), packages: CREDIT_PACKAGES, purchases: recent.map(toPurchase) };
 }
 
@@ -116,17 +118,19 @@ export async function createPurchase(ctx: Ctx, args: unknown) {
   if (!paymentsEnabled()) throw bad("PAYMENTS_OFF", "A compra de créditos ainda não está disponível.");
   const pkg = packageById(a.data.packageId);
   if (!pkg) throw bad("INVALID", "Pacote não encontrado.");
+  const dog = (await currentDog(ctx))!;
+  requireEditor(dog);
   const admin = adminClient();
   const prior = (await admin.from("credit_purchases").select("*").eq("idempotency_key", `${ctx.user.id}:${a.data.idempotencyKey}`).maybeSingle()).data;
   if (prior) return toPurchase(prior); // duplo toque: o mesmo Pix
   const pending = (await admin.from("credit_purchases").select("id").eq("owner_id", ctx.user.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 3600_000).toISOString())).data ?? [];
   if (pending.length >= 5) throw bad("TOO_MANY", "Você tem vários Pix em aberto. Pague um deles ou espere vencer.");
   const row = (await admin.from("credit_purchases").insert({
-    owner_id: ctx.user.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: "BRL",
+    owner_id: ctx.user.id, dog_id: dog.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: "BRL",
     provider: paymentsFake() ? "teste" : "mercadopago", idempotency_key: `${ctx.user.id}:${a.data.idempotencyKey}`,
   }).select("*").single()).data as any;
   try {
-    const pix = await createPix(row.id, pkg.priceCents, `Diário de Patas — ${pkg.credits} créditos`, ctx.user.email ?? "");
+    const pix = await createPix(row.id, pkg.priceCents, `Diário de Patas — ${pkg.credits} créditos (${dog.name})`, ctx.user.email ?? "");
     const upd = (await admin.from("credit_purchases").update({
       provider_payment_id: pix.providerPaymentId, status: pix.status, pix_qr: pix.qr, pix_qr_base64: pix.qrBase64, expires_at: pix.expiresAt, updated_at: now(),
     }).eq("id", row.id).select("*").single()).data;

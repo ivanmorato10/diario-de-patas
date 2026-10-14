@@ -21,10 +21,10 @@ insert into public.diary_entries (id, owner_id, dog_id, media_asset_id, occurred
 insert into public.albums (id, owner_id, dog_id, collection_id, title) values
   ('a1b00000-0000-4000-8000-0000000000a1', 'aaaaaaaa-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000000a', 'vida-em-casa', 'Vida em casa');
 insert into public.album_entries (album_id, entry_id) values ('a1b00000-0000-4000-8000-0000000000a1', 'e0000000-0000-4000-8000-0000000000a1');
-insert into public.share_links (id, owner_id, token_hash, title) values ('5a000000-0000-4000-8000-0000000000a1', 'aaaaaaaa-0000-4000-8000-000000000001', 'hash-a', 'Para a família');
+insert into public.share_links (id, owner_id, dog_id, token_hash, title) values ('5a000000-0000-4000-8000-0000000000a1', 'aaaaaaaa-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000000a', 'hash-a', 'Para a família');
 insert into public.share_link_entries (share_link_id, entry_id) values ('5a000000-0000-4000-8000-0000000000a1', 'e0000000-0000-4000-8000-0000000000a1');
-insert into public.generation_jobs (owner_id, theme_id, idempotency_key) values ('aaaaaaaa-0000-4000-8000-000000000001', 'natal', gen_random_uuid());
-insert into public.credit_ledger (owner_id, operation, amount, idempotency_key) values ('aaaaaaaa-0000-4000-8000-000000000001', 'grant', 5, 'grant:a');
+insert into public.generation_jobs (owner_id, dog_id, theme_id, idempotency_key) values ('aaaaaaaa-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000000a', 'natal', gen_random_uuid());
+insert into public.credit_ledger (owner_id, dog_id, operation, amount, idempotency_key) values ('aaaaaaaa-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000000a', 'grant', 5, 'grant:a');
 insert into public.health_profiles (dog_id, owner_id, breed) values ('d0000000-0000-4000-8000-00000000000a', 'aaaaaaaa-0000-4000-8000-000000000001', 'SRD');
 insert into public.weights (owner_id, dog_id, date, kg) values ('aaaaaaaa-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000000a', '2026-10-01', 8.4);
 insert into public.vaccines (owner_id, dog_id, kind, name, applied_date) values ('aaaaaaaa-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000000a', 'vaccine', 'V10', '2026-10-01');

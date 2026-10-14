@@ -7,6 +7,7 @@ import { useStore } from "@/data/store";
 import { REAL_MODE } from "@/config/mode";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun } from "./icons";
 import { DogAvatar } from "./media";
+import { DogSwitcher } from "./dog-switcher";
 import { AbuFace, BrandLockup } from "./brand";
 
 const NAV = [
@@ -57,7 +58,14 @@ const TITLE_EMOJI: Record<string, string> = {
 export function TopBar({ title, back }: { title?: string; back?: string }) {
   const { snap } = useStore();
   const dog = snap?.dog;
+  const viewer = REAL_MODE && snap?.role === "viewer";
+  // "Só ver": o CSS esconde os atalhos de guardar/editar (o servidor também recusa).
+  useEffect(() => {
+    document.documentElement.dataset.role = snap?.role ?? "admin";
+  }, [snap?.role]);
   return (
+    <>
+    {viewer && dog ? <div className="viewer-banner" role="note">👀 Você está só vendo o diário de {dog.name}.</div> : null}
     <header className="topbar">
       <div className="topbar__inner">
         <div className="row" style={{ gap: 8, minWidth: 0 }}>
@@ -69,12 +77,15 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
           {title ? <h1 className="topbar__title">{TITLE_EMOJI[title] ? <span className="topbar__emoji" aria-hidden="true">{TITLE_EMOJI[title]}</span> : null}<span className="topbar__text">{title}</span></h1> : null}
         </div>
         {dog ? (
-          <Link href="/config" aria-label={`Perfil e configurações de ${dog.name}`} style={{ borderRadius: "50%" }}>
-            <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
-          </Link>
+          REAL_MODE ? <DogSwitcher dog={dog} /> : (
+            <Link href="/config" aria-label={`Perfil e configurações de ${dog.name}`} style={{ borderRadius: "50%" }}>
+              <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
+            </Link>
+          )
         ) : null}
       </div>
     </header>
+    </>
   );
 }
 

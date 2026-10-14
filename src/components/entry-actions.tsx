@@ -91,9 +91,9 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   return (
     <>
       <div className="row" style={{ gap: 0 }}>
-        <button type="button" className="icon-btn" onClick={openEdit} aria-label={`Editar ${label}`}><IconPencil /></button>
+        <button type="button" className="icon-btn edit-only" onClick={openEdit} aria-label={`Editar ${label}`}><IconPencil /></button>
         <button type="button" className="icon-btn" onClick={download} aria-label={`Baixar ${label}`}><IconDownload /></button>
-        <button type="button" className="icon-btn" onClick={() => setMode("delete")} aria-label={`Excluir ${label}`} style={{ color: "var(--danger)" }}><IconTrash /></button>
+        <button type="button" className="icon-btn edit-only" onClick={() => setMode("delete")} aria-label={`Excluir ${label}`} style={{ color: "var(--danger)" }}><IconTrash /></button>
       </div>
 
       <Sheet open={mode === "edit"} onClose={() => setMode("none")} labelledBy={editTitle}>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { REAL_MODE } from "@/config/mode";
 import { useStore, useBlobUrl } from "@/data/store";
 import { DomainError, type ProcessedImage } from "@/data/demo-repository";
 import { detectTimezone, isCivilDate } from "@/domain/dates";
@@ -27,10 +28,15 @@ export default function Comecar() {
   const [saving, setSaving] = useState(false);
   const photoUrl = useBlobUrl(photo?.thumb);
 
-  useEffect(() => setTz(detectTimezone()), []);
+  // ?novo=1: mais um cachorro na mesma conta (só com conta; cada diário tem seus créditos e sua família).
+  const [another, setAnother] = useState<boolean | null>(null);
   useEffect(() => {
-    if (snap?.dog) router.replace("/hoje");
-  }, [snap, router]);
+    setTz(detectTimezone());
+    setAnother(REAL_MODE && new URLSearchParams(window.location.search).get("novo") === "1");
+  }, []);
+  useEffect(() => {
+    if (snap?.dog && another === false) router.replace("/hoje");
+  }, [snap, router, another]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +53,7 @@ export default function Comecar() {
     setSaving(true);
     setError(null);
     try {
-      await repo!.createDiary({ timezone: tz, name, birthDate: birth || null, preferences: prefs, photo });
+      await repo!.createDiary({ timezone: tz, name, birthDate: birth || null, preferences: prefs, photo, another: !!another && !!snap?.dog });
       await reload();
       router.replace("/hoje");
     } catch (err) {
@@ -59,14 +65,14 @@ export default function Comecar() {
   return (
     <div className="shell">
       <DemoBanner />
-      <header className="topbar"><div className="topbar__inner"><Link href="/bem-vindo" className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link></div></header>
+      <header className="topbar"><div className="topbar__inner"><Link href={another && snap?.dog ? "/hoje" : "/bem-vindo"} className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link></div></header>
       <main className="main main--bare">
-        <ImportDemoCard />
+        {another ? null : <ImportDemoCard />}
         {unavailable ? <StorageUnavailable /> : (
           <form className="stack-lg" onSubmit={submit} noValidate>
             <div className="stack">
-              <h1>Vamos criar o diário</h1>
-              <AbuSays>Me conta: como se chama o seu melhor amigo?</AbuSays>
+              <h1>{another && snap?.dog ? "Mais um cachorro na família!" : "Vamos criar o diário"}</h1>
+              <AbuSays>{another && snap?.dog ? "Que legal, mais um amigo! Ele ganha um diário só dele, com missões e créditos próprios." : "Me conta: como se chama o seu melhor amigo?"}</AbuSays>
               <p className="muted">Só o nome é obrigatório. O resto você ajusta quando quiser.</p>
             </div>
 

@@ -64,7 +64,14 @@ export interface DiaryEntry {
   /** Gerada uma vez por tentativa de envio: retry devolve a mesma entrada (§8.5, §19). */
   requestKey: string;
   createdAt: string;
+  /** Família: quem guardou (quando não foi você). */
+  createdByName?: string | null;
 }
+
+/** Papel de cada pessoa num diário (família). */
+export type DiaryRole = "admin" | "editor" | "viewer";
+export interface DiarySummary { id: string; name: string; photoMediaId: string | null; avatarCrop: AvatarCrop | null; role: DiaryRole }
+export interface DiaryMember { userId: string; name: string; email: string; role: DiaryRole; me: boolean; owner: boolean }
 
 /** Álbum: uma coleção fixa do catálogo ou um álbum criado pela pessoa (`custom-…`). */
 export type AlbumId = CollectionId | `custom-${string}`;

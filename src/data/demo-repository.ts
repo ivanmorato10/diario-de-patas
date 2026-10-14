@@ -22,8 +22,7 @@ import { CYCLE_XP, type DailySlot } from "@/config/cycle";
 import { activeSpecials, buildHistory, generatePlan, instanceKey as instanceKeyFor, setProgress, setsContaining, swapInPlan, type DailyPlan } from "@/domain/cycle";
 import type {
   AlbumEntry, AlbumId, CivilDate, CollectionAdvance, CustomAlbum, Medal, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
-  Profile, SubmissionStatus, XpLedgerEntry, EntrySource,
-} from "@/domain/types";
+  Profile, SubmissionStatus, XpLedgerEntry, EntrySource, DiaryMember, DiaryRole, DiarySummary } from "@/domain/types";
 
 export const DEMO_DB_NAME = "diario-de-patas-demo";
 /**
@@ -156,6 +155,10 @@ export interface ProcessedImage {
 export interface Snapshot {
   profile: Profile | null;
   dog: Dog | null;
+  /** Com conta: papel no diário aberto, lista de diários (seletor) e membros (família). Demo: ausentes. */
+  role?: DiaryRole | null;
+  diaries?: DiarySummary[];
+  members?: DiaryMember[];
   entries: DiaryEntry[];
   albumEntries: AlbumEntry[];
   completions: MissionCompletion[];

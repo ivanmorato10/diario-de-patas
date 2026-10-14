@@ -100,6 +100,7 @@ function GuardarInner() {
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
+  if (snap.role === "viewer") return (<><TopBar title="Guardar momento" back="/hoje" /><main className="main"><p className="page-note">Você pode só ver o diário de {snap.dog.name}. Para guardar fotos, peça para o administrador mudar seu papel para “Pode editar”.</p></main></>);
   const dog = snap.dog;
   const back = fromEntryId ? "/diario" : mission ? `/missoes/${mission.slug}` : "/diario";
   const room = Math.max(0, LIMITS.maxEntries - snap.entries.length);

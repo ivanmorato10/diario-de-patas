@@ -31,7 +31,11 @@ export async function proxy(request: NextRequest) {
     to.search = path === "/" ? "" : `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
     return NextResponse.redirect(to);
   }
-  if (data?.claims && path === "/entrar") return NextResponse.redirect(new URL("/", request.url)); // já entrou
+  if (data?.claims && path === "/entrar") {
+    // Já entrou: segue para onde ia (ex.: aceitar um convite), só caminhos internos.
+    const n = request.nextUrl.searchParams.get("next");
+    return NextResponse.redirect(new URL(n && n.startsWith("/") && !n.startsWith("//") ? n : "/", request.url));
+  }
   return response;
 }
 

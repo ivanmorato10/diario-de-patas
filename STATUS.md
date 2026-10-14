@@ -165,6 +165,15 @@ Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com fatura
 | Cartão com mensagem | 1 | US$ 0.036 | 12 s | 5/5 |
 | Capa do álbum | 1 | US$ 0.036 | 15 s | 5/5 |
 
+## Família, vários cachorros e senha (14/10/2026)
+- Cada pessoa tem a própria conta (Google, Apple, email com senha ou código no email). "Esqueci minha senha" leva a /redefinir-senha.
+- Diário compartilhado por convite: o administrador gera `PATA-XXXX-XXXX` (7 dias, uso único) com papel **Pode editar** ou **Só ver**; quem recebe abre /convite, entra com a própria conta e aceita. Ajustes → Família: mudar papel, remover, sair do diário.
+- Vários cachorros por pessoa: foto no topo abre "Seus diários" (trocar, + Novo cachorro). Créditos do Estúdio são **por diário**; boas-vindas (3) uma vez por pessoa, só no diário que ela criou.
+- "Só ver": aviso no topo, sem atalhos de guardar/editar; o servidor recusa escritas (403).
+- Diário mostra "guardada por Bianca" nas fotos de outras pessoas.
+- Banco: `20261027000000_family.sql` (dog_members, dog_invites, RLS por participação, créditos por diário). Testes: `supabase/tests/family.sql`.
+- Pendente: aplicar a migração na nuvem (`npx supabase db push`) e o tamanho mínimo de senha (`npm run supabase:push`), depois rodar o e2e-real e publicar.
+
 ## Próximo passo
 
 MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).

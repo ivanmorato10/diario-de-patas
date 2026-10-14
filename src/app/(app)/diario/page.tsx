@@ -106,10 +106,10 @@ export default function Diario() {
                           {(albumsByEntry.get(e.id) ?? []).map((a) => <span key={a} className="chip chip--neutral">{albumTitle(a)}</span>)}
                         </div>
                         <div className="row-between">
-                          <p className="caption">{formatCivilDate(e.occurredDate)}</p>
+                          <p className="caption">{formatCivilDate(e.occurredDate)}{e.createdByName ? ` · guardada por ${e.createdByName}` : ""}</p>
                           <EntryActions entry={e} albumIds={albumsByEntry.get(e.id) ?? []} today={snap.today} label={label} />
                         </div>
-                        {ctx ? <UseInMission entry={e} ctx={ctx} label={label} /> : null}
+                        {ctx && snap.role !== "viewer" ? <UseInMission entry={e} ctx={ctx} label={label} /> : null}
                       </div>
                     </article>
                   );

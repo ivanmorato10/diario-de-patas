@@ -42,17 +42,20 @@ def photo(i):
 pdf = os.path.join(tmp, "carteira.pdf"); Image.new("RGB", (600, 800), (255, 255, 255)).save(pdf, "PDF")
 
 run = uuid.uuid4().hex[:8]
-emails = {"A": f"e2e-a-{run}@diariodepatas.test", "B": f"e2e-b-{run}@diariodepatas.test"}
-for e in emails.values():
-    admin("POST", "users", {"email": e, "email_confirm": True})
+emails = {"A": f"e2e-a-{run}@diariodepatas.test", "B": f"e2e-b-{run}@diariodepatas.test", "C": f"e2e-c-{run}@diariodepatas.test"}
+# C (a "Bianca") entra com email e senha; a senha é gerada aqui e nunca impressa.
+pw_c = uuid.uuid4().hex + "Aa1"
+for k, e in emails.items():
+    admin("POST", "users", {"email": e, "email_confirm": True, **({"password": pw_c, "user_metadata": {"full_name": "Bianca Teste"}} if k == "C" else {})})
 
 def login(page, who):
     page.goto(BASE + "/hoje"); page.wait_for_url("**/entrar?next=*")
-    page.get_by_role("button", name="Já tenho conta").click(); page.get_by_role("button", name="Entrar com email").click(); page.get_by_label("Seu email").fill(emails[who])
+    page.get_by_role("button", name="Já tenho conta").click(); page.get_by_role("button", name="Entrar com email").click()
+    page.get_by_role("button", name="Prefiro receber um código no email").click(); page.get_by_label("Seu email").fill(emails[who])
     # O teste não envia email: só o pedido de envio é interceptado; o código de uso único (gerado pela
     # API de administração) é conferido pelo Supabase de verdade em verifyOtp.
     page.route("**/auth/v1/otp*", lambda route: route.fulfill(status=200, content_type="application/json", body="{}"))
-    page.get_by_role("button", name="Receber link de entrada").click()
+    page.get_by_role("button", name="Receber código de entrada").click()
     expect(page.get_by_role("heading", name="Confira seu email")).to_be_visible()
     page.get_by_label("Código").fill(otp_for(emails[who]))
     page.get_by_role("button", name="Entrar com o código").click()
@@ -190,22 +193,57 @@ with sync_playwright() as p:
     # ---------- Foto de perfil: zoom e posição ----------
     rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
     a.goto(BASE + "/config"); a.wait_for_timeout(1500)
-    # ---------- Compartilhar o diário com código de convite ----------
-    expect(a.get_by_role("heading", name="Compartilhar o diário")).to_be_visible(timeout=20000)
-    a.get_by_role("button", name="Gerar código de convite").click()
+    # ---------- Família: convite com papel; quem recebe entra com a PRÓPRIA conta (email e senha) ----------
+    expect(a.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
+    a.get_by_role("radio", name="Pode editar").click()
+    a.get_by_role("button", name="Gerar convite").click()
     code_el = a.locator(".invite-code__value"); expect(code_el).to_be_visible(timeout=20000)
     invite_code = code_el.inner_text().strip()
-    check(f"código de convite gerado ({invite_code[:9]}…)", invite_code.startswith("PATA-") and len(invite_code) == 14)
-    ctxI = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR")
-    inv = ctxI.new_page(); inv.goto(BASE + "/entrar")
-    inv.get_by_role("button", name=re.compile("Tenho um código de convite")).click()
-    inv.get_by_label("Código").fill(invite_code); inv.get_by_role("button", name="Entrar no diário").click()
-    inv.wait_for_url(lambda u: "/entrar" not in u, timeout=30000); inv.goto(BASE + "/hoje")
-    check("quem recebe o código entra no mesmo diário", eventually(lambda t: expect(inv.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
-    inv2 = ctxI.browser.new_context().new_page(); inv2.goto(BASE + "/entrar")
-    st_reuse = inv2.evaluate("c => fetch('/api/acesso', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({code: c})}).then(r => r.status)", invite_code)
-    check(f"o mesmo código não funciona duas vezes ({st_reuse})", st_reuse == 400)
+    check(f"convite gerado com papel ({invite_code[:9]}…)", invite_code.startswith("PATA-") and len(invite_code) == 14 and a.get_by_text("Convite · Pode editar").is_visible())
+    ctxI = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo")
+    inv = ctxI.new_page(); inv.on("pageerror", lambda e: errors.append(str(e)))
+    inv.goto(BASE + "/entrar"); inv.get_by_role("button", name=re.compile("Tenho um código de convite")).click()
+    inv.get_by_label("Código").fill(invite_code); inv.get_by_role("button", name="Ver convite").click()
+    inv.wait_for_url("**/convite?codigo=*")
+    check("convite mostra o cachorro e o papel antes de entrar", eventually(lambda t: expect(inv.get_by_role("heading", name=re.compile("convidou você para o diário de Luna"))).to_be_visible(timeout=t)) and inv.get_by_text("Pode editar").first.is_visible())
+    inv.get_by_role("link", name="Já tenho conta").click()
+    inv.get_by_role("button", name="Entrar com email").click()
+    check("entrar com email pede senha e tem 'Esqueci minha senha'", eventually(lambda t: expect(inv.get_by_label("Senha")).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Esqueci minha senha").is_visible())
+    inv.get_by_label("Seu email").fill(emails["C"]); inv.get_by_label("Senha").fill("senha-errada-123")
+    inv.get_by_role("button", name="Entrar", exact=True).click()
+    check("senha errada mostra aviso", eventually(lambda t: expect(inv.get_by_text(re.compile("Email ou senha não conferem"))).to_be_visible(timeout=t)))
+    inv.get_by_label("Senha").fill(pw_c); inv.get_by_role("button", name="Entrar", exact=True).click()
+    inv.wait_for_url("**/convite?codigo=*", timeout=20000)
+    inv.get_by_role("button", name=re.compile("Aceitar e abrir o diário de Luna")).click()
+    inv.wait_for_url("**/hoje", timeout=30000)
+    check("Bianca entra com a senha, aceita e vê o diário de Luna", eventually(lambda t: expect(inv.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
+    snapC = rpc(inv, "snapshot", {})[1]
+    check(f"Bianca é 'pode editar' e vê as lembranças de Luna ({snapC.get('role')}, {len(snapC['entries'])})", snapC.get("role") == "editor" and len(snapC["entries"]) == 2 and len(snapC.get("diaries") or []) == 1)
+    st_reuse = inv.evaluate("c => fetch('/api/convite', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({code: c})}).then(r => r.status)", invite_code)
+    check(f"o mesmo convite não funciona duas vezes ({st_reuse})", st_reuse == 400)
+    st, _ = rpc(inv, "createInvite", {"role": "editor"})
+    check(f"só o administrador convida ({st})", st == 403)
+    # Créditos são do diário: o mesmo saldo para as duas; convidada não soma boas-vindas.
+    credA = (rpc(a, "studioState", {})[1] or {}).get("balance"); credC = (rpc(inv, "studioState", {})[1] or {}).get("balance")
+    check(f"créditos do Estúdio são do diário (A {credA}, Bianca {credC})", credA is not None and credA == credC)
+    a.goto(BASE + "/config")
+    check("administrador vê a Bianca na família", eventually(lambda t: expect(a.get_by_text("Bianca (você)")).to_have_count(0, timeout=t)) and eventually(lambda t: expect(a.locator(".member").filter(has_text="Bianca")).to_have_count(1, timeout=t)))
+    a.get_by_label("Papel de Bianca").select_option("viewer"); a.wait_for_timeout(2000)
+    st, body = rpc(inv, "updateDog", {"name": "Invadido"})
+    check(f"'só ver' não altera o diário ({st})", st == 403)
+    inv.goto(BASE + "/diario")
+    check("'só ver' mostra o aviso e esconde Guardar", eventually(lambda t: expect(inv.get_by_text(re.compile("Você está só vendo o diário de Luna"))).to_be_visible(timeout=t)) and not inv.get_by_role("link", name=re.compile("Guardar momento")).first.is_visible())
+    # Vários cachorros: A cria Pepe; Bianca não vê Pepe; créditos de Pepe são separados.
+    st, _ = rpc(a, "createDiary", {"timezone": "America/Sao_Paulo", "name": "Pepe", "birthDate": None, "preferences": {"home": True, "outdoor": True, "people": True, "socialDogs": False}, "another": True})
+    snapP = rpc(a, "snapshot", {})[1]
+    credP = (rpc(a, "studioState", {})[1] or {}).get("balance")
+    check(f"segundo cachorro com diário próprio ({st}, {snapP['dog']['name']}, {len(snapP.get('diaries') or [])} diários, créditos {credP})", st == 200 and snapP["dog"]["name"] == "Pepe" and len(snapP["diaries"]) == 2 and len(snapP["entries"]) == 0 and credP == 0)
+    check("Bianca continua vendo só Luna", len(rpc(inv, "snapshot", {})[1].get("diaries") or []) == 1)
+    a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
+    a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")
+    check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     ctxI.close()
+    a.goto(BASE + "/config"); a.wait_for_timeout(1500)
     a.get_by_role("button", name="Ajustar zoom e posição").click()
     check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
     a.get_by_label("Zoom").fill("2.2")
@@ -268,8 +306,11 @@ with sync_playwright() as p:
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=display').then(r => r.status)", mediaA)
     check(f"conta excluída: foto de A não abre mais ({st})", st in (401, 404))
     users = admin("GET", f"users?per_page=200")
+    for u in users.get("users", []):
+        if u["email"] == emails["C"]: admin("DELETE", f"users/{u['id']}")
+    users = admin("GET", f"users?per_page=200")
     left = [u for u in users.get("users", []) if u["email"] in emails.values()]
-    check("as duas contas de teste foram excluídas", left == [])
+    check("as contas de teste foram excluídas", left == [])
 
     check(f"sem erros de página ({errors[:2]})", not errors)
     browser.close()
