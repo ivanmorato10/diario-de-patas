@@ -727,3 +727,29 @@ body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-are
 .xp-reward--compact { padding: 12px 14px; }
 .xp-earned { align-items: center; }
 @media (prefers-reduced-motion: reduce) { .is-close .xp-reward__gift { animation: none; } }
+
+/* Achadinhos do Abu (afiliados): cartão na Hoje e página com a lista completa */
+.achados-card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; background: var(--paper); border: 1px dashed #e8cfae; text-decoration: none; color: inherit; }
+.achados-card__icon { font-size: 1.6rem; }
+.achados-card__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.achados-card__text span { font-size: 0.8125rem; color: var(--text-secondary); }
+.achados-card__go { font-size: 1.6rem; color: var(--text-secondary); }
+.achados-hero { display: flex; gap: 14px; align-items: center; }
+.achados-hero__abu { flex: none; width: 96px; height: 96px; border-radius: 50%; background: #9adcd2; display: grid; place-items: end center; overflow: hidden; }
+.achados-filter { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.achados-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; min-height: 40px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font: 700 0.875rem/1 var(--font-body); color: var(--text-primary); cursor: pointer; }
+.achados-chip.is-active { background: var(--text-primary); color: var(--paper); border-color: var(--text-primary); }
+.achados-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 720px) { .achados-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.achado { background: var(--surface); border-radius: 18px; overflow: hidden; box-shadow: 0 4px 14px rgba(31, 22, 13, 0.08); display: flex; flex-direction: column; }
+.achado__art { position: relative; aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.achado__art img { width: 100%; height: 100%; object-fit: cover; }
+.achado__emoji { font-size: 3rem; }
+.achado__tag { position: absolute; left: 8px; bottom: 8px; background: rgba(255, 255, 255, 0.9); font-size: 0.6875rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+.achado__body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.achado__body h2 { font-size: 0.9375rem; line-height: 1.25; }
+.achado__abu { margin: 0; font-family: var(--font-hand); font-size: 1.1rem; line-height: 1.2; color: #4a3826; flex: 1; }
+.achado__btn { display: block; text-align: center; background: #ff9900; color: #1f160d; font-weight: 800; font-size: 0.875rem; text-decoration: none; padding: 10px 8px; border-radius: 12px; box-shadow: 0 2px 0 #c77700; }
+.achados-disclosure { text-align: center; }
+.xp-reward__level { margin: 0; font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.45; }
+.xp-reward__level svg { color: var(--accent); vertical-align: -2px; }

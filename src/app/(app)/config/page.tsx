@@ -156,6 +156,7 @@ export default function Config() {
           <h2 id="dados">Seus dados</h2>
           <button type="button" className="btn btn--secondary btn--block" onClick={doExport}><IconDownload /> Exportar dados (JSON)</button>
           <p className="caption">Inclui perfil, legendas, datas, álbuns e conquistas. As fotos você baixa uma a uma pelo Diário.</p>
+          <Link href="/achadinhos" className="card row-between" style={{ padding: 16 }}><span>🛍️ Achadinhos do Abu</span><IconChevron /></Link>
           <Link href="/sobre" className="card row-between" style={{ padding: 16 }}><span>Sobre o Diário de Patas</span><IconChevron /></Link>
           <InstallAppLink />
         </section>

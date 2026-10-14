@@ -16,6 +16,7 @@ import { DAILY_SLOTS, type DailySlot } from "@/config/cycle";
 import { activeSpecials, daysWithMemories, missionStatus } from "@/domain/cycle";
 import { levelFor, missionById } from "@/domain/missions";
 import { XpRewardBar } from "@/components/xp-reward";
+import { AchadinhosCard } from "@/components/achadinhos-card";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -69,18 +70,9 @@ export default function Hoje() {
           </div>
         </section>
 
-        <section className="card stack" aria-label="Pontos e nível" style={{ padding: 16 }}>
-          <div className="row-between">
-            <span className="chip chip--reward"><IconStar size={16} /> {snap.xpTotal} XP</span>
-            <span className="caption">{level.nextAt ? `${level.nextAt - snap.xpTotal} XP até “${level.nextTitle}”` : ""}</span>
-          </div>
-          <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={level.nextAt ?? snap.xpTotal} aria-valuenow={snap.xpTotal} aria-label="Progresso até o próximo nível">
-            <span style={{ width: `${levelPct}%` }} />
-          </div>
-          <p className="caption">{days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</p>
-        </section>
 
-        <XpRewardBar xpTotal={snap.xpTotal} />
+        <XpRewardBar xpTotal={snap.xpTotal} levelLine={<><IconStar size={14} /> <strong>{snap.xpTotal} XP</strong> · {level.title}{level.nextAt ? ` · ${level.nextAt - snap.xpTotal} XP até “${level.nextTitle}”` : ""} · {days} {days === 1 ? "dia com lembranças" : "dias com lembranças"} · {snap.medals.length} {snap.medals.length === 1 ? "medalha" : "medalhas"}</>} />
+        <AchadinhosCard />
 
         {!hasFirst ? (
           <>

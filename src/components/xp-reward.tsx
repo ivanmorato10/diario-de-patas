@@ -6,7 +6,7 @@ import { XP_PER_CREDIT, xpReward } from "@/config/credits";
 import { Paw } from "@/components/icons";
 
 /** Barra "próximo crédito grátis": cada 200 XP de missões vira 1 arte no Estúdio. */
-export function XpRewardBar({ xpTotal, compact = false }: { xpTotal: number; compact?: boolean }) {
+export function XpRewardBar({ xpTotal, compact = false, levelLine }: { xpTotal: number; compact?: boolean; levelLine?: React.ReactNode }) {
   const r = xpReward(xpTotal);
   const close = r.missing <= 40;
   return (
@@ -22,6 +22,7 @@ export function XpRewardBar({ xpTotal, compact = false }: { xpTotal: number; com
         <span style={{ width: `${Math.max(3, r.pct)}%` }} />
         <i aria-hidden="true"><Paw size={14} /></i>
       </div>
+      {levelLine ? <p className="xp-reward__level">{levelLine}</p> : null}
       <div className="xp-reward__foot">
         <span>{r.into} / {XP_PER_CREDIT} XP</span>
         {!compact ? (REAL_MODE ? <Link href="/missoes">Ver missões</Link> : <span>Com conta, o crédito vai para o Estúdio</span>) : null}
