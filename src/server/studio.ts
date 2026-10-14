@@ -61,16 +61,19 @@ export async function studioState(ctx: Ctx) {
   const gen = artGenerator();
   const dog = (await currentDog(ctx))!;
   // Créditos são do diário: boas-vindas (uma vez por pessoa, só no diário que ela criou: convidados não somam) e arte do mês do cachorro.
-  if (gen && dog.owner_id === ctx.user.id) await q(admin.rpc("grant_welcome_credits", { p_owner: ctx.user.id, p_dog: dog.id, p_amount: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits) }));
-  await reconcileStuck(dog.id);
-  await q(admin.rpc("grant_monthly_xp_credit_dog", { p_dog: dog.id, p_goal: XP_MONTH_GOAL }));
-  const [balance, jobs, usedToday, consumed] = await Promise.all([
+  // Tudo o que é independente vai junto (cada ida ao banco custa tempo): primeiro concessões e limpeza, depois as leituras.
+  await Promise.all([
+    gen && dog.owner_id === ctx.user.id ? q(admin.rpc("grant_welcome_credits", { p_owner: ctx.user.id, p_dog: dog.id, p_amount: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits) })) : null,
+    reconcileStuck(dog.id),
+    q(admin.rpc("grant_monthly_xp_credit_dog", { p_dog: dog.id, p_goal: XP_MONTH_GOAL })),
+  ]);
+  const [balance, jobs, usedToday, consumed, presets] = await Promise.all([
     q(admin.rpc("credit_available_dog", { p_dog: dog.id })),
     q(ctx.supa.from("generation_jobs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(30)),
     countToday(dog.id),
     admin.from("credit_ledger").select("amount").eq("dog_id", dog.id).eq("operation", "consume"),
+    presetsWithFlags(),
   ]);
-  const presets = await presetsWithFlags();
   return {
     available: !!gen && !paused(),
     configured: !!gen,

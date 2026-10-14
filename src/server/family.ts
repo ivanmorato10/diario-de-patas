@@ -29,15 +29,12 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
   const admin = adminClient();
   const [{ data: prof }, { data: mem }] = await Promise.all([
     admin.from("profiles").select("current_dog_id").eq("user_id", ctx.user.id).maybeSingle(),
-    admin.from("dog_members").select("dog_id, role, created_at").eq("user_id", ctx.user.id).order("created_at"),
+    // O cachorro vem junto da participação: uma ida ao banco a menos em toda operação.
+    admin.from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"),
   ]);
-  const members = (mem ?? []) as { dog_id: string; role: Role }[];
+  const members = (mem ?? []) as { dog_id: string; role: Role; dogs: any }[];
   const m = members.find((x) => x.dog_id === (prof as any)?.current_dog_id) ?? members[0];
-  let dog: CurrentDog | null = null;
-  if (m) {
-    const { data } = await admin.from("dogs").select("*").eq("id", m.dog_id).maybeSingle();
-    if (data) dog = { ...(data as any), role: m.role };
-  }
+  const dog: CurrentDog | null = m?.dogs ? { ...m.dogs, role: m.role } : null;
   cache.set(ctx, dog);
   if (!dog && required) throw bad("NO_DOG", "Crie o diário antes.");
   return dog;

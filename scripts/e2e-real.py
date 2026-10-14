@@ -292,7 +292,7 @@ with sync_playwright() as p:
     st = v.evaluate("u => fetch(u).then(r => r.status)", img_url)
     av_after = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")
     check(f"foto de perfil some junto com o link ({av_after})", av_after == 404)
-    check(f"link revogado para de funcionar (página e foto {st})", v.get_by_role("heading", name="Este álbum não está disponível").is_visible() and st == 404)
+    check(f"link revogado para de funcionar (página e foto {st})", eventually(lambda t: expect(v.get_by_role("heading", name="Este álbum não está disponível")).to_be_visible(timeout=t)) and st == 404)
     ctxV.close()
 
     # ---------- Sair e entrar de novo ----------

@@ -84,7 +84,10 @@ with sync_playwright() as p:
 
     # Desligar um preset (tabela studio_presets) o tira do app, sem deploy.
     rest("POST", "studio_presets", {"id": "vitral", "enabled": False}, {"prefer": "resolution=merge-duplicates"})
-    pg.goto(BASE + "/estudio"); expect(pg.get_by_text("Seus créditos")).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Estilos").click()
+    # A tela mostra antes o último estado salvo; espera a resposta do servidor.
+    with pg.expect_response(lambda r: "/api/rpc/studioState" in r.url, timeout=30000):
+        pg.goto(BASE + "/estudio")
+    pg.wait_for_timeout(500); expect(pg.get_by_text("Seus créditos")).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Estilos").click()
     panel = pg.get_by_role("tabpanel")
     check("preset desligado some do app", panel.get_by_role("button", name="Vitral").count() == 0 and panel.get_by_role("button", name="Aquarela").count() == 1)
     rest("DELETE", "studio_presets?id=eq.vitral")

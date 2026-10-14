@@ -240,18 +240,31 @@ function Estudio() {
   const idem = useRef<string>("");
   const [photoCheck, setPhotoCheck] = useState<PhotoCheck | "checking" | null>(null);
 
+  // Mostra na hora o último saldo conhecido deste diário; o servidor confirma logo em seguida.
+  const cacheKey = `ddp-studio-${snap?.dog?.id ?? ""}`;
+  useEffect(() => {
+    if (!REAL_MODE || !snap?.dog?.id) return;
+    try {
+      const saved = localStorage.getItem(cacheKey);
+      if (saved) setState((s) => s ?? (JSON.parse(saved) as StudioState));
+    } catch { /* sem armazenamento: só espera o servidor */ }
+  }, [cacheKey, snap?.dog?.id]);
+
   const refresh = useCallback(async () => {
     if (!REAL_MODE) return;
     try {
-      setState(await studioState());
+      const fresh = await studioState();
+      setState(fresh);
+      // Sem a lista de artes: um job antigo "em andamento" no cache abriria a tela de espera à toa.
+      try { localStorage.setItem(cacheKey, JSON.stringify({ ...fresh, jobs: [] })); } catch { /* ok */ }
     } catch (e) {
       setLoadError(e instanceof DomainError ? e.message : "Não conseguimos carregar o Estúdio.");
     }
-  }, []);
+  }, [cacheKey]);
   useEffect(() => {
     idem.current = crypto.randomUUID();
-    void refresh();
-  }, [refresh]);
+    if (snap?.dog?.id) void refresh();
+  }, [refresh, snap?.dog?.id]);
 
   // Reabrir a tela recupera o job em andamento (§9.2).
   useEffect(() => {

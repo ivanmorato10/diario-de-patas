@@ -785,9 +785,9 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 /* Hoje: título manuscrito, selos de nível e XP, nota "sem pressa" e botão de missões */
 .hoje-title { font-family: var(--font-hand); font-weight: 700; font-size: clamp(2rem, 8vw, 2.4rem); line-height: 1.05; letter-spacing: 0; overflow-wrap: anywhere; }
 .hoje-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.hoje-level { display: inline-flex; align-items: center; gap: 5px; background: var(--paper); border: 1px solid #f0dcc0; color: var(--text-primary); font-weight: 800; font-size: 0.8125rem; padding: 4px 10px; border-radius: 999px; }
+.hoje-level { display: inline-flex; align-items: center; gap: 5px; line-height: 1.2; background: var(--paper); border: 1px solid #f0dcc0; color: var(--text-primary); font-weight: 800; font-size: 0.8125rem; padding: 4px 10px; border-radius: 999px; }
 .hoje-level svg { color: var(--accent); }
-.hoje-xp { display: inline-flex; align-items: center; gap: 4px; background: var(--link); color: #fff; box-shadow: 0 2px 0 #174a45; font-weight: 800; font-size: 0.8125rem; padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.hoje-xp { display: inline-flex; align-items: center; gap: 5px; background: var(--link); border: 1px solid var(--link); color: #fff; font-weight: 800; font-size: 0.8125rem; line-height: 1.2; padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
 .hoje-note { margin: 0; font-family: var(--font-hand); font-size: 1.3rem; line-height: 1.25; color: #4a3826; background: var(--paper) repeating-linear-gradient(transparent 0 25px, #efe2cc 25px 26px) 0 8px; padding: 8px 14px 6px; border-radius: 6px; rotate: -0.6deg; box-shadow: 0 2px 8px rgba(31, 22, 13, 0.08); }
 .hoje-all { gap: 8px; }
 .hoje-all svg { color: var(--accent); }
