@@ -97,7 +97,7 @@ export default function Diario() {
                   const label = e.caption ? `lembrança “${e.caption.slice(0, 40)}”` : `lembrança de ${formatCivilDate(e.occurredDate)}`;
                   return (
                     <article key={e.id} id={e.id} className="polaroid" style={{ margin: "6px 4px 14px" }}>
-                      <MediaImage id={e.mediaId} variant="display" alt={e.caption ? `Foto: ${e.caption}` : `Foto de ${dog.name}`} className="photo" />
+                      <MediaImage id={e.mediaId} variant="display" alt={e.caption ? `Foto: ${e.caption}` : `Foto de ${dog.name}`} className="photo photo--natural" />
                       {e.caption ? <p className="polaroid__note">{e.caption}</p> : null}
                       <div className="stack" style={{ padding: "8px 4px 6px", gap: 6 }}>
                         <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
