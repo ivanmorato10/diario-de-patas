@@ -799,3 +799,7 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .levels__n { width: 26px; height: 26px; border-radius: 50%; background: #63b4ad; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 0.8125rem; }
 .levels__t { font-weight: 700; }
 .levels__xp { font-size: 0.8125rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.invite-code { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; background: var(--paper) repeating-linear-gradient(transparent 0 25px, #efe2cc 25px 26px) 0 8px; border-radius: 14px; padding: 14px; border: 2px dashed #63b4ad; }
+.invite-code__label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--link); }
+.invite-code__value { font-family: ui-monospace, monospace; font-size: 1.6rem; letter-spacing: 0.08em; color: var(--text-primary); user-select: all; }
+.sp-invite-link { background: none; border: 0; font: 700 0.9375rem/1 var(--font-body); color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; padding: 10px; cursor: pointer; }

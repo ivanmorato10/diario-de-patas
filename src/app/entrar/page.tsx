@@ -18,7 +18,7 @@ import { InstallAppLink, isStandalone } from "@/components/install-app";
 const safeNext = (n: string | null) => (n && n.startsWith("/") && !n.startsWith("//") ? n : "/");
 
 type Provider = "google" | "apple";
-type Step = "splash" | "choose" | "email" | "sent";
+type Step = "splash" | "choose" | "email" | "sent" | "invite";
 type Intent = "criar" | "entrar";
 const PROVIDER_NAME: Record<Provider, string> = { google: "Google", apple: "Apple" };
 
@@ -88,6 +88,7 @@ function Entrar() {
   const [intent, setIntent] = useState<Intent>(params.get("modo") === "criar" ? "criar" : "entrar");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [invite, setInvite] = useState("");
   const [busy, setBusy] = useState<Provider | "email" | null>(null);
   const [enabled, setEnabled] = useState<Record<Provider, boolean> | null>(null);
   const [error, setError] = useState<string | null>(initialError);
@@ -145,6 +146,23 @@ function Entrar() {
     else setStep("sent");
   }
 
+  async function redeem(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy("email");
+    setError(null);
+    try {
+      const res = await fetch("/api/acesso", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: invite }) });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.tokenHash) throw new Error(json?.message ?? "Código inválido ou vencido.");
+      const { error: err } = await browserClient().auth.verifyOtp({ token_hash: json.tokenHash, type: "magiclink" });
+      if (err) throw new Error("Não deu para entrar com esse código. Peça um novo.");
+      window.location.assign("/");
+    } catch (er) {
+      setBusy(null);
+      setError(er instanceof Error ? er.message : "Não deu para entrar.");
+    }
+  }
+
   async function verify(e: React.FormEvent) {
     e.preventDefault();
     setBusy("email");
@@ -180,6 +198,7 @@ function Entrar() {
               <Paw size={20} /> Cadastrar meu cachorro
             </button>
             <button type="button" className="sp-btn sp-btn--ghost" onClick={() => go("choose", "entrar")}>Já tenho conta</button>
+            <button type="button" className="sp-invite-link" onClick={() => go("invite")}>🎟️ Tenho um código de convite</button>
           </div>
           <p className="sp-foot sp-in sp-in--5">Grátis · sem senha · privado até você compartilhar</p>
           <div className="sp-in sp-in--5"><InstallAppLink variant="splash" /></div>
@@ -187,7 +206,7 @@ function Entrar() {
       ) : (
         <>
           <header className="sp-top">
-            <button type="button" className="sp-back" onClick={() => go(step === "choose" ? "splash" : "choose")} aria-label="Voltar">
+            <button type="button" className="sp-back" onClick={() => go(step === "choose" || step === "invite" ? "splash" : "choose")} aria-label="Voltar">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             <div className="sp-top__emblem"><Emblem size={150} /></div>
@@ -217,6 +236,16 @@ function Entrar() {
                   <button type="button" onClick={() => go("choose", creating ? "entrar" : "criar")}>{creating ? "Entrar" : "Criar conta"}</button>
                 </p>
               </div>
+            ) : step === "invite" ? (
+              <form className="stack" onSubmit={redeem} noValidate>
+                <h1 className="sp-sheet__title">Entrar com código de convite</h1>
+                <p className="muted">Quem compartilhou o diário gerou um código em Ajustes. Digite aqui para entrar no mesmo diário.</p>
+                <div className="field">
+                  <label htmlFor="invite">Código</label>
+                  <input id="invite" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" autoComplete="one-time-code" placeholder="PATA-XXXX-XXXX" value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase().slice(0, 16))} autoFocus />
+                </div>
+                <button type="submit" className="sp-btn sp-btn--main" disabled={!!busy || invite.replace(/[^A-Z0-9]/g, "").replace(/^PATA/, "").length < 8}>{busy === "email" ? <><Spinner /> Entrando…</> : "Entrar no diário"}</button>
+              </form>
             ) : step === "email" ? (
               <form className="stack" onSubmit={send} noValidate>
                 <h1 className="sp-sheet__title">{creating ? "Criar com email" : "Entrar com email"}</h1>

@@ -1,61 +1,70 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { UserIdentity } from "@supabase/supabase-js";
+import { rpc } from "@/data/real-repository";
 import { browserClient } from "@/data/supabase-browser";
-
-const NAME: Record<string, string> = { google: "Google", apple: "Apple", email: "Email" };
+import { useStore } from "@/data/store";
 
 /**
- * Mais de uma pessoa no mesmo diário: liga o Google/Apple de outra pessoa (ex.: sócia, família) a esta conta.
- * Depois, cada uma entra com a própria conta Google/Apple e vê o mesmo diário.
+ * Compartilhar o diário: gera um código de convite (30 min, uso único). Quem recebe digita na tela de
+ * entrada ("Tenho um código de convite") e passa a usar este mesmo diário. Dá para desconectar os outros.
  */
 export function SharedAccess() {
-  const [ids, setIds] = useState<UserIdentity[] | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const { snap } = useStore();
+  const [code, setCode] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [left, setLeft] = useState(0);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const name = snap?.dog?.name ?? "meu cachorro";
 
-  const load = () => browserClient().auth.getUserIdentities().then(({ data }) => setIds(data?.identities ?? [])).catch(() => setIds([]));
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    if (!code) return;
+    const tick = () => setLeft(Math.max(0, Date.parse(code.expiresAt) - Date.now()));
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [code]);
 
-  async function add(provider: "google" | "apple") {
-    setBusy(provider);
+  async function generate() {
+    setBusy(true);
     setMsg(null);
-    document.cookie = `ddp_next=${encodeURIComponent("/config#acesso")}; path=/auth; max-age=900; samesite=lax; secure`;
-    const { error } = await browserClient().auth.linkIdentity({ provider, options: { redirectTo: `${window.location.origin}/auth/callback` } });
-    if (error) {
-      setBusy(null);
-      setMsg(/already|exists|linked/i.test(error.message) ? "Essa conta já está ligada a outro diário. Ela precisa excluir aquele diário (ou usar outra conta) antes." : "Não deu para ligar agora. Tente de novo.");
-    }
+    try { setCode(await rpc("createAccessCode")); } catch { setMsg("Não deu para gerar o código. Tente de novo."); } finally { setBusy(false); }
   }
-  async function remove(identity: UserIdentity) {
-    setBusy(identity.identity_id);
-    const { error } = await browserClient().auth.unlinkIdentity(identity);
-    setBusy(null);
-    if (error) setMsg("Não deu para remover. É preciso manter pelo menos uma forma de entrar.");
-    else void load();
+  async function copy() {
+    if (!code) return;
+    try { await navigator.clipboard.writeText(code.code); setMsg("Código copiado."); } catch { setMsg(code.code); }
   }
+  async function others() {
+    setBusy(true);
+    const { error } = await browserClient().auth.signOut({ scope: "others" });
+    setBusy(false);
+    setMsg(error ? "Não deu para desconectar agora." : "Pronto: os outros aparelhos saíram do diário. Este continua conectado.");
+  }
+
+  const site = typeof window !== "undefined" ? window.location.origin : "";
+  const text = code ? `Oi! Use este código para entrar no diário de ${name} no Diário de Patas: ${code.code}\nAbra ${site}, toque em "Tenho um código de convite" e digite o código (vale por 30 minutos).` : "";
+  const mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
 
   return (
     <section className="card stack" id="acesso" aria-labelledby="acesso-titulo">
-      <h2 id="acesso-titulo">Quem pode entrar neste diário</h2>
-      <p className="small muted">Para dividir o diário com outra pessoa (família, sócia), ligue o Google ou o Apple dela aqui. Ela entra na conta dela nesta tela, e depois consegue abrir o app sozinha e ver tudo deste diário.</p>
-      {ids === null ? <p className="caption">Carregando…</p> : (
-        <ul className="stack" style={{ listStyle: "none", margin: 0, padding: 0, gap: 6 }}>
-          {ids.map((i) => (
-            <li key={i.identity_id} className="row-between" style={{ background: "var(--background)", borderRadius: 12, padding: "8px 12px" }}>
-              <span className="small"><strong>{NAME[i.provider] ?? i.provider}</strong> · {(i.identity_data?.email as string) ?? "sem email"}</span>
-              {ids.length > 1 ? <button type="button" className="btn btn--ghost btn--small" disabled={busy === i.identity_id} onClick={() => remove(i)}>Remover</button> : null}
-            </li>
-          ))}
-        </ul>
+      <h2 id="acesso-titulo">Compartilhar o diário</h2>
+      <p className="small muted">Para outra pessoa (família, sócia) usar este mesmo diário no celular dela: gere um código e mande para ela. Ela toca em “Tenho um código de convite” na tela de entrada e digita. Fotos, missões, cuidados e créditos ficam compartilhados.</p>
+      {code && left > 0 ? (
+        <div className="invite-code">
+          <span className="invite-code__label">Código de convite</span>
+          <strong className="invite-code__value">{code.code}</strong>
+          <span className="caption">Vale por {mm}:{String(ss).padStart(2, "0")} e só pode ser usado uma vez.</span>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+            <a className="btn btn--primary btn--small" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener">Enviar pelo WhatsApp</a>
+            <button type="button" className="btn btn--secondary btn--small" onClick={copy}>Copiar código</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate}>{busy ? "Gerando…" : code ? "Gerar outro código" : "Gerar código de convite"}</button>
       )}
-      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        <button type="button" className="btn btn--secondary btn--small" disabled={!!busy} onClick={() => add("google")}>+ Ligar outra conta Google</button>
-        <button type="button" className="btn btn--secondary btn--small" disabled={!!busy} onClick={() => add("apple")}>+ Ligar outro Apple ID</button>
-      </div>
-      {msg ? <p className="field-error" role="alert">{msg}</p> : null}
-      <p className="caption">Todas as formas de entrar abrem o mesmo diário e os mesmos créditos. Remova a qualquer momento.</p>
+      <p className="caption">Quem entra com o código tem acesso completo ao diário (inclusive Ajustes). Compartilhe só com quem você confia.</p>
+      <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={others}>Desconectar outros aparelhos</button>
+      {msg ? <p className="small" role="status">{msg}</p> : null}
     </section>
   );
 }
