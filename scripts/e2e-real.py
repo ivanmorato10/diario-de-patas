@@ -194,9 +194,19 @@ with sync_playwright() as p:
     a.get_by_role("button", name="Ajustar zoom e posição").click()
     check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
     a.get_by_label("Zoom").fill("2.2")
-    a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(2500)
+    a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(300)
+    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header .avatar img").get_attribute("style") or ""))
+    a.wait_for_timeout(2500)
     saved = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"ajuste da foto de perfil salvo pela tela ({saved})", abs(float(saved.get("zoom", 0)) - 2.2) < 0.01)
+    # Como no celular: arrastar a foto e fechar a janela sem tocar em salvar.
+    a.get_by_role("button", name="Ajustar zoom e posição").click(); a.wait_for_timeout(300)
+    box = a.locator(".avatar-crop").bounding_box()
+    a.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2); a.mouse.down()
+    a.mouse.move(box["x"] + box["width"] / 2 + 50, box["y"] + box["height"] / 2 + 30, steps=8); a.mouse.up()
+    a.keyboard.press("Escape"); a.wait_for_timeout(2500)
+    dragged = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
+    check(f"arrastar e fechar a janela salva a posição ({dragged})", abs(float(dragged.get("x", 40)) - 40) > 1 and abs(float(dragged.get("zoom", 0)) - 2.2) < 0.01)
     a.reload(); a.wait_for_timeout(2000)
     check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header .avatar img").get_attribute("style") or ""))
 

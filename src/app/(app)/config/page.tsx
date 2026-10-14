@@ -24,7 +24,7 @@ import { levelFor } from "@/domain/missions";
 
 export default function Config() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { repo, reload, reset } = useStore();
+  const { repo, reload, reset, patchSnap } = useStore();
   const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
@@ -92,7 +92,11 @@ export default function Config() {
       <main className="main">
         {dog.photoMediaId && cropOpen ? (
           <AvatarCropSheet open mediaId={dog.photoMediaId} name={dog.name} value={dog.avatarCrop} onClose={() => setCropOpen(false)}
-            onSave={(c) => run(() => repo!.updateDog({ avatarCrop: c }), "Foto ajustada.")} />
+            onSave={(c) => {
+              // A foto muda na hora; o servidor grava em seguida (e o reload confirma).
+              patchSnap((s) => (s.dog ? { ...s, dog: { ...s.dog, avatarCrop: c } } : s));
+              void run(() => repo!.updateDog({ avatarCrop: c }), "Foto ajustada.");
+            }} />
         ) : null}
         <form className="stack-lg" onSubmit={saveProfile}>
           <section className="stack" aria-labelledby="perfil">

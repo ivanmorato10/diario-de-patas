@@ -15,6 +15,8 @@ interface StoreValue {
   /** Demo: IndexedDB indisponível (ex.: navegação privada). Real: não deu para carregar a conta. */
   unavailable: boolean;
   reload: () => Promise<void>;
+  /** Atualização otimista: muda a tela na hora, antes da resposta do servidor (o reload confirma depois). */
+  patchSnap: (fn: (s: Snapshot) => Snapshot) => void;
   /** Demo: apaga o diário deste aparelho. Real: exclui a conta. */
   reset: () => Promise<void>;
 }
@@ -68,7 +70,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [reload]);
 
-  const value = useMemo(() => ({ repo, snap, unavailable, reload, reset }), [repo, snap, unavailable, reload, reset]);
+  const patchSnap = useCallback((fn: (s: Snapshot) => Snapshot) => setSnap((s) => (s ? fn(s) : s)), []);
+  const value = useMemo(() => ({ repo, snap, unavailable, reload, reset, patchSnap }), [repo, snap, unavailable, reload, reset, patchSnap]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
