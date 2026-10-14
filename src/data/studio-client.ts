@@ -51,8 +51,8 @@ export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: 
 export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y: number; w: number; h: number } | null }) => rpc<PhotoCheck>("studioCheckPhoto", input);
 
 export const FAILURE_PT: Record<string, string> = {
-  PROVIDER_REFUSED: "Não conseguimos usar esta foto. Tente outra em que o cachorro apareça sozinho. O crédito foi devolvido.",
-  QUALITY_REJECTED: "A arte não ficou boa o bastante (faltou o cachorro ou apareceu texto). O crédito foi devolvido.",
+  PROVIDER_REFUSED: "Não consegui usar esta foto. Tente outra em que {dog} apareça sozinho. O crédito foi devolvido.",
+  QUALITY_REJECTED: "A arte não ficou boa o bastante ({dog} não apareceu direito). O crédito foi devolvido.",
   PROVIDER_TIMEOUT: "A arte demorou demais e foi cancelada. O crédito foi devolvido.",
   PROVIDER_UNAVAILABLE: "O serviço de artes está instável agora. O crédito foi devolvido — tente mais tarde.",
   NO_CREDITS: "Seus créditos de teste acabaram.",

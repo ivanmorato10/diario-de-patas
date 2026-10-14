@@ -135,7 +135,8 @@ export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCh
   if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
   try {
-    return await assessPhoto(await loadInputPhoto(entry.media_asset_id, a.data.crop), artGenerator());
+    const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, a.data.crop), artGenerator());
+    return { ...r, issues: r.issues.map((i) => ({ ...i, message: i.message.replaceAll("{dog}", dog.name) })) };
   } catch {
     return { verdict: "warn", issues: [], aiChecked: false }; // falha nossa: não bloqueia, mas não garante nada
   }
@@ -291,8 +292,8 @@ export async function processJob(jobId: string) {
 }
 
 export const STUDIO_FAILURE_MESSAGES: Record<string, string> = {
-  PROVIDER_REFUSED: "Não conseguimos usar esta foto. Tente outra em que o cachorro apareça sozinho. O crédito foi devolvido.",
-  QUALITY_REJECTED: "A arte não ficou boa o bastante (faltou o cachorro ou apareceu texto). O crédito foi devolvido.",
+  PROVIDER_REFUSED: "Não consegui usar esta foto. Tente outra em que {dog} apareça sozinho. O crédito foi devolvido.",
+  QUALITY_REJECTED: "A arte não ficou boa o bastante ({dog} não apareceu direito). O crédito foi devolvido.",
   PROVIDER_TIMEOUT: "A arte demorou demais e foi cancelada. O crédito foi devolvido.",
   PROVIDER_UNAVAILABLE: "O serviço de artes está instável agora. O crédito foi devolvido — tente de novo mais tarde.",
   NO_CREDITS: "Seus créditos de teste acabaram.",

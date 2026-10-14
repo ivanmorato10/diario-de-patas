@@ -48,10 +48,10 @@ with sync_playwright() as p:
         pg.get_by_role("button", name="Criar arte").click()
         if label == "Aniversário":
             pg.wait_for_timeout(3500); pg.screenshot(path=f"{OUT}/01b-criando.png")
-        expect(pg.get_by_text("Arte criada com IA").first).to_be_visible(timeout=90000)
+        expect(pg.get_by_text("Arte do Estúdio").first).to_be_visible(timeout=90000)
         pg.wait_for_timeout(1500)
     make("Datas", "Aniversário")
-    check("arte de aniversário pronta, ao lado da foto original", pg.get_by_text("Foto original").is_visible() and pg.get_by_text("interpretação artística").is_visible())
+    check("arte de aniversário pronta, ao lado da foto original", pg.get_by_text("Foto original").is_visible() and pg.get_by_text("Cada arte é única").is_visible())
     pg.screenshot(path=f"{OUT}/02-aniversario.png", full_page=True)
     snap = rpc("snapshot", {})[1]
     art = [e for e in snap["entries"] if e["source"] == "studio"]

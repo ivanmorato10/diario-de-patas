@@ -48,6 +48,7 @@ type Crop = { x: number; y: number; w: number; h: number };
 
 /** Recorte manual (quando há mais de um cachorro): arraste o quadro sobre a foto. Coordenadas 0..1. */
 function CropBox({ entryMediaId, value, onChange }: { entryMediaId: string; value: Crop; onChange: (v: Crop) => void }) {
+  const name = useStore().snap?.dog?.name ?? "seu cachorro";
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const clamp = (v: number, max: number) => Math.min(Math.max(0, v), max);
@@ -69,7 +70,7 @@ function CropBox({ entryMediaId, value, onChange }: { entryMediaId: string; valu
         <input type="range" min={30} max={100} value={Math.round(value.w * 100)}
           onChange={(e) => { const s = Number(e.target.value) / 100; onChange({ w: s, h: s, x: clamp(value.x, 1 - s), y: clamp(value.y, 1 - s) }); }} />
       </label>
-      <p className="caption">Arraste o quadro até o cachorro que vai virar arte.</p>
+      <p className="caption">Arraste o quadro até {name}.</p>
     </div>
   );
 }
@@ -109,11 +110,11 @@ function CreditMeter({ state }: { state: StudioState }) {
   );
 }
 
-const MAKING_LINES = [
-  "Olhando cada detalhe da foto…",
+const MAKING_LINES = (name: string) => [
+  `Olhando cada detalhe de ${name}…`,
   "Escolhendo as cores do pelo…",
   "Caprichando nos bigodes…",
-  "Desenhando as orelhas no lugar certo…",
+  "Colocando as orelhas no lugar certinho…",
   "Dando os últimos retoques…",
   "Quase pronta! Segura a ansiedade…",
 ];
@@ -121,6 +122,7 @@ const MAKING_LINES = [
 /** Tela de espera: a foto vira o estilo escolhido, com mensagens e progresso estimado (~15 s por arte). */
 function MakingArt({ job }: { job: StudioJob }) {
   const preset = presetById(job.presetId);
+  const name = useStore().snap?.dog?.name ?? "seu cachorro";
   const [secs, setSecs] = useState(() => Math.max(0, Math.round((Date.now() - Date.parse(job.createdAt)) / 1000)));
   useEffect(() => {
     const t = setInterval(() => setSecs((x) => x + 1), 1000);
@@ -128,7 +130,8 @@ function MakingArt({ job }: { job: StudioJob }) {
   }, []);
   const expected = preset?.premium ? 25 : preset?.post === "wallpaper" ? 22 : 16;
   const pct = Math.min(94, Math.round(100 * (1 - Math.exp(-secs / (expected * 0.75)))));
-  const line = MAKING_LINES[Math.min(MAKING_LINES.length - 1, Math.floor(secs / 4))];
+  const lines = MAKING_LINES(name);
+  const line = lines[Math.min(lines.length - 1, Math.floor(secs / 4))];
   return (
     <section className="making" aria-live="polite">
       <div className="making__stage" aria-hidden="true">
@@ -140,11 +143,11 @@ function MakingArt({ job }: { job: StudioJob }) {
           <span className="making__shine" />
         </div>
       </div>
-      <h2 className="making__title">Criando “{preset?.labelPt}”</h2>
+      <h2 className="making__title">Preparando “{preset?.labelPt}” de {name}</h2>
       <p className="making__line" key={line}>{line}</p>
       <div className="making__bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Progresso estimado"><span style={{ width: `${pct}%` }} /></div>
       <p className="making__meta">{secs} s · costuma levar uns {expected} segundos</p>
-      <p className="caption" style={{ textAlign: "center" }}>Pode sair desta tela: a arte continua sendo feita e aparece aqui e no Diário.</p>
+      <p className="caption" style={{ textAlign: "center" }}>Pode sair desta tela se quiser: eu continuo caprichando e a arte aparece aqui e no Diário.</p>
     </section>
   );
 }
@@ -180,17 +183,17 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
         </figure>
         <figure className="stack" style={{ margin: 0, gap: 4 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {url ? <img src={url} alt={`Arte ${preset?.labelPt ?? ""} criada com IA`} className={`studio-art${sticker ? " studio-art--sticker" : ""}`} /> : <div className="skeleton studio-art" style={{ aspectRatio: "1" }} aria-hidden="true" />}
-          <figcaption><span className="chip chip--accent">Arte criada com IA</span></figcaption>
+          {url ? <img src={url} alt={`Arte ${preset?.labelPt ?? ""} do Estúdio`} className={`studio-art${sticker ? " studio-art--sticker" : ""}`} /> : <div className="skeleton studio-art" style={{ aspectRatio: "1" }} aria-hidden="true" />}
+          <figcaption><span className="chip chip--accent">🎨 Arte do Estúdio</span></figcaption>
         </figure>
       </div>
-      <p className="small muted">Uma interpretação artística da foto; alguns detalhes podem variar.</p>
+      <p className="small muted">Cada arte é única: alguns detalhes podem ficar um pouquinho diferentes da foto.</p>
       {sticker ? (
         <div className="notice notice--info small"><IconInfo size={18} /><span>Para usar no WhatsApp: baixe a figurinha (WebP 512×512 transparente) e adicione com um app de figurinhas, como o Sticker.ly. O Diário de Patas não acessa o seu WhatsApp.</span></div>
       ) : null}
       <div className="stack">
         <button type="button" className="btn btn--primary btn--block" onClick={download} disabled={!url}><IconDownload /> {sticker ? "Baixar figurinha" : "Baixar arte"}</button>
-        <button type="button" className="btn btn--secondary btn--block" onClick={onAgain}>Gerar outra variação (novo crédito)</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={onAgain}>Fazer outra versão (usa crédito)</button>
         <Link href="/albuns/datas-especiais" className="btn btn--ghost btn--block">Ver em Datas especiais</Link>
       </div>
     </section>
@@ -198,11 +201,12 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
 }
 
 function PhotoCheckNote({ check }: { check: PhotoCheck | "checking" | null }) {
+  const name = useStore().snap?.dog?.name ?? "seu cachorro";
   if (!check) return null;
   if (check === "checking") return <p className="caption" role="status">Conferindo se a foto vai dar uma arte bonita…</p>;
-  if (check.verdict === "good") return <p className="notice notice--positive small" role="status"><span>Foto boa para arte! 🐾</span></p>;
+  if (check.verdict === "good") return <p className="notice notice--positive small" role="status"><span>Foto ótima de {name}! Vai ficar linda. 🐾</span></p>;
   if (!check.aiChecked && check.issues.length === 0) {
-    return <p className="notice notice--warn small" role="status"><span>Não conseguimos conferir a foto agora. Confira se o cachorro aparece bem, de frente e com boa luz.</span></p>;
+    return <p className="notice notice--warn small" role="status"><span>Não conseguimos conferir a foto agora. Confira se {name} aparece bem, de frente e com boa luz.</span></p>;
   }
   const bad = check.verdict === "bad";
   return (
@@ -211,7 +215,7 @@ function PhotoCheckNote({ check }: { check: PhotoCheck | "checking" | null }) {
         <strong>{bad ? "Essa foto não vai dar uma boa arte" : "A arte pode não ficar tão boa"}</strong>
         <ul style={{ margin: "4px 0 0", paddingLeft: "1.1em" }}>{check.issues.map((i) => <li key={i.code}>{i.message}</li>)}</ul>
         {bad ? <>Escolha outra foto ou use o recorte. Nenhum crédito foi usado.</> : <>Você pode seguir assim ou escolher outra foto.</>}
-        {!check.aiChecked ? <><br />Não deu para confirmar se há um cachorro na foto.</> : null}
+        {!check.aiChecked ? <><br />Não deu para confirmar se {name} está na foto.</> : null}
       </span>
     </div>
   );
@@ -333,17 +337,17 @@ function Estudio() {
       <main className="main">
         <div className="stack">
           <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>
-          <p className="page-note">Transforme uma foto em arte de datas, estilos, fantasias ou formatos. A IA usa a foto como referência; nome e mensagem quem escreve é o app.</p>
+          <p className="page-note">Escolha uma foto de {snap.dog.name} e eu transformo num retrato especial: aniversário, Natal, fantasia, figurinha… O nome e a mensagem você escreve, e eu coloco bem bonitinho na arte.</p>
         </div>
 
         {!REAL_MODE ? (
-          <div className="notice notice--info" role="status"><IconInfo /><span><strong>Disponível com conta.</strong> As artes são geradas no servidor e usam créditos da conta — nesta versão de demonstração nada é gerado nem simulado. Explore os temas abaixo.</span></div>
+          <div className="notice notice--info" role="status"><IconInfo /><span><strong>Crie sua conta para fazer as artes.</strong> Por aqui você já pode conhecer todos os temas.</span></div>
         ) : loadError ? (
           <p className="field-error" role="alert">{loadError}</p>
         ) : state && !state.configured ? (
-          <div className="notice notice--info"><IconInfo /><span><strong>Ainda não disponível.</strong> O provedor de artes está sendo configurado.</span></div>
+          <div className="notice notice--info"><IconInfo /><span><strong>O Estúdio está quase pronto.</strong> Volte daqui a pouquinho!</span></div>
         ) : state?.paused ? (
-          <div className="notice notice--warn"><IconInfo /><span>A criação de artes está pausada no momento. O resto do diário segue normal.</span></div>
+          <div className="notice notice--warn"><IconInfo /><span>O Estúdio está dando uma pausa rapidinho. O resto do diário segue normal.</span></div>
         ) : state ? (
           <>
             <CreditMeter state={state} />
@@ -357,14 +361,14 @@ function Estudio() {
           <StudioResult job={current} onAgain={again} />
         ) : current && ["failed", "cancelled"].includes(current.state) ? (
           <section className="notice notice--warn stack" role="alert">
-            <span>{FAILURE_PT[current.failureCode ?? "TECHNICAL"] ?? FAILURE_PT.TECHNICAL}</span>
+            <span>{(FAILURE_PT[current.failureCode ?? "TECHNICAL"] ?? FAILURE_PT.TECHNICAL).replaceAll("{dog}", snap.dog.name)}</span>
             <button type="button" className="btn btn--secondary btn--small" onClick={again}>Tentar de novo</button>
           </section>
         ) : (
           <>
             <section className="stack" aria-labelledby="st-foto">
               <h2 id="st-foto">1. Escolha a foto</h2>
-              <p className="page-note">Dica: rostinho de frente, boa luz e o cachorro bem visível. A foto é conferida antes de gastar crédito.</p>
+              <p className="page-note">Dica: rostinho de {snap.dog.name} de frente, boa luz e bem visível. Eu confiro a foto antes de usar qualquer crédito.</p>
               {photos.length === 0 ? (
                 <div className="card stitched empty" style={{ boxShadow: "none" }}><p className="muted">Guarde uma foto no diário para criar a primeira arte.</p><Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link></div>
               ) : (
@@ -377,7 +381,7 @@ function Estudio() {
                 </div>
               )}
               {photo ? (
-                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>Recortar a foto (aproximar o cachorro ou escolher um só)</span></label>
+                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>Recortar a foto (aproximar {snap.dog.name} ou escolher só ele)</span></label>
               ) : null}
               {photo && cropOn ? <CropBox entryMediaId={photo.mediaId} value={crop} onChange={setCrop} /> : null}
               {photo ? <PhotoCheckNote check={photoCheck} /> : null}
@@ -418,7 +422,7 @@ function Estudio() {
                 ) : <p className="caption">Formato: {STUDIO_FORMATS[preset.aspect].labelPt} ({preset.aspect})</p>}
                 {preset.addTextOverlay ? (
                   <>
-                    <div className="field"><label htmlFor="st-msg">Mensagem <span className="muted">(o app escreve por cima; a IA não escreve texto)</span></label><input id="st-msg" className="input" maxLength={80} value={overlay.message ?? ""} onChange={(e) => setOverlay({ ...overlay, message: e.target.value })} /></div>
+                    <div className="field"><label htmlFor="st-msg">Mensagem <span className="muted">(eu escrevo caprichado por cima da arte)</span></label><input id="st-msg" className="input" maxLength={80} value={overlay.message ?? ""} onChange={(e) => setOverlay({ ...overlay, message: e.target.value })} /></div>
                     <div className="field"><label htmlFor="st-nome">Nome</label><input id="st-nome" className="input" maxLength={40} value={overlay.name ?? ""} onChange={(e) => setOverlay({ ...overlay, name: e.target.value })} /></div>
                   </>
                 ) : null}
@@ -437,7 +441,7 @@ function Estudio() {
             <section className="card stack" aria-labelledby="st-custo">
               <h2 id="st-custo" style={{ fontSize: "1.0625rem" }}>4. Confirmar</h2>
               <p className="small">{preset ? <>Custa <strong>{credits} {credits === 1 ? "crédito" : "créditos"}</strong>{REAL_MODE && state ? <> · você tem {state.balance}</> : null}. Se a geração falhar, o crédito volta.</> : "Escolha uma foto e um tema."}</p>
-              <p className="caption">A foto escolhida é enviada ao Google (Gemini) só para gerar esta arte. <Link href="/sobre#estudio">Saiba mais</Link></p>
+              <p className="caption">Sua foto é usada só para criar esta arte, e de mais nada. <Link href="/sobre#estudio">Saiba mais</Link></p>
               {error ? <p className="field-error" role="alert">{error}</p> : null}
               <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
                 <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}

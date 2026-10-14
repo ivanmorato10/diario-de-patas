@@ -102,7 +102,7 @@ export default function Diario() {
                       <div className="stack" style={{ padding: "8px 4px 6px", gap: 6 }}>
                         <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
                           {m ? <span className="chip chip--reward"><IconStar size={14} /> {m.title}</span> : null}
-                          {e.source === "studio" ? <span className="chip chip--accent">Arte criada com IA</span> : null}
+                          {e.source === "studio" ? <span className="chip chip--accent">🎨 Arte do Estúdio</span> : null}
                           {(albumsByEntry.get(e.id) ?? []).map((a) => <span key={a} className="chip chip--neutral">{albumTitle(a)}</span>)}
                         </div>
                         <div className="row-between">

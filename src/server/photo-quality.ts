@@ -14,14 +14,14 @@ export interface PhotoIssue { code: string; level: "warn" | "bad"; message: stri
 export interface PhotoCheck { verdict: PhotoVerdict; issues: PhotoIssue[]; aiChecked: boolean }
 
 export const PHOTO_ISSUES: Record<string, Omit<PhotoIssue, "code">> = {
-  NO_DOG: { level: "bad", message: "Não encontramos um cachorro nesta foto. Escolha uma em que ele apareça bem." },
-  FACE_HIDDEN: { level: "bad", message: "O rostinho não aparece bem (de costas, coberto ou cortado). A arte precisa ver o focinho e os olhos." },
+  NO_DOG: { level: "bad", message: "Não encontrei {dog} nesta foto. Escolha uma em que {dog} apareça bem." },
+  FACE_HIDDEN: { level: "bad", message: "O rostinho de {dog} não aparece bem (de costas, coberto ou cortado). Preciso ver o focinho e os olhos." },
   LOW_RES: { level: "bad", message: "A foto é pequena demais para virar arte. Use uma foto com mais resolução." },
-  MANY_DOGS: { level: "warn", message: "Tem mais de um cachorro: a arte usa só o que aparece mais. Use o recorte para escolher." },
-  SMALL_DOG: { level: "warn", message: "O cachorro aparece pequeno na foto. Use o recorte para aproximar." },
+  MANY_DOGS: { level: "warn", message: "Tem mais de um cachorro na foto: use o recorte para mostrar qual é {dog}." },
+  SMALL_DOG: { level: "warn", message: "{dog} aparece pequeno na foto. Use o recorte para aproximar." },
   BLURRY: { level: "warn", message: "A foto parece tremida ou desfocada. A arte pode perder detalhes." },
   DARK: { level: "warn", message: "A foto está escura. Fotos com boa luz dão artes mais bonitas." },
-  BRIGHT: { level: "warn", message: "A foto está muito clara (estourada). A arte pode perder as cores do pelo." },
+  BRIGHT: { level: "warn", message: "A foto está muito clara (estourada). A arte pode perder as cores do pelo de {dog}." },
   LOW_RES_WARN: { level: "warn", message: "A foto tem pouca resolução. A arte pode ficar menos detalhada." },
 };
 

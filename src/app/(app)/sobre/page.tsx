@@ -69,7 +69,7 @@ export default function Sobre() {
 
         <section id="estudio" className="stack" aria-labelledby="estudio-t">
           <h2 id="estudio-t">Estúdio de artes</h2>
-          <p className="small">Quando você cria uma arte, a foto escolhida é enviada ao Google (Gemini) só para gerar aquela arte. Pedimos que nada fique guardado do lado deles (<em>store: false</em>); pela política da API paga, o conteúdo não é usado para treinar ou melhorar produtos, e o Google mantém registros por um tempo limitado apenas para detectar abuso. A arte vem com a marca d’água invisível SynthID e aparece no app com o selo “Arte criada com IA”. Nunca usamos as fotos para outra finalidade.</p>
+          <p className="small">Sua foto é usada só para criar a arte que você pediu, e de mais nada. Para desenhar, ela passa por um serviço de imagens do Google que não guarda a foto nem a usa para treinar nada (fica só um registro por pouco tempo, para evitar abusos). A arte sai com uma marca d’água invisível e aparece no diário com o selo “🎨 Arte do Estúdio”.</p>
         </section>
 
         <section className="stack" aria-labelledby="sup">
