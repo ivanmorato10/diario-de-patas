@@ -22,8 +22,6 @@ export default function AlbumDetalhe() {
   const { id } = useParams<{ id: string }>();
   const col = COLLECTIONS.find((c) => c.id === id);
   const { ready, snap, unavailable } = useRequireDiary();
-  const [selecting, setSelecting] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const data = useMemo(() => {
     const completed = new Set(snap?.completions.map((c) => c.missionId) ?? []);
@@ -52,6 +50,7 @@ export default function AlbumDetalhe() {
       <TopBar title={col.title} back="/albuns" />
       <main className="main">
         <p className="muted">{col.description}</p>
+        <div><ShareAlbumButton entries={data.entries} defaultTitle={`${col.title} de ${snap.dog.name}`} /></div>
 
         {col.hasMissions ? (
           <section className="stack" aria-labelledby="conq">
@@ -75,7 +74,7 @@ export default function AlbumDetalhe() {
             </ul>
           </section>
         ) : (
-          <div className="notice notice--info"><IconInfo /><span>Aqui ficam as artes do Estúdio. A geração de artes ainda não está ativa nesta versão.</span></div>
+          <div className="notice notice--info"><IconInfo /><span>Aqui ficam as artes criadas no <Link href="/estudio">Estúdio</Link>.</span></div>
         )}
 
         <section className="stack" aria-labelledby="fotos">
@@ -92,38 +91,51 @@ export default function AlbumDetalhe() {
             <>
               <div className="grid-photos">
                 {data.entries.map((e) =>
-                  selecting ? (
-                    <button key={e.id} type="button" aria-pressed={selected.has(e.id)} onClick={() => setSelected((s) => { const n = new Set(s); if (n.has(e.id)) n.delete(e.id); else n.add(e.id); return n; })} style={{ outline: selected.has(e.id) ? "3px solid var(--brand-primary)" : "none", outlineOffset: -3 }}>
-                      <MediaImage id={e.mediaId} alt={e.caption || "Foto do álbum"} />
-                      {selected.has(e.id) ? <span className="grid-badge chip">Selecionada</span> : null}
-                    </button>
-                  ) : (
                     <Link key={e.id} href={`/diario#${e.id}`}>
                       <MediaImage id={e.mediaId} alt={e.caption || "Foto do álbum"} />
                       {e.source === "mission" ? <span className="grid-badge chip chip--reward" style={{ padding: "2px 6px" }}><IconStar size={12} /><span className="sr-only">Foto de missão</span></span> : null}
                     </Link>
-                  ),
-                )}
-              </div>
-              <div className="card stack" style={{ padding: 16 }}>
-                <div className="row"><IconShare /><strong>Compartilhar uma seleção</strong></div>
-                {selecting ? (
-                  <>
-                    <p className="small">{selected.size} {selected.size === 1 ? "foto selecionada" : "fotos selecionadas"}. Toque nas fotos para escolher.</p>
-                    <ShareSelection selected={[...selected]} defaultTitle={`${col.title} de ${snap.dog.name}`} onDone={() => { setSelecting(false); setSelected(new Set()); }} />
-                    <button type="button" className="btn btn--ghost btn--small" onClick={() => { setSelecting(false); setSelected(new Set()); }}>Cancelar seleção</button>
-                  </>
-                ) : (
-                  <>
-                    <p className="small muted">Escolha as fotos que quer mostrar. Só a seleção aparece no link, e você poderá revogá-lo.</p>
-                    <button type="button" className="btn btn--secondary btn--small" onClick={() => setSelecting(true)}>Selecionar fotos</button>
-                  </>
                 )}
               </div>
             </>
           )}
         </section>
       </main>
+    </>
+  );
+}
+
+/** Botão "Compartilhar álbum": abre a lista com todas as fotos marcadas; a pessoa desmarca o que não quer mostrar. */
+function ShareAlbumButton({ entries, defaultTitle }: { entries: Snapshot["entries"]; defaultTitle: string }) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  if (entries.length === 0) return null;
+  return (
+    <>
+      <button type="button" className="btn btn--primary btn--small" onClick={() => { setSelected(new Set(entries.map((e) => e.id))); setOpen(true); }}>
+        <IconShare size={18} /> Compartilhar álbum
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} labelledBy="share-album-title">
+        <h2 id="share-album-title">Compartilhar “{defaultTitle}”</h2>
+        <p className="small muted">Todas as fotos já estão marcadas. Toque numa foto para tirar do link. Quem recebe vê só estas fotos, sem precisar de conta, e você pode cancelar o link quando quiser em Ajustes.</p>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn--ghost btn--small" onClick={() => setSelected(new Set(entries.map((e) => e.id)))}>Marcar todas</button>
+          <button type="button" className="btn btn--ghost btn--small" onClick={() => setSelected(new Set())}>Desmarcar todas</button>
+          <span className="caption" style={{ alignSelf: "center" }}>{selected.size} de {entries.length}</span>
+        </div>
+        <div className="grid-photos" style={{ maxHeight: "40dvh", overflowY: "auto" }}>
+          {entries.map((e) => (
+            <button key={e.id} type="button" aria-pressed={selected.has(e.id)} aria-label={`${e.caption || "Foto"} de ${formatCivilDate(e.occurredDate)}`}
+              onClick={() => setSelected((s) => { const n = new Set(s); if (n.has(e.id)) n.delete(e.id); else n.add(e.id); return n; })}
+              style={{ outline: selected.has(e.id) ? "3px solid var(--brand-primary)" : "none", outlineOffset: -3, opacity: selected.has(e.id) ? 1 : 0.45 }}>
+              <MediaImage id={e.mediaId} alt="" />
+              {selected.has(e.id) ? <span className="grid-badge chip">No link</span> : null}
+            </button>
+          ))}
+        </div>
+        {selected.size ? <ShareSelection key={open ? "on" : "off"} selected={[...selected]} defaultTitle={defaultTitle} onDone={() => setOpen(false)} /> : <p className="small muted">Marque pelo menos uma foto.</p>}
+        <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>Fechar</button>
+      </Sheet>
     </>
   );
 }
@@ -161,7 +173,8 @@ function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; al
       <TopBar title={title} back="/albuns" />
       <main className="main">
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-          <button type="button" className="btn btn--primary btn--small" onClick={() => { setPicked(new Set()); setError(null); setMode("add"); }} disabled={candidates.length === 0}><IconPlus size={18} /> Adicionar fotos do diário</button>
+          <ShareAlbumButton entries={entries} defaultTitle={`${title} de ${snap.dog?.name ?? ""}`.trim()} />
+          <button type="button" className="btn btn--secondary btn--small" onClick={() => { setPicked(new Set()); setError(null); setMode("add"); }} disabled={candidates.length === 0}><IconPlus size={18} /> Adicionar fotos do diário</button>
           <button type="button" className="btn btn--secondary btn--small" onClick={() => { setName(title); setError(null); setMode("rename"); }}><IconPencil size={18} /> Renomear</button>
           <button type="button" className="btn btn--ghost btn--small" style={{ color: "var(--danger)" }} onClick={() => setMode("delete")}><IconTrash size={18} /> Excluir álbum</button>
         </div>

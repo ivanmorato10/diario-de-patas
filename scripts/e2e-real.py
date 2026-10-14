@@ -167,8 +167,9 @@ with sync_playwright() as p:
 
     # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
     a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)
-    a.get_by_role("button", name="Selecionar fotos").click()
-    a.locator(".grid-photos button[aria-pressed]").first.click()
+    a.get_by_role("button", name="Compartilhar álbum").click()
+    a.get_by_role("button", name="Desmarcar todas").click()
+    a.locator("dialog .grid-photos button[aria-pressed]").first.click()
     a.get_by_label("Título do link").fill("Para a vovó")
     a.get_by_role("button", name="Criar link com 1 foto").click()
     link_input = a.get_by_label("Link do álbum compartilhado"); expect(link_input).to_be_visible(timeout=20000)
