@@ -2,6 +2,7 @@
 
 import { useBlobUrl, useMediaBlob } from "@/data/store";
 import { Paw } from "./icons";
+import type { AvatarCrop } from "@/domain/types";
 
 /** Foto privada do diário. Alt text descritivo e neutro — nada de emoções presumidas (§20). */
 export function MediaImage({
@@ -21,7 +22,11 @@ export function MediaImage({
   return <img src={url} alt={alt} className={className} style={style} loading="lazy" decoding="async" />;
 }
 
-export function DogAvatar({ mediaId, name, size = "md" }: { mediaId: string | null; name: string; size?: "md" | "lg" | "xl" }) {
+/** Estilo da foto dentro do círculo conforme o ajuste salvo (foco e zoom). */
+export const avatarImgStyle = (crop?: AvatarCrop | null): React.CSSProperties =>
+  crop ? { objectPosition: `${crop.x}% ${crop.y}%`, transform: `scale(${crop.zoom})`, transformOrigin: `${crop.x}% ${crop.y}%` } : {};
+
+export function DogAvatar({ mediaId, name, size = "md", crop }: { mediaId: string | null; name: string; size?: "md" | "lg" | "xl"; crop?: AvatarCrop | null }) {
   const cls = `avatar${size === "lg" ? " avatar--lg" : size === "xl" ? " avatar--xl" : ""}`;
   if (!mediaId) {
     return (
@@ -30,5 +35,9 @@ export function DogAvatar({ mediaId, name, size = "md" }: { mediaId: string | nu
       </span>
     );
   }
-  return <MediaImage id={mediaId} alt={`Foto de ${name}`} className={cls} />;
+  return (
+    <span className={cls}>
+      <MediaImage id={mediaId} alt={`Foto de ${name}`} className="avatar__img" style={avatarImgStyle(crop)} />
+    </span>
+  );
 }

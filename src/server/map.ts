@@ -12,7 +12,7 @@ export const toProfile = (r: Row): Profile => ({ id: "me", timezone: r.timezone,
 
 export const toDog = (r: Row): Dog => ({
   id: r.id, name: r.name, photoMediaId: r.photo_asset_id ?? null, birthDate: r.birth_date ?? null,
-  preferences: { home: true, outdoor: true, socialDogs: false, people: true, ...(r.preferences_json ?? {}) }, createdAt: r.created_at,
+  preferences: { home: true, outdoor: true, socialDogs: false, people: true, ...(r.preferences_json ?? {}) }, avatarCrop: r.avatar_crop ?? null, createdAt: r.created_at,
 });
 
 export const toEntry = (r: Row, missionId: string | null): DiaryEntry => ({

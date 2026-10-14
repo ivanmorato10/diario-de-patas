@@ -93,12 +93,12 @@ with sync_playwright() as p:
     expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible()
     check("modo real: sem faixa de demonstração", a.locator(".demo-banner").count() == 0)
     try:
-        expect(a.locator("header img.avatar")).to_have_count(1, timeout=15000)
+        expect(a.locator("header .avatar img")).to_have_count(1, timeout=15000)
     except AssertionError:
         pass
     dog = rpc(a, "snapshot", {})[1]["dog"]
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=thumb').then(r => r.status)", dog["photoMediaId"]) if dog.get("photoMediaId") else None
-    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header img.avatar").count() == 1)
+    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header .avatar img").count() == 1)
     a.screenshot(path=f"{OUT}/01-hoje-A.png", full_page=True)
 
     a.get_by_role("link", name="Olá, mundo").first.click(); a.get_by_role("link", name="Enviar foto").click()
@@ -165,6 +165,13 @@ with sync_playwright() as p:
     after = rpc(a, "snapshot", {})[1]
     check("dados de A intactos depois das tentativas de B", len(after["entries"]) == 2 and after["entries"][0]["caption"] != "invadido" and len(after["health"]["documents"]) == 1)
 
+    # ---------- Foto de perfil: zoom e posição ----------
+    rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
+    a.goto(BASE + "/config"); a.wait_for_timeout(1500)
+    a.get_by_role("button", name="Ajustar zoom e posição").click()
+    check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
+    a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(1000)
+
     # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
     a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)
     a.get_by_role("button", name="Compartilhar álbum").click()
@@ -178,6 +185,8 @@ with sync_playwright() as p:
     v = ctxV.new_page(); v.goto(share_url)
     html = v.content()
     img_status = v.evaluate("() => fetch(document.querySelector('figure img').src).then(r => r.status)")
+    av_status = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")
+    check(f"álbum compartilhado mostra a foto de perfil com o ajuste ({av_status})", av_status == 200 and "scale(1.6)" in (v.locator(".shared-avatar img").get_attribute("style") or ""))
     v.wait_for_timeout(800); v.screenshot(path=f"{OUT}/02-compartilhado.png", full_page=True)
     check("página compartilhada convida a criar conta (logo e botão)", v.locator('a[href="/entrar?modo=criar"]').count() >= 3)
     check(f"visitante sem conta vê só a seleção (1 foto, {img_status})", v.locator("figure.shared-photo").count() == 1 and img_status == 200 and v.get_by_role("heading", name="Para a vovó").is_visible())
@@ -187,6 +196,8 @@ with sync_playwright() as p:
     a.goto(BASE + "/config"); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
     v.goto(share_url)
     st = v.evaluate("u => fetch(u).then(r => r.status)", img_url)
+    av_after = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")
+    check(f"foto de perfil some junto com o link ({av_after})", av_after == 404)
     check(f"link revogado para de funcionar (página e foto {st})", v.get_by_role("heading", name="Este álbum não está disponível").is_visible() and st == 404)
     ctxV.close()
 

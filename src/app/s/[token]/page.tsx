@@ -80,6 +80,12 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
       <Brand />
       <main className="shared-main">
         <section className="shared-hero">
+          {share.avatar ? (
+            <span className="shared-avatar">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/s/${token}/perfil`} alt="Foto de perfil" style={share.avatar.crop ? { objectPosition: `${share.avatar.crop.x}% ${share.avatar.crop.y}%`, transform: `scale(${share.avatar.crop.zoom})`, transformOrigin: `${share.avatar.crop.x}% ${share.avatar.crop.y}%` } : undefined} />
+            </span>
+          ) : null}
           <span className="shared-hero__kicker"><Paw size={16} /> Álbum compartilhado com você</span>
           <h1>{share.title}</h1>
           <p>{share.entries.length} {share.entries.length === 1 ? "lembrança" : "lembranças"}{range ? ` · ${range}` : ""}</p>

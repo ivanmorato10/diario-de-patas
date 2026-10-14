@@ -758,3 +758,8 @@ body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-are
 /* Diário: a polaroide acompanha o formato real da foto (sem cortar fotos em pé ou panorâmicas) */
 img.photo--natural { aspect-ratio: auto; height: auto; max-height: 78vh; object-fit: contain; background: #f4efe6; }
 div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço reservado */
+.avatar__img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; }
+.avatar-crop { margin: 4px auto; border-radius: 50%; overflow: hidden; background: var(--brand-soft); box-shadow: 0 0 0 4px var(--paper), 0 0 0 6px var(--brand-teal); touch-action: none; cursor: grab; user-select: none; }
+.avatar-crop:active { cursor: grabbing; }
+.shared-avatar { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; background: var(--brand-soft); box-shadow: 0 0 0 5px var(--paper), 0 0 0 8px #63b4ad, 0 10px 24px rgba(31, 22, 13, 0.2); margin-bottom: 6px; }
+.shared-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }

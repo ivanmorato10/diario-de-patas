@@ -27,8 +27,12 @@ export interface Dog {
   photoMediaId: string | null;
   birthDate: CivilDate | null;
   preferences: DogPreferences;
+  /** Ajuste da foto de perfil no círculo: foco x/y em % (0–100) e zoom (1–3). */
+  avatarCrop?: AvatarCrop | null;
   createdAt: string;
 }
+
+export interface AvatarCrop { x: number; y: number; zoom: number }
 
 export type MediaKind = "photo" | "art";
 

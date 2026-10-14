@@ -63,7 +63,7 @@ export default function Hoje() {
       <TopBar />
       <main className="main">
         <section className="row" aria-labelledby="dog-title">
-          <DogAvatar mediaId={dog.photoMediaId} name={dog.name} size="lg" />
+          <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="lg" />
           <div className="stack" style={{ gap: 2, minWidth: 0 }}>
             <h1 id="dog-title" style={{ overflowWrap: "anywhere" }}>Diário de {dog.name}</h1>
             <p className="small muted">{level.title} · {snap.xpTotal} XP</p>

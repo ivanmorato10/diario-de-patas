@@ -63,7 +63,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
         </div>
         {dog ? (
           <Link href="/config" aria-label={`Perfil e configurações de ${dog.name}`} style={{ borderRadius: "50%" }}>
-            <DogAvatar mediaId={dog.photoMediaId} name={dog.name} />
+            <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
           </Link>
         ) : null}
       </div>

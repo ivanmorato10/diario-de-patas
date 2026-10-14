@@ -213,7 +213,8 @@ export async function createDiary(ctx: Ctx, args: unknown) {
 }
 
 export async function updateDog(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ name: z.string().optional(), birthDate: civil.nullable().optional(), preferences: Prefs.optional(), photoMediaId: z.string().uuid().nullable().optional() }), args);
+  const a = parse(z.object({ name: z.string().optional(), birthDate: civil.nullable().optional(), preferences: Prefs.optional(), photoMediaId: z.string().uuid().nullable().optional(),
+    avatarCrop: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100), zoom: z.number().min(1).max(3) }).nullable().optional() }), args);
   const dog = await dogOf(ctx);
   const patch: any = {};
   if (a.name !== undefined) {
@@ -223,9 +224,11 @@ export async function updateDog(ctx: Ctx, args: unknown) {
   }
   if (a.birthDate !== undefined) patch.birth_date = a.birthDate;
   if (a.preferences) patch.preferences_json = a.preferences;
+  if (a.avatarCrop !== undefined) patch.avatar_crop = a.avatarCrop;
   if (a.photoMediaId !== undefined) {
     if (a.photoMediaId) await readyMedia(ctx, a.photoMediaId);
     patch.photo_asset_id = a.photoMediaId;
+    if (a.avatarCrop === undefined) patch.avatar_crop = null; // foto nova: começa centralizada
     if (dog.photo_asset_id && dog.photo_asset_id !== a.photoMediaId) await discardMedia(ctx, dog.photo_asset_id);
   }
   return toDog(await q(ctx.supa.from("dogs").update(patch).eq("id", dog.id).select("*").single()));
@@ -639,7 +642,21 @@ export async function revokeShare(ctx: Ctx, args: unknown) {
 export async function resolveShare(token: string) {
   if (!/^[A-Za-z0-9_-]{30,60}$/.test(token)) return null;
   const rows = (await q(adminClient().rpc("resolve_share", { p_token_hash: await sha256hex(token) }))) as any[];
-  return rows.length ? { title: rows[0].title as string, entries: rows.map((r) => ({ id: r.entry_id as string, caption: r.caption as string, occurredDate: r.occurred_date as string, key: r.media_storage_key as string })) } : null;
+  if (!rows.length) return null;
+  const entries = rows.map((r) => ({ id: r.entry_id as string, caption: r.caption as string, occurredDate: r.occurred_date as string, key: r.media_storage_key as string }));
+  return { title: rows[0].title as string, entries, avatar: await shareAvatar(entries[0].id) };
+}
+
+/** Foto de perfil do cachorro do álbum compartilhado (com o ajuste de zoom/posição), se houver. */
+async function shareAvatar(entryId: string) {
+  const admin = adminClient();
+  const e = (await admin.from("diary_entries").select("dog_id").eq("id", entryId).maybeSingle()).data as any;
+  if (!e) return null;
+  const dog = (await admin.from("dogs").select("photo_asset_id, avatar_crop").eq("id", e.dog_id).maybeSingle()).data as any;
+  if (!dog?.photo_asset_id) return null;
+  const m = (await admin.from("media_assets").select("private_storage_key, thumb_storage_key").eq("id", dog.photo_asset_id).maybeSingle()).data as any;
+  if (!m) return null;
+  return { key: (m.private_storage_key as string), crop: (dog.avatar_crop ?? null) as { x: number; y: number; zoom: number } | null };
 }
 
 export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> = {

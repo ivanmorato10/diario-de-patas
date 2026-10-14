@@ -54,7 +54,7 @@ export interface Repository {
   getMediaBlob(id: string, variant: "thumb" | "display"): Promise<Blob | null>;
 
   createDiary(input: { timezone: string; name: string; birthDate: CivilDate | null; preferences: Dog["preferences"]; photo: ProcessedImage | null }): Promise<Dog>;
-  updateDog(patch: Partial<Pick<Dog, "name" | "birthDate" | "preferences">> & { photo?: ProcessedImage | null }): Promise<Dog>;
+  updateDog(patch: Partial<Pick<Dog, "name" | "birthDate" | "preferences" | "avatarCrop">> & { photo?: ProcessedImage | null }): Promise<Dog>;
   updateTimezone(timezone: string): Promise<void>;
 
   findEntryByHash(hash: string): Promise<DiaryEntry | null>;

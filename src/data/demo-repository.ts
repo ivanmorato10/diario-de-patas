@@ -330,7 +330,7 @@ export async function createDiary(
   return dog;
 }
 
-export async function updateDog(db: Db, patch: Partial<Pick<Dog, "name" | "birthDate" | "preferences">> & { photo?: ProcessedImage | null }) {
+export async function updateDog(db: Db, patch: Partial<Pick<Dog, "name" | "birthDate" | "preferences" | "avatarCrop">> & { photo?: ProcessedImage | null }) {
   const tx = db.transaction(["dogs", "media"], "readwrite");
   const [dog] = await tx.objectStore("dogs").getAll();
   if (!dog) throw new DomainError("NO_DOG", "Diário não encontrado.");
@@ -342,7 +342,9 @@ export async function updateDog(db: Db, patch: Partial<Pick<Dog, "name" | "birth
   }
   if (patch.birthDate !== undefined) next.birthDate = patch.birthDate;
   if (patch.preferences) next.preferences = patch.preferences;
+  if (patch.avatarCrop !== undefined) next.avatarCrop = patch.avatarCrop;
   if (patch.photo !== undefined) {
+    if (patch.avatarCrop === undefined) next.avatarCrop = null; // foto nova: começa centralizada
     if (dog.photoMediaId) await tx.objectStore("media").delete(dog.photoMediaId);
     next.photoMediaId = null;
     if (patch.photo) {

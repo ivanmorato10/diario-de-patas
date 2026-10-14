@@ -11,6 +11,7 @@ import { browserClient } from "@/data/supabase-browser";
 import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { InstallAppLink } from "@/components/install-app";
+import { AvatarCropSheet } from "@/components/avatar-crop";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -29,6 +30,7 @@ export default function Config() {
   const [tz, setTz] = useState("");
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [cropOpen, setCropOpen] = useState(false);
   const [account, setAccount] = useState<{ email: string; via: string } | null>(null);
 
   useEffect(() => {
@@ -95,13 +97,18 @@ export default function Config() {
     <>
       <TopBar title="Perfil e ajustes" back="/hoje" />
       <main className="main">
+        {dog.photoMediaId && cropOpen ? (
+          <AvatarCropSheet open mediaId={dog.photoMediaId} name={dog.name} value={dog.avatarCrop} onClose={() => setCropOpen(false)}
+            onSave={(c) => run(() => repo!.updateDog({ avatarCrop: c }), "Foto ajustada.")} />
+        ) : null}
         <form className="stack-lg" onSubmit={saveProfile}>
           <section className="stack" aria-labelledby="perfil">
             <h2 id="perfil">Perfil</h2>
             <div className="row">
-              <DogAvatar mediaId={dog.photoMediaId} name={dog.name} size="xl" />
+              <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
               <div className="stack" style={{ gap: 6 }}>
                 <PhotoPicker compact onPicked={(p) => run(() => repo!.updateDog({ photo: p }), "Foto atualizada.")} />
+                {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" onClick={() => setCropOpen(true)}>Ajustar zoom e posição</button> : null}
                 {dog.photoMediaId ? <button type="button" className="btn btn--ghost btn--small" onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}>Remover foto</button> : null}
               </div>
             </div>
