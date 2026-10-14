@@ -24,6 +24,7 @@ import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./stu
 import { sendAccountDeleted } from "./mailer";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { XP_PER_CREDIT } from "@/config/credits";
+import { achadinhosInfo } from "./amazon";
 import {
   albumClientId, instanceKeyOf, toContact, toCustomAlbum, toDocument, toDog, toEntry, toHealthProfile, toMedication, toPlan, toProfile,
   toVaccine, toVisit, toWeight,
@@ -652,6 +653,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   createShare, listShares: (c) => listShares(c), revokeShare,
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
+  achadinhosInfo: () => achadinhosInfo(),
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

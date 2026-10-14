@@ -1,20 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { REAL_MODE } from "@/config/mode";
+import { rpc } from "@/data/real-repository";
 import { ACHADINHOS, ACHADINHO_CATEGORIES, AFFILIATE_DISCLOSURE, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
 import { isStandalone } from "@/components/install-app";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
 
 /** Foto própria do produto (public/achadinhos/…); sem ela, a ilustração da categoria. */
-function ProductArt({ a, emoji, bg, label }: { a: Achadinho; emoji: string; bg: string; label: string }) {
+type Info = Record<string, { title: string | null; image: string | null }>;
+
+function ProductArt({ a, emoji, bg, label, image }: { a: Achadinho; emoji: string; bg: string; label: string; image?: string | null }) {
   const [failed, setFailed] = useState(false);
-  const photo = a.photo && !failed;
+  const src = a.photo ?? image ?? null;
+  const photo = !!src && !failed;
   return (
-    <div className={`achado__art${photo ? " achado__art--own" : ""}`} style={{ background: bg }} aria-hidden="true">
+    <div className={`achado__art${photo ? " achado__art--own" : ""}`} style={{ background: photo && !a.photo ? "#fff" : bg }} aria-hidden="true">
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={a.photo} alt="" loading="lazy" onError={() => setFailed(true)} />
+        <img src={src!} alt="" loading="lazy" onError={() => setFailed(true)} style={a.photo ? undefined : { objectFit: "contain", padding: 10 }} />
       ) : (
         <span className="achado__emoji">{emoji}</span>
       )}
@@ -26,6 +31,12 @@ function ProductArt({ a, emoji, bg, label }: { a: Achadinho; emoji: string; bg: 
 /** Lista completa dos achadinhos, com filtro por categoria. Nada aparece por cima de outras telas. */
 export default function Achadinhos() {
   const [cat, setCat] = useState<AchadinhoCategory | "todos">("todos");
+  const [info, setInfo] = useState<Info>({});
+  // Foto e título oficiais pela Creators API, quando a conta de associado estiver elegível.
+  useEffect(() => {
+    if (!REAL_MODE) return;
+    rpc<{ status: string; items: Info }>("achadinhosInfo").then((r) => setInfo(r.items)).catch(() => undefined);
+  }, []);
   const used = ACHADINHO_CATEGORIES.filter((c) => ACHADINHOS.some((a) => a.category === c.id));
   const list = ACHADINHOS.filter((a) => cat === "todos" || a.category === cat);
   return (
@@ -53,7 +64,7 @@ export default function Achadinhos() {
             const c = ACHADINHO_CATEGORIES.find((x) => x.id === a.category)!;
             return (
               <li key={a.id} className="achado">
-                <ProductArt a={a} emoji={c.emoji} bg={c.bg} label={c.label} />
+                <ProductArt a={a} emoji={c.emoji} bg={c.bg} label={c.label} image={info[a.asin]?.image} />
                 <div className="achado__body">
                   <h2>{a.name}</h2>
                   <p className="achado__abu">“{a.abuSays}”</p>

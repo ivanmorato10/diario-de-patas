@@ -27,3 +27,5 @@ e2e-payments-out/
 
 # Fotos originais dos achadinhos (o app usa as versões reduzidas em public/achadinhos)
 Achadinhos Fotos/
+docs/*credentials*
+*.csv.secret
