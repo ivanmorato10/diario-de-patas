@@ -120,7 +120,7 @@ App web mobile-first navegável, rodando em **modo demonstração**: o diário �
 5. **Entrar com Google e Apple:** credenciais OAuth do Google (grátis) e Apple Developer Program (US$ 99/ano) — passo a passo em `docs/SUPABASE.md` §7. Até lá os botões avisam e o email funciona.
 
 6. ~~Missões do dia~~ — 30 novas (D37–D66) aprovadas pelo proprietário em 13/10/2026 e ativas no app e no banco: 22 por espaço, 14 dias sem repetir.
-7. **Entrar com Apple:** o proprietário tem conta Apple Developer; faltam Services ID, Key ID, Team ID e a chave .p8 (`docs/SUPABASE.md` §7).
+7. ~~Entrar com Apple~~ — ligado em 13/10/2026 (Services ID app.diariodepatas.web, chave 69MAPTUX9G fora do repositório). **O segredo vence em 11/04/2027:** rodar `npm run apple:secret` e `npm run supabase:push` antes disso.
 
 ## Próximo passo
 

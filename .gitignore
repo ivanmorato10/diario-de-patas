@@ -16,3 +16,6 @@ studio-eval/
 .vercel
 e2e-real-out/
 e2e-studio-out/
+
+# Chaves privadas (Apple .p8 etc.) nunca no git
+*.p8
