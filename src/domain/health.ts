@@ -73,6 +73,8 @@ export interface Vaccine extends z.output<typeof VaccineSchema> {
 export const VisitSchema = z
   .object({
     date: civil,
+    /** Horário opcional (HH:MM). */
+    time: z.string().regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Confira o horário.").default(""),
     clinic: optionalText(120),
     vet: optionalText(120),
     reason: optionalText(200),

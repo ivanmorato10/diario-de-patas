@@ -47,6 +47,13 @@ export function BottomNav() {
   );
 }
 
+/** Emoji ao lado do título de cada tela (identidade rápida das abas). */
+const TITLE_EMOJI: Record<string, string> = {
+  "Diário": "📖", "Álbuns": "🖼️", "Cuidados": "🩺", "Estúdio": "🎨", "Missões": "⭐", "Perfil e ajustes": "⚙️", "Créditos": "🪙",
+  "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
+  "Contatos": "📞", "Documentos": "📄", "Peso": "⚖️", "Guardar momento": "📸",
+};
+
 export function TopBar({ title, back }: { title?: string; back?: string }) {
   const { snap } = useStore();
   const dog = snap?.dog;
@@ -59,7 +66,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
           ) : (
             <Link href="/hoje" aria-label="Diário de Patas — início" style={{ display: "inline-flex" }}>{title ? <AbuFace size={38} className="brand-lockup__face" /> : <BrandLockup />}</Link>
           )}
-          {title ? <h1 style={{ fontSize: "1.25rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</h1> : null}
+          {title ? <h1 className="topbar__title">{TITLE_EMOJI[title] ? <span className="topbar__emoji" aria-hidden="true">{TITLE_EMOJI[title]}</span> : null}<span className="topbar__text">{title}</span></h1> : null}
         </div>
         {dog ? (
           <Link href="/config" aria-label={`Perfil e configurações de ${dog.name}`} style={{ borderRadius: "50%" }}>

@@ -169,7 +169,7 @@ export async function buildCarePdf(input: CarePdfInput): Promise<Uint8Array> {
 
   const visits = [...h.visits].sort((a, b) => b.date.localeCompare(a.date));
   card("Consultas", visits.length ? visits.slice(0, 10).flatMap((v) => {
-    const rows = [{ text: `${br(v.date)}${v.date > input.today ? "  (agendada)" : ""} · ${v.reason || "Consulta"}`, style: "strong" as const }];
+    const rows = [{ text: `${br(v.date)}${v.time ? ` ${v.time}` : ""}${v.date > input.today ? "  (agendada)" : ""} · ${v.reason || "Consulta"}`, style: "strong" as const }];
     const where = [v.clinic, v.vet].filter(Boolean).join(" · ");
     if (where) rows.push({ text: where, style: "soft" as const, indent: 10 } as never);
     if (v.notes) rows.push({ text: v.notes, style: "soft" as const, indent: 10 } as never);

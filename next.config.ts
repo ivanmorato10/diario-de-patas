@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Identifica a versão publicada: o app aberto compara com /api/versao e recarrega se houver versão nova.
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || `local-${Date.now()}` },
   poweredByHeader: false,
   async headers() {
     return [

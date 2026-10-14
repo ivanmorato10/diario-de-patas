@@ -94,7 +94,7 @@ export function Field({
   optional?: boolean;
   value: string;
   onChange: (v: string) => void;
-  type?: "text" | "date" | "tel" | "number";
+  type?: "text" | "date" | "tel" | "number" | "time";
   max?: string;
   maxLength?: number;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];

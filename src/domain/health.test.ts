@@ -10,7 +10,7 @@ const vac = (over: Partial<Vaccine>): Vaccine => ({
   createdAt: "2026-01-10T10:00:00Z", updatedAt: "2026-01-10T10:00:00Z", ...over,
 });
 const visit = (over: Partial<Visit>): Visit => ({
-  id: over.id ?? "c", dogId: "d", date: "2026-09-01", clinic: "", vet: "", reason: "", notes: "", nextDate: null, documentIds: [],
+  id: over.id ?? "c", dogId: "d", date: "2026-09-01", time: "", clinic: "", vet: "", reason: "", notes: "", nextDate: null, documentIds: [],
   createdAt: "x", updatedAt: "x", ...over,
 });
 

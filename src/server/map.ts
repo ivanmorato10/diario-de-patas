@@ -33,7 +33,7 @@ export const toVaccine = (r: Row): Vaccine => ({
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const toVisit = (r: Row, documentIds: string[]): Visit => ({
-  id: r.id, dogId: r.dog_id, date: r.date, clinic: r.clinic, vet: r.vet, reason: r.reason, notes: r.notes, nextDate: r.next_date, documentIds,
+  id: r.id, dogId: r.dog_id, date: r.date, time: r.time ?? "", clinic: r.clinic, vet: r.vet, reason: r.reason, notes: r.notes, nextDate: r.next_date, documentIds,
   createdAt: r.created_at, updatedAt: r.updated_at,
 });
 export const toMedication = (r: Row): Medication => ({

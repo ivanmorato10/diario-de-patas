@@ -138,6 +138,11 @@ with sync_playwright() as p:
     ics = a.evaluate("id => fetch('/api/calendario?tipo=medicamento&id=' + id).then(async r => [r.status, r.headers.get('content-type'), await r.text()])", med["id"])
     check(f"lembrete .ics semanal ({ics[0]})", ics[0] == 200 and "text/calendar" in (ics[1] or "") and "RRULE:FREQ=WEEKLY" in ics[2])
     b_ics = rpc(a, "deleteCare", {"store": "medications", "id": med["id"]})
+    future = (datetime.date.fromisoformat(today) + datetime.timedelta(days=10)).isoformat()
+    st, vis = rpc(a, "saveCare", {"store": "visits", "input": {"date": future, "time": "14:30", "reason": "Check-up", "clinic": "Clínica Patas"}})
+    vics = a.evaluate("id => fetch('/api/calendario?tipo=consulta&id=' + id).then(r => r.text())", vis["id"])
+    check(f"consulta agendada com horário no calendário ({st})", st == 200 and "T143000" in vics and "TZID=America/Sao_Paulo" in vics)
+    rpc(a, "deleteCare", {"store": "visits", "id": vis["id"]})
     a.goto(BASE + "/cuidados"); a.wait_for_timeout(1500)
     with a.expect_download(timeout=30000) as dl:
         a.get_by_role("button", name=re.compile("PDF para o veterinário")).click()

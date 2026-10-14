@@ -66,8 +66,11 @@ export default function Hoje() {
         <section className="row" aria-labelledby="dog-title">
           <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="lg" />
           <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-            <h1 id="dog-title" style={{ overflowWrap: "anywhere" }}>Diário de {dog.name}</h1>
-            <p className="small muted">{level.title} · {snap.xpTotal} XP total</p>
+            <h1 id="dog-title" className="hoje-title">Diário de {dog.name}</h1>
+            <div className="hoje-badges">
+              <span className="hoje-level"><IconStar size={14} /> {level.title}</span>
+              <span className="hoje-xp">{snap.xpTotal} XP total</span>
+            </div>
           </div>
         </section>
 
@@ -152,8 +155,8 @@ export default function Hoje() {
               })}
             </ul>
             {swapError ? <p className="field-error" role="alert">{swapError}</p> : null}
-            <p className="caption">Sem pressa: o que não for feito hoje não tira pontos. Amanhã chegam outras.</p>
-            <Link href="/missoes" className="btn btn--ghost" style={{ alignSelf: "flex-start" }}>Ver todas as missões</Link>
+            <p className="hoje-note">🐾 Sem pressa: o que não for feito hoje não tira pontos. Amanhã chegam outras.</p>
+            <Link href="/missoes" className="btn btn--secondary btn--block hoje-all"><IconStar size={18} /> Ver todas as missões</Link>
           </section>
         )}
 

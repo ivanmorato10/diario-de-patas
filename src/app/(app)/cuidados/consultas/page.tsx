@@ -12,9 +12,9 @@ import { DueBadge, HealthDisclaimer } from "@/components/health-ui";
 import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
 import { IconCamera, IconPlus } from "@/components/icons";
 import { formatCivilDate } from "@/domain/dates";
-import { dueStatus, dueText, type Visit } from "@/domain/health";
+import { CONTACT_KINDS, dueStatus, dueText, type Visit } from "@/domain/health";
 
-interface Form { date: string; clinic: string; vet: string; reason: string; notes: string; nextDate: string }
+interface Form { date: string; time: string; clinic: string; vet: string; reason: string; notes: string; nextDate: string }
 
 export default function Consultas() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -29,9 +29,10 @@ export default function Consultas() {
   const { visits } = snap.health;
   const today = snap.today;
   const latestId = visits.find((v) => v.date <= today)?.id;
+  const vetContacts = snap.health.contacts.filter((c) => c.kind === "vet" || c.kind === "clinic" || c.kind === "emergency");
 
-  const openNew = () => { setError(null); setAttach([]); setEditing({ form: { date: today, clinic: "", vet: "", reason: "", notes: "", nextDate: "" } }); };
-  const openEdit = (v: Visit) => { setError(null); setAttach([]); setEditing({ id: v.id, form: { date: v.date, clinic: v.clinic, vet: v.vet, reason: v.reason, notes: v.notes, nextDate: v.nextDate ?? "" } }); };
+  const openNew = () => { setError(null); setAttach([]); setEditing({ form: { date: today, time: "", clinic: "", vet: "", reason: "", notes: "", nextDate: "" } }); };
+  const openEdit = (v: Visit) => { setError(null); setAttach([]); setEditing({ id: v.id, form: { date: v.date, time: v.time ?? "", clinic: v.clinic, vet: v.vet, reason: v.reason, notes: v.notes, nextDate: v.nextDate ?? "" } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
 
   async function submit() {
@@ -58,7 +59,7 @@ export default function Consultas() {
             <li key={v.id} className="card stack" style={{ padding: 14, gap: 6 }}>
               <div className="row-between" style={{ alignItems: "flex-start" }}>
                 <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <span className="caption">{formatCivilDate(v.date)}{v.date > today ? <> · <span className="chip" style={{ padding: "1px 8px" }}>Agendada · {dueText(v.date, today)}</span></> : null}</span>
+                  <span className="caption">{formatCivilDate(v.date)}{v.time ? ` às ${v.time}` : ""}{v.date > today ? <> · <span className="chip" style={{ padding: "1px 8px" }}>Agendada · {dueText(v.date, today)}</span></> : null}</span>
                   <strong style={{ overflowWrap: "anywhere" }}>{v.reason || "Consulta"}</strong>
                 </span>
                 <RowActions label={`consulta de ${formatCivilDate(v.date)}`} onEdit={() => openEdit(v)} onDelete={() => setToDelete(v)} />
@@ -91,6 +92,19 @@ export default function Consultas() {
         {editing ? (
           <>
             <Field id="cdate" label="Data (pode ser uma consulta marcada no futuro)" type="date" value={editing.form.date} onChange={(v) => set({ date: v })} />
+            <Field id="ctime" label="Horário" optional type="time" value={editing.form.time} onChange={(v) => set({ time: v })} />
+            {vetContacts.length ? (
+              <div className="field">
+                <label htmlFor="ccontact">Usar um contato salvo</label>
+                <select id="ccontact" className="select" value="" onChange={(e) => {
+                  const c = vetContacts.find((x) => x.id === e.target.value);
+                  if (c) set(c.kind === "clinic" || c.kind === "emergency" ? { clinic: c.name } : { vet: c.name });
+                }}>
+                  <option value="">Escolher dos Contatos…</option>
+                  {vetContacts.map((c) => <option key={c.id} value={c.id}>{CONTACT_KINDS[c.kind]}: {c.name}</option>)}
+                </select>
+              </div>
+            ) : <p className="caption">Dica: salve o veterinário em <Link href="/cuidados/contatos">Contatos</Link> para escolher aqui depois.</p>}
             <Field id="cclinic" label="Clínica" optional value={editing.form.clinic} onChange={(v) => set({ clinic: v })} maxLength={120} />
             <Field id="cvet" label="Veterinário" optional value={editing.form.vet} onChange={(v) => set({ vet: v })} maxLength={120} />
             <Field id="creason" label="Motivo" optional value={editing.form.reason} onChange={(v) => set({ reason: v })} maxLength={200} placeholder="Ex.: consulta de rotina" />

@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   } else if (tipo === "consulta") {
     const r = (await supa.from("visits").select("*").eq("id", id).maybeSingle()).data as any;
     const date = r ? (r.date > new Date().toISOString().slice(0, 10) ? r.date : r.next_date) : null;
-    if (r && date) ics = buildIcs({ uid: `visit-${r.id}-${date}`, title: `🩺 Consulta — ${name}${r.reason ? `: ${r.reason}` : ""}`, date, location: [r.clinic, r.vet].filter(Boolean).join(" · ") || undefined, description: "Diário de Patas" });
+    if (r && date) ics = buildIcs({ uid: `visit-${r.id}-${date}`, time: date === r.date ? r.time || undefined : undefined, title: `🩺 Consulta — ${name}${r.reason ? `: ${r.reason}` : ""}`, date, location: [r.clinic, r.vet].filter(Boolean).join(" · ") || undefined, description: "Diário de Patas" });
   } else if (tipo === "vacina") {
     const r = (await supa.from("vaccines").select("*").eq("id", id).maybeSingle()).data as any;
     if (r?.next_date) ics = buildIcs({ uid: `vac-${r.id}-${r.next_date}`, title: `💉 ${VACCINE_KINDS[r.kind as keyof typeof VACCINE_KINDS] ?? "Vacina"}: ${r.name} — ${name}`, date: r.next_date, description: "Próxima dose · Diário de Patas" });

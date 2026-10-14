@@ -776,3 +776,18 @@ div.photo--natural { aspect-ratio: 4 / 3; } /* carregando: mantém um espaço re
 .profile-xp { display: flex; flex-direction: column; gap: 2px; background: #fff7f0; border: 1px solid #ffd9bf; border-radius: 14px; padding: 10px 14px; }
 .profile-xp__num { font-family: var(--font-heading); font-weight: 800; font-size: 1.15rem; display: inline-flex; align-items: center; gap: 6px; }
 .profile-xp__num svg { color: var(--accent); }
+
+/* Título da barra do topo com emoji da aba */
+.topbar__title { display: inline-flex; align-items: center; gap: 8px; font-size: 1.25rem; min-width: 0; }
+.topbar__text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar__emoji { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: var(--paper); box-shadow: 0 2px 0 rgba(61, 45, 30, 0.08); font-size: 1.1rem; }
+
+/* Hoje: título manuscrito, selos de nível e XP, nota "sem pressa" e botão de missões */
+.hoje-title { font-family: var(--font-hand); font-weight: 700; font-size: clamp(2rem, 8vw, 2.4rem); line-height: 1.05; letter-spacing: 0; overflow-wrap: anywhere; }
+.hoje-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.hoje-level { display: inline-flex; align-items: center; gap: 5px; background: var(--paper); border: 1px solid #f0dcc0; color: var(--text-primary); font-weight: 800; font-size: 0.8125rem; padding: 4px 10px; border-radius: 999px; }
+.hoje-level svg { color: var(--accent); }
+.hoje-xp { display: inline-flex; align-items: center; background: #effaf7; color: var(--link); font-weight: 800; font-size: 0.8125rem; padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.hoje-note { margin: 0; font-family: var(--font-hand); font-size: 1.3rem; line-height: 1.25; color: #4a3826; background: var(--paper) repeating-linear-gradient(transparent 0 25px, #efe2cc 25px 26px) 0 8px; padding: 8px 14px 6px; border-radius: 6px; rotate: -0.6deg; box-shadow: 0 2px 8px rgba(31, 22, 13, 0.08); }
+.hoje-all { gap: 8px; }
+.hoje-all svg { color: var(--accent); }
