@@ -30,6 +30,8 @@ export interface StudioState {
   paused: boolean;
   balance: number;
   testCredits: boolean;
+  /** Créditos de teste dados à conta (para mostrar usados × disponíveis). */
+  creditsGranted?: number;
   dailyUsed: number;
   dailyLimit: number;
   presets: { id: string; enabled: boolean; credits: number }[];

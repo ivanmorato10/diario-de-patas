@@ -38,14 +38,16 @@ with sync_playwright() as p:
     expect(pg.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
 
     pg.goto(BASE + "/estudio")
-    expect(pg.get_by_text("4 créditos de teste")).to_be_visible(timeout=20000)
+    expect(pg.get_by_text("4 disponíveis")).to_be_visible(timeout=20000)
     check("Estúdio com 4 abas e créditos de teste", pg.get_by_role("tab").count() == 4)
     pg.screenshot(path=f"{OUT}/01-estudio.png", full_page=True)
     def make(tab, label):
-        pg.goto(BASE + "/estudio"); expect(pg.get_by_text(re.compile(r"\d+ créditos? de teste")).first).to_be_visible(timeout=20000)
+        pg.goto(BASE + "/estudio"); expect(pg.get_by_text("Seus créditos")).to_be_visible(timeout=20000)
         pg.locator(".photo-strip__item").first.click(); pg.get_by_role("tab", name=tab).click()
         pg.get_by_role("button", name=label, exact=False).first.click()
         pg.get_by_role("button", name="Criar arte").click()
+        if label == "Aniversário":
+            pg.wait_for_timeout(3500); pg.screenshot(path=f"{OUT}/01b-criando.png")
         expect(pg.get_by_text("Arte criada com IA").first).to_be_visible(timeout=90000)
         pg.wait_for_timeout(1500)
     make("Datas", "Aniversário")
@@ -82,7 +84,7 @@ with sync_playwright() as p:
 
     # Desligar um preset (tabela studio_presets) o tira do app, sem deploy.
     rest("POST", "studio_presets", {"id": "vitral", "enabled": False}, {"prefer": "resolution=merge-duplicates"})
-    pg.goto(BASE + "/estudio"); expect(pg.get_by_text(re.compile(r"\d+ créditos? de teste")).first).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Estilos").click()
+    pg.goto(BASE + "/estudio"); expect(pg.get_by_text("Seus créditos")).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Estilos").click()
     panel = pg.get_by_role("tabpanel")
     check("preset desligado some do app", panel.get_by_role("button", name="Vitral").count() == 0 and panel.get_by_role("button", name="Aquarela").count() == 1)
     rest("DELETE", "studio_presets?id=eq.vitral")

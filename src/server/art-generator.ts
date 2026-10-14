@@ -148,6 +148,8 @@ export function fakeGenerator(): ArtGenerator {
     provider: "teste",
     modelFor: () => "teste-local",
     async generate(input) {
+      const wait = Number(process.env.STUDIO_FAKE_DELAY_MS || 0); // só para testar a tela de espera
+      if (wait) await new Promise((r) => setTimeout(r, wait));
       const sharp = (await import("sharp")).default;
       const image = await sharp(input.image).resize(512, 512, { fit: "cover" }).tint({ r: 255, g: 180, b: 120 }).webp().toBuffer();
       return { image, mime: "image/webp", model: "teste-local" };

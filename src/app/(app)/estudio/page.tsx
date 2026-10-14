@@ -13,7 +13,7 @@ import { FAILURE_PT, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJ
 import { composeArt } from "@/lib/compose-art";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
-import { IconBrush, IconCheck, IconDownload, IconInfo, IconStar } from "@/components/icons";
+import { IconBrush, IconCheck, IconDownload, IconInfo, IconStar, Paw } from "@/components/icons";
 
 const CATEGORY_LOOK: Record<StudioCategory, { bg: string; fg: string }> = {
   datas: { bg: "linear-gradient(135deg, #ffd9bf, #fff1e6)", fg: "#a9461a" },
@@ -77,6 +77,74 @@ function StudioEntryThumb({ entryId }: { entryId: string }) {
   const { snap } = useStore();
   const e = snap?.entries.find((x) => x.id === entryId);
   return e ? <MediaImage id={e.mediaId} variant="thumb" alt="Foto original" className="studio-art" /> : <div className="studio-art" style={{ display: "grid", placeItems: "center", background: "var(--brand-soft)", aspectRatio: "1" }}><span className="caption">foto excluída</span></div>;
+}
+
+/** Créditos com patinhas (disponíveis × usados) e barra de artes do dia. */
+function CreditMeter({ state }: { state: StudioState }) {
+  const total = Math.max(state.creditsGranted ?? state.balance, state.balance);
+  const used = Math.max(0, total - state.balance);
+  const dayPct = state.dailyLimit ? Math.min(100, (state.dailyUsed / state.dailyLimit) * 100) : 0;
+  return (
+    <section className="credit-meter" aria-label="Seus créditos">
+      <div className="credit-meter__top">
+        <div>
+          <span className="credit-meter__label">Seus créditos</span>
+          <span className="credit-meter__big">{state.balance}<small> de {total}</small></span>
+        </div>
+        <span className="credit-meter__badge">{state.testCredits ? "teste · grátis" : "créditos"}</span>
+      </div>
+      <div className="credit-meter__paws" role="img" aria-label={`${state.balance} disponíveis, ${used} usados`}>
+        {Array.from({ length: Math.min(total, 12) }, (_, i) => (
+          <span key={i} className={i < state.balance ? "is-on" : ""} style={{ animationDelay: `${i * 70}ms` }}><Paw size={20} /></span>
+        ))}
+      </div>
+      <p className="credit-meter__legend">{state.balance} {state.balance === 1 ? "disponível" : "disponíveis"} · {used} {used === 1 ? "usado" : "usados"}</p>
+      <div className="credit-meter__day">
+        <span>Hoje: {state.dailyUsed} de {state.dailyLimit} artes</span>
+        <span className="credit-meter__bar" aria-hidden="true"><span style={{ width: `${dayPct}%` }} /></span>
+      </div>
+    </section>
+  );
+}
+
+const MAKING_LINES = [
+  "Olhando cada detalhe da foto…",
+  "Escolhendo as cores do pelo…",
+  "Caprichando nos bigodes…",
+  "Desenhando as orelhas no lugar certo…",
+  "Dando os últimos retoques…",
+  "Quase pronta! Segura a ansiedade…",
+];
+
+/** Tela de espera: a foto vira o estilo escolhido, com mensagens e progresso estimado (~15 s por arte). */
+function MakingArt({ job }: { job: StudioJob }) {
+  const preset = presetById(job.presetId);
+  const [secs, setSecs] = useState(() => Math.max(0, Math.round((Date.now() - Date.parse(job.createdAt)) / 1000)));
+  useEffect(() => {
+    const t = setInterval(() => setSecs((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const expected = preset?.premium ? 25 : preset?.post === "wallpaper" ? 22 : 16;
+  const pct = Math.min(94, Math.round(100 * (1 - Math.exp(-secs / (expected * 0.75)))));
+  const line = MAKING_LINES[Math.min(MAKING_LINES.length - 1, Math.floor(secs / 4))];
+  return (
+    <section className="making" aria-live="polite">
+      <div className="making__stage" aria-hidden="true">
+        <div className="making__frame making__frame--photo">{job.inputEntryId ? <StudioEntryThumb entryId={job.inputEntryId} /> : null}</div>
+        <span className="making__wand"><IconBrush size={22} /></span>
+        <div className="making__frame making__frame--art">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/estudio/${job.presetId}.webp`} alt="" />
+          <span className="making__shine" />
+        </div>
+      </div>
+      <h2 className="making__title">Criando “{preset?.labelPt}”</h2>
+      <p className="making__line" key={line}>{line}</p>
+      <div className="making__bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Progresso estimado"><span style={{ width: `${pct}%` }} /></div>
+      <p className="making__meta">{secs} s · costuma levar uns {expected} segundos</p>
+      <p className="caption" style={{ textAlign: "center" }}>Pode sair desta tela: a arte continua sendo feita e aparece aqui e no Diário.</p>
+    </section>
+  );
 }
 
 /** Resultado com a foto original ao lado, selo de IA e texto desenhado pelo app. */
@@ -262,7 +330,7 @@ function Estudio() {
       <TopBar title="Estúdio" />
       <main className="main">
         <div className="stack">
-          <h1>Artes de {snap.dog.name}</h1>
+          <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>
           <p className="muted">Transforme uma foto em arte de datas, estilos, fantasias ou formatos. A IA usa a foto como referência; nome e mensagem quem escreve é o app.</p>
         </div>
 
@@ -275,15 +343,11 @@ function Estudio() {
         ) : state?.paused ? (
           <div className="notice notice--warn"><IconInfo /><span>A criação de artes está pausada no momento. O resto do diário segue normal.</span></div>
         ) : state ? (
-          <p className="caption"><IconStar size={14} /> {state.balance} {state.balance === 1 ? "crédito de teste" : "créditos de teste"} · hoje {state.dailyUsed} de {state.dailyLimit} artes · sem cobrança</p>
+          <CreditMeter state={state} />
         ) : null}
 
         {current && ["queued", "processing"].includes(current.state) ? (
-          <section className="card stack" aria-live="polite">
-            <h2 style={{ fontSize: "1.0625rem" }}>Criando a arte “{presetById(current.presetId)?.labelPt}”…</h2>
-            <div className="progress progress--indeterminate" aria-hidden="true"><span /></div>
-            <p className="small muted">Leva de alguns segundos a um minuto. Pode sair desta tela: quando voltar, a arte estará no histórico.</p>
-          </section>
+          <MakingArt key={current.id} job={current} />
         ) : current?.state === "succeeded" ? (
           <StudioResult job={current} onAgain={again} />
         ) : current && ["failed", "cancelled"].includes(current.state) ? (

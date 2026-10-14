@@ -645,3 +645,39 @@ body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-are
 .shared-foot { text-align: center; font-size: 0.8125rem; color: var(--text-secondary); padding: 18px 16px calc(22px + env(safe-area-inset-bottom, 0px)); }
 .shared-foot a { color: var(--link); font-weight: 700; }
 .shared-grid--one { grid-template-columns: minmax(0, 340px) !important; justify-content: center; }
+
+/* Estúdio: título, medidor de créditos e tela "criando a arte" */
+.studio-title { font-family: var(--font-hand); font-weight: 700; font-size: clamp(2.2rem, 9vw, 2.8rem); line-height: 1; letter-spacing: 0; }
+.studio-title__paw { color: var(--brand-teal); rotate: 18deg; vertical-align: 2px; }
+.credit-meter { background: linear-gradient(135deg, #63b4ad, #4f9f98); color: var(--paper); border-radius: 22px; padding: 16px 18px; box-shadow: 0 8px 22px rgba(63, 143, 136, 0.35); display: flex; flex-direction: column; gap: 10px; }
+.credit-meter__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.credit-meter__label { display: block; font-size: 0.8125rem; font-weight: 700; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.06em; }
+.credit-meter__big { font-family: var(--font-heading); font-weight: 800; font-size: 2.4rem; line-height: 1; color: #fff; }
+.credit-meter__big small { font-size: 1rem; font-weight: 700; opacity: 0.85; }
+.credit-meter__badge { background: rgba(255, 248, 236, 0.95); color: var(--text-primary); font-size: 0.75rem; font-weight: 800; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.credit-meter__paws { display: flex; flex-wrap: wrap; gap: 6px; }
+.credit-meter__paws span { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.18); color: rgba(255, 255, 255, 0.45); border: 2px dashed rgba(255, 255, 255, 0.45); }
+.credit-meter__paws span.is-on { background: var(--paper); color: var(--accent); border: 2px solid var(--paper); animation: pop-in 420ms var(--spring) both; }
+.credit-meter__legend { margin: 0; font-size: 0.875rem; font-weight: 600; }
+.credit-meter__day { display: flex; flex-direction: column; gap: 6px; font-size: 0.8125rem; font-weight: 600; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.25); }
+.credit-meter__bar { display: block; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
+.credit-meter__bar span { display: block; height: 100%; border-radius: inherit; background: var(--paper); transition: width 400ms var(--ease); }
+
+.making { background: var(--paper); border-radius: 24px; padding: 22px 18px; box-shadow: 0 10px 28px rgba(31, 22, 13, 0.12); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.making__stage { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; padding: 6px 0 10px; }
+.making__frame { width: min(38vw, 150px); aspect-ratio: 1; border-radius: 6px; background: #fff; padding: 6px; box-shadow: 0 6px 16px rgba(31, 22, 13, 0.16); overflow: hidden; position: relative; }
+.making__frame img, .making__frame .studio-art { width: 100%; height: 100%; object-fit: cover; border-radius: 3px; display: block; }
+.making__frame--photo { rotate: -4deg; }
+.making__frame--art { rotate: 3deg; }
+.making__frame--art img { animation: making-reveal 2.8s ease-in-out infinite alternate; }
+.making__shine { position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.65) 50%, transparent 70%); background-size: 250% 100%; animation: making-shine 1.8s linear infinite; }
+.making__wand { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 46px; height: 46px; border-radius: 50%; background: var(--text-primary); color: var(--paper); display: grid; place-items: center; z-index: 2; box-shadow: 0 4px 12px rgba(31, 22, 13, 0.3); animation: making-wand 1.6s ease-in-out infinite; }
+.making__title { font-family: var(--font-hand); font-weight: 700; font-size: 1.9rem; line-height: 1.1; letter-spacing: 0; }
+.making__line { margin: 0; font-weight: 700; color: var(--link); animation: rise 400ms var(--ease) both; min-height: 1.5em; }
+.making__bar { width: 100%; max-width: 340px; height: 12px; border-radius: 999px; background: #efe2cc; overflow: hidden; }
+.making__bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #63b4ad, #e36f34); transition: width 900ms var(--ease); }
+.making__meta { margin: 0; font-size: 0.8125rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+@keyframes making-reveal { from { filter: blur(6px) saturate(0.4); opacity: 0.55; } to { filter: blur(0) saturate(1); opacity: 1; } }
+@keyframes making-shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+@keyframes making-wand { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(12deg) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .making__frame--art img, .making__shine, .making__wand, .credit-meter__paws span.is-on { animation: none !important; } }

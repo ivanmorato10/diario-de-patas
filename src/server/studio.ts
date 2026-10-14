@@ -71,6 +71,7 @@ export async function studioState(ctx: Ctx) {
     paused: paused(),
     balance: balance as number,
     testCredits: true,
+    creditsGranted: env("STUDIO_TEST_CREDITS", STUDIO_DEFAULTS.testCredits),
     dailyUsed: usedToday,
     dailyLimit: env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount),
     presets: presets.map((p) => ({ id: p.id, enabled: p.enabled, credits: p.credits })),
