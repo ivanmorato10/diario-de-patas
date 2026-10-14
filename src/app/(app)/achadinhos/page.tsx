@@ -1,9 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { ACHADINHOS, ACHADINHO_CATEGORIES, AFFILIATE_DISCLOSURE, type AchadinhoCategory } from "@/config/achadinhos";
+import { ACHADINHOS, ACHADINHO_CATEGORIES, AFFILIATE_DISCLOSURE, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
+import { isStandalone } from "@/components/install-app";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
+
+/** Foto própria do produto (public/achadinhos/…); sem ela, a ilustração da categoria. */
+function ProductArt({ a, emoji, bg, label }: { a: Achadinho; emoji: string; bg: string; label: string }) {
+  const [failed, setFailed] = useState(false);
+  const photo = a.photo && !failed;
+  return (
+    <div className={`achado__art${photo ? " achado__art--own" : ""}`} style={{ background: bg }} aria-hidden="true">
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={a.photo} alt="" loading="lazy" onError={() => setFailed(true)} />
+      ) : (
+        <span className="achado__emoji">{emoji}</span>
+      )}
+      <span className="achado__tag">{label}</span>
+    </div>
+  );
+}
 
 /** Lista completa dos achadinhos, com filtro por categoria. Nada aparece por cima de outras telas. */
 export default function Achadinhos() {
@@ -35,25 +53,18 @@ export default function Achadinhos() {
             const c = ACHADINHO_CATEGORIES.find((x) => x.id === a.category)!;
             return (
               <li key={a.id} className="achado">
-                <div className="achado__art" style={{ background: c.bg }} aria-hidden="true">
-                  {a.photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.photo} alt="" />
-                  ) : (
-                    <span className="achado__emoji">{c.emoji}</span>
-                  )}
-                  <span className="achado__tag">{c.label}</span>
-                </div>
+                <ProductArt a={a} emoji={c.emoji} bg={c.bg} label={c.label} />
                 <div className="achado__body">
                   <h2>{a.name}</h2>
                   <p className="achado__abu">“{a.abuSays}”</p>
-                  <a className="achado__btn" href={a.url} target="_blank" rel="sponsored noopener noreferrer">Ver na {a.store}</a>
+                  <a className="achado__btn" href={amazonUrl(a)} target="_blank" rel="sponsored noopener noreferrer">Ver na {a.store}</a>
                 </div>
               </li>
             );
           })}
         </ul>
 
+        {typeof window !== "undefined" && isStandalone() ? <p className="caption achados-disclosure">O produto abre na Amazon. Para voltar, toque em “OK” ou “Concluído” no canto da tela, ou abra o Diário de Patas de novo.</p> : null}
         <p className="caption achados-disclosure">{AFFILIATE_DISCLOSURE} Preços e disponibilidade são definidos pela loja. Recomendações não substituem a orientação do veterinário.</p>
       </main>
     </>

@@ -6,13 +6,17 @@
  */
 export type AchadinhoCategory = "brincar" | "passeio" | "soneca" | "banho" | "comer";
 
+/** ID de associado da Amazon (EUA) dos links enviados pelo proprietário. */
+export const AMAZON_TAG = "biancaassunca-20";
+
 export interface Achadinho {
   id: string;
   name: string;
   category: AchadinhoCategory;
   /** Comentário curto na voz do Abu (sem promessas de saúde). */
   abuSays: string;
-  url: string;
+  /** Código do produto na Amazon: gera o link direto e a imagem oficial. */
+  asin: string;
   store: string;
   /** Foto própria (public/achadinhos/…), opcional. Sem ela, mostra a ilustração da categoria. */
   photo?: string;
@@ -29,8 +33,12 @@ export const ACHADINHO_CATEGORIES: { id: AchadinhoCategory; label: string; emoji
 export const AFFILIATE_DISCLOSURE = "Como associado da Amazon, o Diário de Patas ganha com compras qualificadas. Isso não muda o preço para você.";
 
 export const ACHADINHOS: Achadinho[] = [
-  { id: "chuckit-launcher", name: "Lançador de bolinha Chuckit! Sport", category: "brincar", abuSays: "Joga mais longe e você nem precisa pegar a bolinha babada. Eu aprovo! 🐾", url: "https://link.amazon/B066TeMFF", store: "Amazon (EUA)" },
-  { id: "lancador-automatico", name: "Lançador automático de bolinha ALL FOR PAWS", category: "brincar", abuSays: "Para os dias em que meu humano está ocupado: eu mesmo coloco a bolinha e ele lança.", url: "https://link.amazon/B05f63xJ1", store: "Amazon (EUA)" },
-  { id: "petisco-wings", name: "Petisco de longa duração Good 'n' Fun Wings", category: "comer", abuSays: "Rende uma tarde inteira de roer. Petisco é agrado, não refeição!", url: "https://link.amazon/B0iN36xmv", store: "Amazon (EUA)" },
-  { id: "honest-kitchen", name: "Comida natural The Honest Kitchen (cordeiro)", category: "comer", abuSays: "Cheirinho de comida de verdade. Troca de alimentação, sempre com o veterinário, viu?", url: "https://link.amazon/B07apPCGX", store: "Amazon (EUA)" },
+  { id: "chuckit-launcher", name: "Lançador de bolinha Chuckit! Sport", category: "brincar", abuSays: "Joga mais longe e você nem precisa pegar a bolinha babada. Eu aprovo! 🐾", asin: "B000PKWKMQ", store: "Amazon (EUA)" },
+  { id: "lancador-automatico", name: "Lançador automático de bolinha ALL FOR PAWS", category: "brincar", abuSays: "Para os dias em que meu humano está ocupado: eu mesmo coloco a bolinha e ele lança.", asin: "B07PYPGL27", store: "Amazon (EUA)" },
+  { id: "petisco-wings", name: "Petisco de longa duração Good 'n' Fun Wings", category: "comer", abuSays: "Rende uma tarde inteira de roer. Petisco é agrado, não refeição!", asin: "B01HXYUUXC", store: "Amazon (EUA)" },
+  { id: "honest-kitchen", name: "Comida natural The Honest Kitchen (cordeiro)", category: "comer", abuSays: "Cheirinho de comida de verdade. Troca de alimentação, sempre com o veterinário, viu?", asin: "B0HFX1WMVF", store: "Amazon (EUA)" },
 ];
+
+/** Link direto do produto com o ID de associado (sem os redirecionamentos do link curto, que travam no app instalado). */
+export const amazonUrl = (a: Achadinho) => `https://www.amazon.com/dp/${a.asin}?tag=${AMAZON_TAG}`;
+

@@ -24,3 +24,6 @@ e2e-studio-out/
 Estudio Template/
 docs/*.png
 e2e-payments-out/
+
+# Fotos originais dos achadinhos (o app usa as versões reduzidas em public/achadinhos)
+Achadinhos Fotos/
