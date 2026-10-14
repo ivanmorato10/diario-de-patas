@@ -43,7 +43,7 @@ export const studioCreateJob = (input: {
   crop: { x: number; y: number; w: number; h: number } | null; overlay: StudioOverlay | null;
 }) => rpc<StudioJob>("studioCreateJob", input);
 
-export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad"; message: string }[] }
+export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad"; message: string }[]; aiChecked: boolean }
 export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y: number; w: number; h: number } | null }) => rpc<PhotoCheck>("studioCheckPhoto", input);
 
 export const FAILURE_PT: Record<string, string> = {

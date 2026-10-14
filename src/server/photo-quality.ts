@@ -10,7 +10,8 @@ import type { ArtGenerator, PhotoAssessment } from "./art-generator";
 
 export type PhotoVerdict = "good" | "warn" | "bad";
 export interface PhotoIssue { code: string; level: "warn" | "bad"; message: string }
-export interface PhotoCheck { verdict: PhotoVerdict; issues: PhotoIssue[] }
+/** `aiChecked` falso = a IA não conferiu (sem chave ou erro): nunca dizer "foto boa" nesse caso. */
+export interface PhotoCheck { verdict: PhotoVerdict; issues: PhotoIssue[]; aiChecked: boolean }
 
 export const PHOTO_ISSUES: Record<string, Omit<PhotoIssue, "code">> = {
   NO_DOG: { level: "bad", message: "Não encontramos um cachorro nesta foto. Escolha uma em que ele apareça bem." },
@@ -53,8 +54,8 @@ export function combineChecks(local: Awaited<ReturnType<typeof localPhotoMetrics
       if (ai.dogSize === "small") issues.push(issue("SMALL_DOG"));
     }
   }
-  const verdict: PhotoVerdict = issues.some((i) => i.level === "bad") ? "bad" : issues.length ? "warn" : "good";
-  return { verdict, issues };
+  const verdict: PhotoVerdict = issues.some((i) => i.level === "bad") ? "bad" : issues.length || !ai ? "warn" : "good";
+  return { verdict, issues, aiChecked: !!ai };
 }
 
 /** Avalia a foto (já recortada). Se a IA falhar, fica só com as checagens locais — nunca bloqueia por erro nosso. */

@@ -7,7 +7,7 @@ const dog = { dogs: 1, faceVisible: true, dogSize: "ok" as const, sharp: true };
 
 describe("validação da foto do Estúdio", () => {
   it("foto boa passa sem avisos", () => {
-    expect(combineChecks(good, dog)).toEqual({ verdict: "good", issues: [] });
+    expect(combineChecks(good, dog)).toEqual({ verdict: "good", issues: [], aiChecked: true });
   });
   it("sem cachorro, rosto escondido ou foto minúscula bloqueiam (sem cobrar)", () => {
     expect(combineChecks(good, { ...dog, dogs: 0 }).verdict).toBe("bad");
@@ -19,8 +19,8 @@ describe("validação da foto do Estúdio", () => {
     expect(c.verdict).toBe("warn");
     expect(c.issues.map((i) => i.code).sort()).toEqual(["BLURRY", "DARK", "MANY_DOGS", "SMALL_DOG"]);
   });
-  it("se a IA falhar, valem só as checagens locais", () => {
-    expect(combineChecks(good, null).verdict).toBe("good");
+  it("se a IA não conferir, nunca diz que a foto é boa", () => {
+    expect(combineChecks(good, null)).toMatchObject({ verdict: "warn", aiChecked: false });
   });
   it("mede luz e foco de verdade", async () => {
     const dark = await sharp({ create: { width: 600, height: 600, channels: 3, background: { r: 10, g: 10, b: 10 } } }).jpeg().toBuffer();

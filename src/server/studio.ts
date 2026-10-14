@@ -125,11 +125,10 @@ export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCh
   const entry = (await q(ctx.supa.from("diary_entries").select("id, source, media_asset_id").eq("id", a.data.entryId).is("deleted_at", null).maybeSingle())) as any;
   if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
-  if (!artGenerator()) return { verdict: "good", issues: [] };
   try {
     return await assessPhoto(await loadInputPhoto(entry.media_asset_id, a.data.crop), artGenerator());
   } catch {
-    return { verdict: "good", issues: [] }; // falha nossa não impede ninguém de tentar
+    return { verdict: "warn", issues: [], aiChecked: false }; // falha nossa: não bloqueia, mas não garante nada
   }
 }
 

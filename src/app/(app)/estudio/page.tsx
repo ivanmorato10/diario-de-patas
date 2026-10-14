@@ -131,6 +131,9 @@ function PhotoCheckNote({ check }: { check: PhotoCheck | "checking" | null }) {
   if (!check) return null;
   if (check === "checking") return <p className="caption" role="status">Conferindo se a foto vai dar uma arte bonita…</p>;
   if (check.verdict === "good") return <p className="notice notice--positive small" role="status"><span>Foto boa para arte! 🐾</span></p>;
+  if (!check.aiChecked && check.issues.length === 0) {
+    return <p className="notice notice--warn small" role="status"><span>Não conseguimos conferir a foto agora. Confira se o cachorro aparece bem, de frente e com boa luz.</span></p>;
+  }
   const bad = check.verdict === "bad";
   return (
     <div className={`notice ${bad ? "notice--error" : "notice--warn"} small`} role="status">
@@ -138,6 +141,7 @@ function PhotoCheckNote({ check }: { check: PhotoCheck | "checking" | null }) {
         <strong>{bad ? "Essa foto não vai dar uma boa arte" : "A arte pode não ficar tão boa"}</strong>
         <ul style={{ margin: "4px 0 0", paddingLeft: "1.1em" }}>{check.issues.map((i) => <li key={i.code}>{i.message}</li>)}</ul>
         {bad ? <>Escolha outra foto ou use o recorte. Nenhum crédito foi usado.</> : <>Você pode seguir assim ou escolher outra foto.</>}
+        {!check.aiChecked ? <><br />Não deu para confirmar se há um cachorro na foto.</> : null}
       </span>
     </div>
   );
