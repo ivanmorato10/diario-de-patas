@@ -1,5 +1,6 @@
 "use client";
 
+import { CarePdfButton } from "@/components/care-pdf-button";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -37,6 +38,7 @@ export default function Cuidados() {
     <>
       <TopBar title="Cuidados" />
       <main className="main">
+        <CarePdfButton />
         <p className="muted">Um lugar para guardar as informações de cuidado de {dog.name}. Você anota; o app organiza as datas e lembra o que está chegando.</p>
         <HealthDisclaimer />
         <UpcomingCareCard items={care} today={today} />
