@@ -36,7 +36,7 @@ export default function Sobre() {
           <h2 id="demo-t">O que é o modo demonstração</h2>
           <ul className="stack small" style={{ paddingLeft: 18, margin: 0 }}>
             <li>As fotos e o diário ficam guardados só neste navegador. Não há conta nem sincronização; limpar os dados do navegador apaga o diário.</li>
-            <li>As missões são confirmadas por você: depois de escolher a foto, você diz se ela mostra o que a missão pede. Os pontos não valem dinheiro.</li>
+            <li>As missões são confirmadas por você: depois de escolher a foto, você diz se ela mostra o que a missão pede. As patinhas não valem dinheiro.</li>
             <li>O Estúdio de artes e os links de compartilhamento ainda não estão ativos.</li>
             <li>Nenhum pagamento existe nesta versão.</li>
           </ul>
@@ -49,21 +49,21 @@ export default function Sobre() {
         </section>
 
         <section id="niveis" className="card stack" aria-labelledby="niveis-t">
-          <h2 id="niveis-t">Níveis, XP e a arte do mês</h2>
-          <p className="small">XP são pontos de experiência ganhos nas missões (10 ou 20 por missão). O app conta de dois jeitos:</p>
+          <h2 id="niveis-t">Patinhas, níveis e a arte do mês</h2>
+          <p className="small">Patinhas 🐾 são os pontos das missões (10 ou 20 por foto guardada). O app conta de dois jeitos:</p>
           <ul className="small" style={{ margin: 0, paddingLeft: "1.2em", display: "grid", gap: 4 }}>
-            <li><strong>XP total:</strong> soma tudo, nunca zera e define o nível do seu cachorro.</li>
-            <li><strong>XP do mês:</strong> zera no dia 1º. Ao chegar a {XP_MONTH_GOAL} XP no mês, você ganha 1 arte no Estúdio (uma por mês).</li>
+            <li><strong>Patinhas de sempre:</strong> somam tudo, ficam guardadas para sempre e definem o nível do seu cachorro.</li>
+            <li><strong>Patinhas do mês:</strong> a contagem recomeça no dia 1º, com uma nova aventura. Com {XP_MONTH_GOAL} patinhas no mês, o Abu dá 1 arte de presente no Estúdio (uma por mês).</li>
           </ul>
           <ol className="levels">
             {LEVELS.map((l, i) => (
               <li key={l.title}>
                 <span className="levels__n">{i + 1}</span>
                 <span className="levels__t">{l.title}</span>
-                <span className="levels__xp">{l.minXp === 0 ? "início" : `${l.minXp} XP`}</span>
+                <span className="levels__xp">{l.minXp === 0 ? "início" : `${l.minXp} 🐾`}</span>
               </li>
             ))}
-            <li><span className="levels__n">∞</span><span className="levels__t">Sempre juntos II, III…</span><span className="levels__xp">+250 XP cada</span></li>
+            <li><span className="levels__n">∞</span><span className="levels__t">Sempre juntos II, III…</span><span className="levels__xp">+250 🐾 cada</span></li>
           </ol>
         </section>
 

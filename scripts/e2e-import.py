@@ -23,7 +23,7 @@ with sync_playwright() as p:
         pg.goto(BASE + "/comecar"); pg.get_by_label("Nome do cachorro").fill("Luna"); pg.get_by_role("button", name="Criar meu diário").click(); pg.wait_for_url("**/hoje")
         pg.get_by_role("link", name="Olá, mundo").first.click(); pg.get_by_role("link", name="Enviar foto").click()
         pg.locator("input[type=file]:not([capture])").set_input_files(photo(1)); pg.get_by_role("button", name="Guardar e continuar").click(); pg.get_by_role("button", name="Sim, mostra").click()
-        expect(pg.get_by_text("+10 XP")).to_be_visible()
+        expect(pg.get_by_text("+10 patinhas 🐾")).to_be_visible()
         pg.goto(BASE + "/guardar"); pg.locator("input[type=file][multiple]").set_input_files(photo(2)); pg.get_by_label("Legenda").fill("Soneca no sofá"); pg.get_by_role("button", name="Guardar foto").click()
         expect(pg.get_by_role("heading", name="Guardada no diário")).to_be_visible()
         pg.goto(BASE + "/albuns"); pg.get_by_role("button", name="Novo álbum").click(); pg.get_by_label("Nome do álbum").fill("Viagem à praia"); pg.get_by_role("dialog").get_by_role("button", name="Criar álbum").click(); pg.wait_for_url("**/albuns/custom-*")

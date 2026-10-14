@@ -54,11 +54,11 @@ export default function MissaoDetalhe() {
             <p style={{ fontWeight: 600 }}>{petText(mission.criterion, dogName)}</p>
           </div>
           <dl className="stack small" style={{ margin: 0, gap: 8 }}>
-            <div className="row-between"><dt className="muted">Pontos</dt><dd style={{ margin: 0 }}><span className="chip chip--reward">+{mission.xp} XP</span></dd></div>
+            <div className="row-between"><dt className="muted">Pontos</dt><dd style={{ margin: 0 }}><span className="chip chip--reward">+{mission.xp} 🐾</span></dd></div>
             <div className="row-between"><dt className="muted">Vale</dt><dd style={{ margin: 0, textAlign: "right" }}>{mission.kind === "daily" ? "Uma vez no dia em que for sorteada" : mission.kind === "special" ? (window ? `Uma vez neste ano, até ${formatCivilDate(window.end)}` : "Uma vez por ano, na época da data") : "Uma única vez"}</dd></div>
             <div className="row-between"><dt className="muted">Álbum</dt><dd style={{ margin: 0 }}>{collectionTitle(mission.collectionId)}</dd></div>
             {sets.length ? <div className="row-between"><dt className="muted">Coleção</dt><dd style={{ margin: 0 }}>{sets.join(", ")}</dd></div> : null}
-            {advances ? <div className="row-between"><dt className="muted">Também avança</dt><dd style={{ margin: 0, textAlign: "right" }}>“{advances.title}” na coleção (sem XP extra)</dd></div> : null}
+            {advances ? <div className="row-between"><dt className="muted">Também avança</dt><dd style={{ margin: 0, textAlign: "right" }}>“{advances.title}” na coleção (sem patinhas extras)</dd></div> : null}
             <div className="row-between"><dt className="muted">Foto da galeria</dt><dd style={{ margin: 0 }}>Aceita, inclusive fotos antigas</dd></div>
             {prereq ? <div className="row-between"><dt className="muted">Pré-requisito</dt><dd style={{ margin: 0 }}>{prereq.title}</dd></div> : null}
           </dl>
@@ -73,7 +73,7 @@ export default function MissaoDetalhe() {
         {state === "completed" ? (
           <div className="notice notice--positive" role="status">
             <IconCheck />
-            <span>{mission.kind === "daily" ? "Feita hoje (confirmada por você). Ela pode voltar em outro dia e render pontos de novo." : mission.kind === "special" ? "Feita neste ano (confirmada por você)." : "Missão concluída (confirmada por você). Os pontos já foram contados — reenviar não soma de novo."}</span>
+            <span>{mission.kind === "daily" ? "Feita hoje (confirmada por você). Ela pode voltar em outro dia e render patinhas de novo." : mission.kind === "special" ? "Feita neste ano (confirmada por você)." : "Missão concluída (confirmada por você). As patinhas já foram contadas, e reenviar não soma de novo."}</span>
           </div>
         ) : state === "locked" ? (
           <div className="notice notice--info"><IconInfo /><span>Essa missão abre depois de concluir “{prereq?.title}”.</span></div>

@@ -55,7 +55,7 @@ export const FAILURE_PT: Record<string, string> = {
   QUALITY_REJECTED: "A arte não ficou boa o bastante ({dog} não apareceu direito). O crédito foi devolvido.",
   PROVIDER_TIMEOUT: "A arte demorou demais e foi cancelada. O crédito foi devolvido.",
   PROVIDER_UNAVAILABLE: "O serviço de artes está instável agora. O crédito foi devolvido — tente mais tarde.",
-  NO_CREDITS: "Seus créditos de teste acabaram.",
+  NO_CREDITS: "Os créditos acabaram por enquanto. Dá para criar mais em Créditos, ou ganhar uma arte de presente juntando patinhas no mês.",
   INPUT_DELETED: "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
   NOT_CONFIGURED: "O Estúdio ainda não está disponível. O crédito foi devolvido.",
   TECHNICAL: "Algo deu errado do nosso lado. O crédito foi devolvido.",

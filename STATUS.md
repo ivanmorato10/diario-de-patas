@@ -175,6 +175,14 @@ Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com fatura
 - Conta sem diário (ou "+ Adicionar cachorro" no topo) abre /adicionar: cadastrar um cachorro ou usar código de convite.
 - Migração aplicada na nuvem em 14/10/2026. E2E: real 54/54, pagamentos 9/9, Estúdio 12/12. Pendente: `npm run supabase:push` (senha mínima de 8 no servidor; o app já exige 8).
 
+## Homenagem ao Abu: menos cobrança, mais lembrança (14/10/2026)
+- Hoje: cachorro → última lembrança grande + Guardar → "Ideias para hoje" (missões) → cuidados → patinhas do mês → Achadinhos. Remédio na hora continua no topo.
+- XP virou patinhas 🐾; meta do mês contada como presente ("Uma nova aventura começa a cada mês", sem "zera").
+- Apresentação: 4ª tela agora é "Tem muita aventura pela frente!". Cadastro: rotina e fuso em "Ajustar depois".
+- Estúdio: saldo numa linha, "Comprar mais" discreto, limite diário só quando atingido; sem barra de XP. Loja sem o selo "Mais escolhido".
+- Convite da família sugerido pelo Abu depois da primeira lembrança ("Agora não" esconde).
+- Próximos (aprovados): "Neste dia", datas especiais, bilhete sem foto, cartinha, livro de memórias. Modo "para sempre": mais adiante.
+
 ## Próximo passo
 
 MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).

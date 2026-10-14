@@ -36,8 +36,8 @@ with sync_playwright() as p:
 
     # ---------- Loja: Pix de teste (PAYMENTS_FAKE=1, nenhum dinheiro) ----------
     before = rpc("studioState", {})[1]["balance"]
-    pg.goto(BASE + "/estudio"); expect(pg.get_by_role("link", name="Comprar créditos")).to_be_visible(timeout=20000)
-    pg.get_by_role("link", name="Comprar créditos").click(); pg.wait_for_url("**/estudio/creditos")
+    pg.goto(BASE + "/estudio"); expect(pg.get_by_role("link", name="Comprar mais")).to_be_visible(timeout=20000)
+    pg.get_by_role("link", name="Comprar mais").click(); pg.wait_for_url("**/estudio/creditos")
     expect(pg.get_by_text("Modo de teste")).to_be_visible(timeout=20000)
     check("3 pacotes com preços em reais", pg.get_by_text("R$ 4,90").count() >= 1 and pg.get_by_text("R$ 7,90").count() >= 1 and pg.get_by_text("R$ 19,90").count() >= 1)
     pg.screenshot(path=f"{OUT}/01-pacotes.png", full_page=True)

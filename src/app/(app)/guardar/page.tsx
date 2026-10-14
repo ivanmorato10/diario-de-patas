@@ -320,7 +320,7 @@ function GuardarInner() {
               <p style={{ fontWeight: 600 }}>{petText(mission!.criterion, snap.dog.name)}</p>
             </div>
             {missionStateNow === "completed" ? (
-              <div className="notice notice--info" role="status"><IconInfo /><span>Essa missão já foi concluída. A foto entra no álbum, mas os pontos não somam de novo.</span></div>
+              <div className="notice notice--info" role="status"><IconInfo /><span>Essa missão já foi concluída. A foto entra no álbum, mas as patinhas não somam de novo.</span></div>
             ) : null}
             <div className="notice notice--info"><IconInfo /><span>Quem confirma é você. A foto já está guardada no diário.</span></div>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
@@ -408,16 +408,16 @@ function ResultView({
       {approved ? (
         <>
           <div className="stack">
-            <span className="chip chip--reward anim-stamp" style={{ alignSelf: "flex-start" }}><IconStar size={16} /> {r!.xpAwarded > 0 ? `+${r!.xpAwarded} XP` : "Pontos já contados"}</span>
+            <span className="chip chip--reward anim-stamp" style={{ alignSelf: "flex-start" }}><IconStar size={16} /> {r!.xpAwarded > 0 ? `+${r!.xpAwarded} patinhas 🐾` : "Pontos já contados"}</span>
             <h1 ref={headingRef} tabIndex={-1}>Conquista: {missionTitle}</h1>
-            <p className="muted">{r!.alreadyCompleted ? "Essa missão já estava concluída — a foto foi guardada e os pontos não somam de novo." : `Guardada no álbum ${collectionTitle(collectionOf(r!.submission.missionId))}.`}</p>
+            <p className="muted">{r!.alreadyCompleted ? "Essa missão já estava concluída — a foto foi guardada e as patinhas não somam de novo." : `Guardada no álbum ${collectionTitle(collectionOf(r!.submission.missionId))}.`}</p>
             <p className="caption"><IconCheck size={14} style={{ verticalAlign: "-2px" }} /> Confirmada por você</p>
           </div>
           <CreditEarned n={r!.creditsEarned ?? 0} />
           {r!.medals.map((id) => (
             <div key={id} className="notice notice--positive" role="status">
               <span className="mission-stamp mission-stamp--done anim-stamp" aria-hidden="true" style={{ flex: "none" }}><IconStar /></span>
-              <span><strong>Coleção completa: {PERMANENT_SETS.find((s) => s.id === id)?.title}!</strong> Medalha e +50 XP. A capa especial está em Álbuns › Coleções.</span>
+              <span><strong>Coleção completa: {PERMANENT_SETS.find((s) => s.id === id)?.title}!</strong> Medalha e +50 patinhas. A capa especial está em Álbuns › Coleções.</span>
             </div>
           ))}
           {advanced ? <p className="small">Também avançou “{advanced.title}” na coleção.</p> : null}
@@ -434,7 +434,7 @@ function ResultView({
       ) : r ? (
         <>
           <h1 ref={headingRef} tabIndex={-1}>Guardada no diário</h1>
-          <p>Tudo bem não ter certeza. A foto ficou no diário, sem pontos — você pode tentar outra quando quiser.</p>
+          <p>Tudo bem não ter certeza. A foto ficou no diário, sem patinhas, e você pode tentar outra quando quiser.</p>
           <div className="stack">
             <Link href={`/guardar?missao=${slugFor(r.submission.missionId)}`} className="btn btn--primary btn--block">Tentar outra foto</Link>
             <Link href="/diario" className="btn btn--secondary btn--block">Ver no diário</Link>

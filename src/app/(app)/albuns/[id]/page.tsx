@@ -67,7 +67,7 @@ export default function AlbumDetalhe() {
                     <Link href={`/missoes/${m.slug}`} className="card mission-card" style={{ padding: 12 }}>
                       <MissionStamp state={st} slot />
                       <span style={{ flex: 1 }}>{m.title}</span>
-                      {st === "completed" ? <span className="chip"><IconStar size={14} /> Conquistada</span> : <span className="chip chip--outline">+{m.xp} XP</span>}
+                      {st === "completed" ? <span className="chip"><IconStar size={14} /> Conquistada</span> : <span className="chip chip--outline">+{m.xp} 🐾</span>}
                     </Link>
                   </li>
                 );

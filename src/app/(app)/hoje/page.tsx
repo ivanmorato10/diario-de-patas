@@ -19,6 +19,7 @@ import { levelFor, missionById } from "@/domain/missions";
 import { XpRewardBar } from "@/components/xp-reward";
 import { AchadinhosCard } from "@/components/achadinhos-card";
 import { MedAlert } from "@/components/med-alert";
+import { FamilyNudge } from "@/components/family-nudge";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -70,15 +71,38 @@ export default function Hoje() {
             <h1 id="dog-title" className="hoje-title">Diário de {dog.name}</h1>
             <div className="hoje-badges">
               <span className="hoje-level"><IconStar size={14} /> {level.title}</span>
-              <span className="hoje-xp">✨ {snap.xpTotal} XP total</span>
+              <span className="hoje-xp">🐾 {snap.xpTotal} patinhas</span>
             </div>
           </div>
         </section>
 
-
-        <XpRewardBar xpMonth={snap.xpMonth} />
-        <AchadinhosCard />
+        {/* Remédio na hora certa continua no topo: é cuidado, não cobrança. */}
         <MedAlert meds={snap.health.medications} today={snap.today} dogName={dog.name} />
+
+        {/* Primeiro as lembranças: este é o cantinho do cachorro. */}
+        <section className="stack hoje-memory" aria-labelledby="last-title">
+          <h2 id="last-title" className="sr-only">Última lembrança</h2>
+          {last ? (
+            <>
+              <Link href={`/diario#${last.id}`} className="polaroid tape hoje-memory__photo" style={{ display: "block", textDecoration: "none" }}>
+                <MediaImage id={last.mediaId} variant="display" alt={last.caption ? `Lembrança: ${last.caption}` : `Lembrança de ${dog.name}`} className="photo photo--natural" />
+                <p className="polaroid__note">{last.caption || dog.name}</p>
+                <p className="caption polaroid__meta">Última lembrança · {formatCivilDate(last.occurredDate)}</p>
+              </Link>
+              <div className="row" style={{ gap: 8 }}>
+                <Link href="/guardar" className="btn btn--primary" style={{ flex: 1 }}><IconPlus /> Guardar momento</Link>
+                <Link href="/diario" className="btn btn--secondary">Ver diário</Link>
+              </div>
+            </>
+          ) : (
+            <div className="card stitched empty stack" style={{ boxShadow: "none" }}>
+              <p>O diário de {dog.name} está esperando a primeira página. Pode ser qualquer momento, até uma soneca.</p>
+              <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar o primeiro momento</Link>
+            </div>
+          )}
+        </section>
+
+        <FamilyNudge />
 
         {!hasFirst ? (
           <>
@@ -92,17 +116,18 @@ export default function Hoje() {
                 </div>
               </div>
               <div className="stack" style={{ padding: 20 }}>
-                <p>A primeira página do diário. Depois dela, chegam as missões do dia.</p>
-                <div className="row-between"><span className="chip chip--reward">+10 XP</span><span className="btn btn--primary btn--small">Ver missão</span></div>
+                <p>A primeira página do diário. Depois dela, chegam ideias novas todo dia.</p>
+                <div className="row-between"><span className="chip chip--reward">+10 🐾</span><span className="btn btn--primary btn--small">Ver missão</span></div>
               </div>
             </Link>
           </>
         ) : (
           <section className="stack" aria-labelledby="daily-title">
-            <div className="row-between">
-              <h2 id="daily-title">Missões do dia</h2>
-              <span className="chip chip--neutral" aria-live="polite">{doneToday} de 3 hoje</span>
+            <div className="row-between" style={{ alignItems: "baseline" }}>
+              <h2 id="daily-title">Ideias para hoje</h2>
+              <span className="caption" aria-live="polite">{doneToday} de 3</span>
             </div>
+            <p className="caption" style={{ marginTop: -6 }}>São as missões do dia: sugestões de fotos para guardar momentos de {dog.name}.</p>
 
             {specials.map((w) => (
               <Link key={w.mission.id} href={`/missoes/${w.mission.slug}`} className="hero-mission" style={{ textDecoration: "none", color: "inherit" }}>
@@ -115,7 +140,7 @@ export default function Hoje() {
                 </div>
                 <div className="stack" style={{ padding: 20 }}>
                   <p>{petText(w.mission.description, dog.name)}</p>
-                  <div className="row-between"><span className="chip chip--reward">+{w.mission.xp} XP</span><span className="btn btn--primary btn--small">Ver especial</span></div>
+                  <div className="row-between"><span className="chip chip--reward">+{w.mission.xp} 🐾</span><span className="btn btn--primary btn--small">Ver especial</span></div>
                 </div>
               </Link>
             ))}
@@ -123,8 +148,8 @@ export default function Hoje() {
             {doneToday === 3 ? (
               <div className="card stack daily-done" role="status" style={{ position: "relative", overflow: "visible" }}>
                 <PawBurst />
-                <h3>Aventuras de hoje concluídas!</h3>
-                <p>Suas fotos já estão no álbum. Amanhã tem mais — e você ainda pode explorar suas coleções.</p>
+                <h3>Aventuras de hoje guardadas!</h3>
+                <p>As fotos já estão no álbum de {dog.name}. Amanhã chegam ideias novas, e as coleções estão lá quando quiser.</p>
                 <div className="stack">
                   <Link href="/albuns?aba=colecoes" className="btn btn--primary btn--block">Ver coleções</Link>
                   <Link href="/guardar" className="btn btn--secondary btn--block">Guardar mais um momento</Link>
@@ -142,13 +167,13 @@ export default function Hoje() {
                       <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
                         <span className="caption">{slot.title}</span>
                         <strong>{m.title}</strong>
-                        <span className="small muted">{done ? "Feita hoje" : petText(m.description, dog.name)}</span>
+                        <span className="small muted">{done ? "Guardada hoje" : petText(m.description, dog.name)}</span>
                       </span>
-                      <span className="chip chip--reward">{done ? <IconCheck size={14} /> : null}+{m.xp} XP</span>
+                      <span className="chip chip--reward">{done ? <IconCheck size={14} /> : null}+{m.xp} 🐾</span>
                     </Link>
                     {!done ? (
-                      <button type="button" className="btn btn--ghost btn--small" onClick={() => swap(slot.id)} disabled={!!swapping} aria-label={`Trocar a missão “${m.title}”`}>
-                        <IconShuffle size={18} /> {swapping === slot.id ? "Trocando…" : "Trocar"}
+                      <button type="button" className="btn btn--ghost btn--small" onClick={() => swap(slot.id)} disabled={!!swapping} aria-label={`Outra ideia no lugar de “${m.title}”`}>
+                        <IconShuffle size={18} /> {swapping === slot.id ? "Trocando…" : "Outra ideia"}
                       </button>
                     ) : null}
                   </li>
@@ -156,7 +181,7 @@ export default function Hoje() {
               })}
             </ul>
             {swapError ? <p className="field-error" role="alert">{swapError}</p> : null}
-            <p className="page-note">Sem pressa: o que não for feito hoje não tira pontos. Amanhã chegam outras.</p>
+            <p className="page-note">Sem pressa: o que não der para fazer hoje não tira nada. Amanhã chegam outras ideias.</p>
             <Link href="/missoes" className="btn btn--secondary btn--block hoje-all"><IconStar size={18} /> Ver todas as missões</Link>
           </section>
         )}
@@ -165,25 +190,9 @@ export default function Hoje() {
 
         {care.length ? <UpcomingCareCard items={care} today={snap.today} compact /> : null}
 
+        <XpRewardBar xpMonth={snap.xpMonth} compact />
+        <AchadinhosCard />
 
-        <section className="stack" aria-labelledby="last-title">
-          <h2 id="last-title">Última lembrança</h2>
-          {last ? (
-            <Link href={`/diario#${last.id}`} className="polaroid tape" style={{ display: "block", textDecoration: "none", margin: "8px 6px 0" }}>
-              <MediaImage id={last.mediaId} variant="display" alt={last.caption ? `Lembrança: ${last.caption}` : `Lembrança de ${dog.name}`} className="photo" />
-              <p className="polaroid__note">{last.caption || dog.name}</p>
-              <p className="caption polaroid__meta">{formatCivilDate(last.occurredDate)}</p>
-            </Link>
-          ) : (
-            <div className="card stitched empty" style={{ boxShadow: "none" }}>
-              <p>Nenhuma foto ainda. O primeiro momento pode ser qualquer um — até uma soneca.</p>
-            </div>
-          )}
-        </section>
-
-        <div className="sticky-action">
-          <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>
-        </div>
       </main>
     </>
   );

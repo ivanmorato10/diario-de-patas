@@ -28,7 +28,7 @@ export function MissionRow({ m, state }: { m: MissionTemplate; state: MissionSta
         <strong>{m.title}</strong>
         <span className="caption">{collectionTitle(m.collectionId)} · {STATE_LABEL[state]}</span>
       </span>
-      <span className="chip chip--reward">+{m.xp} XP</span>
+      <span className="chip chip--reward">+{m.xp} 🐾</span>
       <IconChevron size={18} className="muted" />
     </Link>
   );

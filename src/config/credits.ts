@@ -8,7 +8,7 @@ export interface CreditPackage {
 
 export const CREDIT_PACKAGES: CreditPackage[] = [
   { id: "p5", credits: 5, priceCents: 490 },
-  { id: "p15", credits: 15, priceCents: 790, badge: "Mais escolhido" },
+  { id: "p15", credits: 15, priceCents: 790 },
   { id: "p40", credits: 40, priceCents: 1990, badge: "Melhor preço" },
 ];
 

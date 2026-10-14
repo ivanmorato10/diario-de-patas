@@ -97,17 +97,22 @@ export default function Comecar() {
               <input id="birth" type="date" className="input" value={birth} onChange={(e) => setBirth(e.target.value)} />
             </div>
 
-            <PreferencesFields value={prefs} onChange={setPrefs} />
-
-            <div className="field">
-              <label htmlFor="tz">Fuso horário</label>
-              <TimezoneSelect id="tz" value={tz} onChange={setTz} />
-              <span className="hint">Detectamos este fuso pelo aparelho. Ele organiza as datas do diário.</span>
-            </div>
+            {/* Nome e foto bastam para começar; o resto já vem num jeito bom e muda depois em Ajustes. */}
+            <details className="adjust-later">
+              <summary>Ajustar depois: rotina e fuso horário</summary>
+              <div className="stack" style={{ marginTop: 12 }}>
+                <PreferencesFields value={prefs} onChange={setPrefs} />
+                <div className="field">
+                  <label htmlFor="tz">Fuso horário</label>
+                  <TimezoneSelect id="tz" value={tz} onChange={setTz} />
+                  <span className="hint">Detectamos este fuso pelo aparelho. Ele organiza as datas do diário.</span>
+                </div>
+              </div>
+            </details>
 
             <div className="notice notice--info">
               <IconInfo />
-              <span>O diário é privado. Nada é compartilhado até você escolher. Neste modo de demonstração, tudo fica salvo só neste navegador.</span>
+              <span>O diário é privado. Nada é compartilhado até você escolher.{REAL_MODE ? "" : " Neste modo de demonstração, tudo fica salvo só neste navegador."}</span>
             </div>
 
             {error ? <p className="field-error" role="alert">{error}</p> : null}

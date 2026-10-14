@@ -38,11 +38,11 @@ with sync_playwright() as p:
     expect(pg.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
 
     pg.goto(BASE + "/estudio")
-    expect(pg.get_by_text("4 disponíveis")).to_be_visible(timeout=20000)
+    expect(pg.locator(".credit-line")).to_contain_text("4 créditos", timeout=20000)
     check("Estúdio com 4 abas e créditos de teste", pg.get_by_role("tab").count() == 4)
     pg.screenshot(path=f"{OUT}/01-estudio.png", full_page=True)
     def make(tab, label):
-        pg.goto(BASE + "/estudio"); expect(pg.get_by_text("Seus créditos")).to_be_visible(timeout=20000)
+        pg.goto(BASE + "/estudio"); expect(pg.locator(".credit-line")).to_be_visible(timeout=20000)
         pg.locator(".photo-strip__item").first.click(); pg.get_by_role("tab", name=tab).click()
         pg.get_by_role("button", name=label, exact=False).first.click()
         pg.get_by_role("button", name="Criar arte").click()
@@ -87,7 +87,7 @@ with sync_playwright() as p:
     # A tela mostra antes o último estado salvo; espera a resposta do servidor.
     with pg.expect_response(lambda r: "/api/rpc/studioState" in r.url, timeout=30000):
         pg.goto(BASE + "/estudio")
-    pg.wait_for_timeout(500); expect(pg.get_by_text("Seus créditos")).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Estilos").click()
+    pg.wait_for_timeout(500); expect(pg.locator(".credit-line")).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Estilos").click()
     panel = pg.get_by_role("tabpanel")
     check("preset desligado some do app", panel.get_by_role("button", name="Vitral").count() == 0 and panel.get_by_role("button", name="Aquarela").count() == 1)
     rest("DELETE", "studio_presets?id=eq.vitral")

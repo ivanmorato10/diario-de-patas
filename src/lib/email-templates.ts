@@ -202,14 +202,14 @@ export function accountDeletedEmail(dogName: string | null) {
       preheader: "Tudo foi apagado, como você pediu.",
       title: "Até logo 🐾",
       paragraphs: [
-        "Como você pediu, a sua conta no Diário de Patas foi <strong>excluída</strong>: perfil, fotos, álbuns, conquistas, cuidados e documentos foram apagados, e os links compartilhados pararam de funcionar.",
-        dog ? `Foi muito bom guardar as histórias de <strong>${dog}</strong> com vocês. Desejamos muitos passeios, sonecas e petiscos pela frente.` : "Foi muito bom ter vocês por aqui. Desejamos muitos passeios, sonecas e petiscos pela frente.",
-        "Se um dia quiser voltar, é só criar uma conta nova — as portas (e as patas) estão abertas.",
+        dog ? `Obrigado por guardar as histórias de <strong>${dog}</strong> com a gente. Cada foto, cada soneca e cada aventura fizeram o diário mais feliz.` : "Obrigado por ter guardado suas histórias com a gente. Foi muito bom ter vocês por aqui.",
+        "Como você pediu, a conta foi excluída: as fotos, os álbuns, as conquistas, os cuidados e os documentos foram apagados, e os links compartilhados pararam de funcionar.",
+        "Desejamos muitos passeios, sonecas e petiscos pela frente. Se um dia quiser voltar, as portas (e as patas) estão abertas.",
       ],
       cta: { label: "Visitar o Diário de Patas", href: SITE_URL },
       note: "Se você não pediu a exclusão, responda a este email.",
       signature: "Com carinho e um abano de rabo,<br>Abu e a equipe do Diário de Patas",
     }),
-    text: `Sua conta no Diário de Patas foi excluída, como você pediu. Perfil, fotos, álbuns, conquistas, cuidados e documentos foram apagados, e os links compartilhados pararam de funcionar.\n\nSe você não pediu a exclusão, responda a este email.\n\nCom carinho, Abu e a equipe do Diário de Patas`,
+    text: `Obrigado por guardar suas histórias com a gente.\n\nSua conta no Diário de Patas foi excluída, como você pediu. Perfil, fotos, álbuns, conquistas, cuidados e documentos foram apagados, e os links compartilhados pararam de funcionar.\n\nSe você não pediu a exclusão, responda a este email.\n\nCom carinho, Abu e a equipe do Diário de Patas`,
   };
 }

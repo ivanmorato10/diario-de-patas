@@ -79,7 +79,7 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Guardar e continuar").click()
     expect(page.get_by_role("heading", name="A foto mostra isso?")).to_be_visible()
     page.get_by_role("button", name="Sim, mostra").click()
-    expect(page.get_by_text("+10 XP")).to_be_visible()
+    expect(page.get_by_text("+10 patinhas 🐾")).to_be_visible()
     check("resultado identifica modo demonstração", page.get_by_text("Confirmada por você").is_visible())
     page.screenshot(path=f"{OUT}/06-resultado.png", full_page=True)
 
@@ -98,7 +98,7 @@ with sync_playwright() as p:
 
     # Persistência após recarregar
     page.goto(BASE + "/hoje"); page.reload()
-    expect(page.get_by_text("10 XP").first).to_be_visible()
+    expect(page.get_by_text("10 patinhas").first).to_be_visible()
     check("XP persiste após recarregar", True)
     page.screenshot(path=f"{OUT}/07-hoje-depois.png", full_page=True)
 
@@ -107,7 +107,7 @@ with sync_playwright() as p:
     daily = page.locator("li.daily-card strong")
     check("3 missões do dia depois de “Olá, mundo”", daily.count() == 3 and page.get_by_text("0 de 3 hoje").is_visible())
     first_b = daily.nth(1).inner_text()
-    page.get_by_role("button", name=f"Trocar a missão “{first_b}”").click(); page.wait_for_timeout(400)
+    page.get_by_role("button", name=f"Outra ideia no lugar de “{first_b}”").click(); page.wait_for_timeout(400)
     swapped = page.locator("li.daily-card strong").all_inner_texts()
     page.reload(); page.wait_for_timeout(500)
     check("trocar muda a sugestão e persiste ao recarregar", swapped[1] != first_b and page.locator("li.daily-card strong").all_inner_texts() == swapped)
@@ -146,7 +146,7 @@ with sync_playwright() as p:
     page.get_by_role("dialog").get_by_role("link", name="Cara de capa").click()
     expect(page.get_by_role("heading", name="A foto mostra isso?")).to_be_visible()
     page.get_by_role("button", name="Sim, mostra").click()
-    expect(page.get_by_text("+10 XP")).to_be_visible()
+    expect(page.get_by_text("+10 patinhas 🐾")).to_be_visible()
     page.goto(BASE + "/diario"); page.wait_for_timeout(400)
     check("foto do Diário concluiu missão sem duplicar", page.locator("article").count() == after)
 
@@ -212,7 +212,7 @@ with sync_playwright() as p:
     page.get_by_role("dialog").get_by_role("button", name="Excluir").click()
     page.wait_for_timeout(400)
     page.goto(BASE + "/hoje")
-    expect(page.get_by_text("10 XP").first).to_be_visible()
+    expect(page.get_by_text("10 patinhas").first).to_be_visible()
     check("conquista permanece após excluir a foto", page.get_by_role("heading", name="Última lembrança").is_visible())
 
     # Largura estreita 360 px

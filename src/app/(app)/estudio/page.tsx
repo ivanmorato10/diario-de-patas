@@ -1,6 +1,6 @@
 "use client";
 
-import { XpRewardBar } from "@/components/xp-reward";
+import { XP_MONTH_GOAL } from "@/config/credits";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -82,30 +82,25 @@ function StudioEntryThumb({ entryId }: { entryId: string }) {
 }
 
 /** Créditos com patinhas (disponíveis × usados) e barra de artes do dia. */
-function CreditMeter({ state }: { state: StudioState }) {
-  const used = state.creditsUsed ?? 0;
-  const dayPct = state.dailyLimit ? Math.min(100, (state.dailyUsed / state.dailyLimit) * 100) : 0;
+/** Saldo numa linha: a compra fica discreta enquanto houver crédito; o limite do dia só aparece se for atingido. */
+function CreditMeter({ state, dogName }: { state: StudioState; dogName: string }) {
+  const out = state.balance <= 0;
+  const dayFull = !!state.dailyLimit && state.dailyUsed >= state.dailyLimit;
   return (
-    <section className="credit-meter" aria-label="Seus créditos">
-      <div className="credit-meter__top">
-        <div>
-          <span className="credit-meter__label">Seus créditos</span>
-          <span className="credit-meter__big">{state.balance}<small> {state.balance === 1 ? "crédito" : "créditos"}</small></span>
-        </div>
-        <span className="credit-meter__badge">{state.creditsGranted ?? 3} de boas-vindas</span>
-      </div>
-      <div className="credit-meter__paws" role="img" aria-label={`${state.balance} disponíveis, ${used} usados`}>
-        {Array.from({ length: Math.min(Math.max(state.balance, 1), 12) }, (_, i) => (
-          <span key={i} className={i < state.balance ? "is-on" : ""} style={{ animationDelay: `${i * 70}ms` }}><Paw size={20} /></span>
-        ))}
-        {state.balance > 12 ? <span className="credit-meter__more">+{state.balance - 12}</span> : null}
-      </div>
-      <p className="credit-meter__legend">{state.balance} {state.balance === 1 ? "disponível" : "disponíveis"} · {used} {used === 1 ? "usado" : "usados"}</p>
-      <div className="credit-meter__day">
-        <span>Hoje: {state.dailyUsed} de {state.dailyLimit} artes</span>
-        <span className="credit-meter__bar" aria-hidden="true"><span style={{ width: `${dayPct}%` }} /></span>
-      </div>
-      <Link href="/estudio/creditos" className="credit-meter__buy"><Paw size={16} /> Comprar créditos</Link>
+    <section className={`credit-line${out ? " credit-line--out" : ""}`} aria-label="Seus créditos">
+      {out ? (
+        <>
+          <p className="credit-line__text"><span aria-hidden="true">🎨</span> Os créditos acabaram por enquanto. Quer criar mais artes de {dogName}?</p>
+          <Link href="/estudio/creditos" className="btn btn--primary btn--small">Ver créditos</Link>
+          <p className="caption" style={{ margin: 0 }}>Ou junte {XP_MONTH_GOAL} patinhas no mês: o Abu dá uma arte de presente.</p>
+        </>
+      ) : (
+        <p className="credit-line__text">
+          <span aria-hidden="true">🎨</span> Você tem <strong>{state.balance} {state.balance === 1 ? "crédito" : "créditos"}</strong> para criar artes de {dogName}.{" "}
+          <Link href="/estudio/creditos" className="credit-line__buy">Comprar mais</Link>
+        </p>
+      )}
+      {dayFull ? <p className="caption" style={{ margin: 0 }}>Por hoje já foram {state.dailyUsed} artes. Amanhã tem mais!</p> : null}
     </section>
   );
 }
@@ -363,8 +358,7 @@ function Estudio() {
           <div className="notice notice--warn"><IconInfo /><span>O Estúdio está dando uma pausa rapidinho. O resto do diário segue normal.</span></div>
         ) : state ? (
           <>
-            <CreditMeter state={state} />
-            <XpRewardBar xpMonth={snap.xpMonth} compact />
+            <CreditMeter state={state} dogName={snap.dog.name} />
           </>
         ) : null}
 
@@ -459,7 +453,7 @@ function Estudio() {
               <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
                 <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
               </button>
-              {REAL_MODE && state && preset && state.balance < credits ? <p className="small">Seus créditos acabaram. <Link href="/estudio/creditos">Comprar créditos</Link></p> : null}
+              {REAL_MODE && state && preset && state.balance < credits ? <p className="small">Os créditos acabaram por enquanto. <Link href="/estudio/creditos">Ver créditos</Link></p> : null}
             </section>
           </>
         )}

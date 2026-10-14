@@ -30,8 +30,8 @@ const STEPS: { title: string; text: string; paw?: boolean; cta?: string }[] = [
     text: "A primeira aventura, o brinquedo favorito, as mil posições de dormir. Junte as fotos e veja a história do seu cachorro ganhar um lugar só dela.",
   },
   {
-    title: "Os anos passam depressa para nós.",
-    text: "Um dia você vai querer rever cada detalhe: o jeito de dormir, a bagunça, o olhar de quem esperou você chegar. Tudo vai estar guardado aqui.",
+    title: "Tem muita aventura pela frente!",
+    text: "Uma soneca engraçada, um passeio diferente, uma pose com o brinquedo favorito. As missões dão ideias para fotografar esses momentos e deixar o diário com a carinha do seu cachorro.",
   },
   {
     title: "Já me conheceu.\nAgora, quem é o seu melhor\u00a0amigo?",

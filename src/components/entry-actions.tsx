@@ -116,7 +116,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
 
       <Sheet open={mode === "delete"} onClose={() => setMode("none")} labelledBy={delTitle}>
         <h2 id={delTitle}>Excluir esta lembrança?</h2>
-        <p>A foto sai do diário e dos álbuns. {entry.missionId ? "A conquista e os pontos da missão continuam." : ""} Não dá para desfazer.</p>
+        <p>A foto sai do diário e dos álbuns. {entry.missionId ? "A conquista e as patinhas da missão continuam." : ""} Não dá para desfazer.</p>
         <div className="stack">
           <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy}>Excluir</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>Cancelar</button>
@@ -155,9 +155,9 @@ export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: Cy
               <Link href={`/guardar?missao=${m.slug}&entrada=${entry.id}`} className="card mission-card" style={{ padding: 12 }}>
                 <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
                   <strong>{m.title}</strong>
-                  <span className="caption">{m.kind === "daily" ? "Missão do dia" : m.kind === "special" ? "Especial" : m.kind === "collection_item" ? "Item de coleção" : collectionTitle(m.collectionId)}{state === "completed" ? " · já concluída, sem pontos" : ""}</span>
+                  <span className="caption">{m.kind === "daily" ? "Missão do dia" : m.kind === "special" ? "Especial" : m.kind === "collection_item" ? "Item de coleção" : collectionTitle(m.collectionId)}{state === "completed" ? " · já concluída, sem patinhas" : ""}</span>
                 </span>
-                {state === "available" ? <span className="chip chip--reward">+{m.xp} XP</span> : null}
+                {state === "available" ? <span className="chip chip--reward">+{m.xp} 🐾</span> : null}
                 <IconChevron size={18} className="muted" />
               </Link>
             </li>

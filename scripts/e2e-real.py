@@ -111,7 +111,7 @@ with sync_playwright() as p:
     a.get_by_role("button", name="Guardar e continuar").click()
     expect(a.get_by_role("heading", name="A foto mostra isso?")).to_be_visible(timeout=30000)
     a.get_by_role("button", name="Sim, mostra").click()
-    expect(a.get_by_text("+10 XP")).to_be_visible(timeout=20000)
+    expect(a.get_by_text("+10 patinhas 🐾")).to_be_visible(timeout=20000)
     check("missão confirmada no servidor (+10 XP)", True)
 
     a.goto(BASE + "/guardar"); a.locator("input[type=file][multiple]").set_input_files(photo(2))
@@ -300,7 +300,7 @@ with sync_playwright() as p:
     a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
     login(a, "A"); a.goto(BASE + "/hoje")
     check("dados persistem depois de sair e entrar",
-          eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)) and eventually(lambda t: expect(a.get_by_text("10 XP").first).to_be_visible(timeout=t)))
+          eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)) and eventually(lambda t: expect(a.get_by_text("10 patinhas").first).to_be_visible(timeout=t)))
 
     # ---------- Excluir as contas (pela tela) ----------
     for page, name in [(b, "Thor"), (a, "Luna")]:

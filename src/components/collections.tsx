@@ -18,7 +18,7 @@ export function CollectionsView({ snap }: { snap: Snapshot }) {
 
   return (
     <div className="stack-lg">
-      <p className="page-note">Cada coleção tem 6 desafios, sem prazo. Completar uma coleção vale uma medalha, uma capa especial e +50 XP.</p>
+      <p className="page-note">Cada coleção tem 6 desafios, sem prazo. Completar uma coleção vale uma medalha, uma capa especial e +50 patinhas 🐾.</p>
       {next && progress.some((p) => p.complete) ? (
         <p className="notice notice--info small"><IconStar size={18} /><span>Próxima sugestão: <strong>{next.set.title}</strong> ({next.done} de 6).</span></p>
       ) : null}

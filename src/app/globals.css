@@ -853,3 +853,11 @@ a.choice-card:active { transform: translateY(1px); }
 .choice-card__text span { font-size: 0.9375rem; color: var(--text-secondary, #6b5a48); }
 /* Selos do Hoje: mesma altura fixa (o emoji ✨ não pode esticar um deles). */
 .hoje-level, .hoje-xp { box-sizing: border-box; height: 28px; padding: 0 10px; font-size: 0.8125rem; line-height: 1; white-space: nowrap; }
+.hoje-memory__photo { margin: 4px 6px 0; }
+.hoje-memory__photo .photo--natural { max-height: 420px; width: 100%; object-fit: contain; }
+.adjust-later { border: 1.5px dashed var(--border); border-radius: 14px; padding: 12px 14px; background: var(--surface, #fff); }
+.adjust-later summary { cursor: pointer; font-weight: 700; color: var(--link); list-style-position: inside; }
+.credit-line { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--surface, #fff); border: 1px solid var(--border); }
+.credit-line__text { margin: 0; line-height: 1.45; }
+.credit-line__buy { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }
+.credit-line--out { background: var(--paper); border-color: #f0dcc0; justify-items: start; }
