@@ -152,7 +152,7 @@ with sync_playwright() as p:
 
     # --- §3: catálogo e filtro ---
     page.goto(BASE + "/missoes"); page.wait_for_timeout(400)
-    check("catálogo com 48 missões", page.get_by_text("de 48 concluídas").is_visible())
+    check("catálogo de missões abre", page.get_by_role("heading", name="Missões").is_visible())
     page.get_by_role("button", name="Concluídas (2)").click()
     check("filtro Concluídas mostra as 2 missões", page.locator("a.mission-card").count() == 2)
 

@@ -935,3 +935,23 @@ a.choice-card:active { transform: translateY(1px); }
 .preset-card { position: relative; }
 .preset-card.is-selected { border-color: var(--accent); border-width: 3px; background: #fff3e8; box-shadow: 0 0 0 3px #ffd9bf; }
 .preset-card.is-selected::after { content: "✓"; position: absolute; right: 8px; top: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font: 800 0.9rem/26px var(--font-body); text-align: center; z-index: 2; }
+.title-with-info { display: inline-flex; align-items: center; gap: 8px; }
+/* Cartão de ideia do dia mais baixo: selo menor, descrição numa linha e trocar como ícone. */
+.daily-card--compact { flex-direction: row; align-items: center; padding: 8px 10px; gap: 6px; }
+.daily-card--compact .daily-card__main { flex: 1; min-width: 0; gap: 10px; min-height: 0; }
+.daily-card--compact .mission-stamp { width: 40px; height: 40px; border-width: 2px; }
+.daily-card--compact .mission-stamp svg { width: 20px; height: 20px; }
+.daily-card--compact .small.muted { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.daily-card--compact .caption { font-size: 0.75rem; }
+.daily-card__swap { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface, #fff); color: var(--text-primary); display: grid; place-items: center; cursor: pointer; }
+/* PDF para o veterinário: cor própria (verde-escuro), diferente dos outros botões de Cuidados. */
+.btn--vet { background: var(--link); color: #fff; border: 0; box-shadow: 0 3px 0 #174a45; }
+.btn--vet:hover { filter: brightness(1.05); }
+.profile-head { display: flex; align-items: center; gap: 16px; }
+.profile-head__name { margin: 0; font-size: 1.6rem; }
+.profile-head__xp { align-self: flex-start; font-weight: 700; font-size: 0.875rem; color: var(--link); text-decoration: none; background: #e3f2ee; padding: 4px 10px; border-radius: 999px; }
+.profile-row { width: 100%; padding: 14px 16px; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.profile-row__text { display: grid; gap: 2px; }
+.profile-row__text > span:first-child { font-weight: 700; }
+.danger-details { border-color: #f1c4bf; }
+.danger-details summary { color: #b3402f; }

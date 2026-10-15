@@ -213,6 +213,7 @@ with sync_playwright() as p:
     # ---------- Foto de perfil: zoom e posição ----------
     rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
     a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
+    a.get_by_role("button", name=re.compile("Família de Luna")).click()
     # ---------- Família: convite com papel; quem recebe entra com a PRÓPRIA conta (email e senha) ----------
     expect(a.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
     a.get_by_role("radio", name=re.compile("^Pode adicionar momentos")).check()
@@ -270,6 +271,7 @@ with sync_playwright() as p:
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click(); a.get_by_role("button", name="Editar o perfil de Luna").click(); a.wait_for_url("**/perfil")
+    a.get_by_role("button", name=re.compile("Família de Luna")).click()
     check("administrador vê a Bianca na família", eventually(lambda t: expect(a.get_by_text("Bianca (você)")).to_have_count(0, timeout=t)) and eventually(lambda t: expect(a.locator(".member").filter(has_text="Bianca")).to_have_count(1, timeout=t)))
     a.get_by_label("Papel de Bianca").select_option("viewer"); a.wait_for_timeout(2000)
     st, body = rpc(inv, "updateDog", {"name": "Invadido"})
@@ -290,11 +292,12 @@ with sync_playwright() as p:
     a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")
     check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     # Apagar só um cachorro: só quem é responsável vê; apaga o Pepe e a conta continua com a Luna.
-    inv.goto(BASE + "/perfil"); expect(inv.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
-    check("quem acompanha não vê 'Apagar o diário'", inv.get_by_role("heading", name=re.compile("Apagar o diário")).count() == 0)
+    inv.goto(BASE + "/perfil"); expect(inv.get_by_role("button", name=re.compile("Família de Luna"))).to_be_visible(timeout=20000)
+    check("quem acompanha não vê 'Gerenciar diário' nem 'Editar perfil'", inv.get_by_role("button", name=re.compile("Gerenciar diário")).count() == 0 and inv.get_by_role("button", name=re.compile("Editar perfil")).count() == 0)
     a.locator("button.dog-switch").click(); a.get_by_role("button", name=re.compile("^Pepe")).click(); a.wait_for_url("**/hoje")
     expect(a.get_by_role("heading", name=re.compile("Diário de Pepe"))).to_be_visible(timeout=20000)
     a.locator("button.dog-switch").click(); a.get_by_role("button", name="Editar o perfil de Pepe").click(); a.wait_for_url("**/perfil")
+    a.get_by_role("button", name=re.compile("Gerenciar diário")).click(); a.locator("summary", has_text="Apagar o diário de Pepe").click()
     a.get_by_label("Para confirmar").fill("Pepe"); a.get_by_role("button", name="Apagar o diário de Pepe").click()
     a.wait_for_url(lambda u: "/perfil" not in u, timeout=30000)
     snapAfter = rpc(a, "snapshot", {})[1]
@@ -347,7 +350,7 @@ with sync_playwright() as p:
     check("página compartilhada sem dados de saúde, email ou noindex ausente",
           "V10" not in html and emails["A"] not in html and 'name="robots" content="noindex' in html)
     img_url = v.evaluate("() => document.querySelector('figure img').src")
-    a.goto(BASE + "/perfil"); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
+    a.goto(BASE + "/perfil"); a.get_by_role("button", name=re.compile("Gerenciar diário")).click(); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
     v.goto(share_url)
     st = v.evaluate("u => fetch(u).then(r => r.status)", img_url)
     av_after = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")

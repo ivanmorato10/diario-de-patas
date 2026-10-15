@@ -75,7 +75,7 @@ export function CarePdfButton() {
 
   return (
     <div className="stack" style={{ gap: 4 }}>
-      <button type="button" className="btn btn--secondary btn--block" onClick={make} disabled={busy}>📄 {busy ? "Gerando PDF…" : "PDF para o veterinário"}</button>
+      <button type="button" className="btn btn--block btn--vet" onClick={make} disabled={busy}>📄 {busy ? "Gerando PDF…" : "PDF para o veterinário"}</button>
       {msg ? <span className="caption" style={{ textAlign: "center" }}>{msg}</span> : null}
     </div>
   );

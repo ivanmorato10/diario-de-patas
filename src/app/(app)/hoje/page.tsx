@@ -124,10 +124,12 @@ export default function Hoje() {
           </>
         ) : (
           <section className="stack" aria-labelledby="daily-title">
-            <div className="row" style={{ alignItems: "center", gap: 8 }}>
-              <h2 id="daily-title">Ideias para hoje</h2>
-              <button type="button" className="xp-reward__info" onClick={() => setIdeasHelp((v) => !v)} aria-expanded={ideasHelp} aria-label="O que são as ideias para hoje">ⓘ</button>
-              <span className="caption" aria-live="polite" style={{ marginLeft: "auto" }}>{doneToday} de 3</span>
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <h2 id="daily-title" className="title-with-info">
+                Ideias para hoje
+                <button type="button" className="xp-reward__info" onClick={() => setIdeasHelp((v) => !v)} aria-expanded={ideasHelp} aria-label="O que são as ideias para hoje">ⓘ</button>
+              </h2>
+              <span className="caption" aria-live="polite">{doneToday} de 3</span>
             </div>
             {ideasHelp ? <p className="caption" style={{ marginTop: -6 }}>São as missões do dia: sugestões de fotos de {dog.name}. Sem pressa: o que não der para fazer hoje não tira nada.</p> : null}
 
@@ -162,7 +164,7 @@ export default function Hoje() {
               {daily.map(({ slot, m }) => {
                 const done = missionStatus(m, ctx) === "completed";
                 return (
-                  <li key={slot.id} className={`card daily-card${done ? " daily-card--done" : ""}`}>
+                  <li key={slot.id} className={`card daily-card daily-card--compact${done ? " daily-card--done" : ""}`}>
                     <Link href={`/missoes/${m.slug}`} className="daily-card__main">
                       <span className={`mission-stamp${done ? " mission-stamp--done" : ""}`} aria-hidden="true">{done ? <IconCheck /> : <IconStar />}</span>
                       <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
@@ -173,8 +175,8 @@ export default function Hoje() {
                       <span className="chip chip--reward">{done ? <IconCheck size={14} /> : null}+{m.xp} 🐾</span>
                     </Link>
                     {!done ? (
-                      <button type="button" className="btn btn--ghost btn--small" onClick={() => swap(slot.id)} disabled={!!swapping} aria-label={`Outra ideia no lugar de “${m.title}”`}>
-                        <IconShuffle size={18} /> {swapping === slot.id ? "Trocando…" : "Outra ideia"}
+                      <button type="button" className="daily-card__swap" onClick={() => swap(slot.id)} disabled={!!swapping} aria-label={`Outra ideia no lugar de “${m.title}”`} title="Outra ideia">
+                        {swapping === slot.id ? "…" : <IconShuffle size={18} />}
                       </button>
                     ) : null}
                   </li>

@@ -12,20 +12,22 @@ import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { AvatarCropSheet } from "@/components/avatar-crop";
 import { FamilySection } from "@/components/family-section";
-import { DogList } from "@/components/dog-switcher";
-import { isCivilDate } from "@/domain/dates";
+import { formatCivilDate, isCivilDate } from "@/domain/dates";
+import { Sheet } from "@/components/entry-actions";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { PhotoPicker } from "@/components/photo-picker";
 import { PreferencesFields } from "@/components/profile-fields";
 import { DogAvatar } from "@/components/media";
-import { IconChevron, IconInfo, IconStar, IconTrash } from "@/components/icons";
+import { IconChevron, IconTrash } from "@/components/icons";
 import { levelFor } from "@/domain/missions";
 
 /**
- * Perfil do cachorro: tudo o que é DELE (e a família vê igual) — foto, nome, aniversário, rotina,
- * patinhas, família, links compartilhados e "Seus cachorros". O que é da pessoa fica em Minha conta.
+ * Perfil do cachorro: no topo, quem ele é (foto, nome, aniversário, patinhas); embaixo, linhas que abrem
+ * Editar perfil, Família, Preferências das missões e Gerenciar diário. O que é da pessoa fica em Minha conta.
  */
+type Panel = "edit" | "family" | "prefs" | "manage" | null;
+
 export default function Perfil() {
   const { ready, snap, unavailable } = useRequireDiary();
   const { repo, reload, reset, patchSnap } = useStore();
@@ -38,6 +40,9 @@ export default function Perfil() {
   const [cropOpen, setCropOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel>(null);
+  // Link antigo "Família e convites" (/config#familia → /perfil#familia) abre a família direto.
+  useEffect(() => { if (window.location.hash === "#familia") setPanel("family"); }, []);
 
   useEffect(() => {
     if (snap?.dog && prefs === null) {
@@ -51,7 +56,7 @@ export default function Perfil() {
   if (!ready || !snap?.dog || !prefs || !repo) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
   const viewer = snap.role === "viewer";
-  // Salvar perfil só fica ativo quando algo mudou.
+  // "Salvar alterações" só aparece quando algo mudou.
   const dirty = name.trim() !== dog.name || birth !== (dog.birthDate ?? "") || JSON.stringify(prefs) !== JSON.stringify(dog.preferences);
 
   async function run(fn: () => Promise<unknown>, ok: string) {
@@ -91,6 +96,16 @@ export default function Perfil() {
     router.replace("/bem-vindo");
   }
 
+  const lv = levelFor(snap.xpTotal);
+  const close = () => { setPanel(null); setMsg(null); setName(dog.name); setBirth(dog.birthDate ?? ""); setPrefs(dog.preferences); };
+  const MsgLine = () => (msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null);
+  const Row = ({ id, icon, label, sub }: { id: Panel; icon: string; label: string; sub?: string }) => (
+    <button type="button" className="card row-between profile-row" onClick={() => { setMsg(null); setPanel(id); }}>
+      <span className="profile-row__text"><span>{icon} {label}</span>{sub ? <span className="caption">{sub}</span> : null}</span>
+      <IconChevron />
+    </button>
+  );
+
   return (
     <>
       <TopBar title={`Perfil de ${dog.name}`} back="/hoje" />
@@ -104,98 +119,104 @@ export default function Perfil() {
               void run(() => repo!.updateDog({ avatarCrop: c }), "Foto ajustada.");
             }} />
         ) : null}
-        <form className="stack-lg" onSubmit={saveProfile}>
-          {viewer ? <p className="notice notice--info small"><IconInfo size={18} /><span>Você está acompanhando o diário de {dog.name}. Para mudar o perfil, peça para quem é responsável pelo diário.</span></p> : null}
-          <fieldset disabled={viewer} className="stack-lg" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-          <section className="stack" aria-labelledby="perfil">
-            <h2 id="perfil" className="sr-only">Perfil</h2>
-            <div className="row">
-              {/* Como no LinkedIn: o ajuste abre ao escolher a foto; depois, é só tocar nela para reajustar. */}
-              {dog.photoMediaId && !viewer ? (
-                <button type="button" className="avatar-edit" onClick={() => setCropOpen(true)} aria-label={`Ajustar zoom e posição da foto de ${dog.name}`}>
-                  <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
-                  <span className="avatar-edit__hint" aria-hidden="true">Ajustar</span>
-                </button>
-              ) : (
-                <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
-              )}
-              <div className="stack" style={{ gap: 6 }}>
-                <PhotoPicker compact onPicked={async (p) => {
-                  // Já abre o ajuste de zoom e posição da foto nova (depois que ela chega no perfil).
-                  if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), "Foto atualizada.")) setCropOpen(true);
-                }} />
-                {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}><IconTrash /> Remover foto</button> : null}
-              </div>
+
+        {/* Quem é o cachorro: foto (tocar ajusta), nome, aniversário, patinhas e nível. */}
+        <section className="profile-head" aria-labelledby="perfil">
+          {dog.photoMediaId && !viewer ? (
+            <button type="button" className="avatar-edit" onClick={() => setCropOpen(true)} aria-label={`Ajustar zoom e posição da foto de ${dog.name}`}>
+              <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
+              <span className="avatar-edit__hint" aria-hidden="true">Ajustar</span>
+            </button>
+          ) : (
+            <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
+          )}
+          <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+            <h2 id="perfil" className="profile-head__name">{dog.name}</h2>
+            {dog.birthDate ? <span className="small">🎂 {formatCivilDate(dog.birthDate)}</span> : null}
+            <Link href="/sobre#niveis" className="profile-head__xp">🐾 {snap.xpTotal} patinhas · {lv.title}</Link>
+          </div>
+        </section>
+        {msg && !panel ? <MsgLine /> : null}
+
+        <section className="stack" style={{ gap: 8 }} aria-label="Opções do perfil">
+          {!viewer ? <Row id="edit" icon="✏️" label="Editar perfil" sub="Foto, nome e aniversário" /> : null}
+          {REAL_MODE ? <Row id="family" icon="👨‍👩‍👧" label={`Família de ${dog.name}`} sub={`${snap.members?.length ?? 1} ${(snap.members?.length ?? 1) === 1 ? "pessoa" : "pessoas"}`} /> : null}
+          {!viewer ? <Row id="prefs" icon="🎯" label="Preferências das missões" sub="Que tipo de missão combina com vocês" /> : null}
+          {!viewer ? <Row id="manage" icon="⚙️" label="Gerenciar diário" sub="Espaço, links compartilhados e apagar" /> : null}
+        </section>
+
+        <ImportDemoCard />
+
+        <Sheet open={panel === "edit"} onClose={close} labelledBy="p-edit">
+          <h2 id="p-edit">Editar perfil</h2>
+          <form className="stack" onSubmit={saveProfile}>
+            <div className="stack" style={{ gap: 6 }}>
+              <PhotoPicker compact onPicked={async (p) => {
+                // Já abre o ajuste de zoom e posição da foto nova (depois que ela chega no perfil).
+                if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), "Foto atualizada.")) { setPanel(null); setCropOpen(true); }
+              }} />
+              {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}><IconTrash /> Remover foto</button> : null}
             </div>
-            {(() => {
-              const lv = levelFor(snap.xpTotal);
-              return (
-                <div className="profile-xp">
-                  <span className="profile-xp__num">🐾 {snap.xpTotal} patinhas</span>
-                  <span className="small">Nível <strong>{lv.title}</strong>{lv.nextAt ? ` · com mais ${lv.nextAt - snap.xpTotal} patinhas vira “${lv.nextTitle}”` : ""}</span>
-                  <span className="caption">As patinhas somam todas as missões de {dog.name}, ficam guardadas para sempre e definem o nível. <Link href="/sobre#niveis">Ver todos os níveis</Link></span>
-                </div>
-              );
-            })()}
             <div className="field">
               <label htmlFor="name">Nome</label>
               <input id="name" className="input" value={name} maxLength={LIMITS.dogNameMaxChars} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="field">
-              <label htmlFor="birth">Data de nascimento <span className="muted">(opcional)</span></label>
+              <label htmlFor="birth">Aniversário <span className="muted">(opcional)</span></label>
               <input id="birth" type="date" className="input" value={birth} onChange={(e) => setBirth(e.target.value)} />
             </div>
-          </section>
-          <PreferencesFields value={prefs} onChange={setPrefs} />
-          {msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block" disabled={!dirty}>{dirty ? "Salvar alterações" : "Perfil salvo"}</button>
-          </fieldset>
-        </form>
+            <MsgLine />
+            {dirty ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
+            <button type="button" className="btn btn--secondary btn--block" onClick={close}>Fechar</button>
+          </form>
+        </Sheet>
 
-        <section className="card stack" aria-labelledby="uso">
-          <h2 id="uso">Uso desta versão de teste</h2>
-          <dl className="stack small" style={{ margin: 0, gap: 6 }}>
-            <div className="row-between"><dt className="muted">Lembranças</dt><dd style={{ margin: 0 }}>{snap.entries.length} de {LIMITS.maxEntries}</dd></div>
-            <div className="row-between"><dt className="muted">Tamanho máximo por foto</dt><dd style={{ margin: 0 }}>{LIMITS.maxUploadBytes / 1024 / 1024} MB</dd></div>
-          </dl>
-          <p className="caption">São limites de teste, não promessas de armazenamento. Nada é apagado ao atingir um limite.</p>
-        </section>
-
-        <section className="card stack" aria-labelledby="links">
-          <h2 id="links">Links compartilhados</h2>
-          <ShareLinksList />
-        </section>
-
-        {REAL_MODE ? <FamilySection /> : null}
-
-        <ImportDemoCard />
+        <Sheet open={panel === "prefs"} onClose={close} labelledBy="p-prefs">
+          <h2 id="p-prefs" className="sr-only">Preferências das missões</h2>
+          <form className="stack" onSubmit={saveProfile}>
+            <PreferencesFields value={prefs} onChange={setPrefs} />
+            <MsgLine />
+            {dirty ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
+            <button type="button" className="btn btn--secondary btn--block" onClick={close}>Fechar</button>
+          </form>
+        </Sheet>
 
         {REAL_MODE ? (
-          <section className="card stack" aria-labelledby="caes">
-            <h2 id="caes">Seus cachorros</h2>
-            <DogList />
-          </section>
+          <Sheet open={panel === "family"} onClose={close} labelledBy="familia-titulo">
+            <FamilySection />
+            <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={close}>Fechar</button>
+          </Sheet>
         ) : null}
 
-        {!REAL_MODE || snap.role === "admin" ? (
-          <section className="card stack" aria-labelledby="apagar" style={{ borderColor: "#f1c4bf" }}>
-            <h2 id="apagar">Apagar o diário de {dog.name}</h2>
-            {REAL_MODE ? (
-              <p className="small">Apaga o diário de {dog.name} para <strong>toda a família</strong>: fotos, cartinhas, álbuns, conquistas, cuidados, documentos e créditos do Estúdio. Links compartilhados param na hora. Sua conta e seus outros cachorros continuam. Não dá para desfazer.</p>
-            ) : (
-              <>
-                <p className="small">Remove o perfil, todas as fotos, álbuns e conquistas deste aparelho. Não dá para desfazer.</p>
-                <div className="notice notice--info"><IconInfo /><span>Nesta demonstração não existe conta em servidor: apagar aqui remove tudo o que existe.</span></div>
-              </>
-            )}
-            <div className="field">
-              <label htmlFor="confirm">Para confirmar, digite o nome: <strong>{dog.name}</strong></label>
-              <input id="confirm" className="input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
-            </div>
-            {deleteError ? <p className="field-error" role="alert">{deleteError}</p> : null}
-            <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name || deleting} onClick={wipe}>{deleting ? "Apagando…" : `Apagar o diário de ${dog.name}`}</button>
-          </section>
-        ) : null}
+        <Sheet open={panel === "manage"} onClose={close} labelledBy="p-manage">
+          <h2 id="p-manage">Gerenciar diário</h2>
+          <div className="stack">
+            <p className="small" style={{ margin: 0 }}>Espaço: <strong>{snap.entries.length} de {LIMITS.maxEntries}</strong> lembranças nesta versão de teste.</p>
+            <section className="stack" aria-labelledby="links">
+              <h3 id="links">Links compartilhados</h3>
+              <ShareLinksList />
+            </section>
+            {!REAL_MODE || snap.role === "admin" ? (
+              <details className="more-details danger-details">
+                <summary>Apagar o diário de {dog.name}</summary>
+                <div className="stack" style={{ marginTop: 10 }}>
+                  {REAL_MODE ? (
+                    <p className="small" style={{ margin: 0 }}>Apaga tudo de {dog.name} para <strong>toda a família</strong>: fotos, cartinhas, álbuns, cuidados e créditos. Sua conta e seus outros cachorros continuam. Não dá para desfazer.</p>
+                  ) : (
+                    <p className="small" style={{ margin: 0 }}>Remove o perfil, as fotos, os álbuns e as conquistas deste aparelho. Não dá para desfazer.</p>
+                  )}
+                  <div className="field">
+                    <label htmlFor="confirm">Para confirmar, digite o nome: <strong>{dog.name}</strong></label>
+                    <input id="confirm" className="input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
+                  </div>
+                  {deleteError ? <p className="field-error" role="alert">{deleteError}</p> : null}
+                  <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name || deleting} onClick={wipe}>{deleting ? "Apagando…" : `Apagar o diário de ${dog.name}`}</button>
+                </div>
+              </details>
+            ) : null}
+            <button type="button" className="btn btn--secondary btn--block" onClick={close}>Fechar</button>
+          </div>
+        </Sheet>
       </main>
     </>
   );
