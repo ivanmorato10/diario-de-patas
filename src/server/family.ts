@@ -63,8 +63,8 @@ export function nameFromUser(u: { email?: string | null; user_metadata?: any } |
 /** Lista de diários da pessoa (para o seletor) e membros do diário aberto. */
 export async function familyInfo(ctx: Ctx, dog: CurrentDog | null) {
   const admin = adminClient();
-  const { data: mine } = await admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop)").eq("user_id", ctx.user.id).order("created_at");
-  const diaries = ((mine ?? []) as any[]).map((r) => ({ id: r.dogs.id, name: r.dogs.name, photoMediaId: r.dogs.photo_asset_id ?? null, avatarCrop: r.dogs.avatar_crop ?? null, role: r.role as Role }));
+  const { data: mine } = await admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop, owner_id)").eq("user_id", ctx.user.id).order("created_at");
+  const diaries = ((mine ?? []) as any[]).map((r) => ({ id: r.dogs.id, name: r.dogs.name, photoMediaId: r.dogs.photo_asset_id ?? null, avatarCrop: r.dogs.avatar_crop ?? null, role: r.role as Role, mine: r.dogs.owner_id === ctx.user.id }));
   let members: { userId: string; name: string; email: string; role: Role; me: boolean; owner: boolean }[] = [];
   if (dog) {
     const { data: mem } = await admin.from("dog_members").select("user_id, role, created_at").eq("dog_id", dog.id).order("created_at");
@@ -178,5 +178,23 @@ export async function removeMember(ctx: Ctx, args: unknown) {
     await admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id);
     forgetDog(ctx);
   }
+  return {};
+}
+
+/** Sair de um diário da família (de outra pessoa), escolhido em Minha conta. */
+export async function leaveDiary(ctx: Ctx, args: unknown) {
+  const { dogId } = z.object({ dogId: z.string().uuid() }).parse(args);
+  const admin = adminClient();
+  const { data: m } = await admin.from("dog_members").select("role, dogs!inner(owner_id)").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle();
+  const mem = m as any;
+  if (!mem) throw new HttpError(404, "NOT_FOUND", "Diário não encontrado.");
+  if (mem.dogs.owner_id === ctx.user.id) throw bad("OWNER", "Você criou este diário. Para encerrar, apague o diário no perfil do cachorro.");
+  if (mem.role === "admin") {
+    const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dogId).eq("role", "admin");
+    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "Você é a única pessoa responsável. Passe esse papel para alguém antes de sair.");
+  }
+  await admin.from("dog_members").delete().eq("dog_id", dogId).eq("user_id", ctx.user.id);
+  await admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id).eq("current_dog_id", dogId);
+  forgetDog(ctx);
   return {};
 }

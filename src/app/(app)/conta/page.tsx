@@ -10,6 +10,7 @@ import { isValidTimezone } from "@/domain/dates";
 import { PageLoading, StorageUnavailable, TopBar } from "@/components/shell";
 import { MyNameField } from "@/components/name-ask";
 import { ShareApp } from "@/components/share-app";
+import { FamilyDiaries } from "@/components/family-diaries";
 import { InstallAppLink } from "@/components/install-app";
 import { TimezoneSelect } from "@/components/profile-fields";
 import { IconChevron } from "@/components/icons";
@@ -78,6 +79,8 @@ export default function Conta() {
             {account ? <p className="small" style={{ margin: 0 }}>Entra como <strong>{account.email}</strong> (com {account.via}).</p> : null}
           </section>
         ) : null}
+
+        {REAL_MODE ? <FamilyDiaries /> : null}
 
         <form className="card stack" onSubmit={saveTz} aria-labelledby="fuso">
           <h2 id="fuso">Fuso horário</h2>

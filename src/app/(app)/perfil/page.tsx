@@ -19,7 +19,7 @@ import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/comp
 import { PhotoPicker } from "@/components/photo-picker";
 import { PreferencesFields } from "@/components/profile-fields";
 import { DogAvatar } from "@/components/media";
-import { IconChevron, IconInfo, IconStar } from "@/components/icons";
+import { IconChevron, IconInfo, IconStar, IconTrash } from "@/components/icons";
 import { levelFor } from "@/domain/missions";
 
 /**
@@ -123,7 +123,7 @@ export default function Perfil() {
                   // Já abre o ajuste de zoom e posição da foto nova (depois que ela chega no perfil).
                   if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), "Foto atualizada.")) setCropOpen(true);
                 }} />
-                {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}>Remover foto</button> : null}
+                {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}><IconTrash /> Remover foto</button> : null}
               </div>
             </div>
             {(() => {

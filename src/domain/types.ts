@@ -72,7 +72,7 @@ export interface DiaryEntry {
 
 /** Papel de cada pessoa num diário (família). */
 export type DiaryRole = "admin" | "editor" | "viewer";
-export interface DiarySummary { id: string; name: string; photoMediaId: string | null; avatarCrop: AvatarCrop | null; role: DiaryRole }
+export interface DiarySummary { id: string; name: string; photoMediaId: string | null; avatarCrop: AvatarCrop | null; role: DiaryRole; mine?: boolean }
 export interface Letter { id: string; body: string; date: CivilDate; createdBy: string | null; createdByName: string | null; mine: boolean; createdAt: string }
 export interface Bone { targetType: "entry" | "letter"; targetId: string; userId: string }
 export interface Me { userId: string; name: string; nameConfirmed: boolean; suggestedName?: string }

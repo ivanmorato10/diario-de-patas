@@ -12,7 +12,7 @@ import { PhotoPicker } from "@/components/photo-picker";
 import { ImportDemoCard } from "@/components/import-demo";
 import { PreferencesFields, TimezoneSelect } from "@/components/profile-fields";
 import { DemoBanner, StorageUnavailable } from "@/components/shell";
-import { IconArrowLeft, IconInfo } from "@/components/icons";
+import { IconArrowLeft, IconInfo, IconTrash } from "@/components/icons";
 import { AbuSays } from "@/components/brand";
 import type { DogPreferences } from "@/domain/types";
 
@@ -87,7 +87,7 @@ export default function Comecar() {
                 <div className="row">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={photoUrl} alt="Foto de perfil escolhida" className="avatar avatar--xl" />
-                  <button type="button" className="btn btn--secondary btn--small" onClick={() => setPhoto(null)}>Remover foto</button>
+                  <button type="button" className="btn btn--secondary btn--small" onClick={() => setPhoto(null)}><IconTrash /> Remover foto</button>
                 </div>
               ) : <PhotoPicker onPicked={setPhoto} compact />}
             </div>

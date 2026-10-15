@@ -299,6 +299,12 @@ with sync_playwright() as p:
     a.wait_for_url(lambda u: "/perfil" not in u, timeout=30000)
     snapAfter = rpc(a, "snapshot", {})[1]
     check(f"apagar só o Pepe: conta continua com a Luna ({[d['name'] for d in snapAfter.get('diaries') or []]})", [d["name"] for d in snapAfter.get("diaries") or []] == ["Luna"] and snapAfter["dog"]["name"] == "Luna")
+    inv.on("dialog", lambda d: d.accept())
+    inv.goto(BASE + "/conta"); expect(inv.get_by_role("heading", name="Diários da família que você participa")).to_be_visible(timeout=20000)
+    with inv.expect_response(lambda r: "/api/rpc/leaveDiary" in r.url, timeout=20000):
+        inv.get_by_role("button", name="Sair", exact=True).click()
+    inv.wait_for_url("**/adicionar", timeout=20000)
+    check("quem acompanha sai do diário por Minha conta (e volta para 'Qual é o seu caso?')", (rpc(inv, "snapshot", {})[1].get("diaries") or []) == [])
     ctxI.close()
     a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
     a.get_by_role("button", name="Ajustar zoom e posição").click()
