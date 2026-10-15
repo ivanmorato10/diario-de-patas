@@ -1,5 +1,6 @@
 "use client";
 
+import { ShareActions } from "./share-actions";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { REAL_MODE } from "@/config/mode";
@@ -16,7 +17,6 @@ export function ShareSelection({ selected, defaultTitle, onDone }: { selected: s
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   if (!REAL_MODE) {
     return (
@@ -31,10 +31,8 @@ export function ShareSelection({ selected, defaultTitle, onDone }: { selected: s
       <div className="stack" role="status">
         <p className="small"><strong>Link criado.</strong> Guarde agora — por segurança ele não é mostrado de novo.</p>
         <input className="input" readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Link do álbum compartilhado" />
-        <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-          <button type="button" className="btn btn--primary btn--small" onClick={async () => { await navigator.clipboard?.writeText(url).catch(() => undefined); setCopied(true); }}>{copied ? "✓ Copiado!" : "Copiar link"}</button>
-          <button type="button" className="btn btn--ghost btn--small" onClick={onDone}>Concluir</button>
-        </div>
+        <ShareActions text={url} copyLabel="Copiar link" />
+        <button type="button" className="btn btn--secondary btn--block" onClick={onDone}>Concluir</button>
         <p className="caption">Quem tiver o link pode ver e copiar estas fotos. Você pode revogar em Perfil e ajustes; revogar não apaga cópias já baixadas.</p>
       </div>
     );

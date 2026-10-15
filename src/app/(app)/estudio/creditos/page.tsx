@@ -82,7 +82,7 @@ function PixPanel({ purchase, test, onPaid, onRestart }: { purchase: CreditPurch
         <div className="field">
           <label htmlFor="pix-code">Pix copia e cola</label>
           <textarea id="pix-code" className="textarea pix-code" readOnly value={p.pixQr} rows={3} onFocus={(e) => e.target.select()} />
-          <button type="button" className="btn btn--secondary btn--block" onClick={copy}>{copied ? "Copiado!" : "Copiar código Pix"}</button>
+          <button type="button" className="btn btn--secondary btn--block" onClick={copy}>{copied ? "✓ Copiado!" : "Copiar código Pix"}</button>
         </div>
       ) : null}
       <div className="pix-wait"><span className="sp-spinner" aria-hidden="true" /> Aguardando o pagamento… <Countdown until={p.expiresAt} /></div>

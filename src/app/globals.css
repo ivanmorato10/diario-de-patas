@@ -882,3 +882,4 @@ a.choice-card:active { transform: translateY(1px); }
 .invite-box__roles .check input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--text-primary); }
 .invite-box__roles .check:has(input:checked) { background: none; border: 0; }
 .share-app { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.share-actions { display: grid; gap: 8px; width: 100%; }
