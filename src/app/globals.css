@@ -919,3 +919,6 @@ a.choice-card:active { transform: translateY(1px); }
 .dog-list__row .dog-list__item { flex: 1; min-width: 0; }
 .dog-list__edit { flex: none; width: 52px; border-radius: 14px; border: 2px solid var(--border); background: var(--surface, #fff); color: var(--text-primary); display: grid; place-items: center; cursor: pointer; }
 .dog-list__edit:hover { border-color: var(--brand-teal); }
+.studio-details { padding: 12px 14px; border-radius: 14px; background: var(--surface, #fff); border: 1px solid var(--border); }
+.xp-reward__row { align-items: center; }
+.xp-reward__info { margin-left: auto; flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface, #fff); color: var(--link); font: 700 1rem/1 var(--font-body); cursor: pointer; display: grid; place-items: center; }

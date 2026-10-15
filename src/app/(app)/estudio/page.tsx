@@ -115,7 +115,7 @@ function CreditMeter({ state, dogName }: { state: StudioState; dogName: string }
         <>
           <p className="credit-line__text"><span aria-hidden="true">🎨</span> Os créditos acabaram por enquanto. Quer criar mais artes de {dogName}?</p>
           <Link href="/estudio/creditos" className="btn btn--primary btn--small">Ver créditos</Link>
-          <p className="caption" style={{ margin: 0 }}>Ou junte {XP_MONTH_GOAL} patinhas no mês: o Abu dá uma arte de presente.</p>
+          <p className="caption" style={{ margin: 0 }}>Ou junte {XP_MONTH_GOAL} patinhas no mês e ganhe 1 crédito.</p>
         </>
       ) : (
         <>
@@ -376,7 +376,7 @@ function Estudio() {
       <main className="main">
         <div className="stack">
           <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>
-          <p className="page-note">Escolha uma foto de {snap.dog.name} e eu transformo num retrato especial: aniversário, Natal, fantasia, figurinha… O nome e a mensagem você escreve, e eu coloco bem bonitinho na arte.</p>
+          <p className="page-note">Uma foto de {snap.dog.name}, uma arte especial.</p>
         </div>
 
         {!REAL_MODE ? (
@@ -405,10 +405,12 @@ function Estudio() {
         ) : (
           <>
             <section className="stack" aria-labelledby="st-foto">
-              <h2 id="st-foto">1. Escolha a foto</h2>
-              <PhotoTips dogName={snap.dog.name} />
+              <div className="row-between" style={{ alignItems: "baseline", gap: 8 }}>
+                <h2 id="st-foto">Foto</h2>
+                {photos.length ? <PhotoTips dogName={snap.dog.name} /> : null}
+              </div>
               {photos.length === 0 ? (
-                <div className="card stitched empty" style={{ boxShadow: "none" }}><p className="muted">Guarde uma foto no diário para criar a primeira arte.</p><Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link></div>
+                <Link href="/guardar" className="btn btn--secondary btn--block">Guardar uma foto de {snap.dog.name} primeiro</Link>
               ) : (
                 <div className="photo-strip" role="radiogroup" aria-label="Fotos do diário">
                   {photos.slice(0, 24).map((e) => (
@@ -426,7 +428,7 @@ function Estudio() {
             </section>
 
             <section className="stack" aria-labelledby="st-tema">
-              <h2 id="st-tema">2. Escolha o tema</h2>
+              <h2 id="st-tema">Tema</h2>
               <div role="tablist" aria-label="Tipos de arte" className="tabs">
                 {STUDIO_TABS.map((t) => (
                   <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{t.labelPt}</button>
@@ -444,11 +446,8 @@ function Estudio() {
                   );
                 })}
               </div>
-            </section>
-
-            {preset ? (
-              <section className="stack" aria-labelledby="st-opcoes">
-                <h2 id="st-opcoes">3. Detalhes</h2>
+              {preset && (preset.aspects.length > 1 || preset.addTextOverlay || preset.post === "card") ? (
+                <div className="stack studio-details" aria-label={`Detalhes de ${preset.labelPt}`}>
                 {preset.aspects.length > 1 ? (
                   <div role="radiogroup" aria-label="Proporção" className="filter-row filter-row--wrap">
                     {preset.aspects.map((a) => (
@@ -457,7 +456,7 @@ function Estudio() {
                       </button>
                     ))}
                   </div>
-                ) : <p className="caption">Formato: {STUDIO_FORMATS[preset.aspect].labelPt} ({preset.aspect})</p>}
+                ) : null}
                 {preset.addTextOverlay ? (
                   <>
                     <div className="field"><label htmlFor="st-msg">Mensagem <span className="muted">(eu escrevo caprichado por cima da arte)</span></label><input id="st-msg" className="input" maxLength={80} value={overlay.message ?? ""} onChange={(e) => setOverlay({ ...overlay, message: e.target.value })} /></div>
@@ -473,13 +472,13 @@ function Estudio() {
                     ))}
                   </div>
                 ) : null}
-              </section>
-            ) : null}
+              </div>
+              ) : null}
+            </section>
 
             <section className="card stack" aria-labelledby="st-custo">
-              <h2 id="st-custo" style={{ fontSize: "1.0625rem" }}>4. Confirmar</h2>
-              <p className="small">{preset ? <>Custa <strong>{credits} {credits === 1 ? "crédito" : "créditos"}</strong>{REAL_MODE && state ? <> · você tem {state.balance}</> : null}. Se a geração falhar, o crédito volta.</> : "Escolha uma foto e um tema."}</p>
-              <p className="caption">Sua foto é usada só para criar esta arte, e de mais nada. <Link href="/sobre#estudio">Saiba mais</Link></p>
+              <h2 id="st-custo" className="sr-only">Criar a arte</h2>
+              {preset ? <p className="small" style={{ margin: 0 }}>{credits} {credits === 1 ? "crédito" : "créditos"}{REAL_MODE && state ? <> · você tem {state.balance}</> : null}. Se não der certo, o crédito volta.</p> : null}
               {error ? <p className="field-error" role="alert">{error}</p> : null}
               <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
                 <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
@@ -492,7 +491,6 @@ function Estudio() {
         {REAL_MODE && state && state.jobs.some((j) => j.state === "succeeded") ? (
           <section className="stack" aria-labelledby="st-hist">
             <h2 id="st-hist">Histórico</h2>
-            <p className="caption">Rever uma arte não cobra de novo.</p>
             <ul className="preset-grid" style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {state.jobs.filter((j) => j.state === "succeeded" && j.outputMediaId).map((j) => (
                 <li key={j.id}>
@@ -505,7 +503,6 @@ function Estudio() {
             </ul>
           </section>
         ) : null}
-        <p className="caption"><IconCheck size={14} /> Artes nunca concluem missões de foto: elas vão para o álbum Datas especiais.</p>
       </main>
     </>
   );

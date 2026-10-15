@@ -39,7 +39,6 @@ export default function Cuidados() {
       <TopBar title="Cuidados" />
       <main className="main">
         <CarePdfButton />
-        <p className="page-note">Um lugar para guardar as informações de cuidado de {dog.name}. Você anota; o app organiza as datas e lembra o que está chegando.</p>
         <HealthDisclaimer />
         <UpcomingCareCard items={care} today={today} />
         <nav aria-label="Áreas de cuidados" className="stack">
@@ -53,8 +52,8 @@ export default function Cuidados() {
             </Link>
           ))}
         </nav>
-        <p className="caption">Estas informações ficam só neste aparelho, entram na exportação (os arquivos de documentos você baixa um a um) e são apagadas junto com o diário. Nunca aparecem em links compartilhados.</p>
-      </main>
+        {/* Antes dizia "só neste aparelho" e "exportação" (errado com conta). Detalhes ficam em Sobre › Privacidade. */}
+        <p className="caption">Os cuidados de {dog.name} são privados e nunca aparecem em links compartilhados.</p>      </main>
     </>
   );
 }

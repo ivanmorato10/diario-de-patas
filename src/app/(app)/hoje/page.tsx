@@ -30,6 +30,7 @@ export default function Hoje() {
   const { repo, reload } = useStore();
   const [swapping, setSwapping] = useState<DailySlot | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
+  const [ideasHelp, setIdeasHelp] = useState(false);
   const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
@@ -107,7 +108,6 @@ export default function Hoje() {
 
         {!hasFirst ? (
           <>
-            <AbuSays>Que tal começar pela primeira página? Uma foto em que dê para ver bem {dog.name}.</AbuSays>
             <Link href="/missoes/ola-mundo" className="hero-mission" style={{ textDecoration: "none", color: "inherit" }}>
               <div className="hero-mission__band">
                 <span className="mission-stamp" aria-hidden="true"><IconStar /></span>
@@ -117,18 +117,19 @@ export default function Hoje() {
                 </div>
               </div>
               <div className="stack" style={{ padding: 20 }}>
-                <p>A primeira página do diário. Depois dela, chegam ideias novas todo dia.</p>
+                <p>Uma foto em que dê para ver bem {dog.name}. Depois dela, chegam ideias novas todo dia.</p>
                 <div className="row-between"><span className="chip chip--reward">+10 🐾</span><span className="btn btn--primary btn--small">Ver missão</span></div>
               </div>
             </Link>
           </>
         ) : (
           <section className="stack" aria-labelledby="daily-title">
-            <div className="row-between" style={{ alignItems: "baseline" }}>
+            <div className="row" style={{ alignItems: "center", gap: 8 }}>
               <h2 id="daily-title">Ideias para hoje</h2>
-              <span className="caption" aria-live="polite">{doneToday} de 3</span>
+              <button type="button" className="xp-reward__info" onClick={() => setIdeasHelp((v) => !v)} aria-expanded={ideasHelp} aria-label="O que são as ideias para hoje">ⓘ</button>
+              <span className="caption" aria-live="polite" style={{ marginLeft: "auto" }}>{doneToday} de 3</span>
             </div>
-            <p className="caption" style={{ marginTop: -6 }}>São as missões do dia: sugestões de fotos para guardar momentos de {dog.name}.</p>
+            {ideasHelp ? <p className="caption" style={{ marginTop: -6 }}>São as missões do dia: sugestões de fotos de {dog.name}. Sem pressa: o que não der para fazer hoje não tira nada.</p> : null}
 
             {specials.map((w) => (
               <Link key={w.mission.id} href={`/missoes/${w.mission.slug}`} className="hero-mission" style={{ textDecoration: "none", color: "inherit" }}>
@@ -149,8 +150,7 @@ export default function Hoje() {
             {doneToday === 3 ? (
               <div className="card stack daily-done" role="status" style={{ position: "relative", overflow: "visible" }}>
                 <PawBurst />
-                <h3>Aventuras de hoje guardadas!</h3>
-                <p>As fotos já estão no álbum de {dog.name}. Amanhã chegam ideias novas, e as coleções estão lá quando quiser.</p>
+                <h3>Momentos guardados! Até a próxima aventura 🐾</h3>
                 <div className="stack">
                   <Link href="/albuns?aba=colecoes" className="btn btn--primary btn--block">Ver coleções</Link>
                   <Link href="/guardar" className="btn btn--secondary btn--block">Guardar mais um momento</Link>
@@ -182,7 +182,6 @@ export default function Hoje() {
               })}
             </ul>
             {swapError ? <p className="field-error" role="alert">{swapError}</p> : null}
-            <p className="page-note">Sem pressa: o que não der para fazer hoje não tira nada. Amanhã chegam outras ideias.</p>
             <Link href="/missoes" className="btn btn--secondary btn--block hoje-all"><IconStar size={18} /> Ver todas as missões</Link>
           </section>
         )}

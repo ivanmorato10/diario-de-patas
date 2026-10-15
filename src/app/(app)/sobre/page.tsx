@@ -48,7 +48,7 @@ export default function Sobre() {
           <p className="small">Patinhas 🐾 são os pontos das missões (10 ou 20 por foto guardada). O app conta de dois jeitos:</p>
           <ul className="small" style={{ margin: 0, paddingLeft: "1.2em", display: "grid", gap: 4 }}>
             <li><strong>Patinhas de sempre:</strong> somam tudo, ficam guardadas para sempre e definem o nível do seu cachorro.</li>
-            <li><strong>Patinhas do mês:</strong> a contagem recomeça no dia 1º, com uma nova aventura. Com {XP_MONTH_GOAL} patinhas no mês, o Abu dá 1 arte de presente no Estúdio (uma por mês).</li>
+            <li><strong>Patinhas do mês:</strong> a contagem recomeça no dia 1º, com uma nova aventura. Com {XP_MONTH_GOAL} patinhas no mês, você ganha 1 crédito para criar uma arte no Estúdio (uma vez por mês).</li>
           </ul>
           <ol className="levels">
             {LEVELS.map((l, i) => (
