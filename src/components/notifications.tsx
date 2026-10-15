@@ -12,10 +12,15 @@ export function DogBell() {
   return (
     <Link href="/novidades" className="topbar__person dog-bell" aria-label={n ? `Novidades da família: ${n} ${n === 1 ? "nova" : "novas"}` : "Novidades da família"}>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M6.2 9.2 4 5.5l3.8 1.2" /><path d="M17.8 9.2 20 5.5l-3.8 1.2" />
-        <path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 1.5h-15Z" />
-        <path d="M10 21a2 2 0 0 0 4 0" />
-        <circle cx="12" cy="13.6" r="1.2" fill="currentColor" stroke="none" /><circle cx="10.1" cy="11.6" r=".75" fill="currentColor" stroke="none" /><circle cx="13.9" cy="11.6" r=".75" fill="currentColor" stroke="none" />
+        {/* sino */}
+        <path d="M18 16V11a6 6 0 0 0-12 0v5l-1.5 2h15Z" />
+        <path d="M10.2 20.5a2 2 0 0 0 3.6 0" />
+        {/* orelhinhas caídas de cachorro */}
+        <path d="M7.8 6.4C5.2 6.2 3.4 8.6 4 12c.3 1.5 1.6 2 2.4 1l.6-4.6Z" fill="currentColor" stroke="none" />
+        <path d="M16.2 6.4c2.6-.2 4.4 2.2 3.8 5.6-.3 1.5-1.6 2-2.4 1l-.6-4.6Z" fill="currentColor" stroke="none" />
+        {/* patinha */}
+        <ellipse cx="12" cy="14.2" rx="1.6" ry="1.3" fill="currentColor" stroke="none" />
+        <circle cx="10" cy="12" r=".75" fill="currentColor" stroke="none" /><circle cx="12" cy="11.2" r=".75" fill="currentColor" stroke="none" /><circle cx="14" cy="12" r=".75" fill="currentColor" stroke="none" />
       </svg>
       {n ? <span className="dog-bell__count" aria-hidden="true">{n > 9 ? "9+" : n}</span> : null}
     </Link>
