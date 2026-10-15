@@ -6,7 +6,7 @@ export const ROLE_PT: Record<DiaryRole, string> = { admin: "Administrador", edit
 
 export const switchDog = (dogId: string) => rpc("switchDog", { dogId });
 export const createInvite = (role: "editor" | "viewer") => rpc<{ code: string; role: DiaryRole; expiresAt: string; dogName: string }>("createInvite", { role });
-export const acceptInvite = (code: string) => rpc<{ dogId: string }>("acceptInvite", { code });
+export const acceptInvite = (code: string, name?: string) => rpc<{ dogId: string }>("acceptInvite", { code, name });
 export const updateMember = (userId: string, role: DiaryRole) => rpc("updateMember", { userId, role });
 export const removeMember = (userId: string) => rpc("removeMember", { userId });
 

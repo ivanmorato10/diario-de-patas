@@ -7,6 +7,7 @@ import { useStore } from "@/data/store";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
 import { inviteFormatError, previewInvite } from "@/data/family-client";
+import { NameAsk } from "@/components/name-ask";
 
 /**
  * Adicionar cachorro: um caminho só, para conta nova e para quem já tem diário.
@@ -54,6 +55,7 @@ export default function Adicionar() {
       </header>
       <main className="sp-sheet">
         <div className="stack">
+          {!hasDog ? <NameAsk title="Primeiro: como a família te chama?" /> : null}
           <h1 className="sp-sheet__title">{hasDog ? "Adicionar cachorro" : "Qual é o seu caso?"}</h1>
           <p className="page-note">{hasDog ? "Mais um amigo na família? Crie um diário para ele ou entre no diário que alguém compartilhou com você." : "Você pode criar o diário do seu cachorro ou entrar no diário que alguém da família já criou."}</p>
 

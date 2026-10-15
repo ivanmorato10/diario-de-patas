@@ -66,11 +66,16 @@ export interface DiaryEntry {
   createdAt: string;
   /** Família: quem guardou (quando não foi você). */
   createdByName?: string | null;
+  /** Quem guardou (só com conta): para o ossinho não valer na própria foto. */
+  createdBy?: string | null;
 }
 
 /** Papel de cada pessoa num diário (família). */
 export type DiaryRole = "admin" | "editor" | "viewer";
 export interface DiarySummary { id: string; name: string; photoMediaId: string | null; avatarCrop: AvatarCrop | null; role: DiaryRole }
+export interface Letter { id: string; body: string; date: CivilDate; createdBy: string | null; createdByName: string | null; mine: boolean; createdAt: string }
+export interface Bone { targetType: "entry" | "letter"; targetId: string; userId: string }
+export interface Me { userId: string; name: string; nameConfirmed: boolean }
 export interface DiaryMember { userId: string; name: string; email: string; role: DiaryRole; me: boolean; owner: boolean }
 
 /** Álbum: uma coleção fixa do catálogo ou um álbum criado pela pessoa (`custom-…`). */

@@ -22,7 +22,7 @@ import { CYCLE_XP, type DailySlot } from "@/config/cycle";
 import { activeSpecials, buildHistory, generatePlan, instanceKey as instanceKeyFor, setProgress, setsContaining, swapInPlan, type DailyPlan } from "@/domain/cycle";
 import type {
   AlbumEntry, AlbumId, CivilDate, CollectionAdvance, CustomAlbum, Medal, DiaryEntry, Dog, MediaAsset, MissionCompletion, MissionSubmission,
-  Profile, SubmissionStatus, XpLedgerEntry, EntrySource, DiaryMember, DiaryRole, DiarySummary } from "@/domain/types";
+  Profile, SubmissionStatus, XpLedgerEntry, EntrySource, DiaryMember, DiaryRole, DiarySummary, Letter, Bone, Me } from "@/domain/types";
 
 export const DEMO_DB_NAME = "diario-de-patas-demo";
 /**
@@ -159,6 +159,10 @@ export interface Snapshot {
   role?: DiaryRole | null;
   diaries?: DiarySummary[];
   members?: DiaryMember[];
+  /** Só com conta: quem está usando, cartinhas e ossinhos. */
+  me?: Me;
+  letters?: Letter[];
+  bones?: Bone[];
   entries: DiaryEntry[];
   albumEntries: AlbumEntry[];
   completions: MissionCompletion[];

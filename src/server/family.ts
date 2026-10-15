@@ -136,14 +136,15 @@ export async function previewInvite(code: string) {
 }
 
 export async function acceptInvite(ctx: Ctx, args: unknown) {
-  const { code } = z.object({ code: z.string() }).parse(args);
+  const { code, name } = z.object({ code: z.string(), name: z.string().optional() }).parse(args);
   const inv = await findInvite(code);
   const admin = adminClient();
   const { data: already } = await admin.from("dog_members").select("role").eq("dog_id", inv.dog_id).eq("user_id", ctx.user.id).maybeSingle();
   const used = await admin.from("dog_invites").update({ used_at: new Date().toISOString(), used_by: ctx.user.id }).eq("id", inv.id).is("used_at", null).select("id");
   if (!used.data?.length) throw bad("INVALID_CODE", "Esse convite já foi usado.");
   if (!already) await admin.from("dog_members").insert({ dog_id: inv.dog_id, user_id: ctx.user.id, role: inv.role, invited_by: inv.created_by });
-  await admin.from("profiles").upsert({ user_id: ctx.user.id, current_dog_id: inv.dog_id }, { onConflict: "user_id" });
+  const display = name?.replace(/\s+/g, " ").trim().slice(0, 40);
+  await admin.from("profiles").upsert({ user_id: ctx.user.id, current_dog_id: inv.dog_id, ...(display ? { display_name: display, name_confirmed: true } : {}) }, { onConflict: "user_id" });
   forgetDog(ctx);
   return { dogId: inv.dog_id };
 }

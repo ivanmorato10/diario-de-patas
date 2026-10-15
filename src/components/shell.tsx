@@ -52,7 +52,7 @@ export function BottomNav() {
 const TITLE_EMOJI: Record<string, string> = {
   "Diário": "📖", "Álbuns": "🖼️", "Cuidados": "🩺", "Estúdio": "🎨", "Missões": "⭐", "Perfil e ajustes": "⚙️", "Créditos": "🪙",
   "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
-  "Contatos": "📞", "Documentos": "📄", "Peso": "⚖️", "Guardar momento": "📸",
+  "Contatos": "📞", "Documentos": "📄", "Peso": "⚖️", "Guardar momento": "📸", "Cartinha": "💌",
 };
 
 export function TopBar({ title, back }: { title?: string; back?: string }) {

@@ -14,6 +14,7 @@ import { InstallAppLink } from "@/components/install-app";
 import { AvatarCropSheet } from "@/components/avatar-crop";
 import { FamilySection } from "@/components/family-section";
 import { ShareApp } from "@/components/share-app";
+import { MyNameField } from "@/components/name-ask";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -161,6 +162,7 @@ export default function Config() {
         {REAL_MODE ? (
           <section className="card stack" aria-labelledby="conta">
             <h2 id="conta">Conta</h2>
+            <MyNameField />
             {account ? <p className="small">Conectado como <strong>{account.email}</strong> (entrada com {account.via}).</p> : null}
             <form method="post" action="/auth/sair">
               <button type="submit" className="btn btn--secondary btn--block">Sair da conta</button>

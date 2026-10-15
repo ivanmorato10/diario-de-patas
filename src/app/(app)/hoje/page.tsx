@@ -21,6 +21,7 @@ import { AchadinhosCard } from "@/components/achadinhos-card";
 import { MedAlert } from "@/components/med-alert";
 import { FamilyNudge } from "@/components/family-nudge";
 import { MemoryRotator } from "@/components/memory-rotator";
+import { NameAsk } from "@/components/name-ask";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -76,6 +77,9 @@ export default function Hoje() {
             </div>
           </div>
         </section>
+
+        {/* Com a família no diário, o nome aparece em "guardada por" e nos ossinhos: pergunta uma vez. */}
+        {(snap.members?.length ?? 0) >= 2 ? <NameAsk note="Seu nome aparece para a família nas fotos e cartinhas." /> : null}
 
         {/* Remédio na hora certa continua no topo: é cuidado, não cobrança. */}
         <MedAlert meds={snap.health.medications} today={snap.today} dogName={dog.name} />

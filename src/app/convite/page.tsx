@@ -17,7 +17,9 @@ import { Paw } from "@/components/icons";
 function Convite() {
   const params = useSearchParams();
   const router = useRouter();
-  const { reload } = useStore();
+  const { reload, snap } = useStore();
+  const [myName, setMyName] = useState<string | null>(null);
+  const nameValue = myName ?? (snap?.me?.nameConfirmed ? snap.me.name : snap?.me?.name ?? "");
   const [code, setCode] = useState(params.get("codigo") ?? "");
   const [info, setInfo] = useState<{ dogName: string; invitedBy: string; role: DiaryRole } | null>(null);
   const [logged, setLogged] = useState<boolean | null>(null);
@@ -45,7 +47,8 @@ function Convite() {
     setBusy(true);
     setError(null);
     try {
-      await acceptInvite(code);
+      if (!nameValue.trim()) { setBusy(false); return setError("Conte como a família te chama."); }
+      await acceptInvite(code, nameValue);
       await reload();
       router.replace("/hoje");
     } catch (e) {
@@ -81,7 +84,13 @@ function Convite() {
             <h1 className="sp-sheet__title">{info.invitedBy} convidou você para o diário de {info.dogName}</h1>
             <p className="invite-role"><Paw size={16} /> Seu papel: <strong>{ROLE_PT[info.role]}</strong>{info.role === "editor" ? " (guardar fotos, missões e cuidados)" : " (ver tudo, sem alterar)"}</p>
             {logged ? (
+              <>
+              <div className="field">
+                <label htmlFor="meu-nome">Como a família te chama?</label>
+                <input id="meu-nome" className="input" value={nameValue} maxLength={40} autoComplete="given-name" placeholder="Seu nome" onChange={(e) => setMyName(e.target.value)} />
+              </div>
               <button type="button" className="sp-btn sp-btn--main" onClick={accept} disabled={busy}>{busy ? "Entrando…" : `Aceitar e abrir o diário de ${info.dogName}`}</button>
+              </>
             ) : (
               <>
                 <p className="page-note">Para aceitar, entre com a sua conta. Se ainda não tem, crie uma: é rápido e não precisa cadastrar cachorro.</p>

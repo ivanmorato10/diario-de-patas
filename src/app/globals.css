@@ -886,3 +886,22 @@ a.choice-card:active { transform: translateY(1px); }
 .invite-box__roles .check:has(input:checked) { background: none; border: 0; }
 .share-app { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .share-actions { display: grid; gap: 8px; width: 100%; }
+.name-ask { display: grid; gap: 8px; }
+.name-ask__title { font: inherit; font-size: 1.15em; }
+.name-ask__row { display: flex; gap: 8px; }
+.name-ask__row .input { flex: 1; min-width: 0; font-family: var(--font-body); }
+/* Cartinha: papel de carta da pessoa (não é o bilhete do Abu, por isso sem patinha). */
+.letter-card { position: relative; padding: 18px 18px 14px; border-radius: 14px; background: #fffaf2 repeating-linear-gradient(to bottom, transparent 0 31px, #f0dfc6 31px 32px); border: 1px solid #f0dcc0; box-shadow: 0 6px 16px rgba(61, 45, 30, 0.08); }
+.letter-card__kicker { margin: 0 0 6px; font: 800 0.8125rem/1.2 var(--font-body); color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.letter-card__hello, .letter-card__body, .letter-card__sign { font-family: var(--font-hand); font-weight: 500; font-size: 1.4rem; line-height: 32px; margin: 0; color: var(--text-primary); }
+.letter-card__body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.letter-card__sign { text-align: right; }
+.bone-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.bone-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface, #fff); color: var(--text-primary); font: 700 0.875rem/1 var(--font-body); cursor: pointer; }
+.bone-btn.is-on { background: #fff3e0; border-color: #e9b26b; }
+.bone-bar__who { margin: 0; }
+.sticky-action__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; box-shadow: none !important; }
+.sticky-action__pair .btn { box-shadow: 0 6px 18px rgba(29, 43, 83, 0.22); padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+.letter-card__input { display: block; width: 100%; min-height: 256px; border: 0; background: transparent; resize: vertical; padding: 0; outline: none; }
+.letter-card__input::placeholder { color: #b9a68c; }
+.letter-card--edit:focus-within { border-color: var(--brand-teal); }

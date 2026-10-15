@@ -23,6 +23,7 @@ import { after } from "next/server";
 import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
 import { attachReferral, confirmReferral, referralInfo } from "./referrals";
+import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
 import { achadinhosInfo } from "./amazon";
@@ -125,6 +126,9 @@ async function ensurePlan(ctx: Ctx, dog: any, today: string): Promise<DailyPlan>
   return toPlan(await q(admin.from("daily_plans").select("*").eq("dog_id", dog.id).eq("plan_date", today).single()));
 }
 
+/** Quem está usando: nome (confirmado ou só um palpite) para "Como a família te chama?". */
+const meOf = (ctx: Ctx, profile: any) => ({ userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed });
+
 export async function snapshot(ctx: Ctx) {
   const { supa } = ctx;
   const profile = await profileOf(ctx);
@@ -132,10 +136,10 @@ export async function snapshot(ctx: Ctx) {
   const today = todayOf(profile);
   if (!dog) {
     const fam = await familyInfo(ctx, null);
-    return { profile: profile ? toProfile(profile) : null, dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
+    return { profile: profile ? toProfile(profile) : null, me: meOf(ctx, profile), dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
   }
   const D = dog.id;
-  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam] = await Promise.all([
+  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows] = await Promise.all([
     q(supa.from("diary_entries").select("*").eq("dog_id", D).is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*").eq("dog_id", D)),
     q(supa.from("album_entries").select("album_id, entry_id")),
@@ -152,6 +156,8 @@ export async function snapshot(ctx: Ctx) {
     q(supa.from("collection_advances").select("*").eq("dog_id", D)),
     q(supa.from("medals").select("*").eq("dog_id", D)),
     familyInfo(ctx, dog),
+    q(supa.from("letters").select("*").eq("dog_id", D).order("letter_date", { ascending: false }).order("created_at", { ascending: false })),
+    q(supa.from("bones").select("target_type, target_id, user_id").eq("dog_id", D)),
   ]) as any[];
   const memberName = new Map<string, string>((fam.members as any[]).map((m) => [m.userId, m.name]));
   const albumById = new Map<string, any>(albums.map((a: any) => [a.id, a]));
@@ -175,7 +181,10 @@ export async function snapshot(ctx: Ctx) {
     role: dog.role,
     diaries: fam.diaries,
     members: fam.members,
-    entries: entries.map((e: any) => ({ ...toEntry(e, missionByEntry.get(e.id) ?? null), createdByName: e.created_by && e.created_by !== ctx.user.id ? memberName.get(e.created_by) ?? null : null })),
+    me: meOf(ctx, profile),
+    entries: entries.map((e: any) => ({ ...toEntry(e, missionByEntry.get(e.id) ?? null), createdBy: e.created_by ?? null, createdByName: e.created_by && e.created_by !== ctx.user.id ? memberName.get(e.created_by) ?? null : null })),
+    letters: letterRows.map((l: any) => ({ id: l.id, body: l.body, date: l.letter_date, createdBy: l.created_by, createdByName: l.created_by ? memberName.get(l.created_by) ?? null : null, mine: l.created_by === ctx.user.id, createdAt: l.created_at })),
+    bones: boneRows.map((b: any) => ({ targetType: b.target_type, targetId: b.target_id, userId: b.user_id })),
     albumEntries: albumEntries.filter((a: any) => albumById.has(a.album_id)).map((a: any) => {
       const albumId = albumClientId(albumById.get(a.album_id));
       return { key: `${albumId}:${a.entry_id}`, albumId, entryId: a.entry_id, addedAt: "" };
@@ -712,7 +721,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
   achadinhosInfo: () => achadinhosInfo(),
-  switchDog, referralInfo: (c) => referralInfo(c), createInvite, acceptInvite, updateMember, removeMember,
+  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

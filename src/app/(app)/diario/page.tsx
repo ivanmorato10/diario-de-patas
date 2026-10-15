@@ -7,7 +7,9 @@ import { useAlbumTitle } from "@/components/album-picker";
 import { LIMITS } from "@/config/business";
 import { formatCivilDate, formatMonthKey, monthKey } from "@/domain/dates";
 import { missionById } from "@/domain/missions";
-import type { DiaryEntry } from "@/domain/types";
+import type { DiaryEntry, Letter } from "@/domain/types";
+import { REAL_MODE } from "@/config/mode";
+import { BoneBar, LetterCard } from "@/components/letters";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
 import { AbuSays } from "@/components/brand";
@@ -15,7 +17,8 @@ import { EntryActions, UseInMission } from "@/components/entry-actions";
 import { cycleContext } from "@/data/store";
 import { IconPlus, IconStar } from "@/components/icons";
 
-type Filter = string; // "all" | "mission" | "free" | "studio" | id de álbum
+type Filter = string; // "all" | "mission" | "free" | "studio" | "letters" | id de álbum
+type Item = { kind: "entry"; e: DiaryEntry; date: string; at: string } | { kind: "letter"; l: Letter; date: string; at: string };
 
 export default function Diario() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -32,18 +35,23 @@ export default function Diario() {
 
   const groups = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("pt-BR");
-    const list = (snap?.entries ?? []).filter((e) => {
+    const photos: Item[] = filter === "letters" ? [] : (snap?.entries ?? []).filter((e) => {
       if (q && !e.caption.toLocaleLowerCase("pt-BR").includes(q)) return false;
       if (filter === "all") return true;
       if (filter === "mission" || filter === "free" || filter === "studio") return e.source === filter;
       return albumsByEntry.get(e.id)?.includes(filter) ?? false;
-    });
-    const out: [string, DiaryEntry[]][] = [];
-    for (const e of list) {
-      const k = monthKey(e.occurredDate);
+    }).map((e) => ({ kind: "entry", e, date: e.occurredDate, at: e.createdAt }));
+    // Cartinhas entram na linha do tempo, na data delas (em "Tudo" e em "Cartinhas").
+    const letters: Item[] = filter === "all" || filter === "letters"
+      ? (snap?.letters ?? []).filter((l) => !q || l.body.toLocaleLowerCase("pt-BR").includes(q)).map((l) => ({ kind: "letter", l, date: l.date, at: l.createdAt }))
+      : [];
+    const list = [...photos, ...letters].sort((a, b) => b.date.localeCompare(a.date) || b.at.localeCompare(a.at));
+    const out: [string, Item[]][] = [];
+    for (const it of list) {
+      const k = monthKey(it.date);
       const last = out[out.length - 1];
-      if (last && last[0] === k) last[1].push(e);
-      else out.push([k, [e]]);
+      if (last && last[0] === k) last[1].push(it);
+      else out.push([k, [it]]);
     }
     return out;
   }, [snap, filter, query, albumsByEntry]);
@@ -52,7 +60,7 @@ export default function Diario() {
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
   const filters: { id: Filter; label: string }[] = [
-    { id: "all", label: "Tudo" }, { id: "mission", label: "Missões" }, { id: "free", label: "Livres" },
+    { id: "all", label: "Tudo" }, ...(snap.letters?.length ? [{ id: "letters" as Filter, label: "💌 Cartinhas" }] : []), { id: "mission", label: "Missões" }, { id: "free", label: "Livres" },
     ...COLLECTIONS.map((c) => ({ id: c.id as Filter, label: c.title })),
     ...snap.customAlbums.map((a) => ({ id: a.id as Filter, label: a.title })),
   ];
@@ -61,7 +69,7 @@ export default function Diario() {
     <>
       <TopBar title="Diário" />
       <main className="main">
-        {snap.entries.length === 0 ? (
+        {snap.entries.length === 0 && !snap.letters?.length ? (
           <div className="stack-lg">
             <AbuSays>Uma soneca também é uma grande conquista. Que tal guardar o primeiro momento?</AbuSays>
             <div className="card stitched empty" style={{ boxShadow: "none" }}>
@@ -84,7 +92,7 @@ export default function Diario() {
                   </button>
                 ))}
               </div>
-              <p className="caption" aria-live="polite">{groups.reduce((s, [, l]) => s + l.length, 0)} de {snap.entries.length} lembranças · limite desta versão: {LIMITS.maxEntries}</p>
+              <p className="caption" aria-live="polite">{groups.reduce((s, [, l]) => s + l.filter((i) => i.kind === "entry").length, 0)} de {snap.entries.length} lembranças{snap.letters?.length ? ` · ${snap.letters.length} ${snap.letters.length === 1 ? "cartinha" : "cartinhas"}` : ""} · limite desta versão: {LIMITS.maxEntries}</p>
             </div>
 
             {groups.length === 0 ? <p className="muted">Nada encontrado com esse filtro.</p> : null}
@@ -92,7 +100,9 @@ export default function Diario() {
             {groups.map(([k, list]) => (
               <section key={k} aria-labelledby={`m-${k}`} className="stack">
                 <h2 id={`m-${k}`} className="timeline-month">{formatMonthKey(k)}</h2>
-                {list.map((e) => {
+                {list.map((it) => {
+                  if (it.kind === "letter") return <LetterCard key={it.l.id} letter={it.l} dogName={dog.name} />;
+                  const e = it.e;
                   const m = e.missionId ? missionById(e.missionId) : null;
                   const label = e.caption ? `lembrança “${e.caption.slice(0, 40)}”` : `lembrança de ${formatCivilDate(e.occurredDate)}`;
                   return (
@@ -110,6 +120,7 @@ export default function Diario() {
                           <EntryActions entry={e} albumIds={albumsByEntry.get(e.id) ?? []} today={snap.today} label={label} />
                         </div>
                         {ctx && snap.role !== "viewer" ? <UseInMission entry={e} ctx={ctx} label={label} /> : null}
+                        <BoneBar targetType="entry" targetId={e.id} authorId={e.createdBy} />
                       </div>
                     </article>
                   );
@@ -119,7 +130,14 @@ export default function Diario() {
           </>
         )}
         <div className="sticky-action">
-          <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>
+          {REAL_MODE && snap.role !== "viewer" ? (
+            <div className="sticky-action__pair">
+              <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>
+              <Link href="/diario/cartinha" className="btn btn--primary">💌 Escrever cartinha</Link>
+            </div>
+          ) : (
+            <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>
+          )}
         </div>
       </main>
     </>
