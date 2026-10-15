@@ -61,6 +61,14 @@ describe("próximos cuidados (§4.6)", () => {
     );
     expect(care.map((c) => [c.id, c.status])).toEqual([["b", "overdue"], ["v1", "soon"], ["a", "soon"]]);
   });
+  it("consulta marcada para hoje (com horário) ou longe aparece; não duplica com o lembrete", () => {
+    const care = upcomingCare({ vaccines: [], visits: [
+      visit({ id: "antiga", date: "2026-09-01", nextDate: "2026-10-14" }),
+      visit({ id: "hoje", date: "2026-10-14", time: "19:15", nextDate: null }),
+      visit({ id: "longe", date: "2027-02-01", nextDate: null }),
+    ] }, "2026-10-14");
+    expect(care.map((c) => [c.id, c.title])).toEqual([["hoje", "Consulta marcada hoje às 19:15"], ["longe", "Consulta marcada"]]);
+  });
   it("só a consulta mais recente conta para a próxima consulta", () => {
     const care = upcomingCare({ vaccines: [], visits: [visit({ id: "old", date: "2026-05-01", nextDate: "2026-09-01" }), visit({ id: "new", date: "2026-09-02", nextDate: null })] }, "2026-10-12");
     expect(care).toEqual([]);
