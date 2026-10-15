@@ -91,10 +91,7 @@ export default function Hoje() {
           {last ? (
             <>
               <MemoryRotator entries={snap.entries} dogName={dog.name} />
-              <div className="row" style={{ gap: 8 }}>
-                <Link href="/guardar" className="btn btn--primary" style={{ flex: 1 }}><IconPlus /> Guardar momento</Link>
-                <Link href="/diario" className="btn btn--secondary">Ver diário</Link>
-              </div>
+              <Link href="/guardar" className="btn btn--primary btn--block"><IconPlus /> Guardar momento</Link>
             </>
           ) : (
             <div className="card stitched empty stack" style={{ boxShadow: "none" }}>
