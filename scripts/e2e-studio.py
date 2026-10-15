@@ -93,7 +93,7 @@ with sync_playwright() as p:
     rest("DELETE", "studio_presets?id=eq.vitral")
     st, body = rpc("studioCreateJob", {"entryId": photo_id, "presetId": "pixel", "idempotencyKey": str(uuid.uuid4())})
     check(f"sem créditos: pedido recusado ({st}, {body and body.get('code')})", st == 400 and body.get("code") == "NO_CREDITS")
-    pg.goto(BASE + "/conta"); pg.get_by_label("Para confirmar").fill("EXCLUIR"); pg.get_by_role("button", name="Excluir minha conta").click(); pg.wait_for_timeout(4000)
+    pg.goto(BASE + "/conta"); pg.get_by_role("button", name="🗑️ Excluir minha conta").click(); pg.get_by_label("Para confirmar").fill("EXCLUIR"); pg.get_by_role("button", name="Excluir minha conta", exact=True).click(); pg.wait_for_timeout(4000)
     check("conta de teste excluída", not any(u["email"] == email for u in admin("GET", "users?per_page=200")["users"]))
     check(f"sem erros de página ({errors[:2]})", not errors)
     b.close()

@@ -65,7 +65,7 @@ function ShareIcon() {
 }
 
 /** Link discreto; `variant="splash"` usa as cores da tela de entrada. */
-export function InstallAppLink({ variant = "default" }: { variant?: "default" | "splash" }) {
+export function InstallAppLink({ variant = "default" }: { variant?: "default" | "splash" | "row" }) {
   const { show, ios, iosOtherBrowser, canPrompt } = useInstall();
   const [open, setOpen] = useState(false);
   if (!show) return null;
@@ -82,10 +82,14 @@ export function InstallAppLink({ variant = "default" }: { variant?: "default" | 
 
   return (
     <>
+      {variant === "row" ? (
+        <button type="button" className="card row-between profile-row" onClick={click}><span className="profile-row__text"><span>📲 Instalar o aplicativo</span></span><span aria-hidden="true">›</span></button>
+      ) : (
       <button type="button" className={variant === "splash" ? "install-link install-link--splash" : "install-link"} onClick={click}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M11 18h2" /></svg>
         Instalar aplicativo
       </button>
+      )}
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="install-title">
         <h2 id="install-title">Diário de Patas na Tela de Início</h2>
         <p className="page-note">Fica com ícone próprio e abre em tela cheia, como um aplicativo. É grátis e não precisa da App Store.</p>

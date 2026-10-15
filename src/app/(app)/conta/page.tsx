@@ -14,10 +14,12 @@ import { FamilyDiaries } from "@/components/family-diaries";
 import { InstallAppLink } from "@/components/install-app";
 import { TimezoneSelect } from "@/components/profile-fields";
 import { IconChevron } from "@/components/icons";
+import { Sheet } from "@/components/entry-actions";
 
 const CONFIRM_WORD = "EXCLUIR";
+type Panel = "name" | "family" | "tz" | "delete" | null;
 
-/** Minha conta: tudo o que é da PESSOA — nome, forma de entrar, fuso, indicar o app, sair e excluir a conta. */
+/** Minha conta: quem é você (nome e email) e linhas que abrem cada ajuste — como o Perfil do cachorro. */
 export default function Conta() {
   const { snap, repo, reload, reset, unavailable } = useStore();
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function Conta() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel>(null);
 
   useEffect(() => {
     if (!REAL_MODE) return;
@@ -42,6 +45,13 @@ export default function Conta() {
   if (!snap || !repo) return <main className="main"><PageLoading /></main>;
   const tzValue = tz ?? snap.profile?.timezone ?? "America/Sao_Paulo";
   const tzDirty = tzValue !== (snap.profile?.timezone ?? "America/Sao_Paulo");
+  const others = (snap.diaries ?? []).filter((d) => !d.mine).length;
+  const Row = ({ id, icon, label, sub }: { id: Panel; icon: string; label: string; sub?: string }) => (
+    <button type="button" className="card row-between profile-row" onClick={() => setPanel(id)}>
+      <span className="profile-row__text"><span>{icon} {label}</span>{sub ? <span className="caption">{sub}</span> : null}</span>
+      <IconChevron />
+    </button>
+  );
 
   async function saveTz(e: React.FormEvent) {
     e.preventDefault();
@@ -72,50 +82,68 @@ export default function Conta() {
     <>
       <TopBar title="Minha conta" back="/hoje" />
       <main className="main">
+        {/* Quem é você: nome e forma de entrar; embaixo, linhas que abrem cada ajuste. */}
         {REAL_MODE ? (
-          <section className="card stack" aria-labelledby="voce">
-            <h2 id="voce">Você</h2>
-            <MyNameField />
-            {account ? <p className="small" style={{ margin: 0 }}>Entra como <strong>{account.email}</strong> (com {account.via}).</p> : null}
+          <section className="profile-head" aria-labelledby="voce">
+            <span className="account-avatar" aria-hidden="true">{(snap.me?.name || "?")[0].toUpperCase()}</span>
+            <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <h2 id="voce" className="profile-head__name">{snap.me?.nameConfirmed ? snap.me.name : "Você"}</h2>
+              {account ? <><span className="small" style={{ overflowWrap: "anywhere" }}>{account.email}</span><span className="caption">entra com {account.via}</span></> : null}
+            </div>
           </section>
         ) : null}
 
-        {REAL_MODE ? <FamilyDiaries /> : null}
-
-        <form className="card stack" onSubmit={saveTz} aria-labelledby="fuso">
-          <h2 id="fuso">Fuso horário</h2>
-          <TimezoneSelect id="tz" value={tzValue} onChange={(v) => { setTz(v); setTzMsg(null); }} />
-          <span className="hint">Organiza as datas das suas lembranças e lembretes.</span>
-          {tzMsg ? <p className="small" role="status" style={{ margin: 0 }}>{tzMsg}</p> : null}
-          <button type="submit" className="btn btn--secondary btn--block" disabled={!tzDirty}>{tzDirty ? "Salvar fuso" : "Fuso salvo"}</button>
-        </form>
-
-        <section className="stack" aria-labelledby="mais">
-          <h2 id="mais">Mais</h2>
+        <section className="stack" style={{ gap: 8 }} aria-label="Ajustes da conta">
+          {REAL_MODE ? <Row id="name" icon="✏️" label="Seu nome" sub={snap.me?.nameConfirmed ? `A família vê “${snap.me.name}”` : "Como a família te chama"} /> : null}
+          {REAL_MODE && others > 0 ? <Row id="family" icon="👨‍👩‍👧" label="Diários da família" sub={`${others} ${others === 1 ? "diário de outra pessoa" : "diários de outras pessoas"}`} /> : null}
+          <Row id="tz" icon="🕐" label="Fuso horário" sub={tzValue.replace(/_/g, " ")} />
           {REAL_MODE ? <ShareApp /> : null}
-          <Link href="/achadinhos" className="card row-between" style={{ padding: 16 }}><span>🛍️ Achadinhos do Abu</span><IconChevron /></Link>
-          <Link href="/sobre" className="card row-between" style={{ padding: 16 }}><span>🐾 Sobre o Diário de Patas</span><IconChevron /></Link>
-          <InstallAppLink />
+          <Link href="/achadinhos" className="card row-between profile-row"><span className="profile-row__text"><span>🛍️ Achadinhos do Abu</span></span><IconChevron /></Link>
+          <Link href="/sobre" className="card row-between profile-row"><span className="profile-row__text"><span>🐾 Sobre o Diário de Patas</span></span><IconChevron /></Link>
+          <InstallAppLink variant="row" />
+          {REAL_MODE ? (
+            <form method="post" action="/auth/sair" style={{ display: "contents" }}>
+              <button type="submit" className="card row-between profile-row"><span className="profile-row__text"><span>🚪 Sair da conta</span></span><IconChevron /></button>
+            </form>
+          ) : null}
+          {REAL_MODE ? <Row id="delete" icon="🗑️" label="Excluir minha conta" /> : null}
         </section>
 
-        {REAL_MODE ? (
-          <>
-            <form method="post" action="/auth/sair">
-              <button type="submit" className="btn btn--secondary btn--block">Sair da conta</button>
-            </form>
+        <Sheet open={panel === "name"} onClose={() => setPanel(null)} labelledBy="c-name">
+          <h2 id="c-name">Seu nome</h2>
+          <MyNameField />
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setPanel(null)}>Fechar</button>
+        </Sheet>
 
-            <section className="card stack" aria-labelledby="excluir" style={{ borderColor: "#f1c4bf" }}>
-              <h2 id="excluir">Excluir minha conta</h2>
-              <p className="small">Exclui a sua conta. Os diários em que você é <strong>responsável e que você criou</strong> são apagados com tudo o que está neles, inclusive para a família convidada. Diários de outras pessoas continuam com elas. Não dá para desfazer.</p>
-              <div className="field">
-                <label htmlFor="confirm-conta">Para confirmar, digite <strong>{CONFIRM_WORD}</strong></label>
-                <input id="confirm-conta" className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" autoCapitalize="characters" />
-              </div>
-              {error ? <p className="field-error" role="alert">{error}</p> : null}
-              <button type="button" className="btn btn--danger-outline btn--block" disabled={confirm.trim().toUpperCase() !== CONFIRM_WORD || busy} onClick={deleteAccount}>{busy ? "Excluindo…" : "Excluir minha conta"}</button>
-            </section>
-          </>
-        ) : null}
+        <Sheet open={panel === "family"} onClose={() => setPanel(null)} labelledBy="familias">
+          <FamilyDiaries />
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setPanel(null)}>Fechar</button>
+        </Sheet>
+
+        <Sheet open={panel === "tz"} onClose={() => { setPanel(null); setTz(null); setTzMsg(null); }} labelledBy="fuso">
+          <form className="stack" onSubmit={saveTz}>
+            <h2 id="fuso">Fuso horário</h2>
+            <TimezoneSelect id="tz" value={tzValue} onChange={(v) => { setTz(v); setTzMsg(null); }} />
+            <span className="hint">Organiza as datas das suas lembranças e lembretes.</span>
+            {tzMsg ? <p className="small" role="status" style={{ margin: 0 }}>{tzMsg}</p> : null}
+            {tzDirty ? <button type="submit" className="btn btn--primary btn--block">Salvar fuso</button> : null}
+            <button type="button" className="btn btn--secondary btn--block" onClick={() => { setPanel(null); setTz(null); setTzMsg(null); }}>Fechar</button>
+          </form>
+        </Sheet>
+
+        <Sheet open={panel === "delete"} onClose={() => setPanel(null)} labelledBy="excluir">
+          <h2 id="excluir">Excluir minha conta</h2>
+          <p className="small">Os diários que você criou são apagados com tudo o que está neles, inclusive para a família convidada. Diários de outras pessoas continuam com elas. Não dá para desfazer.</p>
+          <div className="field">
+            <label htmlFor="confirm-conta">Para confirmar, digite <strong>{CONFIRM_WORD}</strong></label>
+            <input id="confirm-conta" className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" autoCapitalize="characters" />
+          </div>
+          {error ? <p className="field-error" role="alert">{error}</p> : null}
+          <div className="stack" style={{ gap: 8 }}>
+            <button type="button" className="btn btn--danger-outline btn--block" disabled={confirm.trim().toUpperCase() !== CONFIRM_WORD || busy} onClick={deleteAccount}>{busy ? "Excluindo…" : "Excluir minha conta"}</button>
+            <button type="button" className="btn btn--secondary btn--block" onClick={() => setPanel(null)}>Fechar</button>
+          </div>
+        </Sheet>
       </main>
     </>
   );

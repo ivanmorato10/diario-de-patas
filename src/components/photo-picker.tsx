@@ -15,7 +15,7 @@ export interface PickFailure {
  * Com `onPickedMany`, a galeria aceita várias fotos (MUDANCAS-V2 §2); escolher uma só continua indo para `onPicked`.
  */
 export function PhotoPicker({
-  onPicked, onPickedMany, maxFiles, disabled, compact,
+  onPicked, onPickedMany, maxFiles, disabled, compact, tiles,
 }: {
   onPicked: (img: ProcessedImage) => void;
   onPickedMany?: (imgs: ProcessedImage[], failures: PickFailure[], skipped: number) => void;
@@ -23,6 +23,8 @@ export function PhotoPicker({
   maxFiles?: number;
   disabled?: boolean;
   compact?: boolean;
+  /** Dois botões grandes, coloridos (tela Guardar momento). */
+  tiles?: boolean;
 }) {
   const cam = useRef<HTMLInputElement>(null);
   const gal = useRef<HTMLInputElement>(null);
@@ -68,6 +70,16 @@ export function PhotoPicker({
 
   return (
     <div className="stack">
+      {tiles ? (
+        <div className="pick-tiles">
+          <button type="button" className="pick-tile pick-tile--cam" onClick={() => cam.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
+            <span className="pick-tile__icon" aria-hidden="true">📷</span><strong>Tirar foto</strong><span className="pick-tile__sub">agora</span>
+          </button>
+          <button type="button" className="pick-tile pick-tile--gal" onClick={() => gal.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
+            <span className="pick-tile__icon" aria-hidden="true">🖼️</span><strong>Da galeria</strong><span className="pick-tile__sub">{onPickedMany ? "uma ou várias" : "até antigas"}</span>
+          </button>
+        </div>
+      ) : (
       <div className="row" style={{ flexWrap: "wrap" }}>
         <button type="button" className={`btn btn--secondary${compact ? " btn--small" : ""}`} onClick={() => cam.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
           <IconCamera /> Tirar foto
@@ -76,6 +88,7 @@ export function PhotoPicker({
           <IconImage /> {onPickedMany ? "Escolher da galeria (uma ou várias)" : "Escolher da galeria"}
         </button>
       </div>
+      )}
       <input ref={cam} type="file" accept="image/*" capture="environment" hidden onChange={handle} />
       <input ref={gal} type="file" accept="image/jpeg,image/png,image/webp,image/*" multiple={!!onPickedMany} hidden onChange={handle} />
       <p aria-live="polite" className="caption">{busy ?? ""}</p>

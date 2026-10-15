@@ -19,7 +19,8 @@ import { PawBurst } from "@/components/celebrate";
 import type { CivilDate, DiaryEntry } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { PhotoPicker, type PickFailure } from "@/components/photo-picker";
-import { AbuSays } from "@/components/brand";
+import { AbuMascot, AbuSays } from "@/components/brand";
+import { MediaImage } from "@/components/media";
 import { IconAlert, IconBrush, IconCheck, IconImage, IconInfo, IconRotate, IconStar, IconTrash } from "@/components/icons";
 import { rotateProcessed } from "@/lib/image";
 import { collectionTitle } from "@/components/mission-ui";
@@ -208,25 +209,38 @@ function GuardarInner() {
       <main className="main">
         {step.kind === "pick" ? (
           <section className="stack-lg">
-            <h1 ref={headingRef} tabIndex={-1}>{mission ? "Escolha a foto" : "Guardar momentos"}</h1>
+            <div className="pick-hero">
+              <AbuMascot width={86} />
+              <h1 ref={headingRef} tabIndex={-1} className="pick-hero__title">{mission ? "Escolha a foto" : `Qual momento de ${snap.dog.name} vamos guardar?`}</h1>
+            </div>
             {entryError ? <div className="notice notice--warn" role="alert"><IconAlert /><span>{entryError}</span></div> : null}
             {mission ? (
               <div className="card card--soft stack" style={{ gap: 4 }}>
                 <span className="caption">O que precisa aparecer</span>
                 <p style={{ fontWeight: 600 }}>{petText(mission.criterion, snap.dog.name)}</p>
               </div>
-            ) : <p className="page-note">Escolha uma ou mais fotos, até antigas.</p>}
+            ) : null}
             {room === 0 ? (
               <div className="notice notice--warn" role="alert"><IconAlert /><span>O diário chegou ao limite de {LIMITS.maxEntries} lembranças desta versão de teste. Nada foi apagado; para guardar novas, exclua alguma antiga.</span></div>
             ) : (
               <>
-                <PhotoPicker onPicked={onPicked} onPickedMany={mission ? undefined : onPickedMany} maxFiles={room} />
+                <PhotoPicker tiles onPicked={onPicked} onPickedMany={mission ? undefined : onPickedMany} maxFiles={room} />
                 {/* Espaço restante só quando estiver acabando. */}
                 {!mission && room <= 10 ? <p className="caption">Cabem só mais {room} {room === 1 ? "lembrança" : "lembranças"} nesta versão de teste.</p> : null}
               </>
             )}
             {pickNotes.length ? (
               <div className="notice notice--warn" role="alert"><IconAlert /><span>{pickNotes.join(" · ")}</span></div>
+            ) : null}
+            {!mission && snap.entries.length ? (
+              <div className="pick-recent" aria-label="Últimas lembranças">
+                <span className="caption">Últimas lembranças</span>
+                <div className="pick-recent__row">
+                  {snap.entries.slice(0, 4).map((e, i) => (
+                    <span key={e.id} className="pick-recent__pola" style={{ rotate: `${[-4, 3, -2, 4][i]}deg` }}><MediaImage id={e.mediaId} alt="" /></span>
+                  ))}
+                </div>
+              </div>
             ) : null}
             <details className="tiny-details">
               <summary>Que fotos posso usar?</summary>

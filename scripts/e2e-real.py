@@ -303,7 +303,8 @@ with sync_playwright() as p:
     snapAfter = rpc(a, "snapshot", {})[1]
     check(f"apagar só o Pepe: conta continua com a Luna ({[d['name'] for d in snapAfter.get('diaries') or []]})", [d["name"] for d in snapAfter.get("diaries") or []] == ["Luna"] and snapAfter["dog"]["name"] == "Luna")
     inv.on("dialog", lambda d: d.accept())
-    inv.goto(BASE + "/conta"); expect(inv.get_by_role("heading", name="Diários da família que você participa")).to_be_visible(timeout=20000)
+    inv.goto(BASE + "/conta"); inv.get_by_role("button", name=re.compile("Diários da família")).click()
+    expect(inv.get_by_role("heading", name="Diários da família que você participa")).to_be_visible(timeout=20000)
     with inv.expect_response(lambda r: "/api/rpc/leaveDiary" in r.url, timeout=20000):
         inv.get_by_role("button", name="Sair", exact=True).click()
     inv.wait_for_url("**/adicionar", timeout=20000)
@@ -367,8 +368,8 @@ with sync_playwright() as p:
 
     # ---------- Excluir as contas (pela tela) ----------
     for page, name in [(b, "Thor"), (a, "Luna")]:
-        page.goto(BASE + "/conta"); page.get_by_label("Para confirmar").fill("EXCLUIR")
-        page.get_by_role("button", name="Excluir minha conta").click(); page.wait_for_timeout(4000)
+        page.goto(BASE + "/conta"); page.get_by_role("button", name="🗑️ Excluir minha conta").click(); page.get_by_label("Para confirmar").fill("EXCLUIR")
+        page.get_by_role("button", name="Excluir minha conta", exact=True).click(); page.wait_for_timeout(4000)
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=display').then(r => r.status)", mediaA)
     check(f"conta excluída: foto de A não abre mais ({st})", st in (401, 404))
     users = admin("GET", f"users?per_page=200")

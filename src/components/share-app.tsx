@@ -28,8 +28,8 @@ export function ShareApp() {
 
   return (
     <>
-      <button type="button" className="card row-between share-app" style={{ padding: 16 }} onClick={show}>
-        <span>💌 Indicar o Diário de Patas</span><IconChevron />
+      <button type="button" className="card row-between profile-row" onClick={show}>
+        <span className="profile-row__text"><span>💌 Indicar o Diário de Patas</span><span className="caption">20 patinhas por amigo que entrar</span></span><IconChevron />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="share-app-title">
         <h2 id="share-app-title">Indicar o Diário de Patas</h2>

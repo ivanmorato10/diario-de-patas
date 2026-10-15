@@ -34,7 +34,7 @@ export function FamilyDiaries() {
   }
 
   return (
-    <section className="card stack" aria-labelledby="familias">
+    <section className="stack" aria-labelledby="familias">
       <h2 id="familias">Diários da família que você participa</h2>
       <ul className="dog-list" role="list" style={{ margin: 0 }}>
         {others.map((d) => (

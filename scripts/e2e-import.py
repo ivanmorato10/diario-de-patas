@@ -57,7 +57,7 @@ with sync_playwright() as p:
         pg.screenshot(path=os.path.join(tmp, "hoje-importado.png"), full_page=True)
         pg.goto(BASE + "/perfil"); pg.wait_for_timeout(1500)
         check("depois de importar, o cartão não aparece de novo", pg.get_by_role("heading", name="O diário de Luna está neste aparelho").count() == 0)
-        pg.goto(BASE + "/conta"); pg.get_by_label("Para confirmar").fill("EXCLUIR"); pg.get_by_role("button", name="Excluir minha conta").click(); pg.wait_for_timeout(4000)
+        pg.goto(BASE + "/conta"); pg.get_by_role("button", name="🗑️ Excluir minha conta").click(); pg.get_by_label("Para confirmar").fill("EXCLUIR"); pg.get_by_role("button", name="Excluir minha conta", exact=True).click(); pg.wait_for_timeout(4000)
         users = admin("GET", "users?per_page=200")["users"]
         check("conta de teste excluída", not any(u["email"] == email for u in users))
         print("print:", os.path.join(tmp, "hoje-importado.png"))
