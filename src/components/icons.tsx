@@ -20,6 +20,7 @@ export const IconCamera = (p: P) => (<Svg {...p}><path d="M4 8h3l2-3h6l2 3h3v11H
 export const IconImage = (p: P) => (<Svg {...p}><rect x="3" y="4" width="18" height="16" rx="3" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-9 9" /></Svg>);
 export const IconCheck = (p: P) => (<Svg {...p}><path d="m5 12.5 4.5 4.5L19 7.5" /></Svg>);
 export const IconLock = (p: P) => (<Svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>);
+export const IconUser = (p: P) => (<Svg {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></Svg>);
 export const IconArrowLeft = (p: P) => (<Svg {...p}><path d="M15 6l-6 6 6 6" /></Svg>);
 export const IconChevron = (p: P) => (<Svg {...p}><path d="m9 6 6 6-6 6" /></Svg>);
 export const IconRotate = (p: P) => (<Svg {...p}><path d="M20 11a8 8 0 1 0-2.3 5.7" /><path d="M20 4v7h-7" /></Svg>);

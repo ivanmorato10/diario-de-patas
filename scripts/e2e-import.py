@@ -55,9 +55,9 @@ with sync_playwright() as p:
               snap["dog"]["name"] == "Luna" and len(snap["entries"]) == 2 and snap["xpTotal"] == 10 and [a["title"] for a in snap["customAlbums"]] == ["Viagem à praia"] and len(snap["health"]["vaccines"]) == 1)
         check("legenda e álbum preservados", any(e["caption"] == "Soneca no sofá" for e in snap["entries"]) and any(x["albumId"].startswith("custom-") for x in snap["albumEntries"]))
         pg.screenshot(path=os.path.join(tmp, "hoje-importado.png"), full_page=True)
-        pg.goto(BASE + "/config"); pg.wait_for_timeout(1500)
+        pg.goto(BASE + "/perfil"); pg.wait_for_timeout(1500)
         check("depois de importar, o cartão não aparece de novo", pg.get_by_role("heading", name="O diário de Luna está neste aparelho").count() == 0)
-        pg.get_by_label("Para confirmar").fill("Luna"); pg.get_by_role("button", name="Excluir minha conta").click(); pg.wait_for_timeout(4000)
+        pg.goto(BASE + "/conta"); pg.get_by_label("Para confirmar").fill("EXCLUIR"); pg.get_by_role("button", name="Excluir minha conta").click(); pg.wait_for_timeout(4000)
         users = admin("GET", "users?per_page=200")["users"]
         check("conta de teste excluída", not any(u["email"] == email for u in users))
         print("print:", os.path.join(tmp, "hoje-importado.png"))

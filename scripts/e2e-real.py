@@ -98,12 +98,12 @@ with sync_playwright() as p:
     expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible()
     check("modo real: sem faixa de demonstração", a.locator(".demo-banner").count() == 0)
     try:
-        expect(a.locator("header .dog-switch .avatar img")).to_have_count(1, timeout=15000)
+        expect(a.locator("header a[href='/perfil'] .avatar img")).to_have_count(1, timeout=15000)
     except AssertionError:
         pass
     dog = rpc(a, "snapshot", {})[1]["dog"]
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=thumb').then(r => r.status)", dog["photoMediaId"]) if dog.get("photoMediaId") else None
-    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header .dog-switch .avatar img").count() == 1)
+    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header a[href='/perfil'] .avatar img").count() == 1)
     a.screenshot(path=f"{OUT}/01-hoje-A.png", full_page=True)
 
     a.get_by_role("link", name="Olá, mundo").first.click(); a.get_by_role("link", name="Enviar foto").click()
@@ -171,7 +171,9 @@ with sync_playwright() as p:
 
     # ---------- Conta B: não vê nem mexe em nada de A ----------
     # ---------- Indicar o app: B chega pelo link de A ----------
-    a.goto(BASE + "/config"); a.get_by_role("button", name=re.compile("Indicar o Diário de Patas")).click()
+    a.goto(BASE + "/hoje"); a.get_by_role("link", name="Minha conta").click(); a.wait_for_url("**/conta")
+    check("topo: botão de pessoa abre Minha conta", a.get_by_role("heading", name="Minha conta").is_visible())
+    a.get_by_role("button", name=re.compile("Indicar o Diário de Patas")).click()
     ref_input = a.get_by_label("Seu link de indicação"); expect(ref_input).to_be_visible(timeout=20000)
     ref_link = ref_input.input_value()
     check(f"link de indicação gerado ({ref_link.split('?')[-1]})", re.search(r"/\?ref=[A-Z2-9]{6}$", ref_link) is not None)
@@ -210,20 +212,20 @@ with sync_playwright() as p:
 
     # ---------- Foto de perfil: zoom e posição ----------
     rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
-    a.goto(BASE + "/config"); a.wait_for_timeout(1500)
+    a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
     # ---------- Família: convite com papel; quem recebe entra com a PRÓPRIA conta (email e senha) ----------
     expect(a.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
-    a.get_by_role("radio", name=re.compile("^Editar")).check()
+    a.get_by_role("radio", name=re.compile("^Pode adicionar momentos")).check()
     a.get_by_role("button", name="Gerar convite").click()
     code_el = a.locator(".invite-code__value"); expect(code_el).to_be_visible(timeout=20000)
     invite_code = code_el.inner_text().strip()
-    check(f"convite gerado com papel ({invite_code[:9]}…)", invite_code.startswith("PATA-") and len(invite_code) == 14 and a.get_by_text("Convite · Pode editar").is_visible())
+    check(f"convite gerado com papel ({invite_code[:9]}…)", invite_code.startswith("PATA-") and len(invite_code) == 14 and a.get_by_text("Convite · Pode adicionar momentos").is_visible())
     ctxI = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo")
     inv = ctxI.new_page(); inv.on("pageerror", lambda e: errors.append(str(e)))
     inv.goto(BASE + "/entrar"); inv.get_by_role("button", name=re.compile("Tenho um código de convite")).click()
     inv.get_by_label("Código").fill(invite_code); inv.get_by_role("button", name="Ver convite").click()
     inv.wait_for_url("**/convite?codigo=*")
-    check("convite mostra o cachorro e o papel antes de entrar", eventually(lambda t: expect(inv.get_by_role("heading", name=re.compile("convidou você para o diário de Luna"))).to_be_visible(timeout=t)) and inv.get_by_text("Pode editar").first.is_visible())
+    check("convite mostra o cachorro e o papel antes de entrar", eventually(lambda t: expect(inv.get_by_role("heading", name=re.compile("convidou você para o diário de Luna"))).to_be_visible(timeout=t)) and inv.get_by_text("Pode adicionar momentos").first.is_visible())
     inv.get_by_role("link", name="Já tenho conta").click()
     inv.get_by_role("button", name="Entrar com email").click()
     check("entrar com email pede senha e tem 'Esqueci minha senha'", eventually(lambda t: expect(inv.get_by_label("Senha", exact=True)).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Esqueci minha senha").is_visible())
@@ -262,7 +264,7 @@ with sync_playwright() as p:
     check("Ivan vê 'Bianca deu um ossinho'", eventually(lambda t: expect(a.locator(".letter-card").get_by_text("Bianca deu um ossinho")).to_be_visible(timeout=t)))
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)
-    a.goto(BASE + "/config")
+    a.goto(BASE + "/hoje"); a.get_by_role("link", name="Perfil de Luna").click(); a.wait_for_url("**/perfil")
     check("administrador vê a Bianca na família", eventually(lambda t: expect(a.get_by_text("Bianca (você)")).to_have_count(0, timeout=t)) and eventually(lambda t: expect(a.locator(".member").filter(has_text="Bianca")).to_have_count(1, timeout=t)))
     a.get_by_label("Papel de Bianca").select_option("viewer"); a.wait_for_timeout(2000)
     st, body = rpc(inv, "updateDog", {"name": "Invadido"})
@@ -271,24 +273,34 @@ with sync_playwright() as p:
     st2, _ = rpc(inv, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"'só ver' não escreve cartinha ({st}), mas dá ossinho ({st2})", st == 403 and st2 == 200)
     inv.goto(BASE + "/diario")
-    check("'só ver' mostra o aviso e esconde Guardar", eventually(lambda t: expect(inv.get_by_text(re.compile("Você está só vendo o diário de Luna"))).to_be_visible(timeout=t)) and not inv.get_by_role("link", name=re.compile("Guardar momento")).first.is_visible())
+    check("'só ver' mostra o aviso e esconde Guardar", eventually(lambda t: expect(inv.get_by_text(re.compile("Você está acompanhando o diário de Luna"))).to_be_visible(timeout=t)) and not inv.get_by_role("link", name=re.compile("Guardar momento")).first.is_visible())
     # Vários cachorros: A cria Pepe; Bianca não vê Pepe; créditos de Pepe são separados.
     st, _ = rpc(a, "createDiary", {"timezone": "America/Sao_Paulo", "name": "Pepe", "birthDate": None, "preferences": {"home": True, "outdoor": True, "people": True, "socialDogs": False}, "another": True})
     snapP = rpc(a, "snapshot", {})[1]
     credP = (rpc(a, "studioState", {})[1] or {}).get("balance")
     check(f"segundo cachorro com diário próprio ({st}, {snapP['dog']['name']}, {len(snapP.get('diaries') or [])} diários, créditos {credP})", st == 200 and snapP["dog"]["name"] == "Pepe" and len(snapP["diaries"]) == 2 and len(snapP["entries"]) == 0 and credP == 0)
     check("Bianca continua vendo só Luna", len(rpc(inv, "snapshot", {})[1].get("diaries") or []) == 1)
-    a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
-    check("seletor tem 'Adicionar cachorro'", a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
+    a.goto(BASE + "/hoje"); a.get_by_role("button", name=re.compile("Diário de Pepe")).click()
+    check("título 'Diário de Pepe ▾' abre Seus cachorros com 'Adicionar cachorro'", a.get_by_role("heading", name="Seus cachorros").is_visible() and a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
     a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")
     check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
+    # Apagar só um cachorro: só quem é responsável vê; apaga o Pepe e a conta continua com a Luna.
+    inv.goto(BASE + "/perfil"); expect(inv.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
+    check("quem acompanha não vê 'Apagar o diário'", inv.get_by_role("heading", name=re.compile("Apagar o diário")).count() == 0)
+    a.get_by_role("button", name=re.compile("Diário de Luna")).click(); a.get_by_role("button", name=re.compile("^Pepe")).click(); a.wait_for_url("**/hoje")
+    expect(a.get_by_role("heading", name=re.compile("Diário de Pepe"))).to_be_visible(timeout=20000)
+    a.get_by_role("link", name="Perfil de Pepe").click(); a.wait_for_url("**/perfil")
+    a.get_by_label("Para confirmar").fill("Pepe"); a.get_by_role("button", name="Apagar o diário de Pepe").click()
+    a.wait_for_url(lambda u: "/perfil" not in u, timeout=30000)
+    snapAfter = rpc(a, "snapshot", {})[1]
+    check(f"apagar só o Pepe: conta continua com a Luna ({[d['name'] for d in snapAfter.get('diaries') or []]})", [d["name"] for d in snapAfter.get("diaries") or []] == ["Luna"] and snapAfter["dog"]["name"] == "Luna")
     ctxI.close()
-    a.goto(BASE + "/config"); a.wait_for_timeout(1500)
+    a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
     a.get_by_role("button", name="Ajustar zoom e posição").click()
     check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
     a.get_by_label("Zoom").fill("2.2")
     a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(300)
-    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header .dog-switch .avatar img").get_attribute("style") or ""))
+    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header a[href='/perfil'] .avatar img").get_attribute("style") or ""))
     a.wait_for_timeout(2500)
     saved = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"ajuste da foto de perfil salvo pela tela ({saved})", abs(float(saved.get("zoom", 0)) - 2.2) < 0.01)
@@ -301,7 +313,7 @@ with sync_playwright() as p:
     dragged = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"arrastar e fechar a janela salva a posição ({dragged})", abs(float(dragged.get("x", 40)) - 40) > 1 and abs(float(dragged.get("zoom", 0)) - 2.2) < 0.01)
     a.reload(); a.wait_for_timeout(2000)
-    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header .dog-switch .avatar img").get_attribute("style") or ""))
+    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header a[href='/perfil'] .avatar img").get_attribute("style") or ""))
 
     # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
     a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)
@@ -324,7 +336,7 @@ with sync_playwright() as p:
     check("página compartilhada sem dados de saúde, email ou noindex ausente",
           "V10" not in html and emails["A"] not in html and 'name="robots" content="noindex' in html)
     img_url = v.evaluate("() => document.querySelector('figure img').src")
-    a.goto(BASE + "/config"); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
+    a.goto(BASE + "/perfil"); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
     v.goto(share_url)
     st = v.evaluate("u => fetch(u).then(r => r.status)", img_url)
     av_after = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")
@@ -333,7 +345,7 @@ with sync_playwright() as p:
     ctxV.close()
 
     # ---------- Sair e entrar de novo ----------
-    a.goto(BASE + "/config"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/entrar")
+    a.goto(BASE + "/conta"); a.get_by_role("button", name="Sair da conta").click(); a.wait_for_url("**/entrar")
     a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
     login(a, "A"); a.goto(BASE + "/hoje")
     check("dados persistem depois de sair e entrar",
@@ -341,7 +353,7 @@ with sync_playwright() as p:
 
     # ---------- Excluir as contas (pela tela) ----------
     for page, name in [(b, "Thor"), (a, "Luna")]:
-        page.goto(BASE + "/config"); page.get_by_label("Para confirmar").fill(name)
+        page.goto(BASE + "/conta"); page.get_by_label("Para confirmar").fill("EXCLUIR")
         page.get_by_role("button", name="Excluir minha conta").click(); page.wait_for_timeout(4000)
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=display').then(r => r.status)", mediaA)
     check(f"conta excluída: foto de A não abre mais ({st})", st in (401, 404))

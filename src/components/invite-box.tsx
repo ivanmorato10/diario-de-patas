@@ -42,8 +42,8 @@ export function InviteBox({ dogName }: { dogName: string }) {
     <div className="invite-box">
       <fieldset className="invite-box__roles">
         <legend className="caption">A pessoa vai poder:</legend>
-        <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span><strong>Editar</strong> · guardar fotos, missões e cuidados</span></label>
-        <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span><strong>Só ver</strong> · sem alterar nada</span></label>
+        <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span><strong>Pode adicionar momentos</strong> · fotos, cartinhas e cuidados</span></label>
+        <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span><strong>Pode acompanhar</strong> · vê tudo e dá ossinho, sem alterar</span></label>
       </fieldset>
       <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate}>{busy ? "Gerando…" : "Gerar convite"}</button>
       {msg ? <p className="small" role="status">{msg}</p> : null}

@@ -615,6 +615,20 @@ export async function exportMetadata(ctx: Ctx) {
   return { exportedAt: now(), mode: "conta", profile: s.profile, dog: s.dog && { ...s.dog, photoMediaId: undefined }, entries: s.entries.map(({ requestKey: _r, ...e }: any) => e), albums: s.albumEntries, customAlbums: s.customAlbums, achievements: s.completions, medals: s.medals, collectionAdvances: s.collectionAdvances, xpTotal: s.xpTotal, health: s.health };
 }
 
+/** Apagar só um diário (um cachorro): só o responsável, confirmando o nome. Vale para a família toda. */
+export async function deleteDiary(ctx: Ctx, args: unknown) {
+  const { confirmName } = parse(z.object({ confirmName: z.string() }), args);
+  const dog = await dogOf(ctx);
+  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "Só quem é responsável pelo diário pode apagá-lo.");
+  if (confirmName.trim() !== dog.name) throw bad("CONFIRM", `Digite o nome ${dog.name} para confirmar.`);
+  const admin = adminClient();
+  await q(admin.rpc("prepare_dog_deletion", { p_dog: dog.id }));
+  await processCleanup(500);
+  await q(admin.from("dogs").delete().eq("id", dog.id));
+  forgetDog(ctx);
+  return {};
+}
+
 /** Exclusão de conta (§8.2): corta acesso, revoga links, cancela jobs e apaga os arquivos dos buckets. */
 export async function deleteAccount(ctx: Ctx) {
   const admin = adminClient();
@@ -721,7 +735,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
   achadinhosInfo: () => achadinhosInfo(),
-  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, createInvite, acceptInvite, updateMember, removeMember,
+  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

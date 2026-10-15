@@ -2,7 +2,7 @@
 import type { DiaryRole } from "@/domain/types";
 import { rpc } from "./real-repository";
 
-export const ROLE_PT: Record<DiaryRole, string> = { admin: "Administrador", editor: "Pode editar", viewer: "Só ver" };
+export const ROLE_PT: Record<DiaryRole, string> = { admin: "Responsável pelo diário", editor: "Pode adicionar momentos", viewer: "Pode acompanhar" };
 
 export const switchDog = (dogId: string) => rpc("switchDog", { dogId });
 export const createInvite = (role: "editor" | "viewer") => rpc<{ code: string; role: DiaryRole; expiresAt: string; dogName: string }>("createInvite", { role });

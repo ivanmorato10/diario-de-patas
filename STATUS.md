@@ -188,6 +188,14 @@ Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com fatura
 - Quando o amigo (conta nova) cria o diário e guarda a primeira foto, o cachorro de quem indicou ganha 20 patinhas (contam no presente do mês). Uma vez por amigo, até 5 por mês. Só quem indica ganha.
 - Banco: `20261028000000_referrals.sql` (aplicada). Testes: `supabase/tests/referrals.sql` e e2e-real.
 
+## Perfil x Minha conta, cartinhas e ossinho (14/10/2026)
+- Topo: 👤 → Minha conta (/conta: nome, forma de entrar, fuso, indicar, Achadinhos, Sobre, instalar, sair, excluir conta digitando EXCLUIR); foto do cachorro → Perfil de Pepe (/perfil: foto, nome, aniversário, rotina, patinhas, família, links, Seus cachorros, Apagar o diário de Pepe só para o responsável). /config redireciona para /perfil.
+- Trocar de cachorro: título "Diário de Pepe ▾" no Hoje (com 2+ cachorros) e "Seus cachorros" no Perfil.
+- Papéis: Responsável pelo diário / Pode adicionar momentos / Pode acompanhar.
+- "Como a família te chama?" (profiles.name_confirmed): em "Qual é o seu caso?", ao aceitar convite, no Hoje com família e na primeira cartinha; mudar em Minha conta.
+- Cartinhas (Diário: "💌 Escrever cartinha", filtro Cartinhas; papel de carta sem patinha) e ossinho 🦴 (curtir da família, só com 2+ pessoas, não na própria).
+- Banco: `20261029000000_letters.sql` (letters, bones, name_confirmed, prepare_dog_deletion). Testes: `supabase/tests/letters.sql` e e2e-real.
+
 ## Próximo passo
 
 MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).

@@ -11,7 +11,7 @@ import { Paw } from "@/components/icons";
 export default function Sobre() {
   return (
     <>
-      <TopBar title="Sobre" back="/config" />
+      <TopBar title="Sobre" back="/conta" />
       <main className="main">
         <section className="stack-lg" aria-labelledby="historia">
           <div className="achados-hero">

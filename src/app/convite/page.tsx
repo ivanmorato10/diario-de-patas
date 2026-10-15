@@ -82,7 +82,7 @@ function Convite() {
         ) : (
           <div className="stack">
             <h1 className="sp-sheet__title">{info.invitedBy} convidou você para o diário de {info.dogName}</h1>
-            <p className="invite-role"><Paw size={16} /> Seu papel: <strong>{ROLE_PT[info.role]}</strong>{info.role === "editor" ? " (guardar fotos, missões e cuidados)" : " (ver tudo, sem alterar)"}</p>
+            <p className="invite-role"><Paw size={16} /> Seu papel: <strong>{ROLE_PT[info.role]}</strong>{info.role === "editor" ? " (fotos, cartinhas e cuidados)" : " (vê tudo e dá ossinho, sem alterar)"}</p>
             {logged ? (
               <>
               <div className="field">

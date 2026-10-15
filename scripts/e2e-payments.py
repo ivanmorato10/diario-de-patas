@@ -61,7 +61,7 @@ with sync_playwright() as p:
     check("pagar de novo não dá crédito em dobro", rpc("studioState", {})[1]["balance"] == after)
     check("histórico mostra a compra paga", shop["purchases"][0]["status"] == "approved" and pg.get_by_text("Pago").count() >= 1)
 
-    pg.goto(BASE + "/config"); pg.get_by_label("Para confirmar").fill("Luna"); pg.get_by_role("button", name="Excluir minha conta").click(); pg.wait_for_timeout(4000)
+    pg.goto(BASE + "/conta"); pg.get_by_label("Para confirmar").fill("EXCLUIR"); pg.get_by_role("button", name="Excluir minha conta").click(); pg.wait_for_timeout(4000)
     check("conta de teste excluída (compras junto)", not any(u["email"] == email for u in admin("GET", "users?per_page=200")["users"]))
     check(f"sem erros de página ({errors[:2]})", not errors)
     b.close()

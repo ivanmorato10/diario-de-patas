@@ -45,10 +45,10 @@ export function forgetDog(ctx: Ctx) {
 }
 
 export function requireEditor(dog: CurrentDog) {
-  if (dog.role === "viewer") throw new HttpError(403, "VIEW_ONLY", "Você pode só ver este diário. Peça para o administrador mudar seu papel se quiser editar.");
+  if (dog.role === "viewer") throw new HttpError(403, "VIEW_ONLY", "Você está acompanhando este diário. Para adicionar momentos, peça para quem é responsável mudar seu papel.");
 }
 export function requireAdmin(dog: CurrentDog) {
-  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "Só o administrador do diário pode fazer isso.");
+  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "Só quem é responsável pelo diário pode fazer isso.");
 }
 
 /** Nome para mostrar ("guardada por Bianca"): perfil, metadados do login ou o começo do email. */
@@ -156,7 +156,7 @@ export async function updateMember(ctx: Ctx, args: unknown) {
   const admin = adminClient();
   if (a.userId === ctx.user.id && a.role !== "admin") {
     const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
-    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "O diário precisa de pelo menos um administrador.");
+    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "O diário precisa de pelo menos uma pessoa responsável.");
   }
   await admin.from("dog_members").update({ role: a.role }).eq("dog_id", dog.id).eq("user_id", a.userId);
   return {};
@@ -171,7 +171,7 @@ export async function removeMember(ctx: Ctx, args: unknown) {
   if (a.userId === dog.owner_id) throw bad("OWNER", "Quem criou o diário não pode ser removido. Para encerrar, exclua o diário.");
   if (self && dog.role === "admin") {
     const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
-    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "Você é o único administrador. Passe o papel para alguém antes de sair.");
+    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "Você é a única pessoa responsável. Passe esse papel para alguém antes de sair.");
   }
   await admin.from("dog_members").delete().eq("dog_id", dog.id).eq("user_id", a.userId);
   if (self) {

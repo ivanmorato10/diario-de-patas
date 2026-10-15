@@ -1,31 +1,30 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { ROLE_PT, switchDog } from "@/data/family-client";
-import type { Dog } from "@/domain/types";
+import { REAL_MODE } from "@/config/mode";
 import { Sheet } from "./entry-actions";
 import { DogAvatar } from "./media";
 
-/** Foto do cachorro no topo: abre a troca de diário (vários cachorros), a família e os ajustes. */
-export function DogSwitcher({ dog }: { dog: Dog }) {
+/** Lista "Seus cachorros": trocar de cachorro (não troca a conta) e "+ Adicionar cachorro". */
+export function DogList({ onDone }: { onDone?: () => void }) {
   const { snap, reload } = useStore();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const current = snap?.dog?.id;
   const diaries = snap?.diaries ?? [];
 
   async function pick(id: string) {
-    if (id === dog.id) return setOpen(false);
+    if (id === current) return onDone?.();
     setBusy(id);
     setError(null);
     try {
       await switchDog(id);
       await reload();
-      setOpen(false);
+      onDone?.();
       router.push("/hoje");
     } catch {
       setError("Não deu para trocar agora. Tente de novo.");
@@ -34,32 +33,42 @@ export function DogSwitcher({ dog }: { dog: Dog }) {
     }
   }
 
-  const go = (href: string) => { setOpen(false); router.push(href); };
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <ul className="dog-list" role="list">
+        {diaries.map((d) => (
+          <li key={d.id}>
+            <button type="button" className={`dog-list__item${d.id === current ? " dog-list__item--on" : ""}`} onClick={() => pick(d.id)} disabled={!!busy} aria-current={d.id === current ? "true" : undefined}>
+              <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} />
+              <span className="dog-list__text"><strong>{d.name}</strong><span className="caption">{ROLE_PT[d.role]}</span></span>
+              <span className="dog-list__mark" aria-hidden="true">{busy === d.id ? "…" : d.id === current ? "✓" : ""}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {error ? <p className="field-error" role="alert">{error}</p> : null}
+      <button type="button" className="btn btn--secondary btn--block" onClick={() => { onDone?.(); router.push("/adicionar"); }}>+ Adicionar cachorro</button>
+    </div>
+  );
+}
 
+/** Título "Diário de Pepe ▾" do Hoje: com mais de um cachorro, abre "Seus cachorros". */
+export function DogTitle({ name }: { name: string }) {
+  const { snap } = useStore();
+  const [open, setOpen] = useState(false);
+  const many = REAL_MODE && (snap?.diaries?.length ?? 0) > 1;
+  if (!many) return <h1 id="dog-title" className="hoje-title">Diário de {name}</h1>;
   return (
     <>
-      <button type="button" className="dog-switch" onClick={() => setOpen(true)} aria-label={`Trocar de diário ou ajustes (${dog.name})`} aria-haspopup="dialog">
-        <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
-        {diaries.length > 1 ? <span className="dog-switch__count" aria-hidden="true">{diaries.length}</span> : null}
-      </button>
+      <h1 id="dog-title" className="hoje-title">
+        <button type="button" className="dog-title-btn" onClick={() => setOpen(true)} aria-haspopup="dialog">
+          Diário de {name} <span className="dog-title-btn__arrow" aria-hidden="true">▾</span><span className="sr-only"> (trocar de cachorro)</span>
+        </button>
+      </h1>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="dogs-title">
-        <h2 id="dogs-title">Seus diários</h2>
-        <ul className="dog-list" role="list">
-          {diaries.map((d) => (
-            <li key={d.id}>
-              <button type="button" className={`dog-list__item${d.id === dog.id ? " dog-list__item--on" : ""}`} onClick={() => pick(d.id)} disabled={!!busy} aria-current={d.id === dog.id ? "true" : undefined}>
-                <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} />
-                <span className="dog-list__text"><strong>{d.name}</strong><span className="caption">{ROLE_PT[d.role]}</span></span>
-                <span className="dog-list__mark" aria-hidden="true">{busy === d.id ? "…" : d.id === dog.id ? "✓" : ""}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {error ? <p className="field-error" role="alert">{error}</p> : null}
-        <div className="stack" style={{ gap: 8 }}>
-          <button type="button" className="btn btn--secondary btn--block" onClick={() => go("/adicionar")}>+ Adicionar cachorro</button>
-          <Link href="/config" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>⚙️ Perfil de {dog.name} e ajustes</Link>
-        </div>
+        <h2 id="dogs-title">Seus cachorros</h2>
+        <DogList onDone={() => setOpen(false)} />
+        <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 8 }} onClick={() => setOpen(false)}>Fechar</button>
       </Sheet>
     </>
   );

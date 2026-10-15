@@ -905,3 +905,7 @@ a.choice-card:active { transform: translateY(1px); }
 .letter-card__input { display: block; width: 100%; min-height: 256px; border: 0; background: transparent; resize: vertical; padding: 0; outline: none; }
 .letter-card__input::placeholder { color: #b9a68c; }
 .letter-card--edit:focus-within { border-color: var(--brand-teal); }
+.dog-title-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; text-align: left; }
+.dog-title-btn__arrow { font-family: var(--font-body); font-size: 0.55em; color: var(--link); }
+.topbar__actions { display: flex; align-items: center; gap: 8px; }
+.topbar__person { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface, #fff); border: 1.5px solid var(--border); color: var(--text-primary); }

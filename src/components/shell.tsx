@@ -5,9 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useStore } from "@/data/store";
 import { REAL_MODE } from "@/config/mode";
-import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun } from "./icons";
+import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun, IconUser } from "./icons";
 import { DogAvatar } from "./media";
-import { DogSwitcher } from "./dog-switcher";
 import { AbuFace, BrandLockup } from "./brand";
 
 const NAV = [
@@ -51,9 +50,11 @@ export function BottomNav() {
 /** Emoji ao lado do título de cada tela (identidade rápida das abas). */
 const TITLE_EMOJI: Record<string, string> = {
   "Diário": "📖", "Álbuns": "🖼️", "Cuidados": "🩺", "Estúdio": "🎨", "Missões": "⭐", "Perfil e ajustes": "⚙️", "Créditos": "🪙",
-  "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
+  "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Minha conta": "👤", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
   "Contatos": "📞", "Documentos": "📄", "Peso": "⚖️", "Guardar momento": "📸", "Cartinha": "💌",
 };
+
+const emojiFor = (title: string) => TITLE_EMOJI[title] ?? (title.startsWith("Perfil de ") ? "🐶" : undefined);
 
 export function TopBar({ title, back }: { title?: string; back?: string }) {
   const { snap } = useStore();
@@ -65,7 +66,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
   }, [snap?.role]);
   return (
     <>
-    {viewer && dog ? <div className="viewer-banner" role="note">👀 Você está só vendo o diário de {dog.name}.</div> : null}
+    {viewer && dog ? <div className="viewer-banner" role="note">👀 Você está acompanhando o diário de {dog.name}.</div> : null}
     <header className="topbar">
       <div className="topbar__inner">
         <div className="row" style={{ gap: 8, minWidth: 0 }}>
@@ -74,14 +75,15 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
           ) : (
             <Link href="/hoje" aria-label="Diário de Patas — início" style={{ display: "inline-flex" }}>{title ? <AbuFace size={38} className="brand-lockup__face" /> : <BrandLockup />}</Link>
           )}
-          {title ? <h1 className="topbar__title">{TITLE_EMOJI[title] ? <span className="topbar__emoji" aria-hidden="true">{TITLE_EMOJI[title]}</span> : null}<span className="topbar__text">{title}</span></h1> : null}
+          {title ? <h1 className="topbar__title">{emojiFor(title) ? <span className="topbar__emoji" aria-hidden="true">{emojiFor(title)}</span> : null}<span className="topbar__text">{title}</span></h1> : null}
         </div>
         {dog ? (
-          REAL_MODE ? <DogSwitcher dog={dog} /> : (
-            <Link href="/config" aria-label={`Perfil e configurações de ${dog.name}`} style={{ borderRadius: "50%" }}>
+          <div className="topbar__actions">
+            <Link href="/conta" className="topbar__person" aria-label="Minha conta"><IconUser size={20} /></Link>
+            <Link href="/perfil" aria-label={`Perfil de ${dog.name}`} style={{ borderRadius: "50%" }}>
               <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
             </Link>
-          )
+          </div>
         ) : null}
       </div>
     </header>

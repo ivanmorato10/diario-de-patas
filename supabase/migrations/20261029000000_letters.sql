@@ -53,3 +53,23 @@ drop trigger if exists letters_bones_cleanup on public.letters;
 create trigger letters_bones_cleanup after delete on public.letters for each row execute function public.bones_cleanup('letter');
 drop trigger if exists entries_bones_cleanup on public.diary_entries;
 create trigger entries_bones_cleanup after delete on public.diary_entries for each row execute function public.bones_cleanup('entry');
+
+-- Apagar só um diário (um cachorro), sem excluir a conta: mesmo cuidado da exclusão de conta
+-- (revoga links, cancela artes em andamento e põe os arquivos na fila de limpeza dos buckets).
+create or replace function public.prepare_dog_deletion(p_dog uuid) returns integer
+language plpgsql security definer set search_path = public as $$
+declare n integer;
+begin
+  update share_links set revoked_at = now() where dog_id = p_dog and revoked_at is null;
+  update generation_jobs set state = 'cancelled', updated_at = now() where dog_id = p_dog and state in ('queued', 'processing');
+  insert into storage_cleanup (bucket, object_key, reason)
+    select 'media', k, 'dog_deleted' from media_assets m, lateral (values (m.private_storage_key), (m.thumb_storage_key)) v(k) where m.dog_id = p_dog and k is not null
+    union all
+    select 'documents', k, 'dog_deleted' from documents d, lateral (values (d.private_storage_key), (d.thumb_storage_key)) v(k) where d.dog_id = p_dog and k is not null;
+  get diagnostics n = row_count;
+  update media_assets set status = 'deleted' where dog_id = p_dog;
+  update documents set status = 'deleted' where dog_id = p_dog;
+  update profiles set current_dog_id = null where current_dog_id = p_dog;
+  return n;
+end $$;
+revoke all on function public.prepare_dog_deletion(uuid) from public, anon, authenticated;

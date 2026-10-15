@@ -34,7 +34,7 @@ function Cartinha() {
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
-  if (snap.role === "viewer") return (<><TopBar title="Cartinha" back="/diario" /><main className="main"><p className="page-note">Você pode só ver o diário de {dog.name}. Para escrever cartinhas, peça para o administrador mudar seu papel para “Pode editar”.</p></main></>);
+  if (snap.role === "viewer") return (<><TopBar title="Cartinha" back="/diario" /><main className="main"><p className="page-note">Você está acompanhando o diário de {dog.name}. Para escrever cartinhas, peça para quem é responsável pelo diário mudar seu papel para “Pode adicionar momentos”.</p></main></>);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
