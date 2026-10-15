@@ -170,8 +170,16 @@ with sync_playwright() as p:
           len(snapA["entries"]) == 2 and snapA["xpTotal"] == 10 and len(snapA["customAlbums"]) == 1 and len(snapA["health"]["vaccines"]) == 1 and len(snapA["health"]["documents"]) == 1)
 
     # ---------- Conta B: não vê nem mexe em nada de A ----------
+    # ---------- Indicar o app: B chega pelo link de A ----------
+    a.goto(BASE + "/config"); a.get_by_role("button", name=re.compile("Indicar o Diário de Patas")).click()
+    ref_input = a.get_by_label("Seu link de indicação"); expect(ref_input).to_be_visible(timeout=20000)
+    ref_link = ref_input.input_value()
+    check(f"link de indicação gerado ({ref_link.split('?')[-1]})", re.search(r"/\?ref=[A-Z2-9]{6}$", ref_link) is not None)
+    a.keyboard.press("Escape")
+    xpA_before = rpc(a, "snapshot", {})[1]["xpTotal"]
     ctxB = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo")
     b = ctxB.new_page(); b.on("pageerror", lambda e: errors.append(str(e)))
+    b.goto(ref_link.replace(ref_link.split("/?")[0], BASE)); b.wait_for_url("**/entrar")
     login(b, "B")
     b.goto(BASE + "/comecar"); b.get_by_label("Nome do cachorro").fill("Thor"); b.get_by_role("button", name="Criar meu diário").click(); b.wait_for_url("**/hoje", timeout=30000)
     snapB = rpc(b, "snapshot", {})[1]
@@ -189,6 +197,14 @@ with sync_playwright() as p:
     st, body = rpc(b, "addEntriesToAlbum", {"albumId": snapA["customAlbums"][0]["id"], "entryIds": [entryA["id"]]})
     check(f"B não mexe no álbum de A ({st})", st == 400)
     st, body = rpc(b, "deleteDocument", {"id": docA})
+    # B guarda a primeira foto no próprio diário: confirma a indicação e o cachorro de A ganha 20 patinhas.
+    b.goto(BASE + "/guardar"); b.locator("input[type=file][multiple]").set_input_files(photo(5))
+    b.get_by_role("button", name="Guardar foto").click(); expect(b.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
+    xpA_after = rpc(a, "snapshot", {})[1]["xpTotal"]
+    check(f"indicação confirmada: Luna ganhou 20 patinhas ({xpA_before} → {xpA_after})", xpA_after == xpA_before + 20)
+    b.goto(BASE + "/guardar"); b.locator("input[type=file][multiple]").set_input_files(photo(6))
+    b.get_by_role("button", name="Guardar foto").click(); expect(b.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
+    check("a indicação só conta uma vez", rpc(a, "snapshot", {})[1]["xpTotal"] == xpA_after)
     after = rpc(a, "snapshot", {})[1]
     check("dados de A intactos depois das tentativas de B", len(after["entries"]) == 2 and after["entries"][0]["caption"] != "invadido" and len(after["health"]["documents"]) == 1)
 
@@ -300,7 +316,7 @@ with sync_playwright() as p:
     a.goto(BASE + "/hoje"); check("depois de sair, o app pede login", "/entrar" in a.url)
     login(a, "A"); a.goto(BASE + "/hoje")
     check("dados persistem depois de sair e entrar",
-          eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)) and eventually(lambda t: expect(a.get_by_text("10 patinhas").first).to_be_visible(timeout=t)))
+          eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)) and eventually(lambda t: expect(a.get_by_text("30 patinhas").first).to_be_visible(timeout=t)))
 
     # ---------- Excluir as contas (pela tela) ----------
     for page, name in [(b, "Thor"), (a, "Luna")]:

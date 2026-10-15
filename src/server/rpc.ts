@@ -22,6 +22,7 @@ import { adminClient, HttpError } from "./supabase";
 import { after } from "next/server";
 import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
+import { attachReferral, confirmReferral, referralInfo } from "./referrals";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
 import { achadinhosInfo } from "./amazon";
@@ -231,6 +232,7 @@ export async function createDiary(ctx: Ctx, args: unknown) {
   await q(admin.from("profiles").update({ current_dog_id: created.id }).eq("user_id", ctx.user.id));
   // 3 créditos de boas-vindas: uma vez por pessoa, no primeiro diário criado.
   await q(admin.rpc("grant_welcome_credits", { p_owner: ctx.user.id, p_dog: created.id, p_amount: Number(process.env.STUDIO_TEST_CREDITS || 3) }));
+  if (!existing) await attachReferral(ctx); // primeiro diário de alguém que chegou por indicação
   forgetDog(ctx);
   return toDog(created);
 }
@@ -301,6 +303,7 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
     occurred_date: a.occurredDate, timezone: profile?.timezone ?? "America/Sao_Paulo", source: a.source === "mission" ? "free" : a.source, request_key: a.requestKey,
   }).select("*").single()) as any;
   await setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false);
+  if (dog.owner_id === ctx.user.id) await confirmReferral(ctx); // primeira foto no próprio diário confirma a indicação
   return toEntry(row, null);
 }
 
@@ -709,7 +712,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
   achadinhosInfo: () => achadinhosInfo(),
-  switchDog, createInvite, acceptInvite, updateMember, removeMember,
+  switchDog, referralInfo: (c) => referralInfo(c), createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

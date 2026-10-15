@@ -13,6 +13,7 @@ import { ImportDemoCard } from "@/components/import-demo";
 import { InstallAppLink } from "@/components/install-app";
 import { AvatarCropSheet } from "@/components/avatar-crop";
 import { FamilySection } from "@/components/family-section";
+import { ShareApp } from "@/components/share-app";
 import { isCivilDate, isValidTimezone } from "@/domain/dates";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -173,6 +174,7 @@ export default function Config() {
 
         <section className="stack" aria-labelledby="dados">
           <h2 id="dados">Mais</h2>
+          {REAL_MODE ? <ShareApp /> : null}
           <Link href="/achadinhos" className="card row-between" style={{ padding: 16 }}><span>🛍️ Achadinhos do Abu</span><IconChevron /></Link>
           <Link href="/sobre" className="card row-between" style={{ padding: 16 }}><span>🐾 Sobre o Diário de Patas</span><IconChevron /></Link>
           <InstallAppLink />

@@ -7,10 +7,22 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { REAL_MODE, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
 import { isPublicPath } from "@/config/routes";
+import { REFERRAL_COOKIE, isReferralCode } from "@/config/referrals";
 
+
+/** Link de indicação (?ref=CODIGO): guarda o código por 30 dias, até a pessoa criar o diário. */
+function keepReferral(request: NextRequest, res: NextResponse) {
+  const ref = request.nextUrl.searchParams.get("ref")?.toUpperCase();
+  if (ref && isReferralCode(ref)) res.cookies.set(REFERRAL_COOKIE, ref, { path: "/", maxAge: 30 * 86_400, sameSite: "lax", secure: true, httpOnly: true });
+  return res;
+}
 
 export async function proxy(request: NextRequest) {
   if (!REAL_MODE) return NextResponse.next();
+  return keepReferral(request, await route(request));
+}
+
+async function route(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supa = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
