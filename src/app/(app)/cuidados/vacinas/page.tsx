@@ -6,7 +6,7 @@ import { useState } from "react";
 import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/components/document-ui";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
-import { DueBadge, HealthDisclaimer } from "@/components/health-ui";
+import { DueBadge } from "@/components/health-ui";
 import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
 import { IconPlus } from "@/components/icons";
 import { formatCivilDate } from "@/domain/dates";
@@ -76,7 +76,6 @@ export default function Vacinas() {
             );
           })}
         </ul>
-        <HealthDisclaimer />
       </main>
 
       <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Editar registro" : "Novo registro"} onSubmit={submit} busy={busy} error={error}>

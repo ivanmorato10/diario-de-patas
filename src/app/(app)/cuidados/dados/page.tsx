@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
-import { HealthDisclaimer } from "@/components/health-ui";
 import { Field, useCareMutation } from "@/components/care-forms";
 import { useStore } from "@/data/store";
 import type { HealthProfileData } from "@/domain/health";
@@ -32,7 +31,7 @@ export default function DadosDoCachorro() {
     <>
       <TopBar title={`Dados de ${snap.dog.name}`} back="/cuidados" />
       <main className="main">
-        <p className="page-note">Tudo opcional. Preencha o que fizer sentido — dá para mudar quando quiser.</p>
+        
         <form className="stack-lg" onSubmit={async (e) => { e.preventDefault(); setSaved(await run(() => repo!.saveHealthProfile(form))); }} noValidate>
           <Field id="breed" label="Raça" optional value={form.breed} onChange={(v) => set({ breed: v })} maxLength={60} placeholder="Ex.: SRD, Poodle…" />
           <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -59,7 +58,6 @@ export default function DadosDoCachorro() {
           {saved ? <p className="notice notice--positive" role="status">Dados salvos.</p> : null}
           <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? "Salvando…" : "Salvar dados"}</button>
         </form>
-        <HealthDisclaimer />
       </main>
     </>
   );

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
-import { HealthDisclaimer, WeightChart } from "@/components/health-ui";
+import { WeightChart } from "@/components/health-ui";
 import { DeleteSheet, Field, RowActions, useCareMutation } from "@/components/care-forms";
 import { formatCivilDate } from "@/domain/dates";
 import type { WeightRecord } from "@/domain/health";
@@ -60,7 +60,6 @@ export default function Peso() {
           {error ? <p className="field-error" role="alert">{error}</p> : null}
           <button type="submit" className="btn btn--primary btn--block" disabled={busy}>Adicionar peso</button>
         </form>
-        <HealthDisclaimer />
       </main>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este peso?" text={toDelete ? `${fmt(toDelete.kg)} kg em ${formatCivilDate(toDelete.date)}.` : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("weights", toDelete.id)))) setToDelete(null); }} />

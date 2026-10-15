@@ -126,7 +126,7 @@ export function DocumentFileInput({
         {value.length ? <span className="caption" style={{ overflowWrap: "anywhere" }}>{value.map((v) => v.name).join(", ")}</span> : null}
       </div>
       <input ref={ref} type="file" hidden multiple={multiple} accept="application/pdf,image/jpeg,image/png,image/webp" onChange={handle} data-testid={`docfile-${label}`} />
-      <span className="hint">PDF, JPEG, PNG ou WebP até 10 MB. Fotos têm a localização removida.</span>
+      <details className="tiny-details"><summary>Que arquivos posso usar?</summary><span className="hint">PDF, JPEG, PNG ou WebP até 10 MB. Fotos têm a localização removida.</span></details>
       {error ? <p className="field-error" role="alert">{error}</p> : null}
     </div>
   );

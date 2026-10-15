@@ -16,7 +16,8 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
   const bones = (snap.bones ?? []).filter((b) => b.targetType === targetType && b.targetId === targetId);
   const mine = bones.some((b) => b.userId === me);
   const own = !!authorId && authorId === me;
-  const text = bonesText(bones, snap.members ?? [], me);
+  // Como no Instagram: o ossinho aceso já mostra que você deu; o texto cita só as outras pessoas.
+  const text = bonesText(bones.filter((b) => b.userId !== me), snap.members ?? [], me);
   if (own && !bones.length) return null;
 
   async function toggle() {
@@ -29,11 +30,11 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
   return (
     <div className="bone-bar">
       {!own ? (
-        <button type="button" className={`bone-btn${mine ? " is-on" : ""}`} onClick={toggle} disabled={busy} aria-pressed={mine}>
-          <span aria-hidden="true">🦴</span> {mine ? "Ossinho dado" : "Dar ossinho"}
+        <button type="button" className={`bone-btn${mine ? " is-on" : ""}`} onClick={toggle} disabled={busy} aria-pressed={mine} aria-label={mine ? "Tirar ossinho" : "Dar ossinho"}>
+          <span aria-hidden="true">🦴</span>
         </button>
       ) : null}
-      {text ? <span className="caption bone-bar__who">🦴 {text}</span> : null}
+      {text ? <span className="caption bone-bar__who">{text}</span> : null}
     </div>
   );
 }

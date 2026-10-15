@@ -4,7 +4,7 @@ import { CarePdfButton } from "@/components/care-pdf-button";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
-import { HealthDisclaimer, UpcomingCareCard } from "@/components/health-ui";
+import { UpcomingCareCard } from "@/components/health-ui";
 import { IconChevron } from "@/components/icons";
 import { formatCivilDate } from "@/domain/dates";
 import { dueStatus, latestVaccines, medicationActive, upcomingCare } from "@/domain/health";
@@ -39,7 +39,6 @@ export default function Cuidados() {
       <TopBar title="Cuidados" />
       <main className="main">
         <CarePdfButton />
-        <HealthDisclaimer />
         <UpcomingCareCard items={care} today={today} />
         <nav aria-label="Áreas de cuidados" className="stack">
           {areas.map((a) => (
@@ -53,7 +52,7 @@ export default function Cuidados() {
           ))}
         </nav>
         {/* Antes dizia "só neste aparelho" e "exportação" (errado com conta). Detalhes ficam em Sobre › Privacidade. */}
-        <p className="caption">Os cuidados de {dog.name} são privados e nunca aparecem em links compartilhados.</p>      </main>
+        <p className="caption">Privado, só da família. As anotações não substituem o veterinário; em emergência, procure atendimento.</p>      </main>
     </>
   );
 }

@@ -88,7 +88,7 @@ function PhotoTips({ dogName }: { dogName: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="sp-link tips-link" onClick={() => setOpen(true)}>🐾 Dicas do Abu para a foto ficar linda</button>
+      <button type="button" className="sp-link tips-link" onClick={() => setOpen(true)}>🐾 Dicas do Abu</button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="tips-title">
         <h2 id="tips-title">Dicas do Abu para a foto</h2>
         <ol className="tips-list">
@@ -406,7 +406,7 @@ function Estudio() {
           <>
             <section className="stack" aria-labelledby="st-foto">
               <div className="row-between" style={{ alignItems: "baseline", gap: 8 }}>
-                <h2 id="st-foto">Foto</h2>
+                <h2 id="st-foto">Selecione a foto</h2>
                 {photos.length ? <PhotoTips dogName={snap.dog.name} /> : null}
               </div>
               {photos.length === 0 ? (
@@ -428,7 +428,7 @@ function Estudio() {
             </section>
 
             <section className="stack" aria-labelledby="st-tema">
-              <h2 id="st-tema">Tema</h2>
+              <h2 id="st-tema">Selecione o tema</h2>
               <div role="tablist" aria-label="Tipos de arte" className="tabs">
                 {STUDIO_TABS.map((t) => (
                   <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{t.labelPt}</button>

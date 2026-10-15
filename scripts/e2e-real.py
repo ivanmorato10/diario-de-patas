@@ -263,7 +263,7 @@ with sync_playwright() as p:
     check("Bianca vê a cartinha do Ivan", inv.locator(".letter-card").filter(has_text="Cartinha de Ivan").count() == 1)
     with inv.expect_response(lambda r: "/api/rpc/toggleBone" in r.url, timeout=20000):
         inv.locator(".letter-card").get_by_role("button", name=re.compile("Dar ossinho")).click()
-    expect(inv.locator(".letter-card").get_by_role("button", name=re.compile("Ossinho dado"))).to_be_visible(timeout=20000)
+    expect(inv.locator(".letter-card").get_by_role("button", name="Tirar ossinho")).to_be_visible(timeout=20000)
     a.goto(BASE + "/diario")
     a.wait_for_timeout(1500)
     check("Ivan vê 'Bianca deu um ossinho'", eventually(lambda t: expect(a.locator(".letter-card").get_by_text("Bianca deu um ossinho")).to_be_visible(timeout=t)))

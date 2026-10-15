@@ -75,8 +75,7 @@ export default function Achadinhos() {
           })}
         </ul>
 
-        {typeof window !== "undefined" && isStandalone() ? <p className="caption achados-disclosure">O produto abre na Amazon. Para voltar, toque em “OK” ou “Concluído” no canto da tela, ou abra o Diário de Patas de novo.</p> : null}
-        <p className="caption achados-disclosure">{AFFILIATE_DISCLOSURE} Preços e disponibilidade são definidos pela loja. Recomendações não substituem a orientação do veterinário.</p>
+        <p className="caption achados-disclosure">{AFFILIATE_DISCLOSURE}{typeof window !== "undefined" && isStandalone() ? " Para voltar ao app, toque em “OK” no canto da tela." : ""}</p>
       </main>
     </>
   );

@@ -92,7 +92,6 @@ export default function Diario() {
                   </button>
                 ))}
               </div>
-              <p className="caption" aria-live="polite">{groups.reduce((s, [, l]) => s + l.filter((i) => i.kind === "entry").length, 0)} de {snap.entries.length} lembranças{snap.letters?.length ? ` · ${snap.letters.length} ${snap.letters.length === 1 ? "cartinha" : "cartinhas"}` : ""} · limite desta versão: {LIMITS.maxEntries}</p>
             </div>
 
             {groups.length === 0 ? <p className="muted">Nada encontrado com esse filtro.</p> : null}

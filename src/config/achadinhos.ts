@@ -30,7 +30,7 @@ export const ACHADINHO_CATEGORIES: { id: AchadinhoCategory; label: string; emoji
   { id: "comer", label: "Petiscos e comida", emoji: "🦴", bg: "#fff1c9" },
 ];
 
-export const AFFILIATE_DISCLOSURE = "Como associado da Amazon, o Diário de Patas ganha com compras qualificadas. Isso não muda o preço para você.";
+export const AFFILIATE_DISCLOSURE = "Como associado da Amazon, ganhamos com compras qualificadas, sem mudar o seu preço.";
 
 export const ACHADINHOS: Achadinho[] = [
   { id: "chuckit-launcher", name: "Lançador de bolinha Chuckit! Sport", category: "brincar", abuSays: "Joga mais longe e você nem precisa pegar a bolinha babada. Eu aprovo! 🐾", asin: "B000PKWKMQ", store: "Amazon (EUA)" },

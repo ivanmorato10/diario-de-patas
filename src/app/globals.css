@@ -922,3 +922,16 @@ a.choice-card:active { transform: translateY(1px); }
 .studio-details { padding: 12px 14px; border-radius: 14px; background: var(--surface, #fff); border: 1px solid var(--border); }
 .xp-reward__row { align-items: center; }
 .xp-reward__info { margin-left: auto; flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface, #fff); color: var(--link); font: 700 1rem/1 var(--font-body); cursor: pointer; display: grid; place-items: center; }
+.more-details { border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; background: var(--surface, #fff); }
+.more-details summary { cursor: pointer; font-weight: 700; color: var(--link); }
+.tiny-details summary { cursor: pointer; font-size: 0.875rem; font-weight: 700; color: var(--link); }
+.tiny-details[open] summary { margin-bottom: 4px; }
+.bone-btn { width: 40px; height: 40px; padding: 0; justify-content: center; font-size: 1.15rem; filter: grayscale(1); opacity: 0.75; }
+.bone-btn.is-on { filter: none; opacity: 1; }
+/* Seleção bem visível (foto e tema do Estúdio): borda laranja grossa + selo ✓. */
+.photo-strip__item { position: relative; }
+.photo-strip__item.is-selected { border-color: var(--accent); box-shadow: 0 0 0 3px #ffd9bf; }
+.photo-strip__item.is-selected::after { content: "✓"; position: absolute; right: 4px; top: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font: 800 0.8rem/22px var(--font-body); text-align: center; }
+.preset-card { position: relative; }
+.preset-card.is-selected { border-color: var(--accent); border-width: 3px; background: #fff3e8; box-shadow: 0 0 0 3px #ffd9bf; }
+.preset-card.is-selected::after { content: "✓"; position: absolute; right: 8px; top: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font: 800 0.9rem/26px var(--font-body); text-align: center; z-index: 2; }

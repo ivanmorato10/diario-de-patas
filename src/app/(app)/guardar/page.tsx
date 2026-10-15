@@ -20,7 +20,7 @@ import type { CivilDate, DiaryEntry } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { PhotoPicker, type PickFailure } from "@/components/photo-picker";
 import { AbuSays } from "@/components/brand";
-import { IconAlert, IconBrush, IconCheck, IconInfo, IconRotate, IconStar, IconTrash } from "@/components/icons";
+import { IconAlert, IconBrush, IconCheck, IconImage, IconInfo, IconRotate, IconStar, IconTrash } from "@/components/icons";
 import { rotateProcessed } from "@/lib/image";
 import { collectionTitle } from "@/components/mission-ui";
 
@@ -215,19 +215,23 @@ function GuardarInner() {
                 <span className="caption">O que precisa aparecer</span>
                 <p style={{ fontWeight: 600 }}>{petText(mission.criterion, snap.dog.name)}</p>
               </div>
-            ) : <p className="page-note">Qualquer momento vale. Fotos antigas da galeria também — dá para escolher várias de uma vez.</p>}
+            ) : <p className="page-note">Escolha uma ou mais fotos, até antigas.</p>}
             {room === 0 ? (
               <div className="notice notice--warn" role="alert"><IconAlert /><span>O diário chegou ao limite de {LIMITS.maxEntries} lembranças desta versão de teste. Nada foi apagado; para guardar novas, exclua alguma antiga.</span></div>
             ) : (
               <>
                 <PhotoPicker onPicked={onPicked} onPickedMany={mission ? undefined : onPickedMany} maxFiles={room} />
-                {!mission ? <p className="caption">Cabem mais {room} {room === 1 ? "lembrança" : "lembranças"} nesta versão de teste.</p> : null}
+                {/* Espaço restante só quando estiver acabando. */}
+                {!mission && room <= 10 ? <p className="caption">Cabem só mais {room} {room === 1 ? "lembrança" : "lembranças"} nesta versão de teste.</p> : null}
               </>
             )}
             {pickNotes.length ? (
               <div className="notice notice--warn" role="alert"><IconAlert /><span>{pickNotes.join(" · ")}</span></div>
             ) : null}
-            <p className="caption">JPEG, PNG ou WebP até {Math.round(LIMITS.maxUploadBytes / 1024 / 1024)} MB. A localização da foto é removida ao guardar.</p>
+            <details className="tiny-details">
+              <summary>Que fotos posso usar?</summary>
+              <p className="caption">JPEG, PNG ou WebP até {Math.round(LIMITS.maxUploadBytes / 1024 / 1024)} MB. A localização da foto é removida ao guardar.</p>
+            </details>
           </section>
         ) : null}
 
@@ -239,7 +243,7 @@ function GuardarInner() {
               {previewUrl ? <img src={previewUrl} alt="Pré-visualização da foto escolhida" className="photo" style={{ objectFit: "contain", background: "#f1efe9" }} /> : null}
               <div className="row" style={{ flexWrap: "wrap" }}>
                 <button type="button" className="btn btn--secondary btn--small" onClick={async () => setImg(await rotateProcessed(img))}><IconRotate /> Girar</button>
-                <button type="button" className="btn btn--ghost" onClick={() => { setImg(null); setStep({ kind: "pick" }); }}>Trocar foto</button>
+                <button type="button" className="btn btn--secondary btn--small" onClick={() => { setImg(null); setStep({ kind: "pick" }); }}><IconImage /> Trocar foto</button>
               </div>
             </div>
             {dupe ? (
@@ -256,7 +260,6 @@ function GuardarInner() {
               {img.takenDate && img.takenDate <= snap.today ? <span className="hint">Data lida da própria foto. Ajuste se quiser.</span> : null}
             </div>
             {!mission ? albumPicker("Colocar em álbuns") : null}
-            <p className="caption">Se houver outras pessoas na foto, garanta que elas concordam antes de compartilhar.</p>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
               <button type="button" className="btn btn--primary btn--block" onClick={save} disabled={busy}>
@@ -286,7 +289,6 @@ function GuardarInner() {
               ))}
             </ul>
             {albumPicker("Colocar todas em álbuns")}
-            <p className="caption">Se houver outras pessoas nas fotos, garanta que elas concordam antes de compartilhar.</p>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
               <button type="button" className="btn btn--primary btn--block" onClick={saveAll} disabled={busy || batch.length === 0}>

@@ -45,9 +45,10 @@ export default function Documentos() {
     <>
       <TopBar title="Documentos" back="/cuidados" />
       <main className="main">
-        <p className="page-note">Carteira de vacinação, exames, receitas… Ficam privados e nunca aparecem em links compartilhados.</p>
+        <p className="page-note">Carteira de vacinação, exames, receitas…</p>
         <button type="button" className="btn btn--primary btn--block" onClick={openNew} disabled={full}><IconPlus /> Adicionar documento</button>
-        <p className="caption">{docs.length} de {LIMITS.maxDocuments} documentos nesta versão de teste{full ? " — exclua algum para guardar outro." : "."}</p>
+        {/* Limite só aparece quando estiver perto. */}
+        {LIMITS.maxDocuments - docs.length <= 3 ? <p className="caption">{full ? `Chegou ao limite de ${LIMITS.maxDocuments} documentos desta versão de teste. Exclua algum para guardar outro.` : `Cabem só mais ${LIMITS.maxDocuments - docs.length} documentos nesta versão de teste.`}</p> : null}
         {docs.length === 0 ? <p className="muted">Nenhum documento ainda.</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {docs.map((d) => {

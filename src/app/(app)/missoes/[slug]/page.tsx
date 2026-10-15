@@ -48,45 +48,38 @@ export default function MissaoDetalhe() {
           {mission.optional && mission.kind === "once" ? <span className="chip chip--neutral" style={{ alignSelf: "flex-start" }}>Opcional</span> : null}
         </section>
 
-        <section className="card stack" aria-label="Detalhes da missão">
-          <div className="stack" style={{ gap: 4 }}>
-            <span className="caption">O que precisa aparecer na foto</span>
-            <p style={{ fontWeight: 600 }}>{petText(mission.criterion, dogName)}</p>
-          </div>
-          <dl className="stack small" style={{ margin: 0, gap: 8 }}>
-            <div className="row-between"><dt className="muted">Pontos</dt><dd style={{ margin: 0 }}><span className="chip chip--reward">+{mission.xp} 🐾</span></dd></div>
-            <div className="row-between"><dt className="muted">Vale</dt><dd style={{ margin: 0, textAlign: "right" }}>{mission.kind === "daily" ? "Uma vez no dia em que for sorteada" : mission.kind === "special" ? (window ? `Uma vez neste ano, até ${formatCivilDate(window.end)}` : "Uma vez por ano, na época da data") : "Uma única vez"}</dd></div>
-            <div className="row-between"><dt className="muted">Álbum</dt><dd style={{ margin: 0 }}>{collectionTitle(mission.collectionId)}</dd></div>
-            {sets.length ? <div className="row-between"><dt className="muted">Coleção</dt><dd style={{ margin: 0 }}>{sets.join(", ")}</dd></div> : null}
-            {advances ? <div className="row-between"><dt className="muted">Também avança</dt><dd style={{ margin: 0, textAlign: "right" }}>“{advances.title}” na coleção (sem patinhas extras)</dd></div> : null}
-            <div className="row-between"><dt className="muted">Foto da galeria</dt><dd style={{ margin: 0 }}>Aceita, inclusive fotos antigas</dd></div>
-            {prereq ? <div className="row-between"><dt className="muted">Pré-requisito</dt><dd style={{ margin: 0 }}>{prereq.title}</dd></div> : null}
-          </dl>
-          {mission.homeAlternative ? (
+        <section className="card stack" aria-label="O que a foto precisa mostrar">
+          <div className="row-between" style={{ alignItems: "flex-start", gap: 10 }}>
             <div className="stack" style={{ gap: 4 }}>
-              <span className="caption">Alternativa em casa</span>
-              <p className="small">{petText(mission.homeAlternative, dogName)}</p>
+              <span className="caption">📸 O que precisa aparecer na foto</span>
+              <p style={{ fontWeight: 600, margin: 0 }}>{petText(mission.criterion, dogName)}</p>
             </div>
-          ) : null}
+            <span className="chip chip--reward" style={{ flex: "none" }}>+{mission.xp} 🐾</span>
+          </div>
+          {mission.homeAlternative ? <p className="small" style={{ margin: 0 }}>🏠 {petText(mission.homeAlternative, dogName)}</p> : null}
         </section>
 
         {state === "completed" ? (
-          <div className="notice notice--positive" role="status">
-            <IconCheck />
-            <span>{mission.kind === "daily" ? "Feita hoje (confirmada por você). Ela pode voltar em outro dia e render patinhas de novo." : mission.kind === "special" ? "Feita neste ano (confirmada por você)." : "Missão concluída (confirmada por você). As patinhas já foram contadas, e reenviar não soma de novo."}</span>
-          </div>
+          <div className="notice notice--positive" role="status"><IconCheck /><span>{mission.kind === "daily" ? "Feita hoje!" : mission.kind === "special" ? "Feita neste ano!" : "Missão concluída!"}</span></div>
         ) : state === "locked" ? (
-          <div className="notice notice--info"><IconInfo /><span>Essa missão abre depois de concluir “{prereq?.title}”.</span></div>
+          <div className="notice notice--info"><IconInfo /><span>Abre depois de “{prereq?.title}”.</span></div>
         ) : state === "not_today" ? (
-          <div className="notice notice--info"><IconInfo /><span>Essa é uma missão do dia e não está nas sugestões de hoje. Ela pode aparecer em outro dia.</span></div>
+          <div className="notice notice--info"><IconInfo /><span>Não está nas ideias de hoje. Pode aparecer em outro dia.</span></div>
         ) : state === "out_of_window" ? (
-          <div className="notice notice--info"><IconInfo /><span>Essa missão especial aparece só na época da data{mission.id === "S01" && !snap.dog.birthDate ? " — e precisa da data de nascimento no perfil" : ""}.</span></div>
-        ) : (
-          <div className="notice notice--info">
-            <IconInfo />
-            <span>Depois de escolher a foto, você confirma se ela mostra o que a missão pede. A conquista fica marcada como confirmada por você.</span>
-          </div>
-        )}
+          <div className="notice notice--info"><IconInfo /><span>Aparece só na época da data{mission.id === "S01" && !snap.dog.birthDate ? " (precisa da data de nascimento no perfil)" : ""}.</span></div>
+        ) : null}
+
+        <details className="more-details">
+          <summary>Mais detalhes</summary>
+          <dl className="stack small" style={{ margin: "10px 0 0", gap: 8 }}>
+            <div className="row-between"><dt className="muted">Vale</dt><dd style={{ margin: 0, textAlign: "right" }}>{mission.kind === "daily" ? "No dia em que for sorteada" : mission.kind === "special" ? (window ? `Até ${formatCivilDate(window.end)}` : "Uma vez por ano") : "Uma única vez"}</dd></div>
+            <div className="row-between"><dt className="muted">Álbum</dt><dd style={{ margin: 0 }}>{collectionTitle(mission.collectionId)}</dd></div>
+            {sets.length ? <div className="row-between"><dt className="muted">Coleção</dt><dd style={{ margin: 0 }}>{sets.join(", ")}</dd></div> : null}
+            {advances ? <div className="row-between"><dt className="muted">Também avança</dt><dd style={{ margin: 0, textAlign: "right" }}>“{advances.title}”</dd></div> : null}
+            <div className="row-between"><dt className="muted">Foto antiga</dt><dd style={{ margin: 0 }}>Vale</dd></div>
+            {prereq ? <div className="row-between"><dt className="muted">Antes</dt><dd style={{ margin: 0 }}>{prereq.title}</dd></div> : null}
+          </dl>
+        </details>
 
         <div className="stack">
           {state === "available" ? (
@@ -94,7 +87,7 @@ export default function MissaoDetalhe() {
           ) : state === "completed" ? (
             <Link href={`/albuns/${mission.collectionId}`} className="btn btn--secondary btn--block">Abrir álbum</Link>
           ) : null}
-          <Link href={mission.kind === "once" ? "/missoes" : "/hoje"} className="btn btn--ghost btn--block">{mission.kind === "once" ? "Trocar missão" : "Voltar para Hoje"}</Link>
+          <Link href={mission.kind === "once" ? "/missoes" : "/hoje"} className="btn btn--secondary btn--block">{mission.kind === "once" ? "Ver outras missões" : "Voltar para Hoje"}</Link>
         </div>
       </main>
     </>

@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
-import { HealthDisclaimer } from "@/components/health-ui";
 import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
 import { IconCheck, IconPlus } from "@/components/icons";
 import { formatCivilDate } from "@/domain/dates";
@@ -75,7 +74,7 @@ export default function Medicamentos() {
       <TopBar title="Medicamentos" back="/cuidados" />
       <main className="main">
         <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Adicionar medicamento</button>
-        <p className="page-note">Anote como foi orientado pelo veterinário. O app não calcula nem sugere doses.</p>
+        <p className="page-note">Anote como o veterinário orientou.</p>
         {meds.length === 0 ? <p className="muted">Nenhum medicamento registrado.</p> : null}
         {active.length ? (
           <section className="stack" aria-labelledby="em-uso">
@@ -89,7 +88,6 @@ export default function Medicamentos() {
             <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>{others.map(row)}</ul>
           </section>
         ) : null}
-        <HealthDisclaimer />
       </main>
 
       <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Editar medicamento" : "Novo medicamento"} onSubmit={submit} busy={busy} error={error}>
@@ -102,7 +100,7 @@ export default function Medicamentos() {
               <select id="mrepeat" className="select" value={editing.form.repeat} onChange={(e) => set({ repeat: e.target.value as MedRepeat })}>
                 {(Object.keys(MED_REPEAT) as MedRepeat[]).map((k) => <option key={k} value={k}>{MED_REPEAT[k]}</option>)}
               </select>
-              <span className="caption">O app avisa no dia da dose (ao abrir) e você pode pôr um lembrete no calendário do celular.</span>
+              <span className="caption">O app avisa no dia da dose.</span>
             </div>
             <Field id="mfreq" label="Horário / como dar" optional value={editing.form.frequency} onChange={(v) => set({ frequency: v })} maxLength={80} placeholder="Ex.: de manhã, com comida" />
             <Field id="mstart" label="Início" type="date" value={editing.form.startDate} onChange={(v) => set({ startDate: v })} />
