@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AvatarCrop } from "@/domain/types";
 import { Sheet } from "@/components/entry-actions";
 import { MediaImage, avatarImgStyle } from "@/components/media";
@@ -9,13 +9,18 @@ const CENTER: AvatarCrop = { x: 50, y: 50, zoom: 1 };
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
 /** Ajuste da foto de perfil: arrastar para posicionar e zoom; o círculo mostra exatamente o resultado. */
-export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave }: {
+export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave, onPreview }: {
   open: boolean; onClose: () => void; mediaId: string; name: string; value: AvatarCrop | null | undefined; onSave: (c: AvatarCrop) => void;
+  /** Ao vivo: a foto do topo e a do perfil acompanham o ajuste enquanto a janela está aberta. */
+  onPreview?: (c: AvatarCrop) => void;
 }) {
   const [crop, setCrop] = useState<AvatarCrop>(value ?? CENTER);
+  const preview = useRef(onPreview);
+  preview.current = onPreview;
+  useEffect(() => { preview.current?.(crop); }, [crop]);
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const SIZE = 200;
-  const start = value ?? CENTER;
+  const [start] = useState<AvatarCrop>(value ?? CENTER); // como estava ao abrir (o valor ao vivo muda o snapshot)
   const dirty = crop.x !== start.x || crop.y !== start.y || crop.zoom !== start.zoom;
   // Fechar a janela (tocar fora, arrastar para baixo, voltar) também salva: ninguém perde o ajuste.
   const close = () => { if (dirty) onSave(crop); onClose(); };

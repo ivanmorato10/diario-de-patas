@@ -97,6 +97,7 @@ export default function Perfil() {
       <main className="main">
         {dog.photoMediaId && cropOpen ? (
           <AvatarCropSheet open mediaId={dog.photoMediaId} name={dog.name} value={dog.avatarCrop} onClose={() => setCropOpen(false)}
+            onPreview={(c) => patchSnap((s) => (s.dog ? { ...s, dog: { ...s.dog, avatarCrop: c } } : s))}
             onSave={(c) => {
               // A foto muda na hora; o servidor grava em seguida (e o reload confirma).
               patchSnap((s) => (s.dog ? { ...s, dog: { ...s.dog, avatarCrop: c } } : s));
