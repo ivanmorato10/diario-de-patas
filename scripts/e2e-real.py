@@ -269,7 +269,7 @@ with sync_playwright() as p:
     check("Ivan vê 'Bianca deu um ossinho'", eventually(lambda t: expect(a.locator(".letter-card").get_by_text("Bianca deu um ossinho")).to_be_visible(timeout=t)))
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)
-    a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click(); a.get_by_role("button", name="🐶 Perfil de Luna").click(); a.wait_for_url("**/perfil")
+    a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click(); a.get_by_role("button", name="Editar o perfil de Luna").click(); a.wait_for_url("**/perfil")
     check("administrador vê a Bianca na família", eventually(lambda t: expect(a.get_by_text("Bianca (você)")).to_have_count(0, timeout=t)) and eventually(lambda t: expect(a.locator(".member").filter(has_text="Bianca")).to_have_count(1, timeout=t)))
     a.get_by_label("Papel de Bianca").select_option("viewer"); a.wait_for_timeout(2000)
     st, body = rpc(inv, "updateDog", {"name": "Invadido"})
@@ -294,7 +294,7 @@ with sync_playwright() as p:
     check("quem acompanha não vê 'Apagar o diário'", inv.get_by_role("heading", name=re.compile("Apagar o diário")).count() == 0)
     a.locator("button.dog-switch").click(); a.get_by_role("button", name=re.compile("^Pepe")).click(); a.wait_for_url("**/hoje")
     expect(a.get_by_role("heading", name=re.compile("Diário de Pepe"))).to_be_visible(timeout=20000)
-    a.locator("button.dog-switch").click(); a.get_by_role("button", name="🐶 Perfil de Pepe").click(); a.wait_for_url("**/perfil")
+    a.locator("button.dog-switch").click(); a.get_by_role("button", name="Editar o perfil de Pepe").click(); a.wait_for_url("**/perfil")
     a.get_by_label("Para confirmar").fill("Pepe"); a.get_by_role("button", name="Apagar o diário de Pepe").click()
     a.wait_for_url(lambda u: "/perfil" not in u, timeout=30000)
     snapAfter = rpc(a, "snapshot", {})[1]
