@@ -197,7 +197,7 @@ with sync_playwright() as p:
     a.goto(BASE + "/config"); a.wait_for_timeout(1500)
     # ---------- Família: convite com papel; quem recebe entra com a PRÓPRIA conta (email e senha) ----------
     expect(a.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
-    a.get_by_role("radio", name="Pode editar").click()
+    a.get_by_role("radio", name=re.compile("^Editar")).check()
     a.get_by_role("button", name="Gerar convite").click()
     code_el = a.locator(".invite-code__value"); expect(code_el).to_be_visible(timeout=20000)
     invite_code = code_el.inner_text().strip()

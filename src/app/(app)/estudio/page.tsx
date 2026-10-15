@@ -1,6 +1,7 @@
 "use client";
 
 import { XP_MONTH_GOAL } from "@/config/credits";
+import { Sheet } from "@/components/entry-actions";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -82,6 +83,28 @@ function StudioEntryThumb({ entryId }: { entryId: string }) {
 }
 
 /** Créditos com patinhas (disponíveis × usados) e barra de artes do dia. */
+/** Dicas da foto: um link pequeno que abre a lista (não ocupa a tela toda vez). */
+function PhotoTips({ dogName }: { dogName: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="sp-link tips-link" onClick={() => setOpen(true)}>🐾 Dicas do Abu para a foto ficar linda</button>
+      <Sheet open={open} onClose={() => setOpen(false)} labelledBy="tips-title">
+        <h2 id="tips-title">Dicas do Abu para a foto</h2>
+        <ol className="tips-list">
+          <li><strong>Rostinho de frente:</strong> dá para ver os olhos e o focinho de {dogName}.</li>
+          <li><strong>Boa luz:</strong> perto da janela ou ao ar livre, sem contraluz.</li>
+          <li><strong>{dogName} bem grande:</strong> ocupando boa parte da foto. Se estiver longe, use o recorte.</li>
+          <li><strong>Foto nítida:</strong> sem tremido nem desfoque.</li>
+          <li><strong>Um só cachorro:</strong> se tiver mais de um, o recorte ajuda a escolher {dogName}.</li>
+        </ol>
+        <p className="caption">Eu confiro a foto antes de usar qualquer crédito.</p>
+        <button type="button" className="btn btn--secondary btn--block" onClick={() => setOpen(false)}>Entendi</button>
+      </Sheet>
+    </>
+  );
+}
+
 /** Saldo numa linha: a compra fica discreta enquanto houver crédito; o limite do dia só aparece se for atingido. */
 function CreditMeter({ state, dogName }: { state: StudioState; dogName: string }) {
   const out = state.balance <= 0;
@@ -95,10 +118,18 @@ function CreditMeter({ state, dogName }: { state: StudioState; dogName: string }
           <p className="caption" style={{ margin: 0 }}>Ou junte {XP_MONTH_GOAL} patinhas no mês: o Abu dá uma arte de presente.</p>
         </>
       ) : (
-        <p className="credit-line__text">
-          <span aria-hidden="true">🎨</span> Você tem <strong>{state.balance} {state.balance === 1 ? "crédito" : "créditos"}</strong> para criar artes de {dogName}.{" "}
-          <Link href="/estudio/creditos" className="credit-line__buy">Comprar mais</Link>
-        </p>
+        <>
+          <div className="credit-line__top">
+            <span className="credit-line__text">Você tem <strong>{state.balance} {state.balance === 1 ? "crédito" : "créditos"}</strong> para criar artes de {dogName}</span>
+            <Link href="/estudio/creditos" className="credit-line__buy">Comprar mais</Link>
+          </div>
+          <div className="credit-meter__paws credit-line__paws" role="img" aria-label={`${state.balance} ${state.balance === 1 ? "crédito" : "créditos"}`}>
+            {Array.from({ length: Math.min(state.balance, 12) }, (_, k) => (
+              <span key={k} className="is-on" style={{ animationDelay: `${k * 70}ms` }}><Paw size={18} /></span>
+            ))}
+            {state.balance > 12 ? <span className="credit-meter__more">+{state.balance - 12}</span> : null}
+          </div>
+        </>
       )}
       {dayFull ? <p className="caption" style={{ margin: 0 }}>Por hoje já foram {state.dailyUsed} artes. Amanhã tem mais!</p> : null}
     </section>
@@ -375,7 +406,7 @@ function Estudio() {
           <>
             <section className="stack" aria-labelledby="st-foto">
               <h2 id="st-foto">1. Escolha a foto</h2>
-              <p className="page-note">Dica: rostinho de {snap.dog.name} de frente, boa luz e bem visível. Eu confiro a foto antes de usar qualquer crédito.</p>
+              <PhotoTips dogName={snap.dog.name} />
               {photos.length === 0 ? (
                 <div className="card stitched empty" style={{ boxShadow: "none" }}><p className="muted">Guarde uma foto no diário para criar a primeira arte.</p><Link href="/guardar" className="btn btn--secondary btn--small">Guardar momento</Link></div>
               ) : (

@@ -16,15 +16,15 @@ export function XpRewardBar({ xpMonth, compact = false }: { xpMonth: number; com
       <div className="xp-reward__row">
         <span className="xp-reward__gift" aria-hidden="true">{r.reached ? "🏆" : "🎁"}</span>
         <div className="xp-reward__text">
-          <strong>{r.reached ? "Arte do mês garantida! 🎨 Continue guardando aventuras." : xpMonth === 0 ? `Um mês novo de aventuras! Com ${XP_MONTH_GOAL} patinhas, o Abu faz uma arte de presente.` : `Este mês vocês já juntaram ${xpMonth} patinhas. Com mais ${r.missing}, o Abu faz uma arte de presente!`}</strong>
-          {!compact ? <span>Patinhas 🐾 vêm das missões: cada foto guardada vale algumas.</span> : null}
+          <strong>{r.reached ? "Arte do mês garantida! 🎨" : "Presente do mês: uma arte do Abu"}</strong>
+          <span>{r.reached ? "Ela já está no Estúdio esperando por vocês." : `Cada missão vale patinhas 🐾. Juntando ${XP_MONTH_GOAL} no mês, o Abu te dá uma arte no Estúdio.`}</span>
         </div>
       </div>
       <div className="xp-reward__bar" role="progressbar" aria-valuemin={0} aria-valuemax={XP_MONTH_GOAL} aria-valuenow={Math.min(xpMonth, XP_MONTH_GOAL)} aria-label="Patinhas do mês até a arte de presente">
         <span style={{ width: `${Math.max(3, r.pct)}%` }} />
         <i aria-hidden="true">{r.reached ? <IconStar size={14} /> : <Paw size={14} />}</i>
       </div>
-      <div className="xp-reward__foot"><span>{Math.min(xpMonth, XP_MONTH_GOAL)} de {XP_MONTH_GOAL} patinhas este mês</span><span>Uma nova aventura começa a cada mês</span></div>
+      <div className="xp-reward__foot"><span><strong>{Math.min(xpMonth, XP_MONTH_GOAL)} de {XP_MONTH_GOAL}</strong> patinhas este mês</span><span>Uma nova aventura começa a cada mês</span></div>
     </section>
   );
 }

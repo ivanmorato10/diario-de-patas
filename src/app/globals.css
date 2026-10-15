@@ -861,3 +861,21 @@ a.choice-card:active { transform: translateY(1px); }
 .credit-line__text { margin: 0; line-height: 1.45; }
 .credit-line__buy { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }
 .credit-line--out { background: var(--paper); border-color: #f0dcc0; justify-items: start; }
+.invite-box { display: grid; gap: 10px; }
+.invite-box__roles { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.invite-box__roles legend { margin-bottom: 4px; padding: 0; }
+.invite-box__roles .check { font-size: 0.9375rem; }
+.memory-fade { animation: memory-fade 700ms var(--ease, ease) both; }
+@keyframes memory-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .memory-fade { animation: none; } }
+/* Créditos = patinhas, no verde do Estúdio (versão compacta do painel antigo). */
+.credit-line:not(.credit-line--out) { background: linear-gradient(135deg, #63b4ad, #4f9f98); border: 0; color: var(--paper); box-shadow: 0 6px 18px rgba(63, 143, 136, 0.3); }
+.credit-line__top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.credit-line:not(.credit-line--out) .credit-line__buy { color: var(--paper); text-decoration: underline; text-underline-offset: 3px; }
+.credit-line__paws span { width: 32px; height: 32px; }
+.tips-link { align-self: flex-start; padding: 4px 0; font-size: 0.9375rem; }
+.tips-list { margin: 0 0 12px; padding-left: 1.3em; display: grid; gap: 8px; }
+/* Papel do convite: opção simples, sem cara de cartão. */
+.invite-box__roles .check { border: 0; background: none; padding: 4px 0; min-height: 0; box-shadow: none; gap: 8px; }
+.invite-box__roles .check input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--text-primary); }
+.invite-box__roles .check:has(input:checked) { background: none; border: 0; }

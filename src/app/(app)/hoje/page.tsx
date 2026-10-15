@@ -20,6 +20,7 @@ import { XpRewardBar } from "@/components/xp-reward";
 import { AchadinhosCard } from "@/components/achadinhos-card";
 import { MedAlert } from "@/components/med-alert";
 import { FamilyNudge } from "@/components/family-nudge";
+import { MemoryRotator } from "@/components/memory-rotator";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -84,11 +85,7 @@ export default function Hoje() {
           <h2 id="last-title" className="sr-only">Última lembrança</h2>
           {last ? (
             <>
-              <Link href={`/diario#${last.id}`} className="polaroid tape hoje-memory__photo" style={{ display: "block", textDecoration: "none" }}>
-                <MediaImage id={last.mediaId} variant="display" alt={last.caption ? `Lembrança: ${last.caption}` : `Lembrança de ${dog.name}`} className="photo photo--natural" />
-                <p className="polaroid__note">{last.caption || dog.name}</p>
-                <p className="caption polaroid__meta">Última lembrança · {formatCivilDate(last.occurredDate)}</p>
-              </Link>
+              <MemoryRotator entries={snap.entries} dogName={dog.name} />
               <div className="row" style={{ gap: 8 }}>
                 <Link href="/guardar" className="btn btn--primary" style={{ flex: 1 }}><IconPlus /> Guardar momento</Link>
                 <Link href="/diario" className="btn btn--secondary">Ver diário</Link>
