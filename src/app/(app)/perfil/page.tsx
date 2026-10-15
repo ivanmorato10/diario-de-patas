@@ -34,6 +34,7 @@ export default function Perfil() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
+  const [nick, setNick] = useState("");
   const [prefs, setPrefs] = useState<DogPreferences | null>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [confirmText, setConfirmText] = useState("");
@@ -48,6 +49,7 @@ export default function Perfil() {
     if (snap?.dog && prefs === null) {
       setName(snap.dog.name);
       setBirth(snap.dog.birthDate ?? "");
+      setNick(snap.dog.nickname ?? "");
       setPrefs(snap.dog.preferences);
     }
   }, [snap, prefs]);
@@ -57,7 +59,7 @@ export default function Perfil() {
   const dog = snap.dog;
   const viewer = snap.role === "viewer";
   // "Salvar alterações" só aparece quando algo mudou.
-  const dirty = name.trim() !== dog.name || birth !== (dog.birthDate ?? "") || JSON.stringify(prefs) !== JSON.stringify(dog.preferences);
+  const dirty = name.trim() !== dog.name || nick.trim() !== (dog.nickname ?? "") || birth !== (dog.birthDate ?? "") || JSON.stringify(prefs) !== JSON.stringify(dog.preferences);
 
   async function run(fn: () => Promise<unknown>, ok: string) {
     setMsg(null);
@@ -75,7 +77,7 @@ export default function Perfil() {
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
     if (birth && !isCivilDate(birth)) return setMsg({ kind: "error", text: "Essa data não parece válida." });
-    await run(() => repo!.updateDog({ name, birthDate: birth || null, preferences: prefs! }), "Perfil salvo.");
+    await run(() => repo!.updateDog({ name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs! }), "Perfil salvo.");
   }
 
   async function wipe() {
@@ -97,7 +99,7 @@ export default function Perfil() {
   }
 
   const lv = levelFor(snap.xpTotal);
-  const close = () => { setPanel(null); setMsg(null); setName(dog.name); setBirth(dog.birthDate ?? ""); setPrefs(dog.preferences); };
+  const close = () => { setPanel(null); setMsg(null); setName(dog.name); setNick(dog.nickname ?? ""); setBirth(dog.birthDate ?? ""); setPrefs(dog.preferences); };
   const MsgLine = () => (msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null);
   const Row = ({ id, icon, label, sub }: { id: Panel; icon: string; label: string; sub?: string }) => (
     <button type="button" className="card row-between profile-row" onClick={() => { setMsg(null); setPanel(id); }}>
@@ -132,6 +134,7 @@ export default function Perfil() {
           )}
           <div className="stack" style={{ gap: 4, minWidth: 0 }}>
             <h2 id="perfil" className="profile-head__name">{dog.name}</h2>
+            {dog.nickname ? <span className="profile-head__nick">“{dog.nickname}”</span> : null}
             {dog.birthDate ? <span className="small">🎂 {formatCivilDate(dog.birthDate)}</span> : null}
             <Link href="/sobre#niveis" className="profile-head__xp">🐾 {snap.xpTotal} patinhas · {lv.title}</Link>
           </div>
@@ -139,7 +142,7 @@ export default function Perfil() {
         {msg && !panel ? <MsgLine /> : null}
 
         <section className="stack" style={{ gap: 8 }} aria-label="Opções do perfil">
-          {!viewer ? <Row id="edit" icon="✏️" label="Editar perfil" sub="Foto, nome e aniversário" /> : null}
+          {!viewer ? <Row id="edit" icon="✏️" label="Editar perfil" sub="Foto, nome, apelido e aniversário" /> : null}
           {REAL_MODE ? <Row id="family" icon="👨‍👩‍👧" label={`Família de ${dog.name}`} sub={`${snap.members?.length ?? 1} ${(snap.members?.length ?? 1) === 1 ? "pessoa" : "pessoas"}`} /> : null}
           {!viewer ? <Row id="prefs" icon="🎯" label="Preferências das missões" sub="Que tipo de missão combina com vocês" /> : null}
           {!viewer ? <Row id="manage" icon="⚙️" label="Gerenciar diário" sub="Espaço, links compartilhados e apagar" /> : null}
@@ -160,6 +163,10 @@ export default function Perfil() {
             <div className="field">
               <label htmlFor="name">Nome</label>
               <input id="name" className="input" value={name} maxLength={LIMITS.dogNameMaxChars} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label htmlFor="nick">Apelido carinhoso <span className="muted">(opcional)</span></label>
+              <input id="nick" className="input" value={nick} maxLength={30} placeholder="Ex.: Pepezinho, Bolinha, Meu Bebê" onChange={(e) => setNick(e.target.value)} />
             </div>
             <div className="field">
               <label htmlFor="birth">Aniversário <span className="muted">(opcional)</span></label>

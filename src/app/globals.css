@@ -977,3 +977,4 @@ a.choice-card:active { transform: translateY(1px); }
 .notice-item { width: 100%; display: grid; gap: 4px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface, #fff); font: inherit; color: inherit; cursor: pointer; }
 .notice-item.is-new { border-color: var(--accent); background: #fff6ee; }
 .notice-item__text { font-weight: 600; }
+.profile-head__nick { font-family: var(--font-hand); font-size: 1.3rem; line-height: 1; color: var(--accent); }

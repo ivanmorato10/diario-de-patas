@@ -26,6 +26,8 @@ export interface Dog {
   name: string;
   photoMediaId: string | null;
   birthDate: CivilDate | null;
+  /** Apelido carinhoso (opcional). */
+  nickname?: string | null;
   preferences: DogPreferences;
   /** Ajuste da foto de perfil no círculo: foco x/y em % (0–100) e zoom (1–3). */
   avatarCrop?: AvatarCrop | null;

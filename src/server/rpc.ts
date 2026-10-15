@@ -258,7 +258,7 @@ export async function createDiary(ctx: Ctx, args: unknown) {
 }
 
 export async function updateDog(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ name: z.string().optional(), birthDate: civil.nullable().optional(), preferences: Prefs.optional(), photoMediaId: z.string().uuid().nullable().optional(),
+  const a = parse(z.object({ name: z.string().optional(), nickname: z.string().nullable().optional(), birthDate: civil.nullable().optional(), preferences: Prefs.optional(), photoMediaId: z.string().uuid().nullable().optional(),
     avatarCrop: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100), zoom: z.number().min(1).max(3) }).nullable().optional() }), args);
   const dog = await editableDog(ctx);
   const patch: any = {};
@@ -268,6 +268,7 @@ export async function updateDog(ctx: Ctx, args: unknown) {
     patch.name = n;
   }
   if (a.birthDate !== undefined) patch.birth_date = a.birthDate;
+  if (a.nickname !== undefined) patch.nickname = a.nickname?.replace(/\s+/g, " ").trim().slice(0, 30) || null;
   if (a.preferences) patch.preferences_json = a.preferences;
   if (a.avatarCrop !== undefined) patch.avatar_crop = a.avatarCrop;
   if (a.photoMediaId !== undefined) {

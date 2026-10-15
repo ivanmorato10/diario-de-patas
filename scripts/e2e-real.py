@@ -211,8 +211,11 @@ with sync_playwright() as p:
     check("dados de A intactos depois das tentativas de B", len(after["entries"]) == 2 and after["entries"][0]["caption"] != "invadido" and len(after["health"]["documents"]) == 1)
 
     # ---------- Foto de perfil: zoom e posição ----------
+    st, _ = rpc(a, "updateDog", {"nickname": "  Lulu  "})
+    check(f"apelido carinhoso salvo ({st})", st == 200 and rpc(a, "snapshot", {})[1]["dog"].get("nickname") == "Lulu")
     rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
     a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
+    check("apelido aparece no perfil", a.get_by_text("“Lulu”").is_visible())
     a.get_by_role("button", name=re.compile("Família de Luna")).click()
     # ---------- Família: convite com papel; quem recebe entra com a PRÓPRIA conta (email e senha) ----------
     expect(a.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)

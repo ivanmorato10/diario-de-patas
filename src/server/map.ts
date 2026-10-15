@@ -11,7 +11,7 @@ type Row = Record<string, any>;
 export const toProfile = (r: Row): Profile => ({ id: "me", timezone: r.timezone, locale: "pt-BR", createdAt: r.created_at, demoImportedAt: r.demo_imported_at ?? null });
 
 export const toDog = (r: Row): Dog => ({
-  id: r.id, name: r.name, photoMediaId: r.photo_asset_id ?? null, birthDate: r.birth_date ?? null,
+  id: r.id, name: r.name, photoMediaId: r.photo_asset_id ?? null, birthDate: r.birth_date ?? null, nickname: r.nickname ?? null,
   preferences: { home: true, outdoor: true, socialDogs: false, people: true, ...(r.preferences_json ?? {}) }, avatarCrop: r.avatar_crop ?? null, createdAt: r.created_at,
 });
 
