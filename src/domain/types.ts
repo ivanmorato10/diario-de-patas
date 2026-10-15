@@ -75,7 +75,7 @@ export type DiaryRole = "admin" | "editor" | "viewer";
 export interface DiarySummary { id: string; name: string; photoMediaId: string | null; avatarCrop: AvatarCrop | null; role: DiaryRole }
 export interface Letter { id: string; body: string; date: CivilDate; createdBy: string | null; createdByName: string | null; mine: boolean; createdAt: string }
 export interface Bone { targetType: "entry" | "letter"; targetId: string; userId: string }
-export interface Me { userId: string; name: string; nameConfirmed: boolean }
+export interface Me { userId: string; name: string; nameConfirmed: boolean; suggestedName?: string }
 export interface DiaryMember { userId: string; name: string; email: string; role: DiaryRole; me: boolean; owner: boolean }
 
 /** Álbum: uma coleção fixa do catálogo ou um álbum criado pela pessoa (`custom-…`). */

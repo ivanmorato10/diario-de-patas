@@ -72,11 +72,11 @@ function Cartinha() {
         <form className="stack" onSubmit={save}>
           <div className="letter-card letter-card--edit">
             <p className="letter-card__kicker">💌 {editing ? "Editar cartinha" : "Nova cartinha"}</p>
-            <p className="letter-card__hello">Querido {dog.name},</p>
+            <p className="letter-card__hello">Oi, {dog.name}!</p>
             <label htmlFor="carta" className="sr-only">Sua cartinha para {dog.name}</label>
             <textarea id="carta" className="letter-card__body letter-card__input" value={body} maxLength={MAX} rows={8} autoFocus={!editing}
               placeholder={`Hoje você…`} onChange={(e) => setBody(e.target.value)} />
-            <p className="letter-card__sign">— {snap.me?.name ?? "Você"}</p>
+            <p className="letter-card__sign">— {snap.me?.nameConfirmed ? snap.me.name : "seu nome"}</p>
           </div>
           <div className="row-between" style={{ alignItems: "end", gap: 12 }}>
             <div className="field" style={{ margin: 0 }}>

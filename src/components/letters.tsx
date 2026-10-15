@@ -46,7 +46,7 @@ export function LetterCard({ letter, dogName }: { letter: Letter; dogName: strin
   return (
     <article id={`carta-${letter.id}`} className="letter-card" style={{ margin: "6px 4px 14px" }}>
       <p className="letter-card__kicker">💌 Cartinha {letter.mine ? "sua" : `de ${author}`}</p>
-      <p className="letter-card__hello">Querido {dogName},</p>
+      <p className="letter-card__hello">Oi, {dogName}!</p>
       <p className="letter-card__body">{letter.body}</p>
       <p className="letter-card__sign">— {letter.mine ? (snap?.me?.name ?? "Você") : author}</p>
       <div className="row-between" style={{ marginTop: 8 }}>

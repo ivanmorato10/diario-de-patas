@@ -105,7 +105,7 @@ export default function Perfil() {
           {viewer ? <p className="notice notice--info small"><IconInfo size={18} /><span>Você está acompanhando o diário de {dog.name}. Para mudar o perfil, peça para quem é responsável pelo diário.</span></p> : null}
           <fieldset disabled={viewer} className="stack-lg" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <section className="stack" aria-labelledby="perfil">
-            <h2 id="perfil">Perfil</h2>
+            <h2 id="perfil" className="sr-only">Perfil</h2>
             <div className="row">
               <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
               <div className="stack" style={{ gap: 6 }}>

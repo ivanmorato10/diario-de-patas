@@ -127,7 +127,12 @@ async function ensurePlan(ctx: Ctx, dog: any, today: string): Promise<DailyPlan>
 }
 
 /** Quem está usando: nome (confirmado ou só um palpite) para "Como a família te chama?". */
-const meOf = (ctx: Ctx, profile: any) => ({ userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed });
+const meOf = (ctx: Ctx, profile: any) => {
+  const meta = (ctx.user.user_metadata ?? {}) as any;
+  // Palpite só quando o login traz um nome de verdade (Google/Apple); do email não sai um nome bom.
+  const fromLogin = String(meta.full_name || meta.name || meta.given_name || "").trim().split(/\s+/)[0] ?? "";
+  return { userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed, suggestedName: fromLogin.slice(0, 40) };
+};
 
 export async function snapshot(ctx: Ctx) {
   const { supa } = ctx;

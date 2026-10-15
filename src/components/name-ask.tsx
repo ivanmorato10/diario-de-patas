@@ -10,7 +10,7 @@ import { setMyName } from "@/data/letters-client";
  */
 export function NameAsk({ title = "Como a família te chama?", note }: { title?: string; note?: string }) {
   const { snap, reload } = useStore();
-  const [name, setName] = useState(snap?.me?.name ?? "");
+  const [name, setName] = useState(snap?.me?.suggestedName ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!snap?.me || snap.me.nameConfirmed) return null;

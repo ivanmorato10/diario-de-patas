@@ -19,7 +19,8 @@ function Convite() {
   const router = useRouter();
   const { reload, snap } = useStore();
   const [myName, setMyName] = useState<string | null>(null);
-  const nameValue = myName ?? (snap?.me?.nameConfirmed ? snap.me.name : snap?.me?.name ?? "");
+  const [guess, setGuess] = useState("");
+  const nameValue = myName ?? (snap?.me?.nameConfirmed ? snap.me.name : snap?.me?.suggestedName || guess);
   const [code, setCode] = useState(params.get("codigo") ?? "");
   const [info, setInfo] = useState<{ dogName: string; invitedBy: string; role: DiaryRole } | null>(null);
   const [logged, setLogged] = useState<boolean | null>(null);
@@ -28,7 +29,13 @@ function Convite() {
 
   useEffect(() => {
     if (!REAL_MODE) return;
-    browserClient().auth.getUser().then(({ data }) => setLogged(!!data.user)).catch(() => setLogged(false));
+    browserClient().auth.getUser().then(({ data }) => {
+      setLogged(!!data.user);
+      // Palpite do nome pelo login (Google/Apple); a pessoa confirma ou corrige.
+      const meta = data.user?.user_metadata ?? {};
+      const n = String(meta.full_name || meta.name || meta.given_name || "").trim().split(/\s+/)[0] ?? "";
+      if (n) setGuess(n.slice(0, 40));
+    }).catch(() => setLogged(false));
   }, []);
 
   async function look(c = code) {
@@ -47,8 +54,7 @@ function Convite() {
     setBusy(true);
     setError(null);
     try {
-      if (!nameValue.trim()) { setBusy(false); return setError("Conte como a família te chama."); }
-      await acceptInvite(code, nameValue);
+      await acceptInvite(code, nameValue.trim() || undefined); // sem nome: fica o palpite e o app pergunta depois
       await reload();
       router.replace("/hoje");
     } catch (e) {

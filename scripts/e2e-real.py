@@ -172,7 +172,7 @@ with sync_playwright() as p:
     # ---------- Conta B: não vê nem mexe em nada de A ----------
     # ---------- Indicar o app: B chega pelo link de A ----------
     a.goto(BASE + "/hoje"); a.get_by_role("link", name="Minha conta").click(); a.wait_for_url("**/conta")
-    check("topo: botão de pessoa abre Minha conta", a.get_by_role("heading", name="Minha conta").is_visible())
+    check("topo: botão de pessoa abre Minha conta", a.get_by_role("heading", name="Minha conta", exact=True).is_visible())
     a.get_by_role("button", name=re.compile("Indicar o Diário de Patas")).click()
     ref_input = a.get_by_label("Seu link de indicação"); expect(ref_input).to_be_visible(timeout=20000)
     ref_link = ref_input.input_value()
@@ -235,7 +235,10 @@ with sync_playwright() as p:
     inv.get_by_label("Senha", exact=True).fill(pw_c); inv.get_by_role("button", name="Entrar", exact=True).click()
     inv.wait_for_url("**/convite?codigo=*", timeout=20000)
     inv.get_by_role("button", name=re.compile("Aceitar e abrir o diário de Luna")).click()
-    inv.wait_for_url("**/hoje", timeout=30000)
+    try:
+        inv.wait_for_url("**/hoje", timeout=30000)
+    except Exception:
+        inv.screenshot(path=f"{OUT}/convite-falhou.png"); print("URL:", inv.url, "| alertas:", [x.inner_text() for x in inv.get_by_role("alert").all()]); raise
     check("Bianca entra com a senha, aceita e vê o diário de Luna", eventually(lambda t: expect(inv.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     snapC = rpc(inv, "snapshot", {})[1]
     check(f"Bianca é 'pode editar' e vê as lembranças de Luna ({snapC.get('role')}, {len(snapC['entries'])})", snapC.get("role") == "editor" and len(snapC["entries"]) == 2 and len(snapC.get("diaries") or []) == 1)
@@ -258,9 +261,11 @@ with sync_playwright() as p:
     check("na própria cartinha não aparece 'Dar ossinho'", a.locator(".letter-card").get_by_role("button", name=re.compile("ossinho")).count() == 0)
     inv.goto(BASE + "/diario"); expect(inv.locator(".letter-card")).to_be_visible(timeout=20000)
     check("Bianca vê a cartinha do Ivan", inv.locator(".letter-card").filter(has_text="Cartinha de Ivan").count() == 1)
-    inv.locator(".letter-card").get_by_role("button", name=re.compile("Dar ossinho")).click()
+    with inv.expect_response(lambda r: "/api/rpc/toggleBone" in r.url, timeout=20000):
+        inv.locator(".letter-card").get_by_role("button", name=re.compile("Dar ossinho")).click()
     expect(inv.locator(".letter-card").get_by_role("button", name=re.compile("Ossinho dado"))).to_be_visible(timeout=20000)
     a.goto(BASE + "/diario")
+    a.wait_for_timeout(1500)
     check("Ivan vê 'Bianca deu um ossinho'", eventually(lambda t: expect(a.locator(".letter-card").get_by_text("Bianca deu um ossinho")).to_be_visible(timeout=t)))
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)

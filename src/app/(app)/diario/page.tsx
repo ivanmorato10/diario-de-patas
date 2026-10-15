@@ -132,8 +132,8 @@ export default function Diario() {
         <div className="sticky-action">
           {REAL_MODE && snap.role !== "viewer" ? (
             <div className="sticky-action__pair">
-              <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>
-              <Link href="/diario/cartinha" className="btn btn--primary">💌 Escrever cartinha</Link>
+              <Link href="/guardar" className="btn btn--primary">Guardar momento</Link>
+              <Link href="/diario/cartinha" className="btn btn--primary">Escrever cartinha</Link>
             </div>
           ) : (
             <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar momento</Link>

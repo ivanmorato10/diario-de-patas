@@ -909,3 +909,5 @@ a.choice-card:active { transform: translateY(1px); }
 .dog-title-btn__arrow { font-family: var(--font-body); font-size: 0.55em; color: var(--link); }
 .topbar__actions { display: flex; align-items: center; gap: 8px; }
 .topbar__person { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface, #fff); border: 1.5px solid var(--border); color: var(--text-primary); }
+.sticky-action:has(.sticky-action__pair) { justify-content: stretch; }
+.sticky-action__pair .btn { min-width: 0; font-size: 0.9375rem; padding-left: 8px; padding-right: 8px; }
