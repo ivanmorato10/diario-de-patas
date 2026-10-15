@@ -183,6 +183,11 @@ Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com fatura
 - Convite da família sugerido pelo Abu depois da primeira lembrança ("Agora não" esconde).
 - Próximos (aprovados): "Neste dia", datas especiais, bilhete sem foto, cartinha, livro de memórias. Modo "para sempre": mais adiante.
 
+## Indicar o app (14/10/2026)
+- Ajustes → Mais → "💌 Indicar o Diário de Patas": link próprio (/?ref=CODIGO, guardado num cookie pelo proxy).
+- Quando o amigo (conta nova) cria o diário e guarda a primeira foto, o cachorro de quem indicou ganha 20 patinhas (contam no presente do mês). Uma vez por amigo, até 5 por mês. Só quem indica ganha.
+- Banco: `20261028000000_referrals.sql` (aplicada). Testes: `supabase/tests/referrals.sql` e e2e-real.
+
 ## Próximo passo
 
 MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).
