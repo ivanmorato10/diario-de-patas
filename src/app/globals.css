@@ -971,3 +971,9 @@ a.choice-card:active { transform: translateY(1px); }
 .pick-recent__row { display: flex; gap: 10px; }
 .pick-recent__pola { width: 70px; height: 78px; background: #fff; padding: 5px 5px 14px; border-radius: 4px; box-shadow: 0 4px 10px rgba(61, 45, 30, 0.15); display: block; }
 .pick-recent__pola img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 2px; }
+.dog-bell { position: relative; }
+.dog-bell__count { position: absolute; right: -4px; top: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--accent); color: #fff; font: 800 0.6875rem/18px var(--font-body); text-align: center; border: 2px solid var(--surface, #fff); }
+.notice-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.notice-item { width: 100%; display: grid; gap: 4px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface, #fff); font: inherit; color: inherit; cursor: pointer; }
+.notice-item.is-new { border-color: var(--accent); background: #fff6ee; }
+.notice-item__text { font-weight: 600; }

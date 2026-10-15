@@ -7,6 +7,7 @@ import { useStore } from "@/data/store";
 import { REAL_MODE } from "@/config/mode";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun, IconUser } from "./icons";
 import { DogMenu } from "./dog-switcher";
+import { DogBell } from "./notifications";
 import { AbuFace, BrandLockup } from "./brand";
 
 const NAV = [
@@ -50,7 +51,7 @@ export function BottomNav() {
 /** Emoji ao lado do título de cada tela (identidade rápida das abas). */
 const TITLE_EMOJI: Record<string, string> = {
   "Diário": "📖", "Álbuns": "🖼️", "Cuidados": "🩺", "Estúdio": "🎨", "Missões": "⭐", "Perfil e ajustes": "⚙️", "Créditos": "🪙",
-  "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Minha conta": "👤", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
+  "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Minha conta": "👤", "Novidades": "🔔", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
   "Contatos": "📞", "Documentos": "📄", "Peso": "⚖️", "Guardar momento": "📸", "Cartinha": "💌",
 };
 
@@ -79,6 +80,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
         </div>
         {dog ? (
           <div className="topbar__actions">
+            {REAL_MODE ? <DogBell /> : null}
             <Link href="/conta" className="topbar__person" aria-label="Minha conta"><IconUser size={20} /></Link>
             <DogMenu />
           </div>

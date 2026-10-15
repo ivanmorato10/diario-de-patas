@@ -1,7 +1,7 @@
 // Service worker mínimo (§15 + PWA): guarda só o shell estático. Nunca respostas autenticadas, APIs nem fotos.
 // Versão nova a cada mudança deste arquivo; o navegador busca o sw.js sem cache (updateViaCache: "none"
 // e Cache-Control no-cache em next.config.ts), ativa na hora e apaga caches antigos.
-const VERSION = "ddp-v6";
+const VERSION = "ddp-v7";
 const CACHE = `ddp-static-${VERSION}`;
 const SHELL = ["/offline.html", "/brand/favicon-64.png", "/brand/abu-mascote.png", "/brand/icon-192.png", "/manifest.webmanifest"];
 
@@ -44,4 +44,30 @@ self.addEventListener("fetch", (e) => {
   if (req.mode === "navigate") {
     e.respondWith(fetch(req).catch(() => caches.match("/offline.html")));
   }
+});
+
+// Avisos da família (Web Push): "Ivan guardou uma foto de Pepe 📸". Mesma `tag` substitui o aviso anterior.
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Diário de Patas", {
+    body: d.body || "Novidades da família 🐾",
+    icon: "/brand/icon-192.png",
+    badge: "/brand/favicon-64.png",
+    tag: d.tag || undefined,
+    renotify: !!d.tag,
+    data: { url: d.url || "/novidades" },
+  }));
+});
+
+// Tocar no aviso abre o app no lugar certo (ou foca a janela já aberta).
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "/novidades", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+    for (const w of wins) {
+      if ("focus" in w) { w.navigate(url).catch(() => undefined); return w.focus(); }
+    }
+    return self.clients.openWindow(url);
+  }));
 });

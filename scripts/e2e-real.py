@@ -261,6 +261,15 @@ with sync_playwright() as p:
     letter_id = rpc(a, "snapshot", {})[1]["letters"][0]["id"]
     check("na própria cartinha não aparece 'Dar ossinho'", a.locator(".letter-card").get_by_role("button", name=re.compile("ossinho")).count() == 0)
     inv.goto(BASE + "/diario"); expect(inv.locator(".letter-card")).to_be_visible(timeout=20000)
+    def notices(page, needle, timeout=15):
+        for _ in range(timeout):
+            got = [n["text"] for n in (rpc(page, "listNotifications", {})[1] or [])]
+            if any(needle in t for t in got): return got
+            page.wait_for_timeout(1000)
+        return got
+    got = notices(inv, "Ivan escreveu uma cartinha para Luna")
+    check(f"Bianca recebe o aviso da cartinha ({got[:1]})", any("Ivan escreveu uma cartinha para Luna" in t for t in got))
+    check("sininho da Bianca mostra novidade", (rpc(inv, "snapshot", {})[1].get("unread") or 0) >= 1)
     check("Bianca vê a cartinha do Ivan", inv.locator(".letter-card").filter(has_text="Cartinha de Ivan").count() == 1)
     with inv.expect_response(lambda r: "/api/rpc/toggleBone" in r.url, timeout=20000):
         inv.locator(".letter-card").get_by_role("button", name=re.compile("Dar ossinho")).click()
@@ -270,6 +279,10 @@ with sync_playwright() as p:
     check("Ivan vê 'Bianca deu um ossinho'", eventually(lambda t: expect(a.locator(".letter-card").get_by_text("Bianca deu um ossinho")).to_be_visible(timeout=t)))
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)
+    got = notices(a, "Bianca deu um ossinho na sua cartinha de Luna")
+    check(f"Ivan recebe o aviso do ossinho ({got[:1]})", any("Bianca deu um ossinho na sua cartinha de Luna" in t for t in got))
+    a.goto(BASE + "/novidades"); expect(a.locator(".notice-item").first).to_be_visible(timeout=20000)
+    check("Novidades zera o sininho", eventually(lambda t: expect(a.locator(".dog-bell__count")).to_have_count(0, timeout=t)))
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click(); a.get_by_role("button", name="Editar o perfil de Luna").click(); a.wait_for_url("**/perfil")
     a.get_by_role("button", name=re.compile("Família de Luna")).click()
     check("administrador vê a Bianca na família", eventually(lambda t: expect(a.get_by_text("Bianca (você)")).to_have_count(0, timeout=t)) and eventually(lambda t: expect(a.locator(".member").filter(has_text="Bianca")).to_have_count(1, timeout=t)))

@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { currentDog, requireEditor } from "./family";
 import { adminClient, HttpError } from "./supabase";
+import { notifyFamily } from "./notify";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { supa: SupabaseClient; user: User };
@@ -45,6 +46,7 @@ export async function saveLetter(ctx: Ctx, args: unknown) {
   if (prior) return { id: prior.id }; // toque duplo: a mesma cartinha
   const { data, error } = await admin.from("letters").insert({ dog_id: dog.id, created_by: ctx.user.id, body: clean(a.body), letter_date: a.date, request_key: a.requestKey }).select("id").single();
   if (error) throw new HttpError(500, "SERVER", "Não deu para guardar a cartinha agora.");
+  notifyFamily(ctx, { dogId: dog.id, dogName: dog.name, kind: "letter", targetType: "letter", targetId: (data as any).id });
   return { id: (data as any).id };
 }
 
@@ -85,6 +87,9 @@ export async function toggleBone(ctx: Ctx, args: unknown) {
   const key = { target_type: a.targetType, target_id: a.targetId, user_id: ctx.user.id };
   const { data: had } = await admin.from("bones").select("user_id").match(key).maybeSingle();
   if (had) await admin.from("bones").delete().match(key);
-  else await admin.from("bones").insert({ ...key, dog_id: dog.id });
+  else {
+    await admin.from("bones").insert({ ...key, dog_id: dog.id });
+    notifyFamily(ctx, { dogId: dog.id, dogName: dog.name, kind: "bone", targetType: a.targetType, targetId: a.targetId, authorId: target.created_by });
+  }
   return { given: !had };
 }

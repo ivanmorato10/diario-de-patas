@@ -24,6 +24,7 @@ import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./stu
 import { sendAccountDeleted } from "./mailer";
 import { attachReferral, confirmReferral, referralInfo } from "./referrals";
 import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
+import { listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, setNotifyPrefs, testPush } from "./notify";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
 import { achadinhosInfo } from "./amazon";
@@ -131,7 +132,10 @@ const meOf = (ctx: Ctx, profile: any) => {
   const meta = (ctx.user.user_metadata ?? {}) as any;
   // Palpite só quando o login traz um nome de verdade (Google/Apple); do email não sai um nome bom.
   const fromLogin = String(meta.full_name || meta.name || meta.given_name || "").trim().split(/\s+/)[0] ?? "";
-  return { userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed, suggestedName: fromLogin.slice(0, 40) };
+  return {
+    userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed, suggestedName: fromLogin.slice(0, 40),
+    notify: { photo: profile?.notify_photo !== false, letter: profile?.notify_letter !== false, bone: profile?.notify_bone !== false },
+  };
 };
 
 export async function snapshot(ctx: Ctx) {
@@ -144,7 +148,7 @@ export async function snapshot(ctx: Ctx) {
     return { profile: profile ? toProfile(profile) : null, me: meOf(ctx, profile), dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
   }
   const D = dog.id;
-  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows] = await Promise.all([
+  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes] = await Promise.all([
     q(supa.from("diary_entries").select("*").eq("dog_id", D).is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*").eq("dog_id", D)),
     q(supa.from("album_entries").select("album_id, entry_id")),
@@ -163,6 +167,7 @@ export async function snapshot(ctx: Ctx) {
     familyInfo(ctx, dog),
     q(supa.from("letters").select("*").eq("dog_id", D).order("letter_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("bones").select("target_type, target_id, user_id").eq("dog_id", D)),
+    supa.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).is("read_at", null),
   ]) as any[];
   const memberName = new Map<string, string>((fam.members as any[]).map((m) => [m.userId, m.name]));
   const albumById = new Map<string, any>(albums.map((a: any) => [a.id, a]));
@@ -190,6 +195,7 @@ export async function snapshot(ctx: Ctx) {
     entries: entries.map((e: any) => ({ ...toEntry(e, missionByEntry.get(e.id) ?? null), createdBy: e.created_by ?? null, createdByName: e.created_by && e.created_by !== ctx.user.id ? memberName.get(e.created_by) ?? null : null })),
     letters: letterRows.map((l: any) => ({ id: l.id, body: l.body, date: l.letter_date, createdBy: l.created_by, createdByName: l.created_by ? memberName.get(l.created_by) ?? null : null, mine: l.created_by === ctx.user.id, createdAt: l.created_at })),
     bones: boneRows.map((b: any) => ({ targetType: b.target_type, targetId: b.target_id, userId: b.user_id })),
+    unread: unreadRes?.count ?? 0,
     albumEntries: albumEntries.filter((a: any) => albumById.has(a.album_id)).map((a: any) => {
       const albumId = albumClientId(albumById.get(a.album_id));
       return { key: `${albumId}:${a.entry_id}`, albumId, entryId: a.entry_id, addedAt: "" };
@@ -318,6 +324,7 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   }).select("*").single()) as any;
   await setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false);
   if (dog.owner_id === ctx.user.id) await confirmReferral(ctx); // primeira foto no próprio diário confirma a indicação
+  notifyFamily(ctx, { dogId: dog.id, dogName: dog.name, kind: "photo", targetType: "entry", targetId: row.id });
   return toEntry(row, null);
 }
 
@@ -740,7 +747,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
   achadinhosInfo: () => achadinhosInfo(),
-  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, createInvite, acceptInvite, updateMember, removeMember,
+  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead: (c) => markNotificationsRead(c), savePushSubscription, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

@@ -11,13 +11,14 @@ import { PageLoading, StorageUnavailable, TopBar } from "@/components/shell";
 import { MyNameField } from "@/components/name-ask";
 import { ShareApp } from "@/components/share-app";
 import { FamilyDiaries } from "@/components/family-diaries";
+import { NotificationSettings } from "@/components/notifications";
 import { InstallAppLink } from "@/components/install-app";
 import { TimezoneSelect } from "@/components/profile-fields";
 import { IconChevron } from "@/components/icons";
 import { Sheet } from "@/components/entry-actions";
 
 const CONFIRM_WORD = "EXCLUIR";
-type Panel = "name" | "family" | "tz" | "delete" | null;
+type Panel = "name" | "family" | "notify" | "tz" | "delete" | null;
 
 /** Minha conta: quem é você (nome e email) e linhas que abrem cada ajuste — como o Perfil do cachorro. */
 export default function Conta() {
@@ -96,6 +97,7 @@ export default function Conta() {
         <section className="stack" style={{ gap: 8 }} aria-label="Ajustes da conta">
           {REAL_MODE ? <Row id="name" icon="✏️" label="Seu nome" sub={snap.me?.nameConfirmed ? `A família vê “${snap.me.name}”` : "Como a família te chama"} /> : null}
           {REAL_MODE && others > 0 ? <Row id="family" icon="👨‍👩‍👧" label="Diários da família" sub={`${others} ${others === 1 ? "diário de outra pessoa" : "diários de outras pessoas"}`} /> : null}
+          {REAL_MODE ? <Row id="notify" icon="🔔" label="Notificações" sub="Avisos da família no celular" /> : null}
           <Row id="tz" icon="🕐" label="Fuso horário" sub={tzValue.replace(/_/g, " ")} />
           {REAL_MODE ? <ShareApp /> : null}
           <Link href="/achadinhos" className="card row-between profile-row"><span className="profile-row__text"><span>🛍️ Achadinhos do Abu</span></span><IconChevron /></Link>
@@ -117,6 +119,12 @@ export default function Conta() {
 
         <Sheet open={panel === "family"} onClose={() => setPanel(null)} labelledBy="familias">
           <FamilyDiaries />
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setPanel(null)}>Fechar</button>
+        </Sheet>
+
+        <Sheet open={panel === "notify"} onClose={() => setPanel(null)} labelledBy="c-notify">
+          <h2 id="c-notify">Notificações</h2>
+          <NotificationSettings />
           <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setPanel(null)}>Fechar</button>
         </Sheet>
 

@@ -163,6 +163,8 @@ export interface Snapshot {
   me?: Me;
   letters?: Letter[];
   bones?: Bone[];
+  /** Avisos da família ainda não vistos (sininho). */
+  unread?: number;
   entries: DiaryEntry[];
   albumEntries: AlbumEntry[];
   completions: MissionCompletion[];
