@@ -22,7 +22,6 @@ import { MedAlert } from "@/components/med-alert";
 import { FamilyNudge } from "@/components/family-nudge";
 import { MemoryRotator } from "@/components/memory-rotator";
 import { NameAsk } from "@/components/name-ask";
-import { DogTitle } from "@/components/dog-switcher";
 import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
@@ -71,7 +70,7 @@ export default function Hoje() {
         <section className="row" aria-labelledby="dog-title">
           <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="lg" />
           <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-            <DogTitle name={dog.name} />
+            <h1 id="dog-title" className="hoje-title">Diário de {dog.name}</h1>
             <div className="hoje-badges">
               <span className="hoje-level"><IconStar size={14} /> {level.title}</span>
               <span className="hoje-xp">🐾 {snap.xpTotal} patinhas</span>

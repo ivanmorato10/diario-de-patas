@@ -905,9 +905,13 @@ a.choice-card:active { transform: translateY(1px); }
 .letter-card__input { display: block; width: 100%; min-height: 256px; border: 0; background: transparent; resize: vertical; padding: 0; outline: none; }
 .letter-card__input::placeholder { color: #b9a68c; }
 .letter-card--edit:focus-within { border-color: var(--brand-teal); }
-.dog-title-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px; text-align: left; }
-.dog-title-btn__arrow { font-family: var(--font-body); font-size: 0.55em; color: var(--link); }
 .topbar__actions { display: flex; align-items: center; gap: 8px; }
 .topbar__person { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface, #fff); border: 1.5px solid var(--border); color: var(--text-primary); }
 .sticky-action:has(.sticky-action__pair) { justify-content: stretch; }
 .sticky-action__pair .btn { min-width: 0; font-size: 0.9375rem; padding-left: 8px; padding-right: 8px; }
+/* Foto do perfil tocável: abre o ajuste de zoom e posição. */
+.avatar-edit { position: relative; background: none; border: 0; padding: 0; border-radius: 50%; cursor: pointer; flex: none; }
+.avatar-edit__hint { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); background: var(--text-primary); color: #fff8ec; font: 700 0.75rem/1 var(--font-body); padding: 5px 10px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgba(31, 22, 13, 0.25); }
+.invite-box__roles .check { align-items: flex-start; }
+.invite-box__roles .check input { margin-top: 2px; }
+.invite-box__roles .check__text { gap: 2px; }

@@ -2,6 +2,12 @@
 import type { DiaryRole } from "@/domain/types";
 import { rpc } from "./real-repository";
 
+/** Explicação de cada papel (convite e família). */
+export const ROLE_HELP: Record<DiaryRole, string> = {
+  admin: "Cuida do diário: convida pessoas, muda papéis e pode apagar o diário.",
+  editor: "Guarda fotos, escreve cartinhas, faz missões e anota os cuidados junto com você.",
+  viewer: "Vê todas as fotos e cartinhas e pode dar ossinho 🦴, mas não guarda fotos nem muda nada.",
+};
 export const ROLE_PT: Record<DiaryRole, string> = { admin: "Responsável pelo diário", editor: "Pode adicionar momentos", viewer: "Pode acompanhar" };
 
 export const switchDog = (dogId: string) => rpc("switchDog", { dogId });

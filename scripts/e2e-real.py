@@ -98,12 +98,12 @@ with sync_playwright() as p:
     expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible()
     check("modo real: sem faixa de demonstração", a.locator(".demo-banner").count() == 0)
     try:
-        expect(a.locator("header a[href='/perfil'] .avatar img")).to_have_count(1, timeout=15000)
+        expect(a.locator("header .dog-switch .avatar img")).to_have_count(1, timeout=15000)
     except AssertionError:
         pass
     dog = rpc(a, "snapshot", {})[1]["dog"]
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=thumb').then(r => r.status)", dog["photoMediaId"]) if dog.get("photoMediaId") else None
-    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header a[href='/perfil'] .avatar img").count() == 1)
+    check(f"foto de perfil no bucket privado e no cabeçalho ({st})", st == 200 and a.locator("header .dog-switch .avatar img").count() == 1)
     a.screenshot(path=f"{OUT}/01-hoje-A.png", full_page=True)
 
     a.get_by_role("link", name="Olá, mundo").first.click(); a.get_by_role("link", name="Enviar foto").click()
@@ -269,7 +269,7 @@ with sync_playwright() as p:
     check("Ivan vê 'Bianca deu um ossinho'", eventually(lambda t: expect(a.locator(".letter-card").get_by_text("Bianca deu um ossinho")).to_be_visible(timeout=t)))
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)
-    a.goto(BASE + "/hoje"); a.get_by_role("link", name="Perfil de Luna").click(); a.wait_for_url("**/perfil")
+    a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click(); a.get_by_role("button", name="🐶 Perfil de Luna").click(); a.wait_for_url("**/perfil")
     check("administrador vê a Bianca na família", eventually(lambda t: expect(a.get_by_text("Bianca (você)")).to_have_count(0, timeout=t)) and eventually(lambda t: expect(a.locator(".member").filter(has_text="Bianca")).to_have_count(1, timeout=t)))
     a.get_by_label("Papel de Bianca").select_option("viewer"); a.wait_for_timeout(2000)
     st, body = rpc(inv, "updateDog", {"name": "Invadido"})
@@ -285,16 +285,16 @@ with sync_playwright() as p:
     credP = (rpc(a, "studioState", {})[1] or {}).get("balance")
     check(f"segundo cachorro com diário próprio ({st}, {snapP['dog']['name']}, {len(snapP.get('diaries') or [])} diários, créditos {credP})", st == 200 and snapP["dog"]["name"] == "Pepe" and len(snapP["diaries"]) == 2 and len(snapP["entries"]) == 0 and credP == 0)
     check("Bianca continua vendo só Luna", len(rpc(inv, "snapshot", {})[1].get("diaries") or []) == 1)
-    a.goto(BASE + "/hoje"); a.get_by_role("button", name=re.compile("Diário de Pepe")).click()
-    check("título 'Diário de Pepe ▾' abre Seus cachorros com 'Adicionar cachorro'", a.get_by_role("heading", name="Seus cachorros").is_visible() and a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
+    a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
+    check("foto do topo abre Seus cachorros com 'Adicionar cachorro'", a.get_by_role("heading", name="Seus cachorros").is_visible() and a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
     a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")
     check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     # Apagar só um cachorro: só quem é responsável vê; apaga o Pepe e a conta continua com a Luna.
     inv.goto(BASE + "/perfil"); expect(inv.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)
     check("quem acompanha não vê 'Apagar o diário'", inv.get_by_role("heading", name=re.compile("Apagar o diário")).count() == 0)
-    a.get_by_role("button", name=re.compile("Diário de Luna")).click(); a.get_by_role("button", name=re.compile("^Pepe")).click(); a.wait_for_url("**/hoje")
+    a.locator("button.dog-switch").click(); a.get_by_role("button", name=re.compile("^Pepe")).click(); a.wait_for_url("**/hoje")
     expect(a.get_by_role("heading", name=re.compile("Diário de Pepe"))).to_be_visible(timeout=20000)
-    a.get_by_role("link", name="Perfil de Pepe").click(); a.wait_for_url("**/perfil")
+    a.locator("button.dog-switch").click(); a.get_by_role("button", name="🐶 Perfil de Pepe").click(); a.wait_for_url("**/perfil")
     a.get_by_label("Para confirmar").fill("Pepe"); a.get_by_role("button", name="Apagar o diário de Pepe").click()
     a.wait_for_url(lambda u: "/perfil" not in u, timeout=30000)
     snapAfter = rpc(a, "snapshot", {})[1]
@@ -302,10 +302,10 @@ with sync_playwright() as p:
     ctxI.close()
     a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
     a.get_by_role("button", name="Ajustar zoom e posição").click()
-    check("editor de foto de perfil abre com o ajuste salvo", a.get_by_label("Zoom").input_value() in ("1.6", "1.60") )
-    a.get_by_label("Zoom").fill("2.2")
+    check("editor de foto de perfil abre com o ajuste salvo", a.get_by_role("slider", name="Zoom").input_value() in ("1.6", "1.60") )
+    a.get_by_role("slider", name="Zoom").fill("2.2")
     a.get_by_role("button", name="Salvar ajuste").click(); a.wait_for_timeout(300)
-    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header a[href='/perfil'] .avatar img").get_attribute("style") or ""))
+    check("a foto muda na tela na hora", "scale(2.2)" in (a.locator("header .dog-switch .avatar img").get_attribute("style") or ""))
     a.wait_for_timeout(2500)
     saved = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"ajuste da foto de perfil salvo pela tela ({saved})", abs(float(saved.get("zoom", 0)) - 2.2) < 0.01)
@@ -318,7 +318,7 @@ with sync_playwright() as p:
     dragged = (rpc(a, "snapshot", {})[1]["dog"] or {}).get("avatarCrop") or {}
     check(f"arrastar e fechar a janela salva a posição ({dragged})", abs(float(dragged.get("x", 40)) - 40) > 1 and abs(float(dragged.get("zoom", 0)) - 2.2) < 0.01)
     a.reload(); a.wait_for_timeout(2000)
-    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header a[href='/perfil'] .avatar img").get_attribute("style") or ""))
+    check("ajuste continua depois de recarregar", "scale(2.2)" in (a.locator("header .dog-switch .avatar img").get_attribute("style") or ""))
 
     # ---------- Link compartilhado: só a seleção; revogar corta na hora ----------
     a.goto(BASE + "/albuns/primeiras-lembrancas"); a.wait_for_timeout(1500)

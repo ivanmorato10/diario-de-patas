@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ROLE_PT, createInvite } from "@/data/family-client";
+import { ROLE_HELP, ROLE_PT, createInvite } from "@/data/family-client";
 import type { DiaryRole } from "@/domain/types";
 import { ShareActions } from "./share-actions";
 
@@ -42,8 +42,8 @@ export function InviteBox({ dogName }: { dogName: string }) {
     <div className="invite-box">
       <fieldset className="invite-box__roles">
         <legend className="caption">A pessoa vai poder:</legend>
-        <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span><strong>Pode adicionar momentos</strong> · fotos, cartinhas e cuidados</span></label>
-        <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span><strong>Pode acompanhar</strong> · vê tudo e dá ossinho, sem alterar</span></label>
+        <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span className="check__text"><strong>Pode adicionar momentos</strong><span className="caption">{ROLE_HELP.editor}</span></span></label>
+        <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span className="check__text"><strong>Pode acompanhar</strong><span className="caption">{ROLE_HELP.viewer}</span></span></label>
       </fieldset>
       <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate}>{busy ? "Gerando…" : "Gerar convite"}</button>
       {msg ? <p className="small" role="status">{msg}</p> : null}

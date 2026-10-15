@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useStore } from "@/data/store";
 import { REAL_MODE } from "@/config/mode";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun, IconUser } from "./icons";
-import { DogAvatar } from "./media";
+import { DogMenu } from "./dog-switcher";
 import { AbuFace, BrandLockup } from "./brand";
 
 const NAV = [
@@ -80,9 +80,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
         {dog ? (
           <div className="topbar__actions">
             <Link href="/conta" className="topbar__person" aria-label="Minha conta"><IconUser size={20} /></Link>
-            <Link href="/perfil" aria-label={`Perfil de ${dog.name}`} style={{ borderRadius: "50%" }}>
-              <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
-            </Link>
+            <DogMenu />
           </div>
         ) : null}
       </div>

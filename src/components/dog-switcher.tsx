@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { ROLE_PT, switchDog } from "@/data/family-client";
-import { REAL_MODE } from "@/config/mode";
 import { Sheet } from "./entry-actions";
 import { DogAvatar } from "./media";
 
 /** Lista "Seus cachorros": trocar de cachorro (não troca a conta) e "+ Adicionar cachorro". */
-export function DogList({ onDone }: { onDone?: () => void }) {
+export function DogList({ onDone, profileLink = false }: { onDone?: () => void; profileLink?: boolean }) {
   const { snap, reload } = useStore();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -47,27 +46,28 @@ export function DogList({ onDone }: { onDone?: () => void }) {
         ))}
       </ul>
       {error ? <p className="field-error" role="alert">{error}</p> : null}
+      {profileLink && snap?.dog ? <button type="button" className="btn btn--secondary btn--block" onClick={() => { onDone?.(); router.push("/perfil"); }}>🐶 Perfil de {snap.dog.name}</button> : null}
       <button type="button" className="btn btn--secondary btn--block" onClick={() => { onDone?.(); router.push("/adicionar"); }}>+ Adicionar cachorro</button>
     </div>
   );
 }
 
-/** Título "Diário de Pepe ▾" do Hoje: com mais de um cachorro, abre "Seus cachorros". */
-export function DogTitle({ name }: { name: string }) {
+/** Foto do cachorro no topo: abre "Seus cachorros" (trocar), o perfil dele e "+ Adicionar cachorro". */
+export function DogMenu() {
   const { snap } = useStore();
   const [open, setOpen] = useState(false);
-  const many = REAL_MODE && (snap?.diaries?.length ?? 0) > 1;
-  if (!many) return <h1 id="dog-title" className="hoje-title">Diário de {name}</h1>;
+  const dog = snap?.dog;
+  if (!dog) return null;
+  const count = snap?.diaries?.length ?? 0;
   return (
     <>
-      <h1 id="dog-title" className="hoje-title">
-        <button type="button" className="dog-title-btn" onClick={() => setOpen(true)} aria-haspopup="dialog">
-          Diário de {name} <span className="dog-title-btn__arrow" aria-hidden="true">▾</span><span className="sr-only"> (trocar de cachorro)</span>
-        </button>
-      </h1>
+      <button type="button" className="dog-switch" onClick={() => setOpen(true)} aria-label={`${dog.name}: trocar de cachorro ou ver o perfil`} aria-haspopup="dialog">
+        <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
+        {count > 1 ? <span className="dog-switch__count" aria-hidden="true">{count}</span> : null}
+      </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="dogs-title">
         <h2 id="dogs-title">Seus cachorros</h2>
-        <DogList onDone={() => setOpen(false)} />
+        <DogList onDone={() => setOpen(false)} profileLink />
         <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 8 }} onClick={() => setOpen(false)}>Fechar</button>
       </Sheet>
     </>

@@ -87,7 +87,7 @@ export default function Comecar() {
                 <div className="row">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={photoUrl} alt="Foto de perfil escolhida" className="avatar avatar--xl" />
-                  <button type="button" className="btn btn--ghost" onClick={() => setPhoto(null)}>Remover</button>
+                  <button type="button" className="btn btn--secondary btn--small" onClick={() => setPhoto(null)}>Remover foto</button>
                 </div>
               ) : <PhotoPicker onPicked={setPhoto} compact />}
             </div>

@@ -60,8 +60,10 @@ export default function Perfil() {
       await fn();
       await reload();
       setMsg({ kind: "ok", text: ok });
+      return true;
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof DomainError ? e.message : "Não conseguimos salvar. Tente novamente." });
+      return false;
     }
   }
 
@@ -107,11 +109,21 @@ export default function Perfil() {
           <section className="stack" aria-labelledby="perfil">
             <h2 id="perfil" className="sr-only">Perfil</h2>
             <div className="row">
-              <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
+              {/* Como no LinkedIn: o ajuste abre ao escolher a foto; depois, é só tocar nela para reajustar. */}
+              {dog.photoMediaId && !viewer ? (
+                <button type="button" className="avatar-edit" onClick={() => setCropOpen(true)} aria-label={`Ajustar zoom e posição da foto de ${dog.name}`}>
+                  <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
+                  <span className="avatar-edit__hint" aria-hidden="true">Ajustar</span>
+                </button>
+              ) : (
+                <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
+              )}
               <div className="stack" style={{ gap: 6 }}>
-                <PhotoPicker compact onPicked={(p) => run(() => repo!.updateDog({ photo: p }), "Foto atualizada.")} />
-                {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" onClick={() => setCropOpen(true)}>Ajustar zoom e posição</button> : null}
-                {dog.photoMediaId ? <button type="button" className="btn btn--ghost btn--small" onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}>Remover foto</button> : null}
+                <PhotoPicker compact onPicked={async (p) => {
+                  // Já abre o ajuste de zoom e posição da foto nova (depois que ela chega no perfil).
+                  if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), "Foto atualizada.")) setCropOpen(true);
+                }} />
+                {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}>Remover foto</button> : null}
               </div>
             </div>
             {(() => {

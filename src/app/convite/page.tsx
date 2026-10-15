@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { REAL_MODE } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { useStore } from "@/data/store";
-import { ROLE_PT, acceptInvite, inviteFormatError, previewInvite } from "@/data/family-client";
+import { ROLE_HELP, ROLE_PT, acceptInvite, inviteFormatError, previewInvite } from "@/data/family-client";
 import type { DiaryRole } from "@/domain/types";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
@@ -88,7 +88,8 @@ function Convite() {
         ) : (
           <div className="stack">
             <h1 className="sp-sheet__title">{info.invitedBy} convidou você para o diário de {info.dogName}</h1>
-            <p className="invite-role"><Paw size={16} /> Seu papel: <strong>{ROLE_PT[info.role]}</strong>{info.role === "editor" ? " (fotos, cartinhas e cuidados)" : " (vê tudo e dá ossinho, sem alterar)"}</p>
+            <p className="invite-role"><Paw size={16} /> Seu papel: <strong>{ROLE_PT[info.role]}</strong></p>
+            <p className="caption" style={{ marginTop: -6 }}>{ROLE_HELP[info.role]}</p>
             {logged ? (
               <>
               <div className="field">
