@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { REAL_MODE } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { useStore } from "@/data/store";
 import { ROLE_HELP, ROLE_PT, acceptInvite, inviteFormatError, previewInvite } from "@/data/family-client";
@@ -28,7 +27,6 @@ function Convite() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!REAL_MODE) return;
     browserClient().auth.getUser().then(({ data }) => {
       setLogged(!!data.user);
       // Palpite do nome pelo login (Google/Apple); a pessoa confirma ou corrige.

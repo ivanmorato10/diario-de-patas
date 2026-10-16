@@ -1,6 +1,5 @@
 "use client";
 
-import { REAL_MODE } from "@/config/mode";
 import { useState } from "react";
 
 import { useStore } from "@/data/store";
@@ -60,7 +59,7 @@ export default function Medicamentos() {
             <div className="med-due">
               <span>🔔 {MED_REPEAT[m.repeat]} · {due ? <>próxima dose: <strong>{formatCivilDate(due)}</strong>{due < today ? " (atrasada)" : due === today ? " (hoje)" : ""}</> : "tratamento encerrado"}{m.lastGiven ? ` · última: ${formatCivilDate(m.lastGiven)}` : ""}</span>
               {due && due <= today ? <button type="button" className="btn btn--secondary btn--small" onClick={() => markGiven(m)}>Já dei hoje</button> : null}
-              {due && REAL_MODE ? <a className="btn btn--ghost btn--small" href={`/api/calendario?tipo=medicamento&id=${m.id}`}>📅 Lembrete no celular</a> : null}
+              {due ? <a className="btn btn--ghost btn--small" href={`/api/calendario?tipo=medicamento&id=${m.id}`}>📅 Lembrete no celular</a> : null}
             </div>
           );
         })() : null}

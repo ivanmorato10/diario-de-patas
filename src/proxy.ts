@@ -5,7 +5,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { REAL_MODE, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
+import { CONFIG_OK, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
 import { isPublicPath } from "@/config/routes";
 import { REFERRAL_COOKIE, isReferralCode } from "@/config/referrals";
 
@@ -18,7 +18,7 @@ function keepReferral(request: NextRequest, res: NextResponse) {
 }
 
 export async function proxy(request: NextRequest) {
-  if (!REAL_MODE) return NextResponse.next();
+  if (!CONFIG_OK) return NextResponse.next(); // sem configuração: as páginas mostram "indisponível"
   return keepReferral(request, await route(request));
 }
 

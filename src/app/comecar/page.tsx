@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { REAL_MODE } from "@/config/mode";
 import { useStore, useBlobUrl } from "@/data/store";
 import { DomainError, type ProcessedImage } from "@/data/demo-repository";
 import { detectTimezone, isCivilDate } from "@/domain/dates";
@@ -11,7 +10,7 @@ import { LIMITS } from "@/config/business";
 import { PhotoPicker } from "@/components/photo-picker";
 import { ImportDemoCard } from "@/components/import-demo";
 import { PreferencesFields, TimezoneSelect } from "@/components/profile-fields";
-import { DemoBanner, StorageUnavailable } from "@/components/shell";
+import { StorageUnavailable } from "@/components/shell";
 import { IconArrowLeft, IconInfo, IconTrash } from "@/components/icons";
 import { AbuSays } from "@/components/brand";
 import type { DogPreferences } from "@/domain/types";
@@ -32,7 +31,7 @@ export default function Comecar() {
   const [another, setAnother] = useState<boolean | null>(null);
   useEffect(() => {
     setTz(detectTimezone());
-    setAnother(REAL_MODE && new URLSearchParams(window.location.search).get("novo") === "1");
+    setAnother(new URLSearchParams(window.location.search).get("novo") === "1");
   }, []);
   useEffect(() => {
     if (snap?.dog && another === false) router.replace("/hoje");
@@ -64,8 +63,7 @@ export default function Comecar() {
 
   return (
     <div className="shell">
-      <DemoBanner />
-      <header className="topbar"><div className="topbar__inner"><Link href={REAL_MODE ? "/adicionar" : "/bem-vindo"} className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link></div></header>
+      <header className="topbar"><div className="topbar__inner"><Link href="/adicionar" className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link></div></header>
       <main className="main main--bare">
         {another ? null : <ImportDemoCard />}
         {unavailable ? <StorageUnavailable /> : (
@@ -112,7 +110,7 @@ export default function Comecar() {
 
             <div className="notice notice--info">
               <IconInfo />
-              <span>O diário é privado. Nada é compartilhado até você escolher.{REAL_MODE ? "" : " Neste modo de demonstração, tudo fica salvo só neste navegador."}</span>
+              <span>O diário é privado. Nada é compartilhado até você escolher.</span>
             </div>
 
             {error ? <p className="field-error" role="alert">{error}</p> : null}

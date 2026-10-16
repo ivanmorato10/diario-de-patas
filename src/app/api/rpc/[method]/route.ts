@@ -1,6 +1,6 @@
 /** Operações do modo real (MUDANCAS-V2 §8). Sessão obrigatória; erros no formato { code, message }. */
 import { NextResponse } from "next/server";
-import { REAL_MODE } from "@/config/mode";
+import { configMissing } from "@/server/config-check";
 import { HttpError, requireUser } from "@/server/supabase";
 import { RPC } from "@/server/rpc";
 
@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(req: Request, { params }: { params: Promise<{ method: string }> }) {
-  if (!REAL_MODE) return NextResponse.json({ code: "DEMO", message: "Contas não estão ativas nesta versão." }, { status: 404 });
+  const missing = configMissing();
+  if (missing) return missing;
   const { method } = await params;
   const fn = Object.hasOwn(RPC, method) ? RPC[method] : undefined;
   if (!fn) return NextResponse.json({ code: "NOT_FOUND", message: "Operação desconhecida." }, { status: 404 });

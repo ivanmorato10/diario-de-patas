@@ -1,11 +1,11 @@
 /** Entrega de arquivos privados: confere o dono pela sessão (RLS) e lê o bucket com a chave do servidor. */
 import "server-only";
 import { NextResponse } from "next/server";
-import { REAL_MODE } from "@/config/mode";
+import { configMissing } from "@/server/config-check";
 import { adminClient, HttpError, requireUser } from "./supabase";
 
 export async function serveOwnFile(table: "media_assets" | "documents", bucket: "media" | "documents", id: string, variant: string) {
-  if (!REAL_MODE) return new NextResponse(null, { status: 404 });
+  if (configMissing()) return new NextResponse(null, { status: 503 });
   try {
     const { supa } = await requireUser();
     const { data: row } = await supa.from(table).select("private_storage_key, thumb_storage_key, mime, status").eq("id", id).maybeSingle();

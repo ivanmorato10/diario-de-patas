@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AbuCard, AbuFace, AbuMascot } from "@/components/brand";
 import { IconStar, Paw } from "@/components/icons";
-import { DemoBanner } from "@/components/shell";
-import { REAL_MODE } from "@/config/mode";
 
 /**
  * Introdução emocional (pedido do proprietário): o Abu se apresenta e conta por que o app existe.
@@ -131,7 +129,6 @@ export default function BemVindo() {
 
   return (
     <div className="shell intro">
-      <DemoBanner />
       <main className="main main--bare intro__main">
         <div className="row-between">
           <span className="row" style={{ gap: 8 }}><AbuFace size={34} className="brand-lockup__face" /><span className="brand-lockup__name" style={{ fontSize: "1.15rem" }}>Diário de Patas</span></span>
@@ -153,16 +150,6 @@ export default function BemVindo() {
           {last ? (
             <>
               <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">Apresentar meu cachorro</Link>
-              {REAL_MODE ? null : (
-                <button type="button" className="btn btn--secondary btn--block" onClick={() => setShowAccountInfo((v) => !v)} aria-expanded={showAccountInfo} aria-controls="conta-info">
-                  Já tenho conta
-                </button>
-              )}
-              {showAccountInfo ? (
-                <p id="conta-info" className="notice notice--info" role="status">
-                  Contas ainda não estão ativas nesta versão de teste. Por enquanto o diário fica salvo só neste aparelho.
-                </p>
-              ) : null}
             </>
           ) : (
             <div className="row" style={{ gap: 10 }}>

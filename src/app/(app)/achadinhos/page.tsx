@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REAL_MODE } from "@/config/mode";
 import { rpc } from "@/data/real-repository";
 import { ACHADINHOS, ACHADINHO_CATEGORIES, AFFILIATE_DISCLOSURE, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
 import { isStandalone } from "@/components/install-app";
@@ -34,7 +33,6 @@ export default function Achadinhos() {
   const [info, setInfo] = useState<Info>({});
   // Foto e título oficiais pela Creators API, quando a conta de associado estiver elegível.
   useEffect(() => {
-    if (!REAL_MODE) return;
     rpc<{ status: string; items: Info }>("achadinhosInfo").then((r) => setInfo(r.items)).catch(() => undefined);
   }, []);
   const used = ACHADINHO_CATEGORIES.filter((c) => ACHADINHOS.some((a) => a.category === c.id));

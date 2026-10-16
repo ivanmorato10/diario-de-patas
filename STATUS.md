@@ -196,6 +196,13 @@ Gemini pela API (conta diariodepatas.app, projeto **Diario de Patas** com fatura
 - Cartinhas (Diário: "💌 Escrever cartinha", filtro Cartinhas; papel de carta sem patinha) e ossinho 🦴 (curtir da família, só com 2+ pessoas, não na própria).
 - Banco: `20261029000000_letters.sql` (letters, bones, name_confirmed, prepare_dog_deletion). Testes: `supabase/tests/letters.sql` e e2e-real.
 
+## Revisão de lançamento (15/10/2026)
+- **Sem modo demonstração**: o app usa só contas reais (Supabase). Sem NEXT_PUBLIC_SUPABASE_URL/ANON_KEY, mostra "O app está temporariamente indisponível" e o servidor registra o erro (src/server/config-check.ts). Nunca cria diário local. O importador de diários antigos da demonstração continua (só aparece se o aparelho tiver um). Testes de demonstração (e2e.py, e2e-import.py) removidos; o importador segue coberto por src/data/import-demo.test.ts.
+- **Avisos**: /abrir?cao=…&foto|carta=… abre o cachorro certo (confere acesso; lembrança apagada ou acesso removido mostram mensagem). Sair desliga os avisos só deste aparelho; troca de conta no mesmo aparelho desfaz a ligação antiga. Fotos simultâneas = um aviso (bump_photo_notice com trava), atualização sem tocar de novo. Novidades: erro com "Tentar novamente", marca como lidos só os exibidos; teste de push diz se o serviço aceitou (não é confirmação de entrega).
+- **Limite**: 100 lembranças por cachorro (fotos + artes). Sem "exclua": todas continuam guardadas e há contato de suporte. Estúdio recusa antes de cobrar se não houver espaço. DIARY_MAX_ENTRIES (só servidor/testes) baixa o limite no e2e-limit.py.
+- **Perfil**: fechar com alterações pergunta Salvar/Descartar/Continuar (Fechar, toque fora, Esc); o formulário recarrega ao trocar de cachorro.
+- **Privacidade** reescrita em Sobre; pendências legais e proposta de capacidade em docs/PENDENCIAS-LANCAMENTO.md.
+
 ## Próximo passo
 
 MUDANCAS-V2 §8 (Supabase — precisa de Docker e do projeto na nuvem) e §9 (Estúdio — precisa da escolha do provedor e da chave).

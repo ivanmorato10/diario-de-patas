@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { REAL_MODE } from "@/config/mode";
 import { formatBRL } from "@/config/credits";
 import { DomainError } from "@/data/demo-repository";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus, studioState, type CreditPurchase, type CreditShop } from "@/data/studio-client";
@@ -107,7 +106,6 @@ export default function Creditos() {
   const idem = useRef("");
 
   const load = useCallback(async () => {
-    if (!REAL_MODE) return;
     try {
       const [s, st] = await Promise.all([creditShop(), studioState()]);
       setShop(s);
@@ -157,9 +155,7 @@ export default function Creditos() {
           {balance !== null ? <p className="shop-balance"><Paw size={16} /> Você tem <strong>{balance}</strong> {balance === 1 ? "crédito" : "créditos"}</p> : null}
         </div>
 
-        {!REAL_MODE ? (
-          <div className="notice notice--info"><IconInfo /><span>A compra de créditos funciona com conta.</span></div>
-        ) : paid ? (
+        {paid ? (
           <section className="pix-card pix-card--done" role="status">
             <PawBurst />
             <h2>+{paid.credits} créditos!</h2>

@@ -1,6 +1,7 @@
 /**
  * Interface única de dados (MUDANCAS-V2 §8): as telas falam só com isto.
- * - Modo demonstração: IndexedDB no navegador (`demo-adapter.ts`).
+ * - O app usa só o repositório real (Supabase). `demo-adapter.ts` sobrevive apenas para o importador
+ *   de diários antigos da demonstração e para os testes.
  * - Modo real (NEXT_PUBLIC_SUPABASE_URL definido): API do próprio app + Supabase (`real-repository.ts`),
  *   com o servidor como autoridade de XP, cotas, plano do dia e posse dos dados.
  */

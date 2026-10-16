@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { REAL_MODE, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
+import { CONFIG_OK, SUPABASE_ANON_KEY, SUPABASE_URL, UNAVAILABLE_TEXT } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { AbuMascot } from "@/components/brand";
 import { IconInfo, Paw } from "@/components/icons";
@@ -101,19 +101,17 @@ function Entrar() {
 
   // Quais provedores estão ligados no Supabase (para avisar em vez de mostrar uma página de erro).
   useEffect(() => {
-    if (!REAL_MODE) return;
     fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY } })
       .then((r) => r.json())
       .then((s) => setEnabled({ google: !!s?.external?.google, apple: !!s?.external?.apple }))
       .catch(() => setEnabled({ google: true, apple: true }));
   }, []);
 
-  if (!REAL_MODE) {
+  if (!CONFIG_OK) {
     return (
       <main className="main main--bare stack-lg" style={{ paddingTop: 32 }}>
-        <h1>Contas ainda não estão ativas</h1>
-        <p className="muted">Por enquanto o diário fica salvo só neste aparelho.</p>
-        <Link href="/bem-vindo" className="btn btn--secondary">Voltar</Link>
+        <h1>Diário de Patas</h1>
+        <p className="muted">{UNAVAILABLE_TEXT}</p>
       </main>
     );
   }

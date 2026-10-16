@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REAL_MODE } from "@/config/mode";
 import { useStore } from "@/data/store";
 import { Sheet } from "./entry-actions";
 import { InviteBox } from "./invite-box";
@@ -21,7 +20,7 @@ export function FamilyNudge() {
   }, [key]);
 
   const alone = (snap?.members?.length ?? 1) <= 1;
-  if (!REAL_MODE || !dog || hidden || snap?.role !== "admin" || !alone || !snap.entries.length) return null;
+  if (!dog || hidden || snap?.role !== "admin" || !alone || !snap.entries.length) return null;
 
   function dismiss() {
     setHidden(true);

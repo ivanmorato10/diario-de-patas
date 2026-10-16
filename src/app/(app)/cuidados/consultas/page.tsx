@@ -1,7 +1,6 @@
 "use client";
 
 import { mapsUrl } from "@/lib/maps";
-import { REAL_MODE } from "@/config/mode";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -65,7 +64,7 @@ export default function Consultas() {
                 <RowActions label={`consulta de ${formatCivilDate(v.date)}`} onEdit={() => openEdit(v)} onDelete={() => setToDelete(v)} />
               </div>
               {v.clinic || v.vet ? <p className="small">{[v.clinic, v.vet].filter(Boolean).join(" · ")}{v.clinic ? <> · <a href={mapsUrl(v.clinic)} target="_blank" rel="noopener">ver no mapa</a></> : null}</p> : null}
-              {REAL_MODE && (v.date > today || (v.nextDate && v.nextDate >= today)) ? <a className="btn btn--ghost btn--small" style={{ alignSelf: "flex-start" }} href={`/api/calendario?tipo=consulta&id=${v.id}`}>📅 Pôr no calendário do celular</a> : null}
+              {(v.date > today || (v.nextDate && v.nextDate >= today)) ? <a className="btn btn--ghost btn--small" style={{ alignSelf: "flex-start" }} href={`/api/calendario?tipo=consulta&id=${v.id}`}>📅 Pôr no calendário do celular</a> : null}
               {v.notes ? <p className="small" style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{v.notes}</p> : null}
               {v.nextDate ? (
                 <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>

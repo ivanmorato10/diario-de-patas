@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useStore } from "@/data/store";
-import { REAL_MODE } from "@/config/mode";
+import { CONFIG_OK, UNAVAILABLE_TEXT } from "@/config/mode";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun, IconUser } from "./icons";
 import { DogMenu } from "./dog-switcher";
 import { DogBell } from "./notifications";
@@ -18,14 +18,6 @@ const NAV = [
   { href: "/estudio", label: "Estúdio", Icon: IconBrush },
 ];
 
-export function DemoBanner() {
-  if (REAL_MODE) return null; // com contas, o diário fica na conta — não há demonstração
-  return (
-    <div className="demo-banner" role="note">
-      Modo demonstração: tudo fica só neste aparelho, sem conta. <Link href="/sobre#demo">Saiba mais</Link>
-    </div>
-  );
-}
 
 export function BottomNav() {
   const path = usePathname();
@@ -60,7 +52,7 @@ const emojiFor = (title: string) => TITLE_EMOJI[title] ?? (title.startsWith("Per
 export function TopBar({ title, back }: { title?: string; back?: string }) {
   const { snap } = useStore();
   const dog = snap?.dog;
-  const viewer = REAL_MODE && snap?.role === "viewer";
+  const viewer = snap?.role === "viewer";
   // "Só ver": o CSS esconde os atalhos de guardar/editar (o servidor também recusa).
   useEffect(() => {
     document.documentElement.dataset.role = snap?.role ?? "admin";
@@ -80,7 +72,7 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
         </div>
         {dog ? (
           <div className="topbar__actions">
-            {REAL_MODE ? <DogBell /> : null}
+            <DogBell />
             <Link href="/conta" className="topbar__person" aria-label="Minha conta"><IconUser size={20} /></Link>
             <DogMenu />
           </div>
@@ -96,16 +88,18 @@ export function useRequireDiary() {
   const { snap, unavailable } = useStore();
   const router = useRouter();
   useEffect(() => {
-    if (snap && !snap.dog) router.replace(REAL_MODE ? "/adicionar" : "/bem-vindo");
+    if (snap && !snap.dog) router.replace("/adicionar");
   }, [snap, router]);
   return { ready: !!snap?.dog, snap, unavailable };
 }
 
+/** Falha ao abrir o diário (sem internet, servidor fora ou configuração faltando). Nunca cria um diário local. */
 export function StorageUnavailable() {
   return (
     <div className="card stack" role="alert">
-      <h2>Não deu para abrir o diário neste navegador</h2>
-      <p className="muted">O modo demonstração guarda as fotos no próprio navegador. Ele pode estar bloqueado em janelas privadas ou com o armazenamento desativado. Tente uma janela normal.</p>
+      <h2>Não conseguimos abrir o diário agora</h2>
+      <p className="muted">{CONFIG_OK ? "Confira a internet e tente de novo." : UNAVAILABLE_TEXT}</p>
+      <button type="button" className="btn btn--secondary" onClick={() => window.location.reload()}>Tentar de novo</button>
     </div>
   );
 }

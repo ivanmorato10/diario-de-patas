@@ -9,7 +9,6 @@ import { useSearchParams } from "next/navigation";
 import {
   STUDIO_FORMATS, STUDIO_PRESETS, STUDIO_TABS, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
 } from "@/config/studio";
-import { REAL_MODE } from "@/config/mode";
 import { DomainError } from "@/data/demo-repository";
 import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
 import { FAILURE_PT, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
@@ -270,7 +269,7 @@ function Estudio() {
   // Mostra na hora o último saldo conhecido deste diário; o servidor confirma logo em seguida.
   const cacheKey = `ddp-studio-${snap?.dog?.id ?? ""}`;
   useEffect(() => {
-    if (!REAL_MODE || !snap?.dog?.id) return;
+    if (!snap?.dog?.id) return;
     try {
       const saved = localStorage.getItem(cacheKey);
       if (saved) setState((s) => s ?? (JSON.parse(saved) as StudioState));
@@ -278,7 +277,6 @@ function Estudio() {
   }, [cacheKey, snap?.dog?.id]);
 
   const refresh = useCallback(async () => {
-    if (!REAL_MODE) return;
     try {
       const fresh = await studioState();
       setState(fresh);
@@ -318,7 +316,7 @@ function Estudio() {
 
   // Valida a foto (e o recorte) antes de gastar crédito: foto ruim dá arte ruim.
   useEffect(() => {
-    if (!REAL_MODE || !photoId) return setPhotoCheck(null);
+    if (!photoId) return setPhotoCheck(null);
     setPhotoCheck("checking");
     let alive = true;
     const t = setTimeout(() => {
@@ -347,7 +345,7 @@ function Estudio() {
   const credits = preset ? flags.get(preset.id)?.credits ?? preset.credits : 0;
   const photo = photos.find((p) => p.id === photoId);
   const full = snap ? snap.entries.length >= LIMITS.maxEntries : false;
-  const canCreate = !full && (REAL_MODE && !!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad"));
+  const canCreate = !full && (!!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad"));
 
   async function create() {
     if (!canCreate || !preset || !photo) return;
@@ -381,9 +379,7 @@ function Estudio() {
           <p className="page-note">Uma foto de {snap.dog.name}, uma arte especial.</p>
         </div>
 
-        {!REAL_MODE ? (
-          <div className="notice notice--info" role="status"><IconInfo /><span><strong>Crie sua conta para fazer as artes.</strong> Por aqui você já pode conhecer todos os temas.</span></div>
-        ) : loadError ? (
+        {loadError ? (
           <p className="field-error" role="alert">{loadError}</p>
         ) : state && !state.configured ? (
           <div className="notice notice--info"><IconInfo /><span><strong>O Estúdio está quase pronto.</strong> Volte daqui a pouquinho!</span></div>
@@ -481,17 +477,17 @@ function Estudio() {
             <section className="card stack" aria-labelledby="st-custo">
               {full ? <p className="notice notice--warn small" role="alert" style={{ margin: 0 }}><span>{fullDiaryText(snap.dog.name)} Nenhum crédito é usado.</span></p> : null}
               <h2 id="st-custo" className="sr-only">Criar a arte</h2>
-              {preset ? <p className="small" style={{ margin: 0 }}>{credits} {credits === 1 ? "crédito" : "créditos"}{REAL_MODE && state ? <> · você tem {state.balance}</> : null}. Se não der certo, o crédito volta.</p> : null}
+              {preset ? <p className="small" style={{ margin: 0 }}>{credits} {credits === 1 ? "crédito" : "créditos"}{state ? <> · você tem {state.balance}</> : null}. Se não der certo, o crédito volta.</p> : null}
               {error ? <p className="field-error" role="alert">{error}</p> : null}
               <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
                 <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
               </button>
-              {REAL_MODE && state && preset && state.balance < credits ? <p className="small">Os créditos acabaram por enquanto. <Link href="/estudio/creditos">Ver créditos</Link></p> : null}
+              {state && preset && state.balance < credits ? <p className="small">Os créditos acabaram por enquanto. <Link href="/estudio/creditos">Ver créditos</Link></p> : null}
             </section>
           </>
         )}
 
-        {REAL_MODE && state && state.jobs.some((j) => j.state === "succeeded") ? (
+        {state && state.jobs.some((j) => j.state === "succeeded") ? (
           <section className="stack" aria-labelledby="st-hist">
             <h2 id="st-hist">Histórico</h2>
             <ul className="preset-grid" style={{ listStyle: "none", padding: 0, margin: 0 }}>

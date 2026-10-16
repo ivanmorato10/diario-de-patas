@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { REAL_MODE } from "@/config/mode";
 import * as demo from "@/data/demo-repository";
 import { importDemo, type DemoSource, type ImportReport } from "@/data/import-demo";
 import { useStore } from "@/data/store";
@@ -12,7 +11,6 @@ import { IconBook } from "./icons";
 function useDemoDiary() {
   const [found, setFound] = useState<DemoSource | null>(null);
   useEffect(() => {
-    if (!REAL_MODE) return;
     let alive = true;
     (async () => {
       const db = await demo.openDemoDb();
@@ -45,7 +43,7 @@ export function ImportDemoCard() {
     }
   });
 
-  if (!REAL_MODE || !source || !repo || !snap || dismissed) return null;
+  if (!source || !repo || !snap || dismissed) return null;
   if (snap.profile?.demoImportedAt && state !== "done") return null;
   const s = source.snap;
 

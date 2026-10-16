@@ -1,13 +1,13 @@
 /** Foto de perfil do cachorro num link compartilhado: só enquanto o link vale (revogado → 404). */
 import { NextResponse } from "next/server";
-import { REAL_MODE } from "@/config/mode";
+import { configMissing } from "@/server/config-check";
 import { resolveShare } from "@/server/rpc";
 import { adminClient } from "@/server/supabase";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
-  if (!REAL_MODE) return new NextResponse(null, { status: 404 });
+  if (configMissing()) return new NextResponse(null, { status: 503 });
   const { token } = await params;
   const share = await resolveShare(token).catch(() => null);
   if (!share?.avatar) return new NextResponse(null, { status: 404 });

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
 import { LIMITS, fullDiaryText } from "@/config/business";
-import { REAL_MODE } from "@/config/mode";
 import { rpc } from "@/data/real-repository";
 import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
@@ -30,7 +29,7 @@ type Panel = "edit" | "family" | "prefs" | "manage" | null;
 
 export default function Perfil() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { repo, reload, reset, patchSnap } = useStore();
+  const { repo, reload, patchSnap } = useStore();
   const router = useRouter();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
@@ -98,22 +97,18 @@ export default function Perfil() {
   ) : null;
 
   async function wipe() {
-    if (REAL_MODE) {
-      setDeleting(true);
-      setDeleteError(null);
-      try {
-        await rpc("deleteDiary", { confirmName: confirmText.trim() });
-        await reload();
-        router.replace("/");
-      } catch (e) {
-        setDeleteError(e instanceof Error ? e.message : "Não deu para apagar agora.");
-        setDeleting(false);
-      }
-      return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await rpc("deleteDiary", { confirmName: confirmText.trim() });
+      await reload();
+      router.replace("/");
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Não deu para apagar agora.");
+      setDeleting(false);
     }
-    await reset();
-    router.replace("/bem-vindo");
   }
+
 
   const lv = levelFor(snap.xpTotal);
   // Fechar com alterações pendentes pergunta antes (Fechar, toque fora, Esc); sem alterações, fecha direto.
@@ -163,7 +158,7 @@ export default function Perfil() {
 
         <section className="stack" style={{ gap: 8 }} aria-label="Opções do perfil">
           {!viewer ? <Row id="edit" icon="✏️" label="Editar perfil" sub="Foto, nome, apelido e aniversário" /> : null}
-          {REAL_MODE ? <Row id="family" icon="👨‍👩‍👧" label={`Família de ${dog.name}`} sub={`${snap.members?.length ?? 1} ${(snap.members?.length ?? 1) === 1 ? "pessoa" : "pessoas"}`} /> : null}
+          <Row id="family" icon="👨‍👩‍👧" label={`Família de ${dog.name}`} sub={`${snap.members?.length ?? 1} ${(snap.members?.length ?? 1) === 1 ? "pessoa" : "pessoas"}`} />
           {!viewer ? <Row id="prefs" icon="🎯" label="Preferências das missões" sub="Que tipo de missão combina com vocês" /> : null}
           {!viewer ? <Row id="manage" icon="⚙️" label="Gerenciar diário" sub="Espaço, links compartilhados e apagar" /> : null}
         </section>
@@ -210,12 +205,10 @@ export default function Perfil() {
           </form>
         </Sheet>
 
-        {REAL_MODE ? (
-          <Sheet open={panel === "family"} onClose={close} labelledBy="familia-titulo">
-            <FamilySection />
-            <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={close}>Fechar</button>
-          </Sheet>
-        ) : null}
+        <Sheet open={panel === "family"} onClose={close} labelledBy="familia-titulo">
+          <FamilySection />
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={close}>Fechar</button>
+        </Sheet>
 
         <Sheet open={panel === "manage"} onClose={close} labelledBy="p-manage">
           <h2 id="p-manage">Gerenciar diário</h2>
@@ -226,15 +219,11 @@ export default function Perfil() {
               <h3 id="links">Links compartilhados</h3>
               <ShareLinksList />
             </section>
-            {!REAL_MODE || snap.role === "admin" ? (
+            {snap.role === "admin" ? (
               <details className="more-details danger-details">
                 <summary>Apagar o diário de {dog.name}</summary>
                 <div className="stack" style={{ marginTop: 10 }}>
-                  {REAL_MODE ? (
-                    <p className="small" style={{ margin: 0 }}>Apaga tudo de {dog.name} para <strong>toda a família</strong>: fotos, cartinhas, álbuns, cuidados e créditos. Sua conta e seus outros cachorros continuam. Não dá para desfazer.</p>
-                  ) : (
-                    <p className="small" style={{ margin: 0 }}>Remove o perfil, as fotos, os álbuns e as conquistas deste aparelho. Não dá para desfazer.</p>
-                  )}
+                  <p className="small" style={{ margin: 0 }}>Apaga tudo de {dog.name} para <strong>toda a família</strong>: fotos, cartinhas, álbuns, cuidados e créditos. Sua conta e seus outros cachorros continuam. Não dá para desfazer.</p>
                   <div className="field">
                     <label htmlFor="confirm">Para confirmar, digite o nome: <strong>{dog.name}</strong></label>
                     <input id="confirm" className="input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />

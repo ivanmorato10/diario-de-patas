@@ -3,7 +3,6 @@
 import { ShareActions } from "./share-actions";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { REAL_MODE } from "@/config/mode";
 import { DomainError } from "@/data/demo-repository";
 import type { ShareLink } from "@/data/repository";
 import { useStore } from "@/data/store";
@@ -18,14 +17,6 @@ export function ShareSelection({ selected, defaultTitle, onDone }: { selected: s
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!REAL_MODE) {
-    return (
-      <>
-        <button type="button" className="btn btn--primary btn--small" disabled aria-describedby="share-off">Criar link</button>
-        <p id="share-off" className="caption">Links de compartilhamento precisam de conta e servidor para poderem ser revogados com segurança. Nada foi enviado.</p>
-      </>
-    );
-  }
   if (url) {
     return (
       <div className="stack" role="status">
@@ -73,7 +64,6 @@ export function ShareLinksList() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo]);
-  if (!REAL_MODE) return <p className="small muted">Nenhum link ativo. Compartilhamento chega junto com contas.</p>;
   if (error) return <p className="field-error" role="alert"><IconAlert size={16} /> {error}</p>;
   if (!links) return <p className="small muted">Carregando…</p>;
   const active = links.filter((l) => !l.revokedAt);

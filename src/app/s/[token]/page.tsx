@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
-import { REAL_MODE } from "@/config/mode";
+import { CONFIG_OK } from "@/config/mode";
 import { formatCivilDate } from "@/domain/dates";
 import { resolveShare } from "@/server/rpc";
 
@@ -53,7 +53,7 @@ function Invite() {
  */
 export default async function SharedPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const share = REAL_MODE ? await resolveShare(token).catch(() => null) : null;
+  const share = CONFIG_OK ? await resolveShare(token).catch(() => null) : null;
 
   if (!share) {
     return (

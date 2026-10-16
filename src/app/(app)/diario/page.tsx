@@ -8,7 +8,6 @@ import { LIMITS } from "@/config/business";
 import { formatCivilDate, formatMonthKey, monthKey } from "@/domain/dates";
 import { missionById } from "@/domain/missions";
 import type { DiaryEntry, Letter } from "@/domain/types";
-import { REAL_MODE } from "@/config/mode";
 import { BoneBar, LetterCard } from "@/components/letters";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
@@ -129,7 +128,7 @@ export default function Diario() {
           </>
         )}
         <div className="sticky-action">
-          {REAL_MODE && snap.role !== "viewer" ? (
+          {snap.role !== "viewer" ? (
             <div className="sticky-action__pair">
               <Link href="/guardar" className="btn btn--primary">Guardar momento</Link>
               <Link href="/diario/cartinha" className="btn btn--primary">Escrever cartinha</Link>

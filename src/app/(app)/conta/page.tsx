@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
-import { REAL_MODE } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
 import { isValidTimezone } from "@/domain/dates";
 import { PageLoading, StorageUnavailable, TopBar } from "@/components/shell";
@@ -34,7 +33,6 @@ export default function Conta() {
   const [panel, setPanel] = useState<Panel>(null);
 
   useEffect(() => {
-    if (!REAL_MODE) return;
     browserClient().auth.getUser().then(({ data }) => {
       const u = data.user;
       if (!u) return;
@@ -85,31 +83,27 @@ export default function Conta() {
       <TopBar title="Minha conta" back="/hoje" />
       <main className="main">
         {/* Quem é você: nome e forma de entrar; embaixo, linhas que abrem cada ajuste. */}
-        {REAL_MODE ? (
-          <section className="profile-head" aria-labelledby="voce">
+        <section className="profile-head" aria-labelledby="voce">
             <span className="account-avatar" aria-hidden="true">{(snap.me?.name || "?")[0].toUpperCase()}</span>
             <div className="stack" style={{ gap: 2, minWidth: 0 }}>
               <h2 id="voce" className="profile-head__name">{snap.me?.nameConfirmed ? snap.me.name : "Você"}</h2>
               {account ? <><span className="small" style={{ overflowWrap: "anywhere" }}>{account.email}</span><span className="caption">entra com {account.via}</span></> : null}
             </div>
-          </section>
-        ) : null}
+        </section>
 
         <section className="stack" style={{ gap: 8 }} aria-label="Ajustes da conta">
-          {REAL_MODE ? <Row id="name" icon="✏️" label="Seu nome" sub={snap.me?.nameConfirmed ? `A família vê “${snap.me.name}”` : "Como você aparece para a família"} /> : null}
-          {REAL_MODE && others > 0 ? <Row id="family" icon="👨‍👩‍👧" label="Diários da família" sub={`${others} ${others === 1 ? "diário de outra pessoa" : "diários de outras pessoas"}`} /> : null}
-          {REAL_MODE ? <Row id="notify" icon="🔔" label="Notificações" sub="Avisos da família no celular" /> : null}
+          <Row id="name" icon="✏️" label="Seu nome" sub={snap.me?.nameConfirmed ? `A família vê “${snap.me.name}”` : "Como você aparece para a família"} />
+          {others > 0 ? <Row id="family" icon="👨‍👩‍👧" label="Diários da família" sub={`${others} ${others === 1 ? "diário de outra pessoa" : "diários de outras pessoas"}`} /> : null}
+          <Row id="notify" icon="🔔" label="Notificações" sub="Avisos da família no celular" />
           <Row id="tz" icon="🕐" label="Fuso horário" sub={tzValue.replace(/_/g, " ")} />
-          {REAL_MODE ? <ShareApp /> : null}
+          <ShareApp />
           <Link href="/achadinhos" className="card row-between profile-row"><span className="profile-row__text"><span>🛍️ Achadinhos do Abu</span></span><IconChevron /></Link>
           <Link href="/sobre" className="card row-between profile-row"><span className="profile-row__text"><span>🐾 Sobre o Diário de Patas</span></span><IconChevron /></Link>
           <InstallAppLink variant="row" />
-          {REAL_MODE ? (
-            <SignOutForm style={{ display: "contents" }}>
+          <SignOutForm style={{ display: "contents" }}>
               {(busy) => <button type="submit" className="card row-between profile-row" disabled={busy}><span className="profile-row__text"><span>🚪 {busy ? "Saindo…" : "Sair da conta"}</span></span><IconChevron /></button>}
-            </SignOutForm>
-          ) : null}
-          {REAL_MODE ? <Row id="delete" icon="🗑️" label="Excluir minha conta" /> : null}
+          </SignOutForm>
+          <Row id="delete" icon="🗑️" label="Excluir minha conta" />
         </section>
 
         <Sheet open={panel === "name"} onClose={() => setPanel(null)} labelledBy="c-name">

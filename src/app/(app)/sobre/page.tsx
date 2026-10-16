@@ -3,7 +3,6 @@
 import { LEVELS } from "@/config/catalog";
 import { XP_MONTH_GOAL } from "@/config/credits";
 import { SUPPORT } from "@/config/business";
-import { REAL_MODE } from "@/config/mode";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
@@ -31,17 +30,6 @@ export default function Sobre() {
           </article>
         </section>
 
-        {!REAL_MODE ? (
-          <section id="demo" className="card stack" aria-labelledby="demo-t">
-          <h2 id="demo-t">O que é o modo demonstração</h2>
-          <ul className="stack small" style={{ paddingLeft: 18, margin: 0 }}>
-            <li>As fotos e o diário ficam guardados só neste navegador. Não há conta nem sincronização; limpar os dados do navegador apaga o diário.</li>
-            <li>As missões são confirmadas por você: depois de escolher a foto, você diz se ela mostra o que a missão pede. As patinhas não valem dinheiro.</li>
-            <li>O Estúdio de artes e os links de compartilhamento ainda não estão ativos.</li>
-            <li>Nenhum pagamento existe nesta versão.</li>
-          </ul>
-        </section>
-        ) : null}
 
         <section id="niveis" className="card stack" aria-labelledby="niveis-t">
           <h2 id="niveis-t">Patinhas, níveis e a arte do mês</h2>

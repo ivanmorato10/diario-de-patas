@@ -1,15 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { openDemoDb, type Snapshot } from "./demo-repository";
-import { demoRepository } from "./demo-adapter";
+import type { Snapshot } from "./demo-repository";
 import { realRepository } from "./real-repository";
 import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
-import { REAL_MODE } from "@/config/mode";
+import { CONFIG_OK } from "@/config/mode";
 
 interface StoreValue {
-  /** Dados: IndexedDB (demonstração) ou conta real, pela mesma interface. */
+  /** Dados da conta (Supabase). */
   repo: Repository | null;
   snap: Snapshot | null;
   /** Demo: IndexedDB indisponível (ex.: navegação privada). Real: não deu para carregar a conta. */
@@ -35,7 +34,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const r = REAL_MODE ? realRepository() : demoRepository(await openDemoDb());
+      if (!CONFIG_OK) throw new Error("configuração ausente"); // sem demonstração: mostra "indisponível"
+      const r = realRepository();
       if (!alive) return;
       repoRef.current = r;
       setRepo(r);
