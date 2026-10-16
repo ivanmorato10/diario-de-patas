@@ -40,6 +40,9 @@ export const FLAGS = {
   generationPaused: false,
 } as const;
 
+/** Limite no servidor. DIARY_MAX_ENTRIES (só servidor, para testes locais) pode baixar; nunca configurado na Vercel. */
+export const serverMaxEntries = () => Number(process.env.DIARY_MAX_ENTRIES) || LIMITS.maxEntries;
+
 /** Limite de lembranças: sem mandar apagar memórias. Todas continuam guardadas e podem ser baixadas. */
 export const fullDiaryText = (dogName = "o diário", email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "diariodepatas.app@gmail.com") =>
   `O diário de ${dogName} chegou ao limite de ${LIMITS.maxEntries} lembranças desta versão. Todas continuam guardadas, e dá para ver e baixar cada uma no Diário. Para guardar mais, fale com a gente: ${email}.`;

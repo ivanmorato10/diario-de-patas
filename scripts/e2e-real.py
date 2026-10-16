@@ -216,6 +216,16 @@ with sync_playwright() as p:
     rpc(a, "updateDog", {"avatarCrop": {"x": 40, "y": 30, "zoom": 1.6}})
     a.goto(BASE + "/perfil"); a.wait_for_timeout(1500)
     check("apelido aparece no perfil", a.get_by_text("“Lulu”").is_visible())
+    # Fechar a edição com mudança pendente pergunta antes (Fechar, Esc); "Descartar" não salva.
+    a.get_by_role("button", name=re.compile("Editar perfil")).click(); a.get_by_label("Nome", exact=True).fill("Luna Mudada")
+    a.get_by_role("button", name="Fechar").click()
+    check("fechar com alteração pergunta 'Salvar as alterações?'", eventually(lambda t: expect(a.get_by_text("Salvar as alterações?")).to_be_visible(timeout=t)))
+    a.get_by_role("button", name="Continuar editando").click()
+    check("'Continuar editando' mantém o que foi digitado", a.get_by_label("Nome", exact=True).input_value() == "Luna Mudada")
+    a.keyboard.press("Escape")
+    check("Esc também pergunta antes de fechar", eventually(lambda t: expect(a.get_by_text("Salvar as alterações?")).to_be_visible(timeout=t)))
+    a.get_by_role("button", name="Descartar").click(); a.wait_for_timeout(800)
+    check("'Descartar' fecha sem salvar", rpc(a, "snapshot", {})[1]["dog"]["name"] == "Luna" and a.get_by_label("Nome", exact=True).is_hidden())
     a.get_by_role("button", name=re.compile("Família de Luna")).click()
     # ---------- Família: convite com papel; quem recebe entra com a PRÓPRIA conta (email e senha) ----------
     expect(a.get_by_role("heading", name="Família de Luna")).to_be_visible(timeout=20000)

@@ -5,7 +5,7 @@
  */
 import { currentDog, requireEditor } from "./family";
 import "server-only";
-import { LIMITS, fullDiaryText } from "@/config/business";
+import { fullDiaryText, serverMaxEntries } from "@/config/business";
 import { z } from "zod";
 import sharp from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
@@ -171,7 +171,7 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   if (photoCheck?.verdict === "bad") throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
   // Sem espaço no diário a arte não teria onde ficar: recusa ANTES de reservar o crédito.
   const { count: used } = await admin.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
-  if ((used ?? 0) >= LIMITS.maxEntries) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
+  if ((used ?? 0) >= serverMaxEntries()) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
   const job = (await q(admin.from("generation_jobs").insert({
     owner_id: dog.owner_id, dog_id: dog.id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
     aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
