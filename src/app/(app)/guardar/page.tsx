@@ -9,7 +9,7 @@ import { cycleContext, useBlobUrl, useMediaBlob, useStore } from "@/data/store";
 import { DomainError, newId, type ProcessedImage, type SubmitResult } from "@/data/demo-repository";
 import type { CollectionId } from "@/config/catalog";
 import { AlbumChecklist } from "@/components/album-picker";
-import { LIMITS } from "@/config/business";
+import { LIMITS, fullDiaryText } from "@/config/business";
 import { isCivilDate } from "@/domain/dates";
 import { missionById, missionBySlug } from "@/domain/missions";
 import { missionStatus } from "@/domain/cycle";
@@ -221,7 +221,7 @@ function GuardarInner() {
               </div>
             ) : null}
             {room === 0 ? (
-              <div className="notice notice--warn" role="alert"><IconAlert /><span>O diário chegou ao limite de {LIMITS.maxEntries} lembranças desta versão de teste. Nada foi apagado; para guardar novas, exclua alguma antiga.</span></div>
+              <div className="notice notice--warn" role="alert"><IconAlert /><span>{fullDiaryText(snap.dog.name)}</span></div>
             ) : (
               <>
                 <PhotoPicker tiles onPicked={onPicked} onPickedMany={mission ? undefined : onPickedMany} maxFiles={room} />

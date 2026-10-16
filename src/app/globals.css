@@ -978,3 +978,5 @@ a.choice-card:active { transform: translateY(1px); }
 .notice-item.is-new { border-color: var(--accent); background: #fff6ee; }
 .notice-item__text { font-weight: 600; }
 .profile-head__nick { font-family: var(--font-hand); font-size: 1.3rem; line-height: 1; color: var(--accent); }
+.save-ask { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: #fff6ee; border: 1.5px solid #f3c79f; }
+.privacy-list { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }

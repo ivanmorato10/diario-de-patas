@@ -64,13 +64,21 @@ export default function Sobre() {
 
         <section className="stack" aria-labelledby="priv">
           <h2 id="priv">Privacidade</h2>
-          <p className="small">O diário é privado. Ao guardar uma foto, removemos dados de localização e outros metadados. {REAL_MODE ? "Com conta, as fotos ficam num armazenamento privado: só você vê, até escolher compartilhar." : "Nesta versão, nenhuma foto sai do seu aparelho."} Termos e política de privacidade completos serão publicados antes do lançamento.</p>
+          <ul className="small privacy-list">
+            <li><strong>Quem vê o diário:</strong> você e as pessoas que você convidar, conforme o papel de cada uma (pode adicionar momentos ou pode acompanhar). Quem é responsável pelo diário pode tirar alguém a qualquer momento.</li>
+            <li><strong>Links compartilhados:</strong> quem tiver o link vê só as fotos que você escolheu, sem cuidados, documentos ou email. Você revoga em Perfil › Gerenciar diário; revogar não apaga cópias que alguém já tenha baixado.</li>
+            <li><strong>Onde ficam as fotos:</strong> num armazenamento privado ligado à sua conta. Ao guardar, removemos a localização e outros dados escondidos da foto.</li>
+            <li><strong>Estúdio:</strong> para conferir a foto e criar a arte, ela é enviada à API paga do Google (Gemini). Pelos termos dessa API, o conteúdo não é usado para treinar produtos do Google; pode ficar um registro por tempo limitado, só para detectar abusos. A arte sai com uma marca d’água invisível do Google.</li>
+            <li><strong>Pagamentos:</strong> o Pix é processado pelo Mercado Pago; o app não vê dados bancários.</li>
+            <li><strong>Avisos no celular:</strong> passam pelo serviço de notificações do seu aparelho (Apple ou Google). Você desliga em Minha conta › Notificações.</li>
+            <li><strong>Excluir:</strong> em Minha conta › Excluir minha conta, ou só um diário em Perfil › Gerenciar diário.</li>
+          </ul>
+          <p className="caption" style={{ margin: 0 }}>Os termos de uso e a política de privacidade completos serão publicados antes do lançamento público.</p>
         </section>
-
 
         <section id="estudio" className="stack" aria-labelledby="estudio-t">
           <h2 id="estudio-t">Estúdio de artes</h2>
-          <p className="small">Sua foto é usada só para criar a arte que você pediu, e de mais nada. Para desenhar, ela passa por um serviço de imagens do Google que não guarda a foto nem a usa para treinar nada (fica só um registro por pouco tempo, para evitar abusos). A arte sai com uma marca d’água invisível e aparece no diário com o selo “🎨 Arte do Estúdio”.</p>
+          <p className="small">Cada arte aparece no diário com o selo “🎨 Arte do Estúdio” e entra no limite de lembranças. Se o diário estiver cheio, a arte não é criada e nenhum crédito é usado.</p>
         </section>
 
         <section className="stack" aria-labelledby="sup">

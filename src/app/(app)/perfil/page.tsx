@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
-import { LIMITS } from "@/config/business";
+import { LIMITS, fullDiaryText } from "@/config/business";
 import { REAL_MODE } from "@/config/mode";
 import { rpc } from "@/data/real-repository";
 import { ShareLinksList } from "@/components/share";
@@ -42,17 +42,21 @@ export default function Perfil() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
+  const [askSave, setAskSave] = useState(false);
   // Link antigo "Família e convites" (/config#familia → /perfil#familia) abre a família direto.
   useEffect(() => { if (window.location.hash === "#familia") setPanel("family"); }, []);
 
+  // O formulário é do cachorro aberto: ao trocar de cachorro, recarrega (nunca reaproveita o anterior).
+  const [formFor, setFormFor] = useState<string | null>(null);
   useEffect(() => {
-    if (snap?.dog && prefs === null) {
+    if (snap?.dog && (prefs === null || formFor !== snap.dog.id)) {
+      setFormFor(snap.dog.id);
       setName(snap.dog.name);
       setBirth(snap.dog.birthDate ?? "");
       setNick(snap.dog.nickname ?? "");
       setPrefs(snap.dog.preferences);
     }
-  }, [snap, prefs]);
+  }, [snap, prefs, formFor]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !prefs || !repo) return <main className="main"><PageLoading /></main>;
@@ -74,11 +78,24 @@ export default function Perfil() {
     }
   }
 
-  async function saveProfile(e: React.FormEvent) {
-    e.preventDefault();
-    if (birth && !isCivilDate(birth)) return setMsg({ kind: "error", text: "Essa data não parece válida." });
-    await run(() => repo!.updateDog({ name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs! }), "Perfil salvo.");
+  async function saveProfile(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (birth && !isCivilDate(birth)) { setAskSave(false); setMsg({ kind: "error", text: "Essa data não parece válida." }); return false; }
+    // Se falhar, os campos continuam preenchidos e o erro aparece na janela.
+    const ok = await run(() => repo!.updateDog({ name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs! }), "Perfil salvo.");
+    if (!ok) setAskSave(false);
+    return ok;
   }
+  const SaveAsk = () => askSave ? (
+    <div className="save-ask" role="alertdialog" aria-label="Salvar alterações?">
+      <strong>Salvar as alterações?</strong>
+      <div className="stack" style={{ gap: 8 }}>
+        <button type="button" className="btn btn--primary btn--block" onClick={async () => { if (await saveProfile()) close(); }}>Salvar</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={close}>Descartar</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={() => setAskSave(false)}>Continuar editando</button>
+      </div>
+    </div>
+  ) : null;
 
   async function wipe() {
     if (REAL_MODE) {
@@ -99,7 +116,10 @@ export default function Perfil() {
   }
 
   const lv = levelFor(snap.xpTotal);
-  const close = () => { setPanel(null); setMsg(null); setName(dog.name); setNick(dog.nickname ?? ""); setBirth(dog.birthDate ?? ""); setPrefs(dog.preferences); };
+  // Fechar com alterações pendentes pergunta antes (Fechar, toque fora, Esc); sem alterações, fecha direto.
+  const tryClose = () => { if (dirty) setAskSave(true); else close(); };
+  // Fechar/descartar: o formulário volta a ser carregado do perfil atual (já salvo ou não).
+  const close = () => { setAskSave(false); setPanel(null); setMsg(null); setFormFor(null); };
   const MsgLine = () => (msg ? <p role={msg.kind === "error" ? "alert" : "status"} className={msg.kind === "error" ? "field-error" : "notice notice--positive"}>{msg.text}</p> : null);
   const Row = ({ id, icon, label, sub }: { id: Panel; icon: string; label: string; sub?: string }) => (
     <button type="button" className="card row-between profile-row" onClick={() => { setMsg(null); setPanel(id); }}>
@@ -150,7 +170,7 @@ export default function Perfil() {
 
         <ImportDemoCard />
 
-        <Sheet open={panel === "edit"} onClose={close} labelledBy="p-edit">
+        <Sheet open={panel === "edit"} onClose={close} onAttemptClose={tryClose} labelledBy="p-edit">
           <h2 id="p-edit">Editar perfil</h2>
           <form className="stack" onSubmit={saveProfile}>
             <div className="stack" style={{ gap: 6 }}>
@@ -173,18 +193,20 @@ export default function Perfil() {
               <input id="birth" type="date" className="input" value={birth} onChange={(e) => setBirth(e.target.value)} />
             </div>
             <MsgLine />
-            {dirty ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
-            <button type="button" className="btn btn--secondary btn--block" onClick={close}>Fechar</button>
+            <SaveAsk />
+            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
+            {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>Fechar</button> : null}
           </form>
         </Sheet>
 
-        <Sheet open={panel === "prefs"} onClose={close} labelledBy="p-prefs">
+        <Sheet open={panel === "prefs"} onClose={close} onAttemptClose={tryClose} labelledBy="p-prefs">
           <h2 id="p-prefs" className="sr-only">Preferências das missões</h2>
           <form className="stack" onSubmit={saveProfile}>
             <PreferencesFields value={prefs} onChange={setPrefs} />
             <MsgLine />
-            {dirty ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
-            <button type="button" className="btn btn--secondary btn--block" onClick={close}>Fechar</button>
+            <SaveAsk />
+            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
+            {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>Fechar</button> : null}
           </form>
         </Sheet>
 
@@ -198,7 +220,8 @@ export default function Perfil() {
         <Sheet open={panel === "manage"} onClose={close} labelledBy="p-manage">
           <h2 id="p-manage">Gerenciar diário</h2>
           <div className="stack">
-            <p className="small" style={{ margin: 0 }}>Espaço: <strong>{snap.entries.length} de {LIMITS.maxEntries}</strong> lembranças nesta versão de teste.</p>
+            <p className="small" style={{ margin: 0 }}>Espaço: <strong>{snap.entries.length} de {LIMITS.maxEntries}</strong> lembranças nesta versão.</p>
+            {snap.entries.length >= LIMITS.maxEntries ? <p className="notice notice--warn small" style={{ margin: 0 }}><span>{fullDiaryText(dog.name)}</span></p> : null}
             <section className="stack" aria-labelledby="links">
               <h3 id="links">Links compartilhados</h3>
               <ShareLinksList />

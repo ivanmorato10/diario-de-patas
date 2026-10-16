@@ -1,6 +1,7 @@
 "use client";
 
 import { XP_MONTH_GOAL } from "@/config/credits";
+import { LIMITS, fullDiaryText } from "@/config/business";
 import { Sheet } from "@/components/entry-actions";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -345,7 +346,8 @@ function Estudio() {
 
   const credits = preset ? flags.get(preset.id)?.credits ?? preset.credits : 0;
   const photo = photos.find((p) => p.id === photoId);
-  const canCreate = REAL_MODE && !!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad");
+  const full = snap ? snap.entries.length >= LIMITS.maxEntries : false;
+  const canCreate = !full && (REAL_MODE && !!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad"));
 
   async function create() {
     if (!canCreate || !preset || !photo) return;
@@ -477,6 +479,7 @@ function Estudio() {
             </section>
 
             <section className="card stack" aria-labelledby="st-custo">
+              {full ? <p className="notice notice--warn small" role="alert" style={{ margin: 0 }}><span>{fullDiaryText(snap.dog.name)} Nenhum crédito é usado.</span></p> : null}
               <h2 id="st-custo" className="sr-only">Criar a arte</h2>
               {preset ? <p className="small" style={{ margin: 0 }}>{credits} {credits === 1 ? "crédito" : "créditos"}{REAL_MODE && state ? <> · você tem {state.balance}</> : null}. Se não der certo, o crédito volta.</p> : null}
               {error ? <p className="field-error" role="alert">{error}</p> : null}

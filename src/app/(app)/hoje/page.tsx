@@ -13,6 +13,7 @@ import { PawBurst } from "@/components/celebrate";
 import { ImportDemoCard } from "@/components/import-demo";
 import { cycleContext, useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
+import { LIMITS } from "@/config/business";
 import { DAILY_SLOTS, type DailySlot } from "@/config/cycle";
 import { activeSpecials, daysWithMemories, missionStatus } from "@/domain/cycle";
 import { levelFor, missionById } from "@/domain/missions";
@@ -92,6 +93,8 @@ export default function Hoje() {
             <>
               <MemoryRotator entries={snap.entries} dogName={dog.name} />
               <Link href="/guardar" className="btn btn--primary btn--block"><IconPlus /> Guardar momento</Link>
+              {/* Aviso de espaço só quando estiver chegando ao limite. */}
+              {LIMITS.maxEntries - snap.entries.length <= 10 ? <p className="caption" style={{ margin: 0, textAlign: "center" }}>{snap.entries.length >= LIMITS.maxEntries ? "O diário chegou ao limite desta versão. Veja em Perfil › Gerenciar diário." : `Cabem só mais ${LIMITS.maxEntries - snap.entries.length} lembranças nesta versão.`}</p> : null}
             </>
           ) : (
             <div className="card stitched empty stack" style={{ boxShadow: "none" }}>

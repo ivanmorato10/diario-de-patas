@@ -15,7 +15,11 @@ import type { DiaryEntry } from "@/domain/types";
 import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
 import { collectionTitle } from "./mission-ui";
 
-export function Sheet({ open, onClose, labelledBy, children }: { open: boolean; onClose: () => void; labelledBy: string; children: React.ReactNode }) {
+/**
+ * Janela de baixo (dialog). Com `onAttemptClose`, Esc e toque fora NÃO fecham direto: chamam essa
+ * função, e quem usa decide (ex.: perguntar se quer salvar alterações).
+ */
+export function Sheet({ open, onClose, labelledBy, children, onAttemptClose }: { open: boolean; onClose: () => void; labelledBy: string; children: React.ReactNode; onAttemptClose?: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -24,7 +28,9 @@ export function Sheet({ open, onClose, labelledBy, children }: { open: boolean; 
     if (!open && d.open) d.close();
   }, [open]);
   return (
-    <dialog ref={ref} className="sheet" aria-labelledby={labelledBy} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+    <dialog ref={ref} className="sheet" aria-labelledby={labelledBy} onClose={onClose}
+      onCancel={(e) => { if (onAttemptClose) { e.preventDefault(); onAttemptClose(); } }}
+      onClick={(e) => { if (e.target !== ref.current) return; if (onAttemptClose) onAttemptClose(); else onClose(); }}>
       <div className="sheet__body">{children}</div>
     </dialog>
   );

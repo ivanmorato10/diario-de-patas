@@ -40,6 +40,10 @@ export const FLAGS = {
   generationPaused: false,
 } as const;
 
+/** Limite de lembranças: sem mandar apagar memórias. Todas continuam guardadas e podem ser baixadas. */
+export const fullDiaryText = (dogName = "o diário", email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "diariodepatas.app@gmail.com") =>
+  `O diário de ${dogName} chegou ao limite de ${LIMITS.maxEntries} lembranças desta versão. Todas continuam guardadas, e dá para ver e baixar cada uma no Diário. Para guardar mais, fale com a gente: ${email}.`;
+
 export const SUPPORT = {
   /** Canal real definido pelo proprietário em 13/10/2026 (pode ser trocado por NEXT_PUBLIC_SUPPORT_EMAIL). */
   email: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "diariodepatas.app@gmail.com",

@@ -7,7 +7,7 @@
 import { xpMonthOf } from "@/config/credits";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import { COLLECTIONS, type CollectionId } from "@/config/catalog";
-import { LIMITS } from "@/config/business";
+import { LIMITS, fullDiaryText } from "@/config/business";
 import { civilDateInTz } from "@/domain/dates";
 import { missionById } from "@/domain/missions";
 import {
@@ -414,7 +414,7 @@ export async function saveEntry(
   if (!dog || !profile) throw new DomainError("NO_DOG", "Crie o diário antes de guardar fotos.");
   const count = await tx.objectStore("entries").count();
   if (count >= LIMITS.maxEntries) {
-    return fail(tx, new DomainError("STORAGE_QUOTA", `O diário chegou ao limite de ${LIMITS.maxEntries} lembranças desta versão de teste. Nada foi apagado.`));
+    return fail(tx, new DomainError("STORAGE_QUOTA", fullDiaryText()));
   }
   const media = mediaFrom(input.image, input.kind ?? "photo");
   await tx.objectStore("media").put(media);

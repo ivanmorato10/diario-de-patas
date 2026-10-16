@@ -9,7 +9,7 @@ import { z } from "zod";
 import sharp from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { COLLECTIONS } from "@/config/catalog";
-import { LIMITS } from "@/config/business";
+import { LIMITS, fullDiaryText } from "@/config/business";
 import { activeSpecials, buildHistory, generatePlan, swapInPlan, type DailyPlan } from "@/domain/cycle";
 import { civilDateInTz, isCivilDate, isValidTimezone } from "@/domain/dates";
 import { DocumentMetaSchema } from "@/domain/documents";
@@ -315,7 +315,7 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   const prior = (await q(ctx.supa.from("diary_entries").select("*").eq("dog_id", dog.id).eq("request_key", a.requestKey).maybeSingle())) as any;
   if (prior) return toEntry(prior, null); // retry: mesma lembrança
   const { count } = await ctx.supa.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
-  if ((count ?? 0) >= LIMITS.maxEntries) throw bad("STORAGE_QUOTA", `O diário chegou ao limite de ${LIMITS.maxEntries} lembranças desta versão de teste. Nada foi apagado.`);
+  if ((count ?? 0) >= LIMITS.maxEntries) throw bad("STORAGE_QUOTA", fullDiaryText(dog.name));
   await readyMedia(ctx, a.mediaId);
   const used = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).eq("media_asset_id", a.mediaId).limit(1))) as any[];
   if (used.length) throw bad("INVALID", "Essa foto já foi usada. Envie de novo.");
