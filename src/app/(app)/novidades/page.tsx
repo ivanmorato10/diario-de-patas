@@ -21,7 +21,7 @@ const when = (iso: string) => {
 /** Novidades da família: fotos, cartinhas e ossinhos de quem participa dos seus diários. */
 export default function Novidades() {
   const { ready, snap } = useRequireDiary();
-  const { patchSnap } = useStore();
+  const { patchSnap, reload } = useStore();
   const router = useRouter();
   const [items, setItems] = useState<Notice[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -37,13 +37,14 @@ export default function Novidades() {
       // Marca como lidos SÓ os que apareceram na tela; os que chegarem depois continuam novos.
       const seen = list.filter((n) => !n.read).map((n) => n.id);
       if (seen.length) {
-        await markNotificationsRead(seen).catch(() => undefined);
         patchSnap((s) => ({ ...s, unread: Math.max(0, (s.unread ?? 0) - seen.length) }));
+        await markNotificationsRead(seen).catch(() => undefined);
+        await reload().catch(() => undefined); // o sininho confere com o servidor (avisos novos continuam contando)
       }
     } catch {
       setFailed(true);
     }
-  }, [patchSnap]);
+  }, [patchSnap, reload]);
 
   useEffect(() => {
     void load();

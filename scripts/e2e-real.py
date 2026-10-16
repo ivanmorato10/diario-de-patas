@@ -219,11 +219,11 @@ with sync_playwright() as p:
     # Fechar a edição com mudança pendente pergunta antes (Fechar, Esc); "Descartar" não salva.
     a.get_by_role("button", name=re.compile("Editar perfil")).click(); a.get_by_label("Nome", exact=True).fill("Luna Mudada")
     a.get_by_role("button", name="Fechar").click()
-    check("fechar com alteração pergunta 'Salvar as alterações?'", eventually(lambda t: expect(a.get_by_text("Salvar as alterações?")).to_be_visible(timeout=t)))
+    check("fechar com alteração pergunta 'Salvar as alterações?'", eventually(lambda t: expect(a.locator("dialog[open]").get_by_text("Salvar as alterações?")).to_be_visible(timeout=t)))
     a.get_by_role("button", name="Continuar editando").click()
     check("'Continuar editando' mantém o que foi digitado", a.get_by_label("Nome", exact=True).input_value() == "Luna Mudada")
     a.keyboard.press("Escape")
-    check("Esc também pergunta antes de fechar", eventually(lambda t: expect(a.get_by_text("Salvar as alterações?")).to_be_visible(timeout=t)))
+    check("Esc também pergunta antes de fechar", eventually(lambda t: expect(a.locator("dialog[open]").get_by_text("Salvar as alterações?")).to_be_visible(timeout=t)))
     a.get_by_role("button", name="Descartar").click(); a.wait_for_timeout(800)
     check("'Descartar' fecha sem salvar", rpc(a, "snapshot", {})[1]["dog"]["name"] == "Luna" and a.get_by_label("Nome", exact=True).is_hidden())
     a.get_by_role("button", name=re.compile("Família de Luna")).click()
@@ -294,7 +294,7 @@ with sync_playwright() as p:
     check("sem acesso ao diário: mensagem curta", eventually(lambda t: expect(inv.get_by_text("Você não tem mais acesso a este diário.")).to_be_visible(timeout=t)))
     inv.route("**/api/rpc/listNotifications", lambda r: r.fulfill(status=500, content_type="application/json", body='{"code":"SERVER","message":"x"}'))
     inv.goto(BASE + "/novidades")
-    check("falha ao carregar Novidades mostra erro e 'Tentar novamente'", eventually(lambda t: expect(inv.get_by_text("Não conseguimos carregar as novidades.")).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Tentar novamente").is_visible() and inv.get_by_text("Quando alguém da família").count() == 0)
+    check("falha ao carregar Novidades mostra erro e 'Tentar novamente'", eventually(lambda t: expect(inv.get_by_text("Não conseguimos carregar as novidades.")).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Tentar novamente").is_visible() and inv.get_by_text("aparece aqui").count() == 0)
     inv.unroute("**/api/rpc/listNotifications")
     # Mesmo aparelho, outra conta: o aparelho deixa de receber os avisos da conta anterior.
     fake_sub = {"subscription": {"endpoint": f"https://push.example.test/{uuid.uuid4()}", "keys": {"p256dh": "BPk" + "a" * 84, "auth": "a" * 22}}}
@@ -309,6 +309,7 @@ with sync_playwright() as p:
         a.get_by_role("button", name="Guardar foto").click(); expect(a.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
     got = notices(inv, "Ivan guardou 2 fotos de Luna")
     check(f"duas fotos seguidas viram UM aviso com o total ({[t for t in got if 'foto' in t]})", sum(1 for t in got if "guardou" in t) == 1 and any("Ivan guardou 2 fotos de Luna" in t for t in got))
+    inv.goto(BASE + "/diario"); expect(inv.locator(".letter-card")).to_be_visible(timeout=20000)
     check("Bianca vê a cartinha do Ivan", inv.locator(".letter-card").filter(has_text="Cartinha de Ivan").count() == 1)
     with inv.expect_response(lambda r: "/api/rpc/toggleBone" in r.url, timeout=20000):
         inv.locator(".letter-card").get_by_role("button", name=re.compile("Dar ossinho")).click()
@@ -343,7 +344,7 @@ with sync_playwright() as p:
     check("aviso de outro cachorro troca para o diário certo antes de abrir", rpc(a, "snapshot", {})[1]["dog"]["name"] == "Luna")
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
     check("foto do topo abre Seus cachorros com 'Adicionar cachorro'", a.get_by_role("heading", name="Seus cachorros").is_visible() and a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
-    a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")
+    a.get_by_role("button", name=re.compile("^Luna Responsável")).click(); a.wait_for_url("**/hoje")
     check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     # Apagar só um cachorro: só quem é responsável vê; apaga o Pepe e a conta continua com a Luna.
     inv.goto(BASE + "/perfil"); expect(inv.get_by_role("button", name=re.compile("Família de Luna"))).to_be_visible(timeout=20000)
