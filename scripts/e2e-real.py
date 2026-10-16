@@ -94,7 +94,10 @@ with sync_playwright() as p:
     a.goto(BASE + "/entrar"); check("quem já entrou não volta ao login", "/entrar" not in a.url)
     a.goto(BASE + "/comecar"); a.get_by_label("Nome do cachorro").fill("Luna")
     a.locator("input[type=file]:not([capture])").first.set_input_files(photo(0)); a.wait_for_timeout(800)
-    a.get_by_role("button", name="Criar meu diário").click(); a.wait_for_url("**/hoje", timeout=30000)
+    a.get_by_role("button", name="Criar meu diário").click(); a.wait_for_url(lambda u: "bemvindo=1" in u, timeout=30000)
+    check("depois de criar o diário, o Abu convida a família", eventually(lambda t: expect(a.get_by_role("heading", name=re.compile("O diário de Luna está pronto"))).to_be_visible(timeout=t)) and a.locator("dialog[open]").get_by_role("button", name="Gerar convite").is_visible())
+    a.get_by_role("button", name="Agora não").click(); a.wait_for_url("**/hoje", timeout=10000)
+    check("'Agora não' fecha e não volta a abrir", eventually(lambda t: expect(a.locator("dialog[open]")).to_have_count(0, timeout=t)))
     expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible()
     check("modo real: sem faixa de demonstração", a.locator(".demo-banner").count() == 0)
     try:
@@ -183,7 +186,7 @@ with sync_playwright() as p:
     b = ctxB.new_page(); b.on("pageerror", lambda e: errors.append(str(e)))
     b.goto(ref_link.replace(ref_link.split("/?")[0], BASE)); b.wait_for_url("**/entrar")
     login(b, "B")
-    b.goto(BASE + "/comecar"); b.get_by_label("Nome do cachorro").fill("Thor"); b.get_by_role("button", name="Criar meu diário").click(); b.wait_for_url("**/hoje", timeout=30000)
+    b.goto(BASE + "/comecar"); b.get_by_label("Nome do cachorro").fill("Thor"); b.get_by_role("button", name="Criar meu diário").click(); b.wait_for_url(lambda u: "bemvindo=1" in u, timeout=30000); b.get_by_role("button", name="Agora não").click(); b.wait_for_url("**/hoje", timeout=10000)
     snapB = rpc(b, "snapshot", {})[1]
     check("B não vê lembranças, álbuns, cuidados nem documentos de A",
           snapB["entries"] == [] and snapB["customAlbums"] == [] and snapB["health"]["vaccines"] == [] and snapB["health"]["documents"] == [] and snapB["dog"]["name"] == "Thor")

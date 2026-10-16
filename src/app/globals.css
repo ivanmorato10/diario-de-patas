@@ -980,3 +980,5 @@ a.choice-card:active { transform: translateY(1px); }
 .profile-head__nick { font-family: var(--font-hand); font-size: 1.3rem; line-height: 1; color: var(--accent); }
 .save-ask { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: #fff6ee; border: 1.5px solid #f3c79f; }
 .privacy-list { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.welcome-family { display: grid; justify-items: center; gap: 10px; text-align: center; margin-bottom: 14px; }
+.welcome-family h2 { margin: 0; }

@@ -33,7 +33,7 @@ with sync_playwright() as p:
     pg.get_by_role("button", name="Já tenho conta").click(); pg.get_by_role("button", name="Entrar com email").click(); pg.get_by_role("button", name="Prefiro receber um código no email").click(); pg.get_by_label("Seu email").fill(email); pg.get_by_role("button", name="Receber código de entrada").click()
     pg.get_by_label("Código").fill(admin("POST", "generate_link", {"type": "magiclink", "email": email})["email_otp"])
     pg.get_by_role("button", name="Entrar com o código").click(); pg.wait_for_url(lambda u: "/entrar" not in u, timeout=20000)
-    pg.goto(BASE + "/comecar"); pg.get_by_label("Nome do cachorro").fill("Luna"); pg.get_by_role("button", name="Criar meu diário").click(); pg.wait_for_url("**/hoje", timeout=30000)
+    pg.goto(BASE + "/comecar"); pg.get_by_label("Nome do cachorro").fill("Luna"); pg.get_by_role("button", name="Criar meu diário").click(); pg.wait_for_url(lambda u: "bemvindo=1" in u, timeout=30000); pg.get_by_role("button", name="Agora não").click(); pg.wait_for_url("**/hoje", timeout=10000)
     pg.goto(BASE + "/guardar"); pg.locator("input[type=file][multiple]").set_input_files(photo); pg.get_by_role("button", name="Guardar foto").click()
     expect(pg.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
 

@@ -34,8 +34,9 @@ export default function Comecar() {
     setAnother(new URLSearchParams(window.location.search).get("novo") === "1");
   }, []);
   useEffect(() => {
-    if (snap?.dog && another === false) router.replace("/hoje");
-  }, [snap, router, another]);
+    // Quem já tem diário e abriu esta tela vai para Hoje — mas não logo depois de criar (aí vai com o convite).
+    if (snap?.dog && another === false && !saving) router.replace("/hoje");
+  }, [snap, router, another, saving]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +55,7 @@ export default function Comecar() {
     try {
       await repo!.createDiary({ timezone: tz, name, birthDate: birth || null, preferences: prefs, photo, another: !!another && !!snap?.dog });
       await reload();
-      router.replace("/hoje");
+      router.replace(another && snap?.dog ? "/hoje" : "/hoje?bemvindo=1"); // primeiro diário: convite da família
     } catch (err) {
       setError(err instanceof DomainError ? err.message : "Não conseguimos criar o diário. Tente novamente.");
       setSaving(false);

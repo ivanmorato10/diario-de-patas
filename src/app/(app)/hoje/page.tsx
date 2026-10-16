@@ -21,6 +21,7 @@ import { XpRewardBar } from "@/components/xp-reward";
 import { AchadinhosCard } from "@/components/achadinhos-card";
 import { MedAlert } from "@/components/med-alert";
 import { FamilyNudge } from "@/components/family-nudge";
+import { WelcomeFamily } from "@/components/welcome-family";
 import { MemoryRotator } from "@/components/memory-rotator";
 import { NameAsk } from "@/components/name-ask";
 import { formatCivilDate } from "@/domain/dates";
@@ -105,6 +106,7 @@ export default function Hoje() {
         </section>
 
         <FamilyNudge />
+        <WelcomeFamily />
 
         {!hasFirst ? (
           <>

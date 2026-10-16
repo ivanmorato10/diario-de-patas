@@ -32,6 +32,10 @@ const STEPS: { title: string; text: string; paw?: boolean; cta?: string }[] = [
     text: "Uma soneca engraçada, um passeio diferente, uma pose com o brinquedo favorito. As missões dão ideias para fotografar esses momentos e deixar o diário com a carinha do seu cachorro.",
   },
   {
+    title: "Um diário de família.",
+    text: "Chame quem também ama o seu cachorro. Cada pessoa entra com a própria conta e guarda fotos, escreve cartinhas e dá ossinho. Os avós podem só acompanhar.",
+  },
+  {
     title: "Já me conheceu.\nAgora, quem é o seu melhor\u00a0amigo?",
     text: "Me conta o nome dele e escolhe uma foto. Temos muitas aventuras pela frente!",
   },
