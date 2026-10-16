@@ -1,7 +1,7 @@
 // Service worker mínimo (§15 + PWA): guarda só o shell estático. Nunca respostas autenticadas, APIs nem fotos.
 // Versão nova a cada mudança deste arquivo; o navegador busca o sw.js sem cache (updateViaCache: "none"
 // e Cache-Control no-cache em next.config.ts), ativa na hora e apaga caches antigos.
-const VERSION = "ddp-v7";
+const VERSION = "ddp-v8";
 const CACHE = `ddp-static-${VERSION}`;
 const SHELL = ["/offline.html", "/brand/favicon-64.png", "/brand/abu-mascote.png", "/brand/icon-192.png", "/manifest.webmanifest"];
 
@@ -55,7 +55,7 @@ self.addEventListener("push", (e) => {
     icon: "/brand/icon-192.png",
     badge: "/brand/favicon-64.png",
     tag: d.tag || undefined,
-    renotify: !!d.tag,
+    renotify: d.tag ? d.renotify !== false : false,
     data: { url: d.url || "/novidades" },
   }));
 });

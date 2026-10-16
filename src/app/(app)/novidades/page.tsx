@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
-import { switchDog } from "@/data/family-client";
 import { listNotifications, markNotificationsRead, pushState, type Notice, type PushState } from "@/data/push-client";
 import { PageLoading, TopBar, useRequireDiary } from "@/components/shell";
 import { NotificationSettings } from "@/components/notifications";
@@ -22,25 +21,39 @@ const when = (iso: string) => {
 /** Novidades da família: fotos, cartinhas e ossinhos de quem participa dos seus diários. */
 export default function Novidades() {
   const { ready, snap } = useRequireDiary();
-  const { reload, patchSnap } = useStore();
+  const { patchSnap } = useStore();
   const router = useRouter();
   const [items, setItems] = useState<Notice[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [push, setPush] = useState<PushState | null>(null);
   const [settings, setSettings] = useState(false);
 
-  useEffect(() => {
-    void listNotifications().then(setItems).catch(() => setItems([]));
-    void pushState().then(setPush);
-    // Abrir as novidades zera o sininho.
-    void markNotificationsRead().then(() => patchSnap((s) => ({ ...s, unread: 0 }))).catch(() => undefined);
+  const load = useCallback(async () => {
+    setFailed(false);
+    setItems(null);
+    try {
+      const list = await listNotifications();
+      setItems(list);
+      // Marca como lidos SÓ os que apareceram na tela; os que chegarem depois continuam novos.
+      const seen = list.filter((n) => !n.read).map((n) => n.id);
+      if (seen.length) {
+        await markNotificationsRead(seen).catch(() => undefined);
+        patchSnap((s) => ({ ...s, unread: Math.max(0, (s.unread ?? 0) - seen.length) }));
+      }
+    } catch {
+      setFailed(true);
+    }
   }, [patchSnap]);
+
+  useEffect(() => {
+    void load();
+    void pushState().then(setPush);
+  }, [load]);
 
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
 
-  async function open(n: Notice) {
-    if (n.dogId !== snap!.dog!.id) { await switchDog(n.dogId).catch(() => undefined); await reload(); }
-    router.push(n.url);
-  }
+  // O destino (/abrir) confere o acesso e abre o cachorro certo antes da lembrança.
+  const open = (n: Notice) => router.push(n.url);
 
   return (
     <>
@@ -53,7 +66,12 @@ export default function Novidades() {
           </button>
         ) : null}
 
-        {items === null ? <PageLoading /> : items.length === 0 ? (
+        {failed ? (
+          <div className="notice notice--warn stack" role="alert">
+            <span>Não conseguimos carregar as novidades.</span>
+            <button type="button" className="btn btn--secondary btn--small" onClick={() => void load()}>Tentar novamente</button>
+          </div>
+        ) : items === null ? <PageLoading /> : items.length === 0 ? (
           <p className="page-note">Quando alguém da família guardar uma foto, escrever uma cartinha ou der um ossinho, aparece aqui.</p>
         ) : (
           <ul className="notice-list" role="list">

@@ -12,6 +12,7 @@ import { MyNameField } from "@/components/name-ask";
 import { ShareApp } from "@/components/share-app";
 import { FamilyDiaries } from "@/components/family-diaries";
 import { NotificationSettings } from "@/components/notifications";
+import { SignOutForm } from "@/components/sign-out";
 import { InstallAppLink } from "@/components/install-app";
 import { TimezoneSelect } from "@/components/profile-fields";
 import { IconChevron } from "@/components/icons";
@@ -104,9 +105,9 @@ export default function Conta() {
           <Link href="/sobre" className="card row-between profile-row"><span className="profile-row__text"><span>🐾 Sobre o Diário de Patas</span></span><IconChevron /></Link>
           <InstallAppLink variant="row" />
           {REAL_MODE ? (
-            <form method="post" action="/auth/sair" style={{ display: "contents" }}>
-              <button type="submit" className="card row-between profile-row"><span className="profile-row__text"><span>🚪 Sair da conta</span></span><IconChevron /></button>
-            </form>
+            <SignOutForm style={{ display: "contents" }}>
+              {(busy) => <button type="submit" className="card row-between profile-row" disabled={busy}><span className="profile-row__text"><span>🚪 {busy ? "Saindo…" : "Sair da conta"}</span></span><IconChevron /></button>}
+            </SignOutForm>
           ) : null}
           {REAL_MODE ? <Row id="delete" icon="🗑️" label="Excluir minha conta" /> : null}
         </section>

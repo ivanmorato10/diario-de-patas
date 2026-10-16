@@ -273,6 +273,32 @@ with sync_playwright() as p:
     got = notices(inv, "Ivan escreveu uma cartinha para Luna")
     check(f"Bianca recebe o aviso da cartinha ({got[:1]})", any("Ivan escreveu uma cartinha para Luna" in t for t in got))
     check("sininho da Bianca mostra novidade", (rpc(inv, "snapshot", {})[1].get("unread") or 0) >= 1)
+    luna_id = rpc(a, "snapshot", {})[1]["dog"]["id"]
+    letter_notice = next(n for n in rpc(inv, "listNotifications", {})[1] if "cartinha" in n["text"])
+    check(f"aviso leva o cachorro certo ({letter_notice['url'][:40]}…)", letter_notice["url"].startswith(f"/abrir?cao={luna_id}&carta="))
+    inv.goto(BASE + letter_notice["url"]); inv.wait_for_url("**/diario#carta-*", timeout=20000)
+    check("tocar no aviso abre a cartinha no Diário", inv.locator(".letter-card").count() >= 1)
+    inv.goto(BASE + f"/abrir?cao={luna_id}&foto={uuid.uuid4()}")
+    check("lembrança apagada: mensagem curta, sem ir para o lugar errado", eventually(lambda t: expect(inv.get_by_text("Essa foto foi apagada.")).to_be_visible(timeout=t)))
+    inv.goto(BASE + f"/abrir?cao={uuid.uuid4()}")
+    check("sem acesso ao diário: mensagem curta", eventually(lambda t: expect(inv.get_by_text("Você não tem mais acesso a este diário.")).to_be_visible(timeout=t)))
+    inv.route("**/api/rpc/listNotifications", lambda r: r.fulfill(status=500, content_type="application/json", body='{"code":"SERVER","message":"x"}'))
+    inv.goto(BASE + "/novidades")
+    check("falha ao carregar Novidades mostra erro e 'Tentar novamente'", eventually(lambda t: expect(inv.get_by_text("Não conseguimos carregar as novidades.")).to_be_visible(timeout=t)) and inv.get_by_role("button", name="Tentar novamente").is_visible() and inv.get_by_text("Quando alguém da família").count() == 0)
+    inv.unroute("**/api/rpc/listNotifications")
+    # Mesmo aparelho, outra conta: o aparelho deixa de receber os avisos da conta anterior.
+    fake_sub = {"subscription": {"endpoint": f"https://push.example.test/{uuid.uuid4()}", "keys": {"p256dh": "BPk" + "a" * 84, "auth": "a" * 22}}}
+    rpc(a, "savePushSubscription", fake_sub)
+    reg_b = rpc(inv, "checkPushSubscription", {"endpoint": fake_sub["subscription"]["endpoint"]})[1]
+    reg_a = rpc(a, "checkPushSubscription", {"endpoint": fake_sub["subscription"]["endpoint"]})[1]
+    check(f"aparelho trocado de conta não fica com os avisos da anterior ({reg_b}, {reg_a})", reg_b == {"registered": False} and reg_a == {"registered": False})
+    t = rpc(inv, "testPush", {})[1]
+    check(f"teste de aviso sem aparelho não diz que enviou ({t})", t.get("devices") == 0 and t.get("accepted") == 0)
+    for i in (7, 8):
+        a.goto(BASE + "/guardar"); a.locator("input[type=file][multiple]").set_input_files(photo(i))
+        a.get_by_role("button", name="Guardar foto").click(); expect(a.get_by_role("heading", name="Guardada no diário")).to_be_visible(timeout=30000)
+    got = notices(inv, "Ivan guardou 2 fotos de Luna")
+    check(f"duas fotos seguidas viram UM aviso com o total ({[t for t in got if 'foto' in t]})", sum(1 for t in got if "guardou" in t) == 1 and any("Ivan guardou 2 fotos de Luna" in t for t in got))
     check("Bianca vê a cartinha do Ivan", inv.locator(".letter-card").filter(has_text="Cartinha de Ivan").count() == 1)
     with inv.expect_response(lambda r: "/api/rpc/toggleBone" in r.url, timeout=20000):
         inv.locator(".letter-card").get_by_role("button", name=re.compile("Dar ossinho")).click()
@@ -303,6 +329,8 @@ with sync_playwright() as p:
     credP = (rpc(a, "studioState", {})[1] or {}).get("balance")
     check(f"segundo cachorro com diário próprio ({st}, {snapP['dog']['name']}, {len(snapP.get('diaries') or [])} diários, créditos {credP})", st == 200 and snapP["dog"]["name"] == "Pepe" and len(snapP["diaries"]) == 2 and len(snapP["entries"]) == 0 and credP == 0)
     check("Bianca continua vendo só Luna", len(rpc(inv, "snapshot", {})[1].get("diaries") or []) == 1)
+    a.goto(BASE + f"/abrir?cao={luna_id}&carta={letter_id}"); a.wait_for_url("**/diario#carta-*", timeout=30000)
+    check("aviso de outro cachorro troca para o diário certo antes de abrir", rpc(a, "snapshot", {})[1]["dog"]["name"] == "Luna")
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
     check("foto do topo abre Seus cachorros com 'Adicionar cachorro'", a.get_by_role("heading", name="Seus cachorros").is_visible() and a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
     a.get_by_role("button", name=re.compile("^Luna")).click(); a.wait_for_url("**/hoje")

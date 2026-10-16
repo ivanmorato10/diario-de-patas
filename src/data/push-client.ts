@@ -19,7 +19,14 @@ export async function pushState(): Promise<PushState> {
   if (Notification.permission === "denied") return "denied";
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
-  return sub && Notification.permission === "granted" ? "on" : "off";
+  if (!sub || Notification.permission !== "granted") return "off";
+  // "Ligado" só se ESTE aparelho está registrado para a conta que está usando agora.
+  try {
+    const r = await rpc<{ registered: boolean }>("checkPushSubscription", { endpoint: sub.endpoint });
+    return r.registered ? "on" : "off";
+  } catch {
+    return "off";
+  }
 }
 
 /** Pede permissão, registra este aparelho e salva no servidor. */
@@ -45,8 +52,21 @@ export async function disablePush(): Promise<PushState> {
   return "off";
 }
 
-export const testPush = () => rpc<{ ok: boolean }>("testPush");
+export type PushTest = { configured: boolean; devices: number; accepted: number };
+export const testPush = () => rpc<PushTest>("testPush");
+
+/** Ao sair da conta: desliga os avisos SÓ deste aparelho (os outros aparelhos da pessoa continuam). */
+export async function signOutThisDevice() {
+  try {
+    if (!("serviceWorker" in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return;
+    await rpc("removePushSubscription", { endpoint: sub.endpoint }).catch(() => undefined);
+    await sub.unsubscribe().catch(() => undefined);
+  } catch { /* sair nunca trava por causa dos avisos */ }
+}
 export const setNotifyPrefs = (p: { photo: boolean; letter: boolean; bone: boolean }) => rpc("setNotifyPrefs", p);
 export interface Notice { id: string; dogId: string; read: boolean; createdAt: string; text: string; url: string }
 export const listNotifications = () => rpc<Notice[]>("listNotifications");
-export const markNotificationsRead = () => rpc("markNotificationsRead");
+export const markNotificationsRead = (ids: string[]) => rpc("markNotificationsRead", { ids });

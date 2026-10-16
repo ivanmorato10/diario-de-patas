@@ -55,6 +55,23 @@ export function NotificationSettings() {
       setBusy(false);
     }
   }
+  /** O servidor diz se aceitou o envio. "Aceito" não é "entregue": quem confirma é o aviso aparecer no celular. */
+  async function runTest() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await testPush();
+      if (!r.configured) setMsg("Os avisos ainda não estão configurados no servidor.");
+      else if (!r.devices) { setMsg("Este aparelho não está registrado. Toque em “Ligar avisos” de novo."); setState("off"); }
+      else if (!r.accepted) setMsg("O serviço de avisos recusou o envio. Desligue e ligue os avisos de novo.");
+      else setMsg("Enviado para o serviço de avisos. Se não aparecer em alguns segundos, confira as notificações do app nos ajustes do celular.");
+    } catch {
+      setMsg("Não deu para mandar o teste agora. Tente de novo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function pref(k: "photo" | "letter" | "bone", v: boolean) {
     await setNotifyPrefs({ ...prefs, [k]: v }).catch(() => setMsg("Não deu para salvar agora."));
     await reload();
@@ -68,7 +85,7 @@ export function NotificationSettings() {
         {state === "on" || state === "off" ? (
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             <button type="button" className={`btn btn--small ${state === "on" ? "btn--secondary" : "btn--primary"}`} disabled={busy} onClick={toggle}>{busy ? "…" : state === "on" ? "Desligar" : "🔔 Ligar avisos"}</button>
-            {state === "on" ? <button type="button" className="btn btn--secondary btn--small" onClick={async () => { await testPush(); setMsg("Mandamos um aviso de teste. Ele deve aparecer em instantes."); }}>Mandar um teste</button> : null}
+            {state === "on" ? <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={runTest}>Mandar um teste</button> : null}
           </div>
         ) : null}
       </div>

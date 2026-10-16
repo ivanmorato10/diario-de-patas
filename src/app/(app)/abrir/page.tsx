@@ -1,0 +1,61 @@
+"use client";
+
+import Link from "next/link";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useStore } from "@/data/store";
+import { switchDog } from "@/data/family-client";
+import { PageLoading, TopBar } from "@/components/shell";
+
+/**
+ * Destino dos avisos (sininho e push): /abrir?cao=<cachorro>&foto=<id> ou &carta=<id>.
+ * Confere o acesso, abre o diário CERTO e só então mostra a lembrança. Se o acesso foi removido ou a
+ * lembrança foi apagada, explica em vez de levar para o lugar errado.
+ */
+function Abrir() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const { snap, reload } = useStore();
+  const [problem, setProblem] = useState<string | null>(null);
+  const switching = useRef(false);
+  const cao = params.get("cao");
+  const foto = params.get("foto");
+  const carta = params.get("carta");
+
+  useEffect(() => {
+    if (!snap || problem) return;
+    if (!cao) { router.replace("/novidades"); return; }
+    if (snap.dog?.id !== cao) {
+      if (switching.current) return; // esperando o diário certo carregar
+      if (!(snap.diaries ?? []).some((d) => d.id === cao)) { setProblem("Você não tem mais acesso a este diário."); return; }
+      switching.current = true;
+      switchDog(cao).then(() => reload()).catch(() => setProblem("Não conseguimos abrir este diário agora. Tente de novo."));
+      return;
+    }
+    // Já no cachorro certo: a lembrança ainda existe?
+    if (foto && !snap.entries.some((e) => e.id === foto)) { setProblem("Essa foto foi apagada."); return; }
+    if (carta && !(snap.letters ?? []).some((l) => l.id === carta)) { setProblem("Essa cartinha foi apagada."); return; }
+    router.replace(foto ? `/diario#${foto}` : carta ? `/diario#carta-${carta}` : "/diario");
+  }, [snap, problem, cao, foto, carta, reload, router]);
+
+  if (problem) {
+    return (
+      <>
+        <TopBar title="Novidades" back="/novidades" />
+        <main className="main">
+          <p className="page-note">{problem}</p>
+          <Link href="/novidades" className="btn btn--secondary btn--block">Voltar para Novidades</Link>
+        </main>
+      </>
+    );
+  }
+  return <main className="main"><PageLoading /></main>;
+}
+
+export default function AbrirPage() {
+  return (
+    <Suspense fallback={null}>
+      <Abrir />
+    </Suspense>
+  );
+}

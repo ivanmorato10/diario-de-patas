@@ -8,6 +8,7 @@ import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
 import { inviteFormatError, previewInvite } from "@/data/family-client";
 import { NameAsk } from "@/components/name-ask";
+import { SignOutForm } from "@/components/sign-out";
 
 /**
  * Adicionar cachorro: um caminho só, para conta nova e para quem já tem diário.
@@ -47,9 +48,9 @@ export default function Adicionar() {
           <Link href="/hoje" className="sp-back" aria-label="Voltar">{BACK}</Link>
         ) : (
           // Conta nova sem diário: voltar = sair da conta e voltar para a tela de entrada.
-          <form method="post" action="/auth/sair" style={{ display: "contents" }}>
-            <button type="submit" className="sp-back" aria-label="Voltar para a tela de entrada (sai da conta)">{BACK}</button>
-          </form>
+          <SignOutForm style={{ display: "contents" }}>
+            {() => <button type="submit" className="sp-back" aria-label="Voltar para a tela de entrada (sai da conta)">{BACK}</button>}
+          </SignOutForm>
         )}
         <div className="sp-top__emblem" style={{ width: 120, height: 120, borderRadius: "50%", background: "var(--paper)", display: "grid", placeItems: "end center", overflow: "hidden" }}><AbuMascot width={96} /></div>
       </header>
@@ -79,9 +80,9 @@ export default function Adicionar() {
             ) : null}
           </div>
           {!hasDog ? (
-            <form method="post" action="/auth/sair" className="sp-switch" style={{ textAlign: "center" }}>
-              Entrou com a conta errada? <button type="submit">Sair</button>
-            </form>
+            <SignOutForm className="sp-switch" style={{ textAlign: "center" }}>
+              {() => <>Entrou com a conta errada? <button type="submit">Sair</button></>}
+            </SignOutForm>
           ) : null}
         </div>
       </main>

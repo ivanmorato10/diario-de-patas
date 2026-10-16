@@ -30,5 +30,16 @@ do $$ begin
   if (select count(*) from public.push_subscriptions) <> 0 then raise exception 'Ivan viu o aparelho da Bianca'; end if;
 end $$;
 reset role;
+-- Várias fotos seguidas da mesma pessoa = um aviso com o total; depois de lido, começa outro.
+do $$ declare n int; begin
+  n := public.bump_photo_notice('72000000-0000-4000-8000-000000000002', 'd7100000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000001', gen_random_uuid());
+  n := public.bump_photo_notice('72000000-0000-4000-8000-000000000002', 'd7100000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000001', gen_random_uuid());
+  n := public.bump_photo_notice('72000000-0000-4000-8000-000000000002', 'd7100000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000001', gen_random_uuid());
+  if n <> 3 then raise exception '3 fotos deveriam somar 3 (deu %)', n; end if;
+  if (select count(*) from public.notifications where user_id = '72000000-0000-4000-8000-000000000002' and kind = 'photo' and read_at is null) <> 1 then raise exception 'deveria ser um aviso só'; end if;
+  update public.notifications set read_at = now() where user_id = '72000000-0000-4000-8000-000000000002';
+  n := public.bump_photo_notice('72000000-0000-4000-8000-000000000002', 'd7100000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000001', gen_random_uuid());
+  if n <> 1 then raise exception 'depois de lido, começa um aviso novo'; end if;
+end $$;
 do $$ begin raise notice 'AVISOS OK'; end $$;
 rollback;
