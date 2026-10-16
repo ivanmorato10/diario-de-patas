@@ -93,7 +93,7 @@ function Convite() {
             {logged ? (
               <>
               <div className="field">
-                <label htmlFor="meu-nome">Como a família te chama?</label>
+                <label htmlFor="meu-nome">Seu nome <span className="muted">(o seu, não o do cachorro)</span></label>
                 <input id="meu-nome" className="input" value={nameValue} maxLength={40} autoComplete="given-name" placeholder="Seu nome" onChange={(e) => setMyName(e.target.value)} />
               </div>
               <button type="button" className="sp-btn sp-btn--main" onClick={accept} disabled={busy}>{busy ? "Entrando…" : `Aceitar e abrir o diário de ${info.dogName}`}</button>

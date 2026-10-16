@@ -2,7 +2,7 @@
  * Cartinhas, ossinhos e o nome de quem usa.
  * - Cartinha: texto para o cachorro, com data. Escreve quem pode editar; altera/apaga quem escreveu ou o administrador.
  * - Ossinho: o "curtir" do app, em fotos e cartinhas de OUTRAS pessoas; qualquer pessoa da família dá (inclusive "só ver").
- * - Nome: "Como a família te chama?" — usado em "guardada por", "cartinha de" e nos ossinhos.
+ * - Nome: "Qual é o seu nome?" (da pessoa) — usado em "guardada por", "cartinha de" e nos ossinhos.
  */
 import "server-only";
 import { z } from "zod";

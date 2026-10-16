@@ -68,7 +68,7 @@ function Cartinha() {
     <>
       <TopBar title="Cartinha" back="/diario" />
       <main className="main">
-        <NameAsk title="Antes: como a família te chama?" note="A cartinha sai assinada com esse nome." />
+        <NameAsk title="Antes, qual é o seu nome?" note="O seu, de humano 🙂 A cartinha sai assinada com ele." />
         <form className="stack" onSubmit={save}>
           <div className="letter-card letter-card--edit">
             <p className="letter-card__kicker">💌 {editing ? "Editar cartinha" : "Nova cartinha"}</p>

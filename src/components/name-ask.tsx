@@ -5,10 +5,10 @@ import { useStore } from "@/data/store";
 import { setMyName } from "@/data/letters-client";
 
 /**
- * "Como a família te chama?" — o nome aparece em "guardada por", "cartinha de" e nos ossinhos.
+ * "Qual é o seu nome?" (da PESSOA, não do cachorro) — aparece em "guardada por", "cartinha de" e nos ossinhos.
  * Vem preenchido com o palpite (Google/Apple/email); a pessoa confirma ou corrige uma vez.
  */
-export function NameAsk({ title = "Como a família te chama?", note }: { title?: string; note?: string }) {
+export function NameAsk({ title = "Qual é o seu nome?", note = "O seu, de humano 🙂 A família vê nas fotos e cartinhas." }: { title?: string; note?: string }) {
   const { snap, reload } = useStore();
   const [name, setName] = useState(snap?.me?.suggestedName ?? "");
   const [busy, setBusy] = useState(false);
@@ -17,7 +17,7 @@ export function NameAsk({ title = "Como a família te chama?", note }: { title?:
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return setError("Escreva como a família te chama.");
+    if (!name.trim()) return setError("Escreva o seu nome.");
     setBusy(true);
     setError(null);
     try {
@@ -34,7 +34,7 @@ export function NameAsk({ title = "Como a família te chama?", note }: { title?:
       <label htmlFor="my-name" className="name-ask__title">{title}</label>
       {note ? <p style={{ margin: "2px 0 0" }}>{note}</p> : null}
       <div className="name-ask__row">
-        <input id="my-name" className="input" value={name} maxLength={40} autoComplete="given-name" placeholder="Seu nome" onChange={(e) => setName(e.target.value)} />
+        <input id="my-name" className="input" value={name} maxLength={40} autoComplete="given-name" placeholder="Ex.: Ana" onChange={(e) => setName(e.target.value)} />
         <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? "Salvando…" : "Salvar"}</button>
       </div>
       {error ? <p className="field-error" role="alert" style={{ margin: 0 }}>{error}</p> : null}

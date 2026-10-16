@@ -127,7 +127,7 @@ async function ensurePlan(ctx: Ctx, dog: any, today: string): Promise<DailyPlan>
   return toPlan(await q(admin.from("daily_plans").select("*").eq("dog_id", dog.id).eq("plan_date", today).single()));
 }
 
-/** Quem está usando: nome (confirmado ou só um palpite) para "Como a família te chama?". */
+/** Quem está usando: nome (confirmado ou só um palpite) para "Qual é o seu nome?". */
 const meOf = (ctx: Ctx, profile: any) => {
   const meta = (ctx.user.user_metadata ?? {}) as any;
   // Palpite só quando o login traz um nome de verdade (Google/Apple); do email não sai um nome bom.

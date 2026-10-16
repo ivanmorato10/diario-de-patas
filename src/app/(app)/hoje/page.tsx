@@ -80,7 +80,7 @@ export default function Hoje() {
         </section>
 
         {/* Com a família no diário, o nome aparece em "guardada por" e nos ossinhos: pergunta uma vez. */}
-        {(snap.members?.length ?? 0) >= 2 ? <NameAsk note="Seu nome aparece para a família nas fotos e cartinhas." /> : null}
+        {(snap.members?.length ?? 0) >= 2 ? <NameAsk /> : null}
 
         {/* Remédio na hora certa continua no topo: é cuidado, não cobrança. */}
         <MedAlert meds={snap.health.medications} today={snap.today} dogName={dog.name} />

@@ -95,7 +95,7 @@ export default function Conta() {
         ) : null}
 
         <section className="stack" style={{ gap: 8 }} aria-label="Ajustes da conta">
-          {REAL_MODE ? <Row id="name" icon="✏️" label="Seu nome" sub={snap.me?.nameConfirmed ? `A família vê “${snap.me.name}”` : "Como a família te chama"} /> : null}
+          {REAL_MODE ? <Row id="name" icon="✏️" label="Seu nome" sub={snap.me?.nameConfirmed ? `A família vê “${snap.me.name}”` : "Como você aparece para a família"} /> : null}
           {REAL_MODE && others > 0 ? <Row id="family" icon="👨‍👩‍👧" label="Diários da família" sub={`${others} ${others === 1 ? "diário de outra pessoa" : "diários de outras pessoas"}`} /> : null}
           {REAL_MODE ? <Row id="notify" icon="🔔" label="Notificações" sub="Avisos da família no celular" /> : null}
           <Row id="tz" icon="🕐" label="Fuso horário" sub={tzValue.replace(/_/g, " ")} />

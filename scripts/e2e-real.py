@@ -255,9 +255,9 @@ with sync_playwright() as p:
     check(f"créditos do Estúdio são do diário (A {credA}, Bianca {credC})", credA is not None and credA == credC)
     # ---------- Cartinha e ossinho ----------
     a.goto(BASE + "/diario/cartinha")
-    expect(a.get_by_label("Antes: como a família te chama?")).to_be_visible(timeout=20000)
-    a.get_by_label("Antes: como a família te chama?").fill("Ivan"); a.get_by_role("button", name="Salvar", exact=True).click()
-    expect(a.get_by_label("Antes: como a família te chama?")).to_have_count(0, timeout=20000)
+    expect(a.get_by_label("Antes, qual é o seu nome?")).to_be_visible(timeout=20000)
+    a.get_by_label("Antes, qual é o seu nome?").fill("Ivan"); a.get_by_role("button", name="Salvar", exact=True).click()
+    expect(a.get_by_label("Antes, qual é o seu nome?")).to_have_count(0, timeout=20000)
     a.get_by_label("Sua cartinha para Luna").fill("Obrigado por cada soneca no meu pé.")
     a.get_by_role("button", name="Guardar cartinha").click(); a.wait_for_url("**/diario*", timeout=20000)
     check("cartinha aparece no Diário, assinada com o nome confirmado", eventually(lambda t: expect(a.locator(".letter-card").filter(has_text="Obrigado por cada soneca")).to_be_visible(timeout=t)) and a.locator(".letter-card").filter(has_text="— Ivan").count() == 1)
