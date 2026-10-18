@@ -49,7 +49,7 @@ export const STUDIO_BASE_PROMPT =
  */
 export const PHOTO_STYLE =
   "Bright warm golden window light with soft, consistent shadows; highly saturated, vibrant, festive candy colors and a fun, celebratory mood (never washed out, dull or serious). " +
-  "Natural fur texture with fine individual strands, natural anatomy and real proportions, sharp focus on the eyes, shallow depth of field like an 85mm lens at f/2. " +
+  "Natural fur texture with fine individual strands, natural anatomy with exactly four legs (never extra paws or limbs) and real proportions, sharp focus on the eyes, shallow depth of field like an 85mm lens at f/2. " +
   "Keep the dog's true coat color under the scene lighting (a white dog stays white, a black dog stays black). " +
   "Photorealistic: not a drawing, painting, watercolor, sketch, cartoon, anime or 3D render.";
 
@@ -138,7 +138,7 @@ const BASE_PRESETS: StudioPreset[] = [
   p({ id: "astronauta", version: 2, illustration: "The dog as a cute astronaut floating in space wearing an open-face spacesuit (no helmet glass over the face), stars, a small planet and a friendly rocket in the background. Whimsical illustration style.", category: "fantasias", labelPt: "Astronauta", prompt: [
     "A realistic, professionally produced pet photograph: the dog as a cute astronaut floating in outer space (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
-    "The dog wears a white and orange open-face spacesuit with small round mission patches (no flags, no real agency logos, no helmet glass over the face), its head fully visible and happy with the mouth open, paws reaching forward as if floating.",
+    "The dog wears a white and orange open-face spacesuit with small round mission patches (no flags, no real agency logos, no helmet glass over the face), its head fully visible and happy with the mouth open, both front paws reaching forward as if floating; exactly four legs and two front paws, no extra limbs.",
     "Behind: a vivid purple and blue galaxy full of stars, a big blue planet with clouds, a small cratered moon and a friendly little red and white rocket with a glowing trail. Cinematic, colorful and magical light.",
     PHOTO_STYLE,
   ].join(" ") }),
