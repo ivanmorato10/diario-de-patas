@@ -3,11 +3,18 @@
 import { useMemo, useState } from "react";
 import { COLLECTIONS, MISSIONS } from "@/config/catalog";
 import { missionById, missionState } from "@/domain/missions";
-import { formatCivilDate } from "@/domain/dates";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
+import Link from "next/link";
 import { MissionRow } from "@/components/mission-ui";
+import { MediaImage } from "@/components/media";
+import { IconCheck } from "@/components/icons";
 
 type Filter = "open" | "done";
+
+const shortDate = (d: string) => {
+  const [y, mo, da] = d.split("-").map(Number);
+  return new Date(y, mo - 1, da).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: y === new Date().getFullYear() ? undefined : "2-digit" }).replace(" de ", " ").replace(".", "");
+};
 
 export default function Missoes() {
   const { ready, snap, unavailable } = useRequireDiary();
@@ -17,12 +24,14 @@ export default function Missoes() {
   if (!ready) return <main className="main"><PageLoading /></main>;
   const doneOnce = MISSIONS.filter((m) => completed.has(m.id)).length;
   const shown = MISSIONS.filter((m) => (filter === "done") === completed.has(m.id));
-  // Ideias do dia, especiais e itens do presente do mês também contam (podem ser feitos de novo em outros ciclos).
-  const repeatable = (snap!.completions ?? []).filter((c) => { const k = missionById(c.missionId)?.kind; return k === "daily" || k === "special" || k === "collection_item"; })
-    .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+  // Concluídas: todas as conquistas numa galeria, mais recentes primeiro, cada uma com a sua foto.
+  const byId = new Map(snap!.entries.map((e) => [e.id, e]));
+  const done = (snap!.completions ?? [])
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+    .map((c) => ({ c, m: missionById(c.missionId), entry: (c.entryId && byId.get(c.entryId)) || snap!.entries.find((e) => e.missionId === c.missionId && (!c.date || e.occurredDate === c.date)) || null }));
   const filters: { id: Filter; label: string; count: number }[] = [
     { id: "open", label: "Disponíveis", count: MISSIONS.length - doneOnce },
-    { id: "done", label: "Concluídas", count: doneOnce + repeatable.length },
+    { id: "done", label: "Concluídas", count: done.length },
   ];
   return (
     <>
@@ -36,23 +45,33 @@ export default function Missoes() {
             </button>
           ))}
         </div>
-        {filter === "done" && repeatable.length ? (
-          <section className="stack" aria-labelledby="col-ideias">
-            <h2 id="col-ideias">Ideias do dia e especiais</h2>
-            <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {repeatable.map((c) => (
-                <li key={c.instanceKey} className="card row-between" style={{ padding: "10px 14px" }}>
-                  <span>{missionById(c.missionId)?.title ?? "Missão"}</span>
-                  <span className="caption">{formatCivilDate(c.date ?? c.completedAt.slice(0, 10))}</span>
+        {filter === "done" && done.length ? (
+          <ul className="done-grid" aria-label="Missões concluídas">
+            {done.map(({ c, m, entry }) => {
+              const body = (
+                <>
+                  <span className="done-card__photo">
+                    {entry ? <MediaImage id={entry.mediaId} alt={m?.title ?? "Foto da missão"} className="done-card__img" /> : <span className="done-card__img done-card__img--empty" aria-hidden="true">🐾</span>}
+                    <span className="done-card__check" aria-label="Concluída"><IconCheck size={16} /></span>
+                  </span>
+                  <span className="done-card__title">{m?.title ?? "Missão"}</span>
+                  <span className="done-card__meta">{shortDate(c.date ?? c.completedAt.slice(0, 10))} · +{m?.xp ?? 0} 🐾</span>
+                </>
+              );
+              return (
+                <li key={c.instanceKey}>
+                  {entry ? <Link href={`/diario?ir=${entry.id}`} className="done-card">{body}</Link>
+                    : m ? <Link href={`/missoes/${m.slug}`} className="done-card">{body}</Link>
+                    : <div className="done-card">{body}</div>}
                 </li>
-              ))}
-            </ul>
-          </section>
+              );
+            })}
+          </ul>
         ) : null}
-        {shown.length === 0 && !(filter === "done" && repeatable.length) ? (
+        {(filter === "done" ? done.length === 0 : shown.length === 0) ? (
           <p className="muted">{filter === "done" ? "Nenhuma missão concluída ainda. A primeira é “Olá, mundo”." : "Todas as missões foram concluídas. O diário continua aberto para qualquer momento."}</p>
         ) : null}
-        {COLLECTIONS.filter((c) => c.hasMissions).map((c) => {
+        {filter === "open" && COLLECTIONS.filter((c) => c.hasMissions).map((c) => {
           const list = shown.filter((m) => m.collectionId === c.id);
           if (list.length === 0) return null;
           return (
