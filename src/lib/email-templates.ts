@@ -23,6 +23,10 @@ interface Layout {
   paragraphs: string[];
   code?: string;
   cta?: { label: string; href: string };
+  /** Destaque grande logo abaixo do título (ex.: "+5 créditos"). */
+  hero?: string;
+  /** Recibo: linhas rótulo/valor numa caixa. */
+  details?: [string, string][];
   /** Nota pequena embaixo (segurança, validade). */
   note?: string;
   /** Assinatura do bilhete. */
@@ -46,6 +50,17 @@ function button(label: string, href: string) {
 </td></tr></table>`;
 }
 
+function heroBox(html: string) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:2px 0 18px;">
+<tr><td align="center" style="background:${C.peach};border-radius:18px;padding:18px 12px;font-family:${FONT};font-size:30px;font-weight:bold;line-height:1.2;color:${C.brown};">${html}</td></tr></table>`;
+}
+
+function detailsBox(rows: [string, string][]) {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;background:#ffffff;border:1px solid ${C.border};border-radius:16px;">
+${rows.map(([k, v], i) => `<tr><td style="padding:10px 14px;${i ? `border-top:1px dashed ${C.border};` : ""}font-family:${BODY_FONT};font-size:14px;color:${C.soft};">${k}</td><td align="right" style="padding:10px 14px;${i ? `border-top:1px dashed ${C.border};` : ""}font-family:${BODY_FONT};font-size:14px;font-weight:bold;color:${C.brown};">${v}</td></tr>`).join("\n")}
+</table>`;
+}
+
 const paws = `<span style="color:${C.teal};font-size:18px;letter-spacing:6px;">🐾 🐾 🐾</span>`;
 
 export function layout(l: Layout): string {
@@ -61,7 +76,9 @@ export function layout(l: Layout): string {
   </td></tr>
   <tr><td style="background:${C.paper};border-radius:22px;border:1px solid ${C.border};padding:28px 26px 22px;box-shadow:0 6px 18px rgba(61,45,30,0.08);">
     <h1 style="margin:0 0 14px;font-family:${FONT};font-size:25px;line-height:1.25;color:${C.brown};">${l.title}</h1>
+    ${l.hero ? heroBox(l.hero) : ""}
     ${l.paragraphs.map(p).join("\n    ")}
+    ${l.details ? detailsBox(l.details) : ""}
     ${l.code ? codeBox(l.code) : ""}
     ${l.cta ? button(l.cta.label, l.cta.href) : ""}
     ${l.note ? `<p style="margin:6px 0 0;padding:12px 14px;background:${C.bg};border-radius:14px;font-family:${BODY_FONT};font-size:13px;line-height:1.5;color:${C.soft};">${l.note}</p>` : ""}
@@ -211,5 +228,40 @@ export function accountDeletedEmail(dogName: string | null) {
       signature: "Com carinho e um abano de rabo,<br>Abu e a equipe do Diário de Patas",
     }),
     text: `Obrigado por guardar suas histórias com a gente.\n\nSua conta no Diário de Patas foi excluída, como você pediu. Perfil, fotos, álbuns, conquistas, cuidados e documentos foram apagados, e os links compartilhados pararam de funcionar.\n\nSe você não pediu a exclusão, responda a este email.\n\nCom carinho, Abu e a equipe do Diário de Patas`,
+  };
+}
+
+export interface PurchaseReceipt { dogName: string; credits: number; amount: string; paidAt: string; balance: number | null; reference: string }
+
+/** Pagamento confirmado: festa + recibo simples. Enviado uma vez por compra. */
+export function purchaseConfirmedEmail(r: PurchaseReceipt) {
+  const dog = esc(r.dogName);
+  const cr = r.credits === 1 ? "crédito" : "créditos";
+  const arts = r.credits === 1 ? "uma arte nova" : `até ${r.credits} artes novas`;
+  const rows: [string, string][] = [
+    ["Pacote", `${r.credits} ${cr}`],
+    ["Valor pago", r.amount],
+    ["Pagamento", "Pix · Mercado Pago"],
+    ["Data", r.paidAt],
+    ["Diário", dog],
+    ...(r.balance !== null ? [["Saldo agora", `${r.balance} ${r.balance === 1 ? "crédito" : "créditos"} 🐾`] as [string, string]] : []),
+    ["Código da compra", `<span style="font-family:'Courier New',monospace;font-weight:normal;">${esc(r.reference.slice(0, 8).toUpperCase())}</span>`],
+  ];
+  return {
+    subject: `Pagamento confirmado: +${r.credits} ${cr} para ${r.dogName} 🐾`,
+    html: layout({
+      preheader: `Seus créditos já estão no diário de ${r.dogName}. Bora criar arte?`,
+      title: `Oba! Chegou presente para ${dog} 🎨`,
+      hero: `+${r.credits} ${cr} 🐾`,
+      paragraphs: [
+        `Recebemos seu Pix, obrigado! Os créditos já estão no diário de <strong>${dog}</strong>, para toda a família usar, e não vencem.`,
+        `Dá para fazer ${arts} no Estúdio: aniversário, figurinha, cartão… ${dog} vai virar obra de arte.`,
+      ],
+      details: rows,
+      cta: { label: "Criar uma arte agora", href: `${SITE_URL}/estudio` },
+      note: "Pagamento único, sem assinatura e sem cobrança automática. Guarde este email como comprovante da compra. Algum problema? É só responder.",
+      signature: "Com carinho e um abano de rabo,<br>Abu e a equipe do Diário de Patas",
+    }),
+    text: `Pagamento confirmado!\n\n+${r.credits} ${cr} no diário de ${r.dogName}.\nValor pago: ${r.amount} (Pix · Mercado Pago)\nData: ${r.paidAt}\n${r.balance !== null ? `Saldo agora: ${r.balance}\n` : ""}Código da compra: ${r.reference.slice(0, 8).toUpperCase()}\n\nCrie uma arte: ${SITE_URL}/estudio\n\nPagamento único, sem assinatura. Guarde este email como comprovante.\n\nCom carinho, Abu e a equipe do Diário de Patas`,
   };
 }

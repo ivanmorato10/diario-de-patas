@@ -22,3 +22,15 @@ describe("compra de créditos (Pix)", () => {
     expect(validMpSignature(secret, null, rid, id)).toBe(false);
   });
 });
+
+import { purchaseConfirmedEmail } from "@/lib/email-templates";
+describe("email de pagamento confirmado", () => {
+  it("traz créditos, valor, diário e protege o nome do cachorro", () => {
+    const m = purchaseConfirmedEmail({ dogName: "Pepe <b>", credits: 5, amount: "R$ 4,90", paidAt: "18 de outubro", balance: 7, reference: "a1b2c3d4-x" });
+    expect(m.subject).toContain("+5 créditos");
+    expect(m.html).toContain("R$ 4,90");
+    expect(m.html).toContain("A1B2C3D4");
+    expect(m.html).toContain("Pepe &lt;b&gt;");
+    expect(m.html).not.toContain("Pepe <b>");
+  });
+});

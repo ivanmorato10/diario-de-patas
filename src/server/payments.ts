@@ -10,8 +10,9 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { CREDIT_PACKAGES, PIX_EXPIRES_MINUTES, packageById } from "@/config/credits";
+import { CREDIT_PACKAGES, formatBRL, PIX_EXPIRES_MINUTES, packageById } from "@/config/credits";
 import { adminClient, HttpError } from "./supabase";
+import { sendPurchaseConfirmed } from "./mailer";
 
 type Ctx = { supa: SupabaseClient; user: User };
 type Status = "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
@@ -141,7 +142,10 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
   if (status !== p.status) {
     await admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" && !p.approved_at ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", p.status);
   }
-  if (status === "approved") await admin.rpc("grant_purchase_credits", { p_purchase: p.id });
+  if (status === "approved") {
+    await admin.rpc("grant_purchase_credits", { p_purchase: p.id });
+    if (!p.receipt_sent_at) await sendReceipt(p.id);
+  }
   // Estorno: aplica o desconto até conseguir (refund_applied_at). Se falhar, a próxima reconciliação repete.
   if (status === "refunded" && !p.refund_applied_at) {
     const { data: taken, error } = await admin.rpc("revoke_purchase_credits", { p_purchase: p.id });
@@ -155,6 +159,30 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
 }
 
 /** Rotina: reconsulta Pix pendentes/vencidos dos últimos 3 dias e aplica estornos pendentes. */
+/** Email "pagamento confirmado": quem marcar a compra primeiro envia (webhook, tela e rotina não duplicam). */
+async function sendReceipt(purchaseId: string) {
+  const admin = adminClient();
+  const { data: claimed } = await admin.from("credit_purchases").update({ receipt_sent_at: now() })
+    .eq("id", purchaseId).is("receipt_sent_at", null).eq("status", "approved").select("*").maybeSingle();
+  const p = claimed as any;
+  if (!p?.owner_id) return;
+  try {
+    const [{ data: u }, { data: dog }, { data: balance }] = await Promise.all([
+      admin.auth.admin.getUserById(p.owner_id),
+      admin.from("dogs").select("name").eq("id", p.dog_id).maybeSingle(),
+      admin.rpc("credit_available_dog", { p_dog: p.dog_id }),
+    ]);
+    const paidAt = new Date(p.approved_at ?? Date.now()).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const sent = await sendPurchaseConfirmed(u?.user?.email ?? "", {
+      dogName: (dog as any)?.name ?? "seu cachorro", credits: p.credits, amount: formatBRL(p.amount_cents),
+      paidAt, balance: typeof balance === "number" ? balance : null, reference: p.id,
+    });
+    if (!sent) console.warn("comprovante não enviado", p.id);
+  } catch (e) {
+    console.error("comprovante não enviado", p.id, e instanceof Error ? e.message : e);
+  }
+}
+
 export async function reconcileRecentPurchases() {
   if (!process.env.MP_ACCESS_TOKEN) return { checked: 0 };
   const since = new Date(Date.now() - 3 * 86_400_000).toISOString();

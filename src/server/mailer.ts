@@ -4,7 +4,7 @@
  */
 import "server-only";
 import nodemailer from "nodemailer";
-import { accountDeletedEmail } from "@/lib/email-templates";
+import { accountDeletedEmail, purchaseConfirmedEmail, type PurchaseReceipt } from "@/lib/email-templates";
 
 function transport() {
   const host = process.env.SMTP_HOST;
@@ -24,4 +24,14 @@ export async function sendAccountDeleted(to: string, dogName: string | null) {
   await t
     .sendMail({ from: process.env.SMTP_FROM || `Diário de Patas <${process.env.SMTP_USER}>`, to, subject: mail.subject, html: mail.html, text: mail.text })
     .catch((e) => console.error("email de conta excluída não enviado:", e instanceof Error ? e.message : e));
+}
+
+/** Comprovante de compra de créditos. Devolve se foi enviado (falhas só vão para o log). */
+export async function sendPurchaseConfirmed(to: string, receipt: PurchaseReceipt): Promise<boolean> {
+  const t = transport();
+  if (!t || !to || isTestAddress(to)) return false;
+  const mail = purchaseConfirmedEmail(receipt);
+  return t
+    .sendMail({ from: process.env.SMTP_FROM || `Diário de Patas <${process.env.SMTP_USER}>`, to, subject: mail.subject, html: mail.html, text: mail.text })
+    .then(() => true, (e) => { console.error("email de compra não enviado:", e instanceof Error ? e.message : e); return false; });
 }
