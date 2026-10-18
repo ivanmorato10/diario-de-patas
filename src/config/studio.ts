@@ -198,9 +198,27 @@ const BASE_PRESETS: StudioPreset[] = [
   ].join(" ") }),
   // ---------- Formatos (§10.6) ----------
   p({ id: "figurinha", category: "formatos", labelPt: "Figurinha para WhatsApp", aspect: "1:1", aspects: ["1:1"], post: "sticker", prompt: "A cute die-cut sticker of the dog's head and shoulders in a clean cartoon style, thick white outline around the whole shape, on a plain solid flat light green background (#00FF00) for easy removal, no shadow." }),
-  p({ id: "papel-de-parede", category: "formatos", labelPt: "Papel de parede", aspect: "9:16", aspects: ["9:16"], post: "wallpaper", prompt: "A calm, beautiful illustrated scene with the dog resting in a soft dreamy landscape, gentle gradient sky, plenty of simple space." }),
-  p({ id: "cartao", category: "formatos", labelPt: "Cartão com mensagem", aspect: "4:5", aspects: ["4:5", "1:1"], post: "card", addTextOverlay: true, prompt: "A clean illustrated portrait of the dog with a soft solid pastel background and generous empty space at the bottom third." }),
-  p({ id: "capa-album", category: "formatos", labelPt: "Capa do álbum", aspect: "4:5", aspects: ["4:5", "1:1"], post: "cover", prompt: "A warm illustrated cover-style portrait of the dog, centered, with a soft decorative frame of small paw prints and leaves around the edges." }),
+  p({ id: "papel-de-parede", version: 2, illustration: "A calm, beautiful illustrated scene with the dog resting in a soft dreamy landscape, gentle gradient sky, plenty of simple space.", category: "formatos", labelPt: "Papel de parede", aspect: "9:16", aspects: ["9:16"], post: "wallpaper", prompt: [
+    "A realistic, professionally produced pet photograph for a phone wallpaper (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "The dog lies peacefully on a soft lilac blanket in a dreamy meadow of small lavender and white flowers at golden sunset, with a happy relaxed expression.",
+    "Behind: a soft pastel pink, peach and lilac sky with gentle clouds and distant hills, softly out of focus, with plenty of calm simple space above and below the dog.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "cartao", version: 2, illustration: "A clean illustrated portrait of the dog with a soft solid pastel background and generous empty space at the bottom third.", category: "formatos", labelPt: "Cartão com mensagem", aspect: "4:5", aspects: ["4:5", "1:1"], post: "card", addTextOverlay: true, prompt: [
+    "A realistic, professionally produced studio pet portrait (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "The dog lies on the floor with a big happy open-mouth smile, looking at the camera, against a seamless soft solid pastel pink studio backdrop with gentle studio lighting and a soft natural shadow.",
+    "Generous empty pastel space in the bottom third of the image, nothing else in the scene.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "capa-album", version: 2, illustration: "A warm illustrated cover-style portrait of the dog, centered, with a soft decorative frame of small paw prints and leaves around the edges.", category: "formatos", labelPt: "Capa do álbum", aspect: "4:5", aspects: ["4:5", "1:1"], post: "cover", prompt: [
+    "A realistic, professionally produced pet photograph used as a warm photo album cover (the dog is a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "The dog lies centered on a cozy cream knitted blanket with a happy relaxed expression, in soft warm window light.",
+    "Around the edges, a delicate decorative frame of small paw prints and green leaves, like a printed album border, leaving the dog fully visible in the middle.",
+    PHOTO_STYLE,
+  ].join(" ") }),
 ];
 
 /** Sufixo da variante ilustrada: "aniversario" (realista) → "aniversario-ilustrado". */
@@ -243,4 +261,4 @@ export function buildStudioPrompt(preset: StudioPreset, aspect: StudioAspect): s
 }
 
 /** Limites de custo (variáveis de ambiente no servidor; estes são os padrões). */
-export const STUDIO_DEFAULTS = { testCredits: 3, dailyPerAccount: 5, maxDailyGenerations: 50, jobTimeoutMinutes: 10 } as const;
+export const STUDIO_DEFAULTS = { testCredits: 1, dailyPerAccount: 5, maxDailyGenerations: 50, jobTimeoutMinutes: 10 } as const;

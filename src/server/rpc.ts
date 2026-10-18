@@ -27,6 +27,7 @@ import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from ".
 import { checkPushSubscription, unreadCount, listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, setNotifyPrefs, testPush } from "./notify";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
+import { STUDIO_DEFAULTS } from "@/config/studio";
 import { achadinhosInfo } from "./amazon";
 import { acceptInvite, createInvite, currentDog, familyInfo, forgetDog, leaveDiary, nameFromUser, removeMember, requireEditor, switchDog, updateMember } from "./family";
 import {
@@ -250,8 +251,8 @@ export async function createDiary(ctx: Ctx, args: unknown) {
   const created = await q(ctx.supa.from("dogs").insert({ owner_id: ctx.user.id, name, birth_date: a.birthDate, preferences_json: a.preferences }).select("*").single()) as any;
   const admin = adminClient();
   await q(admin.from("profiles").update({ current_dog_id: created.id }).eq("user_id", ctx.user.id));
-  // 3 créditos de boas-vindas: uma vez por pessoa, no primeiro diário criado.
-  await q(admin.rpc("grant_welcome_credits", { p_owner: ctx.user.id, p_dog: created.id, p_amount: Number(process.env.STUDIO_TEST_CREDITS || 3) }));
+  // 1 crédito de boas-vindas: uma vez por pessoa, no primeiro diário criado.
+  await q(admin.rpc("grant_welcome_credits", { p_owner: ctx.user.id, p_dog: created.id, p_amount: Number(process.env.STUDIO_TEST_CREDITS || STUDIO_DEFAULTS.testCredits) }));
   if (!existing) await attachReferral(ctx); // primeiro diário de alguém que chegou por indicação
   forgetDog(ctx);
   return toDog(created);
