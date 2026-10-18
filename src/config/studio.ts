@@ -44,7 +44,7 @@ export const STUDIO_BASE_PROMPT =
  * Os temas de estilo (aquarela, lápis, pixel…) continuam com o estilo do próprio exemplo.
  */
 export const PHOTO_STYLE =
-  "Bright warm natural light with soft, consistent shadows; saturated, vibrant and festive colors (never washed out or dull). " +
+  "Bright warm golden window light with soft, consistent shadows; highly saturated, vibrant, festive candy colors and a fun, celebratory mood (never washed out, dull or serious). " +
   "Natural fur texture with fine individual strands, natural anatomy and real proportions, sharp focus on the eyes, shallow depth of field like an 85mm lens at f/2. " +
   "Photorealistic: not a drawing, painting, watercolor, sketch, cartoon, anime or 3D render.";
 
@@ -65,9 +65,10 @@ export const STUDIO_PRESETS: StudioPreset[] = [
   p({ id: "aniversario", version: 2, category: "datas", labelPt: "Aniversário", addTextOverlay: true, overlayHint: "Feliz aniversário!", prompt: [
     "A realistic, professionally produced pet photograph of a birthday party (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
-    "Close-up at the dog's eye level: the dog fills most of the frame, lying or sitting on a fluffy cream rug and wearing a small soft pink party hat with colorful pom-poms.",
-    "In the foreground, right next to the dog, a dog-safe birthday cake with creamy frosting, colorful sprinkles, bone-shaped biscuits around it and one lit striped candle.",
-    "Behind: vivid pink, yellow, lilac and turquoise balloons with polka dots, wrapped gift boxes with shiny ribbons, colorful confetti everywhere and warm glowing bokeh lights, softly out of focus.",
+    "A playful, joyful close-up at the dog's eye level: the dog's head and front paws fill most of the frame, with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
+    "The dog lies on a fluffy rug wearing a small pink party hat covered in colorful pom-poms, tilted a little to one side.",
+    "In the foreground, big and right next to the dog's paws, a dog-safe birthday cake with thick creamy frosting, rainbow sprinkles, bone-shaped biscuits around it, a pink ribbon and one lit striped candle.",
+    "Behind: lots of vivid pink, yellow, lilac and turquoise polka-dot balloons, wrapped gift boxes with shiny bows, confetti flying in the air and scattered on the rug, and twinkling golden bokeh lights.",
     PHOTO_STYLE,
   ].join(" ") }),
   p({ id: "natal", category: "datas", labelPt: "Natal acolhedor", addTextOverlay: true, overlayHint: "Feliz Natal!", prompt: "A cozy Christmas scene: the dog resting on a soft knitted blanket beside a decorated Christmas tree with warm glowing fairy lights and wrapped presents. Gentle warm light, red, green and gold tones, storybook illustration style." }),
