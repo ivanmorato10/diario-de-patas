@@ -17,8 +17,8 @@ export default function Missoes() {
   if (!ready) return <main className="main"><PageLoading /></main>;
   const doneOnce = MISSIONS.filter((m) => completed.has(m.id)).length;
   const shown = MISSIONS.filter((m) => (filter === "done") === completed.has(m.id));
-  // Ideias do dia e especiais também contam (podem ser feitas de novo em outros dias/anos).
-  const repeatable = (snap!.completions ?? []).filter((c) => { const k = missionById(c.missionId)?.kind; return k === "daily" || k === "special"; })
+  // Ideias do dia, especiais e itens do presente do mês também contam (podem ser feitos de novo em outros ciclos).
+  const repeatable = (snap!.completions ?? []).filter((c) => { const k = missionById(c.missionId)?.kind; return k === "daily" || k === "special" || k === "collection_item"; })
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
   const filters: { id: Filter; label: string; count: number }[] = [
     { id: "open", label: "Disponíveis", count: MISSIONS.length - doneOnce },

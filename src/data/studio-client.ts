@@ -45,7 +45,26 @@ export const studioJob = (id: string) => rpc<StudioJob>("studioJob", { id });
 export const studioCreateJob = (input: {
   entryId: string; presetId: string; aspect: StudioAspect; idempotencyKey: string;
   crop: { x: number; y: number; w: number; h: number } | null; overlay: StudioOverlay | null;
-}) => rpc<StudioJob>("studioCreateJob", input);
+}) => rpc<StudioJob>("studioCreateJob", input).then((j) => {
+  if (j.state === "queued" || j.state === "processing") trackArt(j.id);
+  return j;
+});
+
+/** Artes em andamento neste aparelho: o app inteiro acompanha (não só a tela do Estúdio). */
+const PENDING_KEY = "ddp-art-pending";
+export function pendingArts(): string[] {
+  try { return JSON.parse(localStorage.getItem(PENDING_KEY) ?? "[]") as string[]; } catch { return []; }
+}
+function savePendingArts(ids: string[]) {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(ids.slice(-10))); } catch { /* sem armazenamento: só não acompanha */ }
+}
+export function trackArt(id: string) {
+  const ids = pendingArts();
+  if (!ids.includes(id)) savePendingArts([...ids, id]);
+}
+export function untrackArt(id: string) {
+  savePendingArts(pendingArts().filter((x) => x !== id));
+}
 
 export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad"; message: string }[]; aiChecked: boolean }
 export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y: number; w: number; h: number } | null }) => rpc<PhotoCheck>("studioCheckPhoto", input);

@@ -70,6 +70,11 @@ export function realRepository(): Repository {
       try {
         return await rpc("snapshot");
       } catch (e) {
+        // O cachorro desta tela não está mais acessível (removido, apagado): carrega o diário que restou.
+        if (e instanceof DomainError && e.code === "DIARY_GONE") {
+          setActiveDog(null);
+          return await rpc("snapshot");
+        }
         // Páginas abertas (boas-vindas, entrar, sobre) funcionam sem conta: diário vazio.
         if (e instanceof DomainError && e.code === "UNAUTHENTICATED") {
           // Sessão que o servidor não aceita mais (ex.: conta excluída, token revogado): limpa e pede login.

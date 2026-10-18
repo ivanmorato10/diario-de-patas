@@ -67,25 +67,36 @@ export default function Diario() {
   useEffect(() => {
     const id = target.current;
     if (!id || !snap?.dog) return;
-    let stopped = false, lastTop = NaN, still = 0, frames = 0;
+    let stopped = false, still = 0, lastTop = NaN;
+    const started = performance.now();
     const stop = () => { stopped = true; };
     window.addEventListener("wheel", stop, { once: true, passive: true });
     window.addEventListener("touchmove", stop, { once: true, passive: true });
+    window.addEventListener("keydown", stop, { once: true });
+    // Ainda carregando ACIMA da lembrança? (imagens não terminadas ou espaços reservados)
+    const pendingAbove = (el: HTMLElement) => {
+      const top = el.getBoundingClientRect().top;
+      const imgs = Array.from(document.querySelectorAll("main img")) as HTMLImageElement[];
+      const waiting = imgs.some((im) => !im.complete && im.getBoundingClientRect().top < top);
+      const placeholders = Array.from(document.querySelectorAll("main .skeleton")).some((p) => p.getBoundingClientRect().top < top);
+      return waiting || placeholders;
+    };
     const tick = () => {
-      if (stopped || frames++ > 360) return; // no máximo ~6 s
+      if (stopped || performance.now() - started > 15_000) return;
       const el = document.getElementById(id);
       if (el) {
         const top = el.getBoundingClientRect().top;
         if (Math.abs(top - 76) > 2) window.scrollBy({ top: top - 76 });
-        still = Math.abs(top - lastTop) < 1 ? still + 1 : 0;
+        el.classList.add("is-target");
+        // Estável = nada carregando acima E a posição parada por ~0,5 s.
+        still = !pendingAbove(el) && Math.abs(top - lastTop) < 1 ? still + 1 : 0;
         lastTop = top;
-        if (frames === 1 || !el.classList.contains("is-target")) el.classList.add("is-target");
-        if (still > 45) { target.current = null; setTimeout(() => el.classList.remove("is-target"), 1600); return; }
+        if (still > 30) { target.current = null; setTimeout(() => el.classList.remove("is-target"), 1600); return; }
       }
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-    return () => { stopped = true; window.removeEventListener("wheel", stop); window.removeEventListener("touchmove", stop); };
+    return () => { stopped = true; window.removeEventListener("wheel", stop); window.removeEventListener("touchmove", stop); window.removeEventListener("keydown", stop); };
   }, [snap]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;

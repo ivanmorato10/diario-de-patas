@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { Snapshot } from "./demo-repository";
+import { DomainError, type Snapshot } from "./demo-repository";
 import { realRepository, setActiveDog } from "./real-repository";
 import { syncDeviceOwner } from "./push-client";
+import { pendingArts, studioJob, untrackArt } from "./studio-client";
 import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
 import { CONFIG_OK } from "@/config/mode";
@@ -42,6 +43,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setRepo(r);
       const n = ++seq.current;
       apply(await r.loadSnapshot(), n);
+      loadedAt.current = Date.now();
       void syncDeviceOwner(); // avisos deste aparelho são da conta que está aqui agora
     })().catch(() => alive && setUnavailable(true));
     return () => {
@@ -56,11 +58,43 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setActiveDog(s.dog?.id ?? null);
     setSnap(s);
   }, []);
+  const loadedAt = useRef(0);
   const reload = useCallback(async () => {
     if (!repoRef.current) return;
     const n = ++seq.current;
     apply(await repoRef.current.loadSnapshot(), n);
-  }, []);
+    loadedAt.current = Date.now();
+  }, [apply]);
+
+  // Voltou ao app depois de um tempo (outra pessoa pode ter postado): busca dados novos.
+  useEffect(() => {
+    const onBack = () => {
+      if (document.visibilityState === "visible" && loadedAt.current && Date.now() - loadedAt.current > 60_000) void reload().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
+    return () => { document.removeEventListener("visibilitychange", onBack); window.removeEventListener("focus", onBack); };
+  }, [reload]);
+
+  // Arte do Estúdio em andamento: quando terminar, o diário atualiza em qualquer tela.
+  useEffect(() => {
+    const t = setInterval(async () => {
+      if (!repoRef.current || document.visibilityState !== "visible") return;
+      const ids = pendingArts();
+      if (!ids.length) return;
+      let done = false;
+      for (const id of ids) {
+        try {
+          const j = await studioJob(id);
+          if (j.state !== "queued" && j.state !== "processing") { untrackArt(id); done = true; }
+        } catch (e) {
+          if (e instanceof DomainError) untrackArt(id); // não existe mais / sem acesso
+        }
+      }
+      if (done) void reload().catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [reload]);
 
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;

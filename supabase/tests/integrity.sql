@@ -30,7 +30,9 @@ begin
   -- 16) estorno: retira só o que sobrou, uma vez, sem negativo
   n := public.revoke_purchase_credits(p);
   if n <> 3 or public.credit_available_dog(d2) <> 0 then raise exception 'estorno retirou % (saldo %)', n, public.credit_available_dog(d2); end if;
-  if public.revoke_purchase_credits(p) <> 0 then raise exception 'estorno não pode repetir'; end if;
+  -- repetir é seguro: devolve o mesmo valor e não desconta de novo
+  if public.revoke_purchase_credits(p) <> 3 or public.credit_available_dog(d2) <> 0 then raise exception 'estorno não pode descontar duas vezes'; end if;
+  if (select refund_applied_at from public.credit_purchases where id = p) is null then raise exception 'estorno aplicado deveria ficar marcado'; end if;
 
   -- 21) convite atômico e de uso único
   insert into auth.users (id, email) values (bia, 'bia-i2@diariodepatas.test');
@@ -44,6 +46,32 @@ begin
     raise exception 'convite usado duas vezes';
   exception when others then if sqlerrm <> 'INVALID_CODE' then raise; end if;
   end;
+
+  -- removido não volta com o convite antigo
+  delete from public.dog_members where dog_id = d2 and user_id = bia;
+  begin
+    perform public.accept_invite('hash-teste', bia, null);
+    raise exception 'removido recuperou acesso com convite usado';
+  exception when others then if sqlerrm <> 'INVALID_CODE' then raise; end if;
+  end;
+  if exists (select 1 from public.dog_members where dog_id = d2 and user_id = bia) then raise exception 'acesso recriado'; end if;
+
+  -- 8) Estúdio: vaga e orçamento reservados ao criar o job (antes da IA)
+  update public.app_limits set value = 100 where key = 'max_entries';
+  perform public.create_studio_job(jsonb_build_object('owner_id', ivan, 'dog_id', d2, 'theme_id', 'aniversario', 'preset_version', 1, 'aspect', '1:1', 'model', 'm', 'credits', 1, 'cost_usd', 0.10, 'idempotency_key', 'aaaaaaaa-0000-4000-8000-000000000001'), 2, 0.15);
+  if public.create_studio_job(jsonb_build_object('owner_id', ivan, 'dog_id', d2, 'theme_id', 'aniversario', 'preset_version', 1, 'aspect', '1:1', 'model', 'm', 'credits', 1, 'cost_usd', 0.10, 'idempotency_key', 'aaaaaaaa-0000-4000-8000-000000000001'), 2, 0.15)
+     is distinct from (select id from public.generation_jobs where idempotency_key = 'aaaaaaaa-0000-4000-8000-000000000001') then raise exception 'toque duplo deveria devolver o mesmo job'; end if;
+  begin
+    perform public.create_studio_job(jsonb_build_object('owner_id', ivan, 'dog_id', d2, 'theme_id', 'aniversario', 'preset_version', 1, 'aspect', '1:1', 'model', 'm', 'credits', 1, 'cost_usd', 0.10, 'idempotency_key', 'aaaaaaaa-0000-4000-8000-000000000002'), 5, 0.15);
+    raise exception 'passou do orçamento';
+  exception when others then if sqlerrm <> 'BUDGET' then raise; end if;
+  end;
+  begin
+    perform public.create_studio_job(jsonb_build_object('owner_id', ivan, 'dog_id', d2, 'theme_id', 'aniversario', 'preset_version', 1, 'aspect', '1:1', 'model', 'm', 'credits', 1, 'cost_usd', 0.01, 'idempotency_key', 'aaaaaaaa-0000-4000-8000-000000000003'), 1, null);
+    raise exception 'passou da vaga (arte em andamento ocupa vaga)';
+  exception when others then if sqlerrm <> 'NO_SPACE' then raise; end if;
+  end;
+  delete from public.generation_jobs where dog_id = d2;
 
   -- 24) limite no banco
   update public.app_limits set value = 1 where key = 'max_entries';

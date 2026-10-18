@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/data/store";
 import { switchDog } from "@/data/family-client";
@@ -20,7 +20,12 @@ function Abrir() {
   const switching = useRef(false);
   // Sempre busca dados novos antes de procurar: uma foto recém-guardada não pode parecer "apagada".
   const [fresh, setFresh] = useState(false);
-  useEffect(() => { reload().catch(() => undefined).finally(() => setFresh(true)); }, [reload]);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const load = useCallback(() => {
+    setLoadFailed(false);
+    reload().then(() => setFresh(true), () => setLoadFailed(true)); // só "atualizado" com sucesso
+  }, [reload]);
+  useEffect(() => { load(); }, [load]);
   const cao = params.get("cao");
   const foto = params.get("foto");
   const carta = params.get("carta");
@@ -41,6 +46,17 @@ function Abrir() {
     router.replace(foto ? `/diario?ir=${foto}` : carta ? `/diario?ir=carta-${carta}` : "/diario");
   }, [snap, problem, fresh, cao, foto, carta, reload, router]);
 
+  if (loadFailed) {
+    return (
+      <>
+        <TopBar title="Novidades" back="/novidades" />
+        <main className="main">
+          <p className="page-note">Não conseguimos carregar agora.</p>
+          <button type="button" className="btn btn--secondary btn--block" onClick={load}>Tentar de novo</button>
+        </main>
+      </>
+    );
+  }
   if (problem) {
     return (
       <>

@@ -115,11 +115,6 @@ async function studioAlbumId(dogId: string, ownerId: string): Promise<string> {
   throw new ProviderError("PROVIDER_UNAVAILABLE", "álbum de artes");
 }
 
-/** Gasto estimado do dia com tentativas que podem ter sido cobradas pelo provedor (inclusive falhas). */
-async function spentTodayUsd() {
-  const { data } = await adminClient().from("generation_jobs").select("cost_usd, state, failure_code").gte("created_at", todayUtcStart()).in("state", ["processing", "succeeded", "failed"]);
-  return ((data ?? []) as any[]).filter((j) => !["NO_CREDITS", "INPUT_DELETED", "NOT_CONFIGURED", "NO_SPACE"].includes(j.failure_code)).reduce((t, j) => t + Number(j.cost_usd ?? 0), 0);
-}
 
 async function countToday(dogId?: string) {
   let query = adminClient().from("generation_jobs").select("id", { count: "exact", head: true }).gte("created_at", todayUtcStart()).or("failure_code.is.null,failure_code.neq.NO_CREDITS");
@@ -198,18 +193,30 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
   if ((await countToday(dog.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "Você chegou ao limite de artes de hoje. Amanhã tem mais.");
   if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "O Estúdio atingiu o limite de artes de hoje. Tente amanhã.");
-  // Teto de gasto diário opcional (STUDIO_DAILY_BUDGET_USD): pausa o Estúdio em vez de gastar além.
-  const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD);
-  if (budget > 0 && (await spentTodayUsd()) >= budget) throw bad("GLOBAL_LIMIT", "O Estúdio fez uma pausa por hoje. Tente amanhã.");
-  // Verificações baratas ANTES da análise paga: sem espaço no diário, nem chama a IA.
-  if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
-  // Foto inadequada não vira cobrança: bloqueia antes de reservar o crédito (avisos leves deixam seguir).
+  // Reserva vaga no diário e orçamento do dia ANTES de qualquer chamada paga (no banco, com trava):
+  // dois pedidos ao mesmo tempo não passam juntos. A arte em andamento ocupa a vaga.
+  const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD) || null;
+  const created = await admin.rpc("create_studio_job", {
+    p_job: {
+      owner_id: dog.owner_id, dog_id: dog.id, requested_by: ctx.user.id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
+      aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
+    },
+    p_max_entries: serverMaxEntries(), p_budget_usd: budget,
+  });
+  if (created.error) {
+    if (/NO_SPACE/.test(created.error.message)) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
+    if (/BUDGET/.test(created.error.message)) throw bad("GLOBAL_LIMIT", "O Estúdio fez uma pausa por hoje. Tente amanhã.");
+    console.error("create_studio_job:", created.error.message);
+    throw new HttpError(500, "SERVER", "Não conseguimos começar a arte agora. Tente de novo.");
+  }
+  const job = (await q(admin.from("generation_jobs").select("*").eq("id", created.data).single())) as any;
+  if (job.state !== "queued") return toJob(job); // toque duplo: o mesmo pedido
+  // Análise da foto (paga, barata): só depois da vaga reservada. Foto inadequada libera a vaga sem cobrar crédito.
   const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), gen).catch(() => null);
-  if (photoCheck?.verdict === "bad") throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
-  const job = (await q(admin.from("generation_jobs").insert({
-    owner_id: dog.owner_id, dog_id: dog.id, requested_by: ctx.user.id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
-    aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
-  }).select("*").single())) as any;
+  if (photoCheck?.verdict === "bad") {
+    await q(admin.from("generation_jobs").update({ state: "cancelled", failure_code: "PHOTO_UNSUITABLE", finished_at: now(), updated_at: now() }).eq("id", job.id));
+    throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
+  }
   const reserved = await q(admin.rpc("reserve_credit_dog", { p_dog: dog.id, p_owner: dog.owner_id, p_job: job.id, p_cost: preset.credits }));
   if (!reserved) {
     await q(admin.from("generation_jobs").update({ state: "failed", failure_code: "NO_CREDITS", finished_at: now() }).eq("id", job.id));

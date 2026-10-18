@@ -16,7 +16,8 @@ import { adminClient, HttpError } from "./supabase";
 type Ctx = { supa: SupabaseClient; user: User };
 type Status = "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
 
-const MP_API = "https://api.mercadopago.com/v1";
+/** Só em teste local (nunca na Vercel): MP_API_BASE aponta para um Mercado Pago simulado (scripts/e2e-pix.py). */
+const MP_API = (!process.env.VERCEL && process.env.MP_API_BASE) || "https://api.mercadopago.com/v1";
 const bad = (code: string, message: string) => new HttpError(400, code, message);
 const now = () => new Date().toISOString();
 
@@ -36,8 +37,20 @@ export function mapMpStatus(s: string | undefined): Status {
   }
 }
 
+/**
+ * Falha do Mercado Pago. `certain`: ele RESPONDEU recusando (4xx) — dá para afirmar que não houve cobrança.
+ * Sem resposta, tempo esgotado ou erro do lado dele (5xx): INCERTO — a cobrança pode ter sido criada.
+ */
+class MpError extends HttpError {
+  constructor(readonly certain: boolean) {
+    super(502, "PAYMENT_PROVIDER", certain ? "O Mercado Pago recusou o Pix. Tente de novo em instantes." : "Não conseguimos confirmar o Pix agora. Tente de novo em instantes.");
+  }
+}
+
 async function mp(path: string, init: RequestInit & { idempotencyKey?: string } = {}) {
-  const res = await fetch(`${MP_API}/${path}`, {
+  let res: Response;
+  try {
+    res = await fetch(`${MP_API}/${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
@@ -45,11 +58,14 @@ async function mp(path: string, init: RequestInit & { idempotencyKey?: string } 
       ...(init.idempotencyKey ? { "x-idempotency-key": init.idempotencyKey } : {}),
     },
     signal: AbortSignal.timeout(20_000),
-  });
+    });
+  } catch {
+    throw new MpError(false); // rede/tempo esgotado: incerto
+  }
   const json = await res.json().catch(() => null);
   if (!res.ok) {
     console.error("mercadopago", res.status, JSON.stringify(json)?.slice(0, 300));
-    throw new HttpError(502, "PAYMENT_PROVIDER", "Não conseguimos gerar o Pix agora. Tente de novo em instantes.");
+    throw new MpError(res.status >= 400 && res.status < 500);
   }
   return json as any;
 }
@@ -87,6 +103,22 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
   const p = (await admin.from("credit_purchases").select("*").eq("id", purchaseId).maybeSingle()).data as any;
   if (!p) return "cancelled";
   let status: Status = p.status;
+  // Pix cuja resposta se perdeu ao criar: procura pela nossa referência (a mesma compra, nunca outra).
+  if (p.provider === "mercadopago" && !p.provider_payment_id && p.status === "pending") {
+    try {
+      const found = await mp(`payments/search?external_reference=${encodeURIComponent(p.id)}&sort=date_created&criteria=desc`);
+      const pay = (found?.results ?? [])[0];
+      if (pay) {
+        const tx = pay.point_of_interaction?.transaction_data ?? {};
+        await admin.from("credit_purchases").update({ provider_payment_id: String(pay.id), pix_qr: tx.qr_code ?? null, pix_qr_base64: tx.qr_code_base64 ?? null, expires_at: pay.date_of_expiration ?? p.expires_at, updated_at: now() }).eq("id", p.id).is("provider_payment_id", null);
+        p.provider_payment_id = String(pay.id);
+      } else if (Date.parse(p.created_at) < Date.now() - (PIX_EXPIRES_MINUTES + 10) * 60_000) {
+        status = "expired"; // o Mercado Pago confirma que não há cobrança e já passou do prazo
+      }
+    } catch {
+      return p.status; // incerto: tenta depois
+    }
+  }
   if (p.provider === "mercadopago" && p.provider_payment_id && ["pending", "expired", "approved"].includes(p.status)) {
     let json: any;
     try {
@@ -110,23 +142,32 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
     await admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" && !p.approved_at ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", p.status);
   }
   if (status === "approved") await admin.rpc("grant_purchase_credits", { p_purchase: p.id });
-  if (status === "refunded" && p.status === "approved") {
-    const { data: taken } = await admin.rpc("revoke_purchase_credits", { p_purchase: p.id });
+  // Estorno: aplica o desconto até conseguir (refund_applied_at). Se falhar, a próxima reconciliação repete.
+  if (status === "refunded" && !p.refund_applied_at) {
+    const { data: taken, error } = await admin.rpc("revoke_purchase_credits", { p_purchase: p.id });
+    if (error) {
+      console.error("estorno não aplicado (vai tentar de novo)", p.id, error.message);
+      throw new HttpError(500, "SERVER", "Não conseguimos aplicar o estorno agora.");
+    }
     console.warn("estorno de compra", p.id, "créditos retirados:", taken, "de", p.credits);
   }
   return status;
 }
 
-/** Rotina: reconsulta Pix pendentes/vencidos dos últimos 3 dias (aprovação que chegou depois do prazo). */
+/** Rotina: reconsulta Pix pendentes/vencidos dos últimos 3 dias e aplica estornos pendentes. */
 export async function reconcileRecentPurchases() {
   if (!process.env.MP_ACCESS_TOKEN) return { checked: 0 };
   const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
-  const rows = ((await adminClient().from("credit_purchases").select("id, status").eq("provider", "mercadopago").in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
+  const admin = adminClient();
+  const recent = ((await admin.from("credit_purchases").select("id, status").eq("provider", "mercadopago").in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
+  // Estornos ainda não aplicados (de qualquer data: chargeback pode chegar semanas depois).
+  const refunds = ((await admin.from("credit_purchases").select("id, status").eq("status", "refunded").is("refund_applied_at", null).limit(200)).data ?? []) as any[];
+  const rows = [...recent, ...refunds];
   let changed = 0;
   for (const r of rows) {
     const before = r.status;
     const after = await syncPurchase(r.id).catch(() => before);
-    if (after !== before) changed++;
+    if (after !== before || r.status === "refunded") changed++;
   }
   return { checked: rows.length, changed };
 }
@@ -157,21 +198,36 @@ export async function createPurchase(ctx: Ctx, args: unknown) {
   requireEditor(dog);
   const admin = adminClient();
   const prior = (await admin.from("credit_purchases").select("*").eq("idempotency_key", `${ctx.user.id}:${a.data.idempotencyKey}`).maybeSingle()).data;
-  if (prior) return toPurchase(prior); // duplo toque: o mesmo Pix
+  if (prior) {
+    // Duplo toque ou nova tentativa: o mesmo Pix. Se a cobrança ficou incerta, tenta anexar de novo
+    // (o Mercado Pago devolve a MESMA cobrança para a mesma chave de idempotência).
+    if (prior.status === "pending" && !prior.provider_payment_id && prior.provider === "mercadopago") return attachPix(prior, dog.name, ctx.user.email ?? "");
+    return toPurchase(prior);
+  }
   const pending = (await admin.from("credit_purchases").select("id").eq("owner_id", ctx.user.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 3600_000).toISOString())).data ?? [];
   if (pending.length >= 5) throw bad("TOO_MANY", "Você tem vários Pix em aberto. Pague um deles ou espere vencer.");
   const row = (await admin.from("credit_purchases").insert({
     owner_id: ctx.user.id, dog_id: dog.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: "BRL",
     provider: paymentsFake() ? "teste" : "mercadopago", idempotency_key: `${ctx.user.id}:${a.data.idempotencyKey}`,
   }).select("*").single()).data as any;
+  return attachPix(row, dog.name, ctx.user.email ?? "");
+}
+
+/**
+ * Cria (ou recupera) a cobrança Pix da compra. A chave de idempotência é o id da compra: repetir devolve
+ * a mesma cobrança. Só uma recusa CLARA do Mercado Pago cancela; resultado incerto deixa pendente (sem
+ * QR) para nova tentativa ou para a reconciliação encontrar pela referência.
+ */
+async function attachPix(row: any, dogName: string, email: string) {
+  const admin = adminClient();
   try {
-    const pix = await createPix(row.id, pkg.priceCents, `Diário de Patas — ${pkg.credits} créditos (${dog.name})`, ctx.user.email ?? "");
+    const pix = await createPix(row.id, row.amount_cents, `Diário de Patas — ${row.credits} créditos (${dogName})`, email);
     const upd = (await admin.from("credit_purchases").update({
       provider_payment_id: pix.providerPaymentId, status: pix.status, pix_qr: pix.qr, pix_qr_base64: pix.qrBase64, expires_at: pix.expiresAt, updated_at: now(),
     }).eq("id", row.id).select("*").single()).data;
     return toPurchase(upd);
   } catch (e) {
-    await admin.from("credit_purchases").update({ status: "cancelled", updated_at: now() }).eq("id", row.id);
+    if (e instanceof MpError && e.certain) await admin.from("credit_purchases").update({ status: "cancelled", updated_at: now() }).eq("id", row.id).eq("status", "pending");
     throw e;
   }
 }

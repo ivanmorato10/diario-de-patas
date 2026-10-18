@@ -33,8 +33,12 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
     admin.from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"),
   ]);
   const members = (mem ?? []) as { dog_id: string; role: Role; dogs: any }[];
-  // 1º o cachorro da tela que chamou (se a pessoa participa); 2º o salvo na conta; 3º o primeiro.
+  // A tela disse qual cachorro: ou é esse, ou é erro. Nunca troca por outro diário em silêncio
+  // (ex.: acesso removido com a tela aberta). Sem indicação: o salvo na conta, senão o primeiro.
   const hint = (ctx as { dogHint?: string | null }).dogHint;
+  if (hint && !members.some((x) => x.dog_id === hint)) {
+    throw new HttpError(403, "DIARY_GONE", "Você não tem mais acesso a este diário.");
+  }
   const m = (hint ? members.find((x) => x.dog_id === hint) : undefined) ?? members.find((x) => x.dog_id === (prof as any)?.current_dog_id) ?? members[0];
   const dog: CurrentDog | null = m?.dogs ? { ...m.dogs, role: m.role } : null;
   cache.set(ctx, dog);
