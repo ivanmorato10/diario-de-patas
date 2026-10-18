@@ -70,3 +70,16 @@ export const setNotifyPrefs = (p: { photo: boolean; letter: boolean; bone: boole
 export interface Notice { id: string; dogId: string; read: boolean; createdAt: string; text: string; url: string }
 export const listNotifications = () => rpc<Notice[]>("listNotifications");
 export const markNotificationsRead = (ids: string[]) => rpc("markNotificationsRead", { ids });
+
+/**
+ * Ao abrir o app com sessão: se este aparelho estava ligado a OUTRA conta (sessão expirada, troca de
+ * conta), o servidor desfaz a ligação antiga. Silencioso; não liga nada sozinho.
+ */
+export async function syncDeviceOwner() {
+  try {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (sub) await rpc("checkPushSubscription", { endpoint: sub.endpoint });
+  } catch { /* nunca atrapalha a abertura do app */ }
+}

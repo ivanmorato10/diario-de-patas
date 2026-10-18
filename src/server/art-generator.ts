@@ -7,7 +7,7 @@ import "server-only";
 import { STUDIO_MODELS, type StudioAspect } from "@/config/studio";
 
 export class ProviderError extends Error {
-  constructor(readonly code: "PROVIDER_REFUSED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_TIMEOUT" | "NOT_CONFIGURED" | "QUALITY_REJECTED", message: string) {
+  constructor(readonly code: "PROVIDER_REFUSED" | "PROVIDER_UNAVAILABLE" | "PROVIDER_TIMEOUT" | "NOT_CONFIGURED" | "QUALITY_REJECTED" | "NO_SPACE", message: string) {
     super(message);
   }
 }

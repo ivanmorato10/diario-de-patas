@@ -75,25 +75,60 @@ async function createPix(purchaseId: string, amountCents: number, description: s
   return { providerPaymentId: String(json.id), status: mapMpStatus(json.status), qr: tx.qr_code ?? null, qrBase64: tx.qr_code_base64 ?? null, expiresAt: json.date_of_expiration ?? expiresAt };
 }
 
-/** Consulta a fonte da verdade (Mercado Pago) e aplica na compra; concede créditos se aprovada. */
+/**
+ * Consulta a fonte da verdade (Mercado Pago) e aplica na compra.
+ * - Também reconsulta compras "expired" (aprovação atrasada) e "approved" (estorno/chargeback depois).
+ * - Confere referência, valor e moeda antes de conceder.
+ * - Sem resposta do Mercado Pago, o resultado é INCERTO: nada muda (não vira cancelada/vencida).
+ * - Créditos: concedidos uma vez (grant_purchase_credits); no estorno, retira só o que sobrou (revoke_purchase_credits).
+ */
 export async function syncPurchase(purchaseId: string): Promise<Status> {
   const admin = adminClient();
   const p = (await admin.from("credit_purchases").select("*").eq("id", purchaseId).maybeSingle()).data as any;
   if (!p) return "cancelled";
   let status: Status = p.status;
-  if (p.status === "pending") {
-    if (p.provider === "mercadopago" && p.provider_payment_id) {
-      const json = await mp(`payments/${encodeURIComponent(p.provider_payment_id)}`);
-      if (String(json.external_reference) !== p.id) throw new HttpError(409, "MISMATCH", "Pagamento não confere.");
-      status = mapMpStatus(json.status);
+  if (p.provider === "mercadopago" && p.provider_payment_id && ["pending", "expired", "approved"].includes(p.status)) {
+    let json: any;
+    try {
+      json = await mp(`payments/${encodeURIComponent(p.provider_payment_id)}`);
+    } catch {
+      return p.status; // incerto: tenta de novo depois (webhook, consulta da tela ou rotina)
     }
+    if (String(json.external_reference) !== p.id) throw new HttpError(409, "MISMATCH", "Pagamento não confere.");
+    const paidCents = Math.round(Number(json.transaction_amount) * 100);
+    if (paidCents !== p.amount_cents || (json.currency_id && json.currency_id !== "BRL")) {
+      console.error("pagamento com valor/moeda diferente", p.id, paidCents, json.currency_id);
+      throw new HttpError(409, "MISMATCH", "Pagamento não confere.");
+    }
+    status = mapMpStatus(json.status);
+    // Pix ainda pendente e passado do prazo (confirmado pelo provedor): vencido.
     if (status === "pending" && p.expires_at && Date.parse(p.expires_at) < Date.now() - 60_000) status = "expired";
-    if (status !== p.status) {
-      await admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", "pending");
-    }
+  } else if (p.status === "pending" && p.expires_at && Date.parse(p.expires_at) < Date.now() - 60_000) {
+    status = "expired"; // Pix de teste (sem provedor real)
+  }
+  if (status !== p.status) {
+    await admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" && !p.approved_at ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", p.status);
   }
   if (status === "approved") await admin.rpc("grant_purchase_credits", { p_purchase: p.id });
+  if (status === "refunded" && p.status === "approved") {
+    const { data: taken } = await admin.rpc("revoke_purchase_credits", { p_purchase: p.id });
+    console.warn("estorno de compra", p.id, "créditos retirados:", taken, "de", p.credits);
+  }
   return status;
+}
+
+/** Rotina: reconsulta Pix pendentes/vencidos dos últimos 3 dias (aprovação que chegou depois do prazo). */
+export async function reconcileRecentPurchases() {
+  if (!process.env.MP_ACCESS_TOKEN) return { checked: 0 };
+  const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  const rows = ((await adminClient().from("credit_purchases").select("id, status").eq("provider", "mercadopago").in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
+  let changed = 0;
+  for (const r of rows) {
+    const before = r.status;
+    const after = await syncPurchase(r.id).catch(() => before);
+    if (after !== before) changed++;
+  }
+  return { checked: rows.length, changed };
 }
 
 const toPurchase = (p: any) => ({

@@ -14,6 +14,7 @@ import {
 } from "@/config/studio";
 import { civilDateInTz } from "@/domain/dates";
 import { adminClient, HttpError } from "./supabase";
+import { notifyFamily } from "./notify";
 import { ProviderError, artGenerator } from "./art-generator";
 import { assessPhoto, type PhotoCheck } from "./photo-quality";
 import { XP_MONTH_GOAL } from "@/config/credits";
@@ -90,6 +91,36 @@ export async function studioState(ctx: Ctx) {
   };
 }
 
+/** Vagas no diário contando as artes em andamento (cada uma vai virar uma lembrança). Erro de contagem é erro, nunca "zero". */
+async function capacityLeft(dogId: string) {
+  const admin = adminClient();
+  const [entries, active] = await Promise.all([
+    admin.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dogId).is("deleted_at", null),
+    admin.from("generation_jobs").select("id", { count: "exact", head: true }).eq("dog_id", dogId).in("state", ["queued", "processing"]),
+  ]);
+  if (entries.error || active.error || entries.count === null || active.count === null) throw new HttpError(503, "SERVER", "Não conseguimos conferir o espaço do diário agora. Tente de novo.");
+  return serverMaxEntries() - entries.count - active.count;
+}
+
+/** Álbum "Artes do Estúdio" do cachorro: um só (system_key = studio), mesmo com artes simultâneas. */
+async function studioAlbumId(dogId: string, ownerId: string): Promise<string> {
+  const admin = adminClient();
+  const find = async () => ((await admin.from("albums").select("id").eq("dog_id", dogId).eq("system_key", "studio").maybeSingle()).data as any)?.id as string | undefined;
+  const found = await find();
+  if (found) return found;
+  const { data, error } = await admin.from("albums").insert({ owner_id: ownerId, dog_id: dogId, title: "Artes do Estúdio", type: "custom", system_key: "studio" }).select("id").single();
+  if (!error) return (data as any).id;
+  const again = await find(); // outra arte criou ao mesmo tempo
+  if (again) return again;
+  throw new ProviderError("PROVIDER_UNAVAILABLE", "álbum de artes");
+}
+
+/** Gasto estimado do dia com tentativas que podem ter sido cobradas pelo provedor (inclusive falhas). */
+async function spentTodayUsd() {
+  const { data } = await adminClient().from("generation_jobs").select("cost_usd, state, failure_code").gte("created_at", todayUtcStart()).in("state", ["processing", "succeeded", "failed"]);
+  return ((data ?? []) as any[]).filter((j) => !["NO_CREDITS", "INPUT_DELETED", "NOT_CONFIGURED", "NO_SPACE"].includes(j.failure_code)).reduce((t, j) => t + Number(j.cost_usd ?? 0), 0);
+}
+
 async function countToday(dogId?: string) {
   let query = adminClient().from("generation_jobs").select("id", { count: "exact", head: true }).gte("created_at", todayUtcStart()).or("failure_code.is.null,failure_code.neq.NO_CREDITS");
   if (dogId) query = query.eq("dog_id", dogId);
@@ -138,6 +169,7 @@ export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCh
   const entry = (await q(ctx.supa.from("diary_entries").select("id, source, media_asset_id").eq("id", a.data.entryId).eq("dog_id", dog.id).is("deleted_at", null).maybeSingle())) as any;
   if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
+  if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
   try {
     const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, a.data.crop), artGenerator());
     return { ...r, issues: r.issues.map((i) => ({ ...i, message: i.message.replaceAll("{dog}", dog.name) })) };
@@ -166,14 +198,16 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
   if ((await countToday(dog.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "Você chegou ao limite de artes de hoje. Amanhã tem mais.");
   if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "O Estúdio atingiu o limite de artes de hoje. Tente amanhã.");
+  // Teto de gasto diário opcional (STUDIO_DAILY_BUDGET_USD): pausa o Estúdio em vez de gastar além.
+  const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD);
+  if (budget > 0 && (await spentTodayUsd()) >= budget) throw bad("GLOBAL_LIMIT", "O Estúdio fez uma pausa por hoje. Tente amanhã.");
+  // Verificações baratas ANTES da análise paga: sem espaço no diário, nem chama a IA.
+  if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
   // Foto inadequada não vira cobrança: bloqueia antes de reservar o crédito (avisos leves deixam seguir).
   const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), gen).catch(() => null);
   if (photoCheck?.verdict === "bad") throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
-  // Sem espaço no diário a arte não teria onde ficar: recusa ANTES de reservar o crédito.
-  const { count: used } = await admin.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
-  if ((used ?? 0) >= serverMaxEntries()) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
   const job = (await q(admin.from("generation_jobs").insert({
-    owner_id: dog.owner_id, dog_id: dog.id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
+    owner_id: dog.owner_id, dog_id: dog.id, requested_by: ctx.user.id, input_entry_id: entry.id, input_asset_id: entry.media_asset_id, theme_id: preset.id, preset_version: preset.version,
     aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
   }).select("*").single())) as any;
   const reserved = await q(admin.rpc("reserve_credit_dog", { p_dog: dog.id, p_owner: dog.owner_id, p_job: job.id, p_cost: preset.credits }));
@@ -244,6 +278,7 @@ export async function processJob(jobId: string) {
   if (!job) return;
   const preset = presetById(job.theme_id);
   const gen = artGenerator();
+  let providerCalled = false;
   try {
     if (!preset || !gen) throw new ProviderError("NOT_CONFIGURED", "sem provedor");
     const entry = (await q(admin.from("diary_entries").select("id, media_asset_id, deleted_at").eq("id", job.input_entry_id).maybeSingle())) as any;
@@ -256,6 +291,7 @@ export async function processJob(jobId: string) {
     let input = await loadInputPhoto(entry.media_asset_id, job.crop);
     input = await sharp(input).rotate().resize(1536, 1536, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
     const aspect = job.aspect as StudioAspect;
+    providerCalled = true;
     const out = await gen.generate({ image: input, mime: "image/jpeg", prompt: buildStudioPrompt(preset, aspect), aspect, imageSize: imageSizeFor(aspect), premium: preset.premium });
     const check = await gen.check(out.image, out.mime).catch(() => ({ dog: true, text: false }));
     if (!check.dog || check.text) throw new ProviderError("QUALITY_REJECTED", "arte fora das regras");
@@ -279,21 +315,32 @@ export async function processJob(jobId: string) {
     await q(admin.from("media_assets").insert({ id: mediaId, owner_id: job.owner_id, dog_id: job.dog_id, private_storage_key: key, thumb_storage_key: thumbKey, mime: "image/webp", bytes: art.length, width: meta.width ?? 1024, height: meta.height ?? 1024, hash, kind: "art", status: "ready" }));
     const profile = (await q(admin.from("profiles").select("timezone").eq("user_id", job.owner_id).maybeSingle())) as any;
     const tz = profile?.timezone ?? "America/Sao_Paulo";
-    const outEntry = (await q(admin.from("diary_entries").upsert({
-      owner_id: job.owner_id, dog_id: job.dog_id, media_asset_id: mediaId, caption: `Arte: ${preset.labelPt}`.slice(0, 280),
+    // A lembrança é de quem pediu a arte (aparece "guardada por" e gera aviso para a família).
+    const saved = await admin.from("diary_entries").upsert({
+      owner_id: job.owner_id, created_by: job.requested_by ?? null, dog_id: job.dog_id, media_asset_id: mediaId, caption: `Arte: ${preset.labelPt}`.slice(0, 280),
       occurred_date: civilDateInTz(new Date(), tz), timezone: tz, source: "studio", request_key: job.id,
-    }, { onConflict: "owner_id,request_key" }).select("id").single())) as any;
-    let album = (await q(admin.from("albums").select("id").eq("dog_id", job.dog_id).eq("collection_id", "datas-especiais").maybeSingle())) as any;
-    album ??= await q(admin.from("albums").insert({ owner_id: job.owner_id, dog_id: job.dog_id, collection_id: "datas-especiais", title: "Datas especiais", type: "collection" }).select("id").single());
-    await q(admin.from("album_entries").upsert({ album_id: album.id, entry_id: outEntry.id }, { onConflict: "album_id,entry_id", ignoreDuplicates: true }));
+    }, { onConflict: "owner_id,request_key" }).select("id").single();
+    if (saved.error) {
+      if (/STORAGE_QUOTA/.test(saved.error.message)) throw new ProviderError("NO_SPACE", "diário cheio");
+      throw new ProviderError("PROVIDER_UNAVAILABLE", "não salvou a arte");
+    }
+    const outEntry = saved.data as any;
+    await q(admin.from("album_entries").upsert({ album_id: await studioAlbumId(job.dog_id, job.owner_id), entry_id: outEntry.id }, { onConflict: "album_id,entry_id", ignoreDuplicates: true }));
 
     // Só agora: consome o crédito, registra o custo e conclui.
     await q(admin.rpc("settle_credit", { p_job: jobId, p_op: "consume" }));
     await q(admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation:${preset.id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: jobId }));
     await q(admin.from("generation_jobs").update({ state: "succeeded", output_asset_id: mediaId, output_entry_id: outEntry.id, provider_job_id: out.model, finished_at: now(), updated_at: now() }).eq("id", jobId));
+    // Aviso para a família só depois de a arte estar salva no diário.
+    if (job.requested_by) {
+      const dog = (await admin.from("dogs").select("name").eq("id", job.dog_id).maybeSingle()).data as any;
+      await notifyFamily({ user: { id: job.requested_by } as User }, { dogId: job.dog_id, dogName: dog?.name ?? "o cachorro", kind: "art", targetType: "entry", targetId: outEntry.id, detail: preset.labelPt, now: true });
+    }
   } catch (e) {
     const code = e instanceof ProviderError ? e.code : "TECHNICAL";
     if (!(e instanceof ProviderError)) console.error("studio job", jobId, e);
+    // Tentativa que pode ter sido cobrada pelo provedor: entra no controle de custo (valor ESTIMADO).
+    if (providerCalled) await admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation-failed:${job.theme_id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: `${jobId}:failed` }).then(() => undefined, () => undefined);
     await fail(jobId, code).catch((err) => console.error("studio fail", jobId, err));
   }
 }
@@ -306,5 +353,6 @@ export const STUDIO_FAILURE_MESSAGES: Record<string, string> = {
   NO_CREDITS: "Os créditos acabaram por enquanto. Dá para criar mais em Créditos, ou ganhar 1 crédito juntando patinhas no mês.",
   INPUT_DELETED: "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
   NOT_CONFIGURED: "O Estúdio ainda não está disponível. O crédito foi devolvido.",
+  NO_SPACE: "O diário de {dog} chegou ao limite de lembranças, e a arte não teria onde ficar. O crédito foi devolvido.",
   TECHNICAL: "Algo deu errado do nosso lado. O crédito foi devolvido.",
 };

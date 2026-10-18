@@ -10,10 +10,18 @@ import type { Repository, Snapshot } from "./repository";
 import { EMPTY_HEALTH } from "@/domain/health";
 
 /** Chamada a uma operação do servidor. Erros de regra viram DomainError (mesma mensagem do modo demo). */
+/**
+ * Cachorro que ESTA tela mostra. Vai em toda chamada (x-ddp-dog): com a mesma conta em dois aparelhos,
+ * cada um mexe no seu cachorro, e não no "aberto por último" salvo na conta. O servidor confere o acesso.
+ */
+let activeDog: string | null = null;
+export const setActiveDog = (id: string | null | undefined) => { activeDog = id ?? null; };
+export const getActiveDog = () => activeDog;
+
 export async function rpc<T>(method: string, args: unknown = {}): Promise<T> {
   const res = await fetch(`/api/rpc/${method}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...(activeDog ? { "x-ddp-dog": activeDog } : {}) },
     body: JSON.stringify(args),
     credentials: "same-origin",
   });
@@ -76,13 +84,24 @@ export function realRepository(): Repository {
     getMediaBlob(id, variant) {
       const key = `${id}:${variant}`;
       if (!blobCache.has(key)) {
-        blobCache.set(key, fetch(`/api/media/${id}?v=${variant}`, { credentials: "same-origin" }).then((r) => (r.ok ? r.blob() : null)).catch(() => null));
+        // Só o sucesso fica guardado. Falha de rede/servidor sai do cache (a próxima tela tenta de novo);
+        // "não existe/sem acesso" fica guardado por 1 min, para não insistir em loop.
+        const forget = () => blobCache.delete(key);
+        blobCache.set(key, fetch(`/api/media/${id}?v=${variant}`, { credentials: "same-origin" })
+          .then((r) => {
+            if (r.ok) return r.blob();
+            if (r.status === 404 || r.status === 403) setTimeout(forget, 60_000);
+            else forget();
+            return null;
+          })
+          .catch(() => { forget(); return null; }));
       }
       return blobCache.get(key)!;
     },
     async createDiary(input) {
       // A foto pertence ao cachorro: cria o diário primeiro e envia a foto em seguida.
       const dog = await rpc<Awaited<ReturnType<Repository["createDiary"]>>>("createDiary", { ...input, photo: undefined });
+      setActiveDog(dog.id); // o cachorro novo passa a ser o desta tela
       if (!input.photo) return dog;
       return rpc("updateDog", { photoMediaId: await mediaUpload(input.photo) });
     },

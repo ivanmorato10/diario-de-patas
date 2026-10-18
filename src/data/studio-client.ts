@@ -58,6 +58,7 @@ export const FAILURE_PT: Record<string, string> = {
   NO_CREDITS: "Os créditos acabaram por enquanto. Dá para criar mais em Créditos, ou ganhar 1 crédito juntando patinhas no mês.",
   INPUT_DELETED: "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
   NOT_CONFIGURED: "O Estúdio ainda não está disponível. O crédito foi devolvido.",
+  NO_SPACE: "O diário de {dog} chegou ao limite de lembranças, e a arte não teria onde ficar. O crédito foi devolvido.",
   TECHNICAL: "Algo deu errado do nosso lado. O crédito foi devolvido.",
 };
 

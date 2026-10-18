@@ -16,17 +16,31 @@ import { nameFromUser } from "./family";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { supa: SupabaseClient; user: User };
-export type NotifyKind = "photo" | "letter" | "bone";
-const PREF: Record<NotifyKind, string> = { photo: "notify_photo", letter: "notify_letter", bone: "notify_bone" };
+export type NotifyKind = "photo" | "letter" | "bone" | "art";
+const PREF: Record<NotifyKind, string> = { photo: "notify_photo", letter: "notify_letter", bone: "notify_bone", art: "notify_photo" };
 const GROUP_MS = 2 * 3600_000; // fotos dentro de 2 h viram um aviso só (ver bump_photo_notice)
 
 const pushReady = () => !!(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
-/** Texto do aviso (o mesmo no sininho e no push). */
+/** Texto do aviso no sininho (uma linha). */
 export function noticeText(n: { kind: NotifyKind; count: number; targetType: string | null }, actor: string, dog: string) {
-  if (n.kind === "photo") return n.count > 1 ? `${actor} guardou ${n.count} fotos de ${dog} 📸` : `${actor} guardou uma foto de ${dog} 📸`;
+  if (n.kind === "photo") return n.count > 1 ? `${actor} guardou ${n.count} momentos de ${dog} 📸` : `${actor} guardou uma aventura de ${dog} 📸`;
   if (n.kind === "letter") return `${actor} escreveu uma cartinha para ${dog} 💌`;
+  if (n.kind === "art") return `${actor} criou uma arte de ${dog} 🎨`;
   return `${actor} deu um ossinho na sua ${n.targetType === "letter" ? "cartinha" : "foto"} de ${dog} 🦴`;
+}
+
+/**
+ * Push no celular: título com quem fez e o que foi (o iPhone já mostra o nome do app embaixo; repetir
+ * "Diário de Patas" no título soava frio) e um convite carinhoso no texto.
+ */
+export function pushText(n: { kind: NotifyKind; count: number; targetType: string | null; detail?: string | null }, actor: string, dog: string) {
+  if (n.kind === "photo") return n.count > 1
+    ? { title: `Novas aventuras de ${dog} 🐾`, body: `${actor} guardou ${n.count} momentos no diário. Vem ver!` }
+    : { title: `Uma nova aventura de ${dog} 🐾`, body: `${actor} guardou um momento no diário. Vem ver!` };
+  if (n.kind === "letter") return { title: `Uma cartinha para ${dog} 💌`, body: `${actor} escreveu com carinho. Vamos ler?` };
+  if (n.kind === "art") return { title: `${dog} ganhou uma nova arte 🎨`, body: `${actor} criou ${n.detail ? `uma arte “${n.detail}”` : "uma arte nova"}. Vem ver como ficou!` };
+  return { title: `${actor} deixou um ossinho 🦴`, body: `Uma ${n.targetType === "letter" ? "cartinha" : "foto"} de ${dog} ganhou carinho. Vamos ver qual?` };
 }
 /** Destino do aviso: /abrir confere o acesso, abre o cachorro certo e só então mostra a foto/cartinha. */
 export const noticeUrl = (n: { dogId: string; targetType: string | null; targetId: string | null }) =>
@@ -37,7 +51,7 @@ async function displayName(userId: string, fallback?: User) {
   const { data } = await admin.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
   const n = (data as any)?.display_name as string | undefined;
   if (n) return n;
-  if (fallback) return nameFromUser(fallback);
+  if (fallback?.email || fallback?.user_metadata) return nameFromUser(fallback);
   const { data: u } = await admin.auth.admin.getUserById(userId);
   return nameFromUser(u.user);
 }
@@ -64,7 +78,8 @@ async function sendPush(userId: string, payload: { title: string; body: string; 
 }
 
 /** Registra o aviso para a família e manda o push (depois da resposta). */
-export function notifyFamily(ctx: Ctx, a: { dogId: string; dogName: string; kind: NotifyKind; targetType: "entry" | "letter"; targetId: string; authorId?: string | null }) {
+/** `now: true` envia já (quem chama já está fora da resposta, como o fim de uma arte); senão roda depois da resposta. */
+export function notifyFamily(ctx: { user: User }, a: { dogId: string; dogName: string; kind: NotifyKind; targetType: "entry" | "letter"; targetId: string; authorId?: string | null; detail?: string | null; now?: boolean }) {
   const run = async () => {
     const admin = adminClient();
     const actor = ctx.user.id;
@@ -81,20 +96,24 @@ export function notifyFamily(ctx: Ctx, a: { dogId: string; dogName: string; kind
       let count = 1;
       if (a.kind === "photo") {
         // No banco, com trava: envios simultâneos somam no mesmo aviso.
-        const { data: n } = await admin.rpc("bump_photo_notice", { p_user: uid, p_dog: a.dogId, p_actor: actor, p_target: a.targetId, p_window: `${GROUP_MS / 1000} seconds` });
+        const { data: n, error } = await admin.rpc("bump_photo_notice", { p_user: uid, p_dog: a.dogId, p_actor: actor, p_target: a.targetId, p_window: `${GROUP_MS / 1000} seconds` });
+        if (error) throw new Error(`bump_photo_notice: ${error.message}`);
         count = Number(n) || 1;
       } else {
         // Ossinho dado, tirado e dado de novo não vira dois avisos.
         const { data: dup } = await admin.from("notifications").select("id").eq("user_id", uid).eq("actor_id", actor).eq("kind", a.kind).eq("target_id", a.targetId).limit(1).maybeSingle();
         if (dup) return;
-        await admin.from("notifications").insert({ user_id: uid, dog_id: a.dogId, actor_id: actor, kind: a.kind, target_type: a.targetType, target_id: a.targetId });
+        const { error } = await admin.from("notifications").insert({ user_id: uid, dog_id: a.dogId, actor_id: actor, kind: a.kind, target_type: a.targetType, target_id: a.targetId });
+        if (error) throw new Error(`aviso ${a.kind}: ${error.message}`);
       }
-      const body = noticeText({ kind: a.kind, count, targetType: a.targetType }, actorName, a.dogName);
+      const { title, body } = pushText({ kind: a.kind, count, targetType: a.targetType, detail: a.detail }, actorName, a.dogName);
       // Atualização do mesmo grupo substitui o aviso no celular SEM tocar/vibrar de novo.
-      await sendPush(uid, { title: "Diário de Patas", body, url: noticeUrl(a), tag: a.kind === "photo" ? `photo:${a.dogId}:${actor}` : `${a.kind}:${a.targetId}`, renotify: count === 1 });
+      await sendPush(uid, { title, body, url: noticeUrl(a), tag: a.kind === "photo" ? `photo:${a.dogId}:${actor}` : `${a.kind}:${a.targetId}`, renotify: count === 1 });
     }));
   };
-  after(() => run().catch((e) => console.error("aviso da família:", e instanceof Error ? e.message : e)));
+  const safe = () => run().catch((e) => console.error("aviso da família:", e instanceof Error ? e.message : e));
+  if (a.now) return safe();
+  after(safe);
 }
 
 // ---------- RPC ----------

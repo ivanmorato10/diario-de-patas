@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Snapshot } from "./demo-repository";
-import { realRepository } from "./real-repository";
+import { realRepository, setActiveDog } from "./real-repository";
+import { syncDeviceOwner } from "./push-client";
 import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
 import { CONFIG_OK } from "@/config/mode";
@@ -39,15 +40,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!alive) return;
       repoRef.current = r;
       setRepo(r);
-      setSnap(await r.loadSnapshot());
+      const n = ++seq.current;
+      apply(await r.loadSnapshot(), n);
+      void syncDeviceOwner(); // avisos deste aparelho são da conta que está aqui agora
     })().catch(() => alive && setUnavailable(true));
     return () => {
       alive = false;
     };
   }, []);
 
+  // Só a resposta do pedido MAIS RECENTE vale: uma resposta atrasada (de outro cachorro) não sobrescreve a tela.
+  const seq = useRef(0);
+  const apply = useCallback((s: Snapshot, n: number) => {
+    if (n !== seq.current) return;
+    setActiveDog(s.dog?.id ?? null);
+    setSnap(s);
+  }, []);
   const reload = useCallback(async () => {
-    if (repoRef.current) setSnap(await repoRef.current.loadSnapshot());
+    if (!repoRef.current) return;
+    const n = ++seq.current;
+    apply(await repoRef.current.loadSnapshot(), n);
   }, []);
 
   useEffect(() => {

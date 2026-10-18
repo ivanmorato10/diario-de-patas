@@ -33,7 +33,9 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
     admin.from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"),
   ]);
   const members = (mem ?? []) as { dog_id: string; role: Role; dogs: any }[];
-  const m = members.find((x) => x.dog_id === (prof as any)?.current_dog_id) ?? members[0];
+  // 1º o cachorro da tela que chamou (se a pessoa participa); 2º o salvo na conta; 3º o primeiro.
+  const hint = (ctx as { dogHint?: string | null }).dogHint;
+  const m = (hint ? members.find((x) => x.dog_id === hint) : undefined) ?? members.find((x) => x.dog_id === (prof as any)?.current_dog_id) ?? members[0];
   const dog: CurrentDog | null = m?.dogs ? { ...m.dogs, role: m.role } : null;
   cache.set(ctx, dog);
   if (!dog && required) throw bad("NO_DOG", "Crie o diário antes.");
@@ -135,18 +137,18 @@ export async function previewInvite(code: string) {
   return { dogName: (dog as any)?.name ?? "o cachorro", invitedBy: (prof as any)?.display_name || nameFromUser(by.user), role: inv.role as Role };
 }
 
+/** Aceitar convite: tudo numa transação no banco (uso único, acesso e perfil juntos). Só diz "ok" com o acesso criado. */
 export async function acceptInvite(ctx: Ctx, args: unknown) {
   const { code, name } = z.object({ code: z.string(), name: z.string().optional() }).parse(args);
-  const inv = await findInvite(code);
-  const admin = adminClient();
-  const { data: already } = await admin.from("dog_members").select("role").eq("dog_id", inv.dog_id).eq("user_id", ctx.user.id).maybeSingle();
-  const used = await admin.from("dog_invites").update({ used_at: new Date().toISOString(), used_by: ctx.user.id }).eq("id", inv.id).is("used_at", null).select("id");
-  if (!used.data?.length) throw bad("INVALID_CODE", "Esse convite já foi usado.");
-  if (!already) await admin.from("dog_members").insert({ dog_id: inv.dog_id, user_id: ctx.user.id, role: inv.role, invited_by: inv.created_by });
-  const display = name?.replace(/\s+/g, " ").trim().slice(0, 40);
-  await admin.from("profiles").upsert({ user_id: ctx.user.id, current_dog_id: inv.dog_id, ...(display ? { display_name: display, name_confirmed: true } : {}) }, { onConflict: "user_id" });
+  const norm = normalizeInvite(code);
+  if (norm.length !== 8) throw bad("INVALID_CODE", "Confira o código.");
+  const { data, error } = await adminClient().rpc("accept_invite", { p_code_hash: hashInvite(norm), p_user: ctx.user.id, p_name: name ?? null });
+  if (error) {
+    if (/INVALID_CODE/.test(error.message)) throw bad("INVALID_CODE", "Convite inválido, vencido ou já usado. Peça um novo para quem convidou.");
+    throw new HttpError(500, "SERVER", "Não deu para aceitar o convite agora. Tente de novo.");
+  }
   forgetDog(ctx);
-  return { dogId: inv.dog_id };
+  return { dogId: data as string };
 }
 
 export async function updateMember(ctx: Ctx, args: unknown) {

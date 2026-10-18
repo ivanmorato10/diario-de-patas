@@ -275,9 +275,16 @@ export async function updateDog(ctx: Ctx, args: unknown) {
     if (a.photoMediaId) await readyMedia(ctx, a.photoMediaId);
     patch.photo_asset_id = a.photoMediaId;
     if (a.avatarCrop === undefined) patch.avatar_crop = null; // foto nova: começa centralizada
-    if (dog.photo_asset_id && dog.photo_asset_id !== a.photoMediaId) await discardMedia(ctx, dog.photo_asset_id);
   }
-  return toDog(await q(ctx.supa.from("dogs").update(patch).eq("id", dog.id).select("*").single()));
+  // Primeiro grava a foto nova; só depois descarta a antiga (se a gravação falhar, a antiga continua).
+  const updated = toDog(await q(ctx.supa.from("dogs").update(patch).eq("id", dog.id).select("*").single()));
+  const old = dog.photo_asset_id as string | null;
+  if (a.photoMediaId !== undefined && old && old !== a.photoMediaId) {
+    // Não apaga se a mesma mídia ainda é usada por uma lembrança do diário.
+    const { count } = await adminClient().from("diary_entries").select("id", { count: "exact", head: true }).eq("media_asset_id", old).is("deleted_at", null);
+    if (!count) await discardMedia(ctx, old);
+  }
+  return updated;
 }
 
 export async function updateTimezone(ctx: Ctx, args: unknown) {
@@ -319,10 +326,17 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   await readyMedia(ctx, a.mediaId);
   const used = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).eq("media_asset_id", a.mediaId).limit(1))) as any[];
   if (used.length) throw bad("INVALID", "Essa foto já foi usada. Envie de novo.");
-  const row = await q(adminClient().from("diary_entries").insert({
+  const ins = await adminClient().from("diary_entries").insert({
     owner_id: dog.owner_id, created_by: ctx.user.id, dog_id: dog.id, media_asset_id: a.mediaId, caption: a.caption.trim().slice(0, LIMITS.captionMaxChars),
     occurred_date: a.occurredDate, timezone: profile?.timezone ?? "America/Sao_Paulo", source: a.source === "mission" ? "free" : a.source, request_key: a.requestKey,
-  }).select("*").single()) as any;
+  }).select("*").single();
+  // Rede de segurança do banco: duas gravações ao mesmo tempo não passam do limite.
+  if (ins.error) {
+    if (/STORAGE_QUOTA/.test(ins.error.message)) throw bad("STORAGE_QUOTA", fullDiaryText(dog.name));
+    console.error("saveEntry:", ins.error.message);
+    throw new HttpError(500, "SERVER", "Não conseguimos guardar a foto agora. Tente de novo.");
+  }
+  const row = ins.data as any;
   await setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false);
   if (dog.owner_id === ctx.user.id) await confirmReferral(ctx); // primeira foto no próprio diário confirma a indicação
   notifyFamily(ctx, { dogId: dog.id, dogName: dog.name, kind: "photo", targetType: "entry", targetId: row.id });
@@ -666,13 +680,24 @@ export async function processCleanup(limit = 200) {
       await admin.from(table).delete().in("id", stale.map((r) => r.id));
     }
   }
-  const jobs = ((await admin.from("storage_cleanup").select("*").is("done_at", null).limit(limit)).data ?? []) as any[];
+  const jobs = ((await admin.from("storage_cleanup").select("*").is("done_at", null).lt("attempts", 10).order("created_at").limit(limit)).data ?? []) as any[];
+  let removed = 0, failed = 0;
   for (const bucket of ["media", "documents"] as const) {
-    const keys = jobs.filter((j) => j.bucket === bucket);
-    if (keys.length) await admin.storage.from(bucket).remove(keys.map((j) => j.object_key));
+    const items = jobs.filter((j) => j.bucket === bucket);
+    if (!items.length) continue;
+    // Só marca como feito quando o armazenamento confirma. Arquivo que já não existe também conta como feito
+    // (a remoção não devolve erro para ele). Com erro, fica na fila para nova tentativa.
+    const { error } = await admin.storage.from(bucket).remove(items.map((j) => j.object_key));
+    if (error) {
+      failed += items.length;
+      console.error("limpeza de arquivos falhou", bucket, error.message);
+      await Promise.all(items.map((j) => admin.from("storage_cleanup").update({ attempts: (j.attempts ?? 0) + 1, last_error: error.message.slice(0, 300) }).eq("id", j.id)));
+    } else {
+      removed += items.length;
+      await admin.from("storage_cleanup").update({ done_at: now(), attempts: 0, last_error: null }).in("id", items.map((j) => j.id));
+    }
   }
-  if (jobs.length) await admin.from("storage_cleanup").update({ done_at: now() }).in("id", jobs.map((j) => j.id));
-  return { removed: jobs.length };
+  return { removed, failed };
 }
 
 // ---------- Links compartilhados (briefing §12) ----------

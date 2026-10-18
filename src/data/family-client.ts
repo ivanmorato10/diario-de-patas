@@ -1,6 +1,6 @@
 /** Família e vários cachorros (só com conta). */
 import type { DiaryRole } from "@/domain/types";
-import { rpc } from "./real-repository";
+import { rpc, setActiveDog } from "./real-repository";
 
 /** Explicação de cada papel (convite e família). */
 export const ROLE_HELP: Record<DiaryRole, string> = {
@@ -10,9 +10,9 @@ export const ROLE_HELP: Record<DiaryRole, string> = {
 };
 export const ROLE_PT: Record<DiaryRole, string> = { admin: "Responsável pelo diário", editor: "Pode adicionar momentos", viewer: "Pode acompanhar" };
 
-export const switchDog = (dogId: string) => rpc("switchDog", { dogId });
+export const switchDog = async (dogId: string) => { await rpc("switchDog", { dogId }); setActiveDog(dogId); };
 export const createInvite = (role: "editor" | "viewer") => rpc<{ code: string; role: DiaryRole; expiresAt: string; dogName: string }>("createInvite", { role });
-export const acceptInvite = (code: string, name?: string) => rpc<{ dogId: string }>("acceptInvite", { code, name });
+export const acceptInvite = async (code: string, name?: string) => { const r = await rpc<{ dogId: string }>("acceptInvite", { code, name }); setActiveDog(r.dogId); return r; };
 export const updateMember = (userId: string, role: DiaryRole) => rpc("updateMember", { userId, role });
 export const removeMember = (userId: string) => rpc("removeMember", { userId });
 

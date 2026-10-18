@@ -18,7 +18,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ method:
   const origin = req.headers.get("origin");
   if (origin && new URL(origin).host !== new URL(req.url).host) return NextResponse.json({ code: "FORBIDDEN", message: "Origem inválida." }, { status: 403 });
   try {
-    const ctx = await requireUser();
+    const hint = req.headers.get("x-ddp-dog");
+    const ctx = { ...(await requireUser()), dogHint: hint && /^[0-9a-f-]{36}$/i.test(hint) ? hint : null };
     const args = await req.json().catch(() => ({}));
     const result = await fn(ctx, args);
     return NextResponse.json(result ?? null, { headers: { "cache-control": "private, no-store" } });

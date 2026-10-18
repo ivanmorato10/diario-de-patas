@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ -n "${DATABASE_URL:-}" ]]; then
-  for t in supabase/tests/rls.sql supabase/tests/missions.sql supabase/tests/studio.sql supabase/tests/payments.sql supabase/tests/family.sql supabase/tests/referrals.sql supabase/tests/letters.sql supabase/tests/notifications.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$t"; done
+  for t in supabase/tests/rls.sql supabase/tests/missions.sql supabase/tests/studio.sql supabase/tests/payments.sql supabase/tests/family.sql supabase/tests/referrals.sql supabase/tests/letters.sql supabase/tests/notifications.sql supabase/tests/integrity.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$t"; done
   exit 0
 fi
 BIN="${PG_BIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
@@ -26,3 +26,4 @@ for f in supabase/migrations/*.sql; do "${P[@]}" -f "$f"; done
 "${P[@]}" -f supabase/tests/referrals.sql
 "${P[@]}" -f supabase/tests/letters.sql
 "${P[@]}" -f supabase/tests/notifications.sql
+"${P[@]}" -f supabase/tests/integrity.sql
