@@ -250,7 +250,7 @@ export function purchaseConfirmedEmail(r: PurchaseReceipt) {
   return {
     subject: `Pagamento confirmado: +${r.credits} ${cr} para ${r.dogName} 🐾`,
     html: layout({
-      preheader: `Seus créditos já estão no diário de ${r.dogName}. Bora criar arte?`,
+      preheader: `Seus créditos já estão no diário de ${dog}. Bora criar arte?`,
       title: `Oba! Chegou presente para ${dog} 🎨`,
       hero: `+${r.credits} ${cr} 🐾`,
       paragraphs: [
