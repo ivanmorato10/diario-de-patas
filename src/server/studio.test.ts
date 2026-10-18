@@ -7,11 +7,20 @@ import { extractImage, refusalOf } from "./art-generator";
 import { stickerFromGreen } from "./studio";
 
 describe("presets do Estúdio (adendo §10)", () => {
+  it("variantes ilustradas: os 7 temas de datas, com o prompt antigo e os mesmos créditos", () => {
+    const v = STUDIO_PRESETS.filter((p) => p.variantOf);
+    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "dia-dos-animais", "festa-junina", "halloween", "natal", "pascoa"]);
+    for (const p of v) {
+      expect(p.prompt).toMatch(/illustration/);
+      expect(presetById(p.variantOf!)!.prompt).toMatch(/not an illustration/);
+      expect(p.credits).toBe(presetById(p.variantOf!)!.credits);
+    }
+  });
   it("4 abas e 28 presets com ids únicos e campos completos", () => {
     expect(STUDIO_TABS.map((t) => t.id)).toEqual(["datas", "estilos", "fantasias", "formatos"]);
-    expect(STUDIO_PRESETS).toHaveLength(28);
-    expect(new Set(STUDIO_PRESETS.map((p) => p.id)).size).toBe(28);
-    const per = Object.fromEntries(STUDIO_TABS.map((t) => [t.id, STUDIO_PRESETS.filter((p) => p.category === t.id).length]));
+    expect(STUDIO_PRESETS.filter((p) => !p.variantOf)).toHaveLength(28);
+    expect(new Set(STUDIO_PRESETS.map((p) => p.id)).size).toBe(STUDIO_PRESETS.length);
+    const per = Object.fromEntries(STUDIO_TABS.map((t) => [t.id, STUDIO_PRESETS.filter((p) => p.category === t.id && !p.variantOf).length]));
     expect(per).toEqual({ datas: 8, estilos: 8, fantasias: 8, formatos: 4 });
     for (const p of STUDIO_PRESETS) {
       expect(p.version).toBeGreaterThanOrEqual(1);

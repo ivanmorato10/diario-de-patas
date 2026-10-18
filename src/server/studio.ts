@@ -46,8 +46,9 @@ async function presetsWithFlags(): Promise<(StudioPreset & { enabled: boolean })
   const flags = new Map(rows.map((r) => [r.id, r]));
   const off = new Set((process.env.STUDIO_DISABLED_PRESETS ?? "").split(",").map((s) => s.trim()).filter(Boolean));
   return STUDIO_PRESETS.map((p) => {
-    const f = flags.get(p.id);
-    return { ...p, enabled: (f ? f.enabled : p.enabled) && !off.has(p.id), credits: f?.credits ?? p.credits };
+    const base = p.variantOf ?? p.id; // a variante ilustrada segue o ajuste do tema original
+    const f = flags.get(base);
+    return { ...p, enabled: (f ? f.enabled : p.enabled) && !off.has(p.id) && !off.has(base), credits: f?.credits ?? p.credits };
   });
 }
 

@@ -26,6 +26,10 @@ export interface StudioPreset {
   post: PostProcess;
   /** Padrão no código; pode ser desligado sem deploy na tabela studio_presets (§10.7). */
   enabled: boolean;
+  /** Versão ilustrada do mesmo tema (a pessoa escolhe "Realista" ou "Ilustração"). */
+  illustration?: string;
+  /** Variante gerada a partir de outro tema (não aparece sozinha na vitrine; segue os ajustes do tema original). */
+  variantOf?: string;
 }
 
 export const STUDIO_TABS: { id: StudioCategory; labelPt: string }[] = [
@@ -60,9 +64,9 @@ const p = (x: Partial<StudioPreset> & Pick<StudioPreset, "id" | "category" | "la
   version: 1, aspect: "1:1", aspects: ALL, credits: 1, premium: false, addTextOverlay: false, post: "none", enabled: true, ...x,
 });
 
-export const STUDIO_PRESETS: StudioPreset[] = [
+const BASE_PRESETS: StudioPreset[] = [
   // ---------- Datas (§10.3) ----------
-  p({ id: "aniversario", version: 2, category: "datas", labelPt: "Aniversário", addTextOverlay: true, overlayHint: "Feliz aniversário!", prompt: [
+  p({ id: "aniversario", version: 2, illustration: "A joyful birthday illustration: the dog wearing a small soft party hat, sitting next to a dog-safe birthday cake with one candle, colorful balloons and confetti floating in a bright cheerful room. Warm soft lighting, festive pastel colors, charming editorial illustration style.", category: "datas", labelPt: "Aniversário", addTextOverlay: true, overlayHint: "Feliz aniversário!", prompt: [
     "A realistic, professionally produced pet photograph of a birthday party (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A playful, joyful close-up at the dog's eye level: the dog's head and front paws fill most of the frame, with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -71,7 +75,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     "Behind: lots of vivid pink, yellow, lilac and turquoise polka-dot balloons, wrapped gift boxes with shiny bows, confetti flying in the air and scattered on the rug, and twinkling golden bokeh lights.",
     PHOTO_STYLE,
   ].join(" ") }),
-  p({ id: "natal", version: 2, category: "datas", labelPt: "Natal acolhedor", addTextOverlay: true, overlayHint: "Feliz Natal!", prompt: [
+  p({ id: "natal", version: 2, illustration: "A cozy Christmas scene: the dog resting on a soft knitted blanket beside a decorated Christmas tree with warm glowing fairy lights and wrapped presents. Gentle warm light, red, green and gold tones, storybook illustration style.", category: "datas", labelPt: "Natal acolhedor", addTextOverlay: true, overlayHint: "Feliz Natal!", prompt: [
     "A realistic, professionally produced pet photograph of a cozy Christmas scene (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -79,7 +83,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     "Behind: glowing warm fairy lights and twinkling golden bokeh, a cozy living room softly out of focus. Rich red, green and gold tones.",
     PHOTO_STYLE,
   ].join(" ") }),
-  p({ id: "halloween", version: 2, category: "datas", labelPt: "Halloween divertido", addTextOverlay: true, overlayHint: "Feliz Halloween!", prompt: [
+  p({ id: "halloween", version: 2, illustration: "A cute, not scary Halloween scene: the dog sitting among carved smiling pumpkins, autumn leaves and paper bats, with a tiny soft witch hat or a comfortable orange bandana. Playful purple and orange tones, friendly children's book illustration style.", category: "datas", labelPt: "Halloween divertido", addTextOverlay: true, overlayHint: "Feliz Halloween!", prompt: [
     "A realistic, professionally produced pet photograph of a cute, fun, not scary Halloween scene (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -87,7 +91,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     "Behind: paper bats, warm string lights and purple and orange bokeh, softly out of focus. Playful orange, purple and gold tones.",
     PHOTO_STYLE,
   ].join(" ") }),
-  p({ id: "dia-dos-animais", version: 2, category: "datas", labelPt: "Dia dos Animais (4/10)", addTextOverlay: true, overlayHint: "Feliz Dia dos Animais!", prompt: [
+  p({ id: "dia-dos-animais", version: 2, illustration: "A sunny celebration in a green park: the dog surrounded by flowers and gentle sunlight, with soft bokeh and small floating paw-print shapes in the sky. Joyful, warm, hopeful mood, soft illustration style.", category: "datas", labelPt: "Dia dos Animais (4/10)", addTextOverlay: true, overlayHint: "Feliz Dia dos Animais!", prompt: [
     "A realistic, professionally produced pet photograph of a sunny celebration in a green park (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -95,7 +99,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     "Behind: trees and a bright blue sky softly out of focus, with a few small white paw-print shaped bokeh lights. Fresh, joyful, hopeful mood.",
     PHOTO_STYLE,
   ].join(" ") }),
-  p({ id: "festa-junina", version: 2, category: "datas", labelPt: "Festa Junina", addTextOverlay: true, overlayHint: "Arraiá!", prompt: [
+  p({ id: "festa-junina", version: 2, illustration: "A Brazilian Festa Junina scene: the dog wearing a small checkered (plaid) bandana, colorful paper flag garlands (bandeirinhas) overhead, a warm bonfire glow at a safe distance in the background and a straw hat resting beside it. Cozy evening light, festive and rustic illustration style.", category: "datas", labelPt: "Festa Junina", addTextOverlay: true, overlayHint: "Arraiá!", prompt: [
     "A realistic, professionally produced pet photograph of a Brazilian Festa Junina (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -103,7 +107,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     "Behind: a warm bonfire glowing at a safe distance, sunflowers, rustic wood and warm string lights softly out of focus. Cozy warm evening light, festive rustic mood.",
     PHOTO_STYLE,
   ].join(" ") }),
-  p({ id: "pascoa", version: 2, category: "datas", labelPt: "Páscoa", addTextOverlay: true, overlayHint: "Feliz Páscoa!", prompt: [
+  p({ id: "pascoa", version: 2, illustration: "A gentle spring scene: the dog in a meadow with pastel decorated eggs in a basket (eggs are not being eaten) and soft spring flowers. Pastel colors, light and airy illustration style.", category: "datas", labelPt: "Páscoa", addTextOverlay: true, overlayHint: "Feliz Páscoa!", prompt: [
     "A realistic, professionally produced pet photograph of a gentle spring Easter scene (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -111,7 +115,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     "Behind: soft spring blossoms and a bright, airy pastel background softly out of focus. Light, fresh pastel pink, lilac, mint and yellow tones.",
     PHOTO_STYLE,
   ].join(" ") }),
-  p({ id: "ano-novo", version: 2, category: "datas", labelPt: "Ano Novo", addTextOverlay: true, overlayHint: "Feliz Ano Novo!", prompt: [
+  p({ id: "ano-novo", version: 2, illustration: "A New Year's night celebration: the dog wearing a small shiny party bow, sitting by a window with colorful fireworks far away in the night sky and soft golden sparkles. The dog looks calm and safe indoors. Elegant night colors, glowing illustration style.", category: "datas", labelPt: "Ano Novo", addTextOverlay: true, overlayHint: "Feliz Ano Novo!", prompt: [
     "A realistic, professionally produced pet photograph of a New Year's Eve celebration (a real photo, not an illustration).",
     "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
     "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
@@ -144,6 +148,18 @@ export const STUDIO_PRESETS: StudioPreset[] = [
   p({ id: "cartao", category: "formatos", labelPt: "Cartão com mensagem", aspect: "4:5", aspects: ["4:5", "1:1"], post: "card", addTextOverlay: true, prompt: "A clean illustrated portrait of the dog with a soft solid pastel background and generous empty space at the bottom third." }),
   p({ id: "capa-album", category: "formatos", labelPt: "Capa do álbum", aspect: "4:5", aspects: ["4:5", "1:1"], post: "cover", prompt: "A warm illustrated cover-style portrait of the dog, centered, with a soft decorative frame of small paw prints and leaves around the edges." }),
 ];
+
+/** Sufixo da variante ilustrada: "aniversario" (realista) → "aniversario-ilustrado". */
+export const ILLUSTRATED_SUFFIX = "-ilustrado";
+
+/** Todos os temas, incluindo as variantes ilustradas (mesmos créditos, formatos e textos do original). */
+export const STUDIO_PRESETS: StudioPreset[] = [
+  ...BASE_PRESETS,
+  ...BASE_PRESETS.filter((x) => x.illustration).map((x) => ({ ...x, id: x.id + ILLUSTRATED_SUFFIX, version: 1, prompt: x.illustration!, illustration: undefined, variantOf: x.id })),
+];
+
+/** Temas que aparecem na vitrine (as variantes ficam atrás do seletor Realista/Ilustração). */
+export const SHOWCASE_PRESETS = BASE_PRESETS;
 
 /** Modelos (conferidos em ai.google.dev em 12/10/2026). Podem ser trocados por variável de ambiente. */
 export const STUDIO_MODELS = {

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  STUDIO_FORMATS, STUDIO_PRESETS, STUDIO_TABS, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
+  ILLUSTRATED_SUFFIX, SHOWCASE_PRESETS, STUDIO_FORMATS, STUDIO_TABS, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
 } from "@/config/studio";
 import { DomainError } from "@/data/demo-repository";
 import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
@@ -257,6 +257,15 @@ function Estudio() {
   const presetFromUrl = presetById(params.get("tema") ?? "");
   const [tab, setTab] = useState<StudioCategory>(presetFromUrl?.category ?? "datas");
   const [presetId, setPresetId] = useState<string | null>(presetFromUrl?.id ?? null);
+  // Datas: a mesma ideia em foto realista ou em ilustração (cada uma com o seu exemplo).
+  const [look, setLook] = useState<"realista" | "ilustracao">(presetFromUrl?.variantOf ? "ilustracao" : "realista");
+  const shownId = (p: StudioPreset) => (look === "ilustracao" && p.illustration ? p.id + ILLUSTRATED_SUFFIX : p.id);
+  function changeLook(next: "realista" | "ilustracao") {
+    setLook(next);
+    const cur = presetId ? presetById(presetId) : undefined;
+    const base = cur ? presetById(cur.variantOf ?? cur.id) : undefined;
+    if (base?.illustration) setPresetId(next === "ilustracao" ? base.id + ILLUSTRATED_SUFFIX : base.id);
+  }
   const [photoId, setPhotoId] = useState<string | null>(params.get("entrada"));
   const [aspect, setAspect] = useState<StudioAspect | null>(null);
   const [cropOn, setCropOn] = useState(false);
@@ -440,8 +449,15 @@ function Estudio() {
                   <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{t.labelPt}</button>
                 ))}
               </div>
+              {SHOWCASE_PRESETS.some((p) => p.category === tab && p.illustration) ? (
+                <div role="radiogroup" aria-label="Acabamento" className="filter-row">
+                  {([["realista", "Realista"], ["ilustracao", "Ilustração"]] as const).map(([id, label]) => (
+                    <button key={id} type="button" role="radio" aria-checked={look === id} className={`filter-chip${look === id ? " is-active" : ""}`} onClick={() => changeLook(id)}>{label}</button>
+                  ))}
+                </div>
+              ) : null}
               <div role="tabpanel" id={`st-panel-${tab}`} aria-labelledby={`st-tab-${tab}`} className="preset-grid">
-                {STUDIO_PRESETS.filter((p) => p.category === tab && (flags.get(p.id)?.enabled ?? true)).map((p) => {
+                {SHOWCASE_PRESETS.filter((p) => p.category === tab).map((base) => presetById(shownId(base))!).filter((p) => flags.get(p.id)?.enabled ?? true).map((p) => {
                   const c = flags.get(p.id)?.credits ?? p.credits;
                   return (
                     <button key={p.id} type="button" className={`preset-card${presetId === p.id ? " is-selected" : ""}`} aria-pressed={presetId === p.id} onClick={() => setPresetId(p.id)}>
