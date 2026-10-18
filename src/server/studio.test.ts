@@ -7,11 +7,11 @@ import { extractImage, refusalOf } from "./art-generator";
 import { stickerFromGreen } from "./studio";
 
 describe("presets do Estúdio (adendo §10)", () => {
-  it("variantes ilustradas: os 7 temas de datas, com o prompt antigo e os mesmos créditos", () => {
+  it("variantes ilustradas: datas e fantasias, com o prompt antigo e os mesmos créditos", () => {
     const v = STUDIO_PRESETS.filter((p) => p.variantOf);
-    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "dia-dos-animais", "festa-junina", "halloween", "natal", "pascoa"]);
+    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "astronauta", "chef", "detetive", "dia-dos-animais", "explorador", "festa-junina", "futebol", "halloween", "natal", "pascoa", "realeza", "super-heroi", "surfista"]);
     for (const p of v) {
-      expect(p.prompt).toMatch(/illustration/);
+      expect(p.prompt).toMatch(/illustration|style/);
       expect(presetById(p.variantOf!)!.prompt).toMatch(/not an illustration/);
       expect(p.credits).toBe(presetById(p.variantOf!)!.credits);
     }
@@ -29,7 +29,7 @@ describe("presets do Estúdio (adendo §10)", () => {
     }
   });
   it("premium custa 2 créditos e usa o modelo premium; os outros, 1", () => {
-    expect(STUDIO_PRESETS.filter((p) => p.premium).map((p) => p.id).sort()).toEqual(["oleo-classico", "realeza"]);
+    expect(STUDIO_PRESETS.filter((p) => p.premium && !p.variantOf).map((p) => p.id).sort()).toEqual(["oleo-classico", "realeza"]);
     expect(STUDIO_PRESETS.every((p) => p.credits === (p.premium ? 2 : 1))).toBe(true);
   });
   it("o prompt é montado pelo servidor: [BASE] + [PRESET] + [FORMATO], sem nada do usuário", () => {

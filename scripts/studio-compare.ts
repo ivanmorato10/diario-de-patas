@@ -28,6 +28,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
 const presetId = args[args.indexOf("--preset") + 1] ?? "aniversario";
 const preset = presetById(presetId);
+if (preset?.illustration) OLD[presetId] = preset.illustration; // o antigo virou a versão "Ilustração"
 if (!preset || !OLD[presetId]) { console.error(`Preset sem prompt antigo: ${presetId}`); process.exit(1); }
 
 for (const line of existsSync(path.join(root, ".env.local")) ? readFileSync(path.join(root, ".env.local"), "utf8").split("\n") : []) {
@@ -36,14 +37,15 @@ for (const line of existsSync(path.join(root, ".env.local")) ? readFileSync(path
 }
 
 const dirs = ["docs/abu-referencias", "docs/caes-teste"].map((d) => path.join(root, d)).filter(existsSync);
-const photos = dirs.flatMap((d) => readdirSync(d).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)).sort().map((f) => path.join(d, f)));
+const only = args.includes("--fotos") ? args[args.indexOf("--fotos") + 1].split(",").map((f) => path.resolve(root, f)) : null;
+const photos = only ?? dirs.flatMap((d) => readdirSync(d).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)).sort().map((f) => path.join(d, f)));
 const cost = estimateCostUsd(preset, preset.aspect);
 console.log(`${preset.labelPt}: ${photos.length} fotos × 2 prompts = ${photos.length * 2} gerações · ~US$ ${(photos.length * 2 * (cost + 0.0002)).toFixed(2)}`);
 if (!args.includes("--yes")) { console.log("Nada foi gerado. Repita com --yes."); process.exit(0); }
 const key = process.env.ART_GENERATOR_API_KEY || process.env.GEMINI_API_KEY;
 if (!key) { console.error("Falta ART_GENERATOR_API_KEY no .env.local."); process.exit(1); }
 const gen = geminiGenerator(key);
-const outDir = path.join(root, "studio-eval", `compare-${presetId}`);
+const outDir = path.join(root, "studio-eval", args.includes("--saida") ? args[args.indexOf("--saida") + 1] : `compare-${presetId}`, args.includes("--saida") ? presetId : "");
 mkdirSync(outDir, { recursive: true });
 
 async function ask(question: string, images: { buf: Buffer; mime: string }[]): Promise<Record<string, unknown> | null> {

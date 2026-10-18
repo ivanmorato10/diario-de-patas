@@ -50,6 +50,7 @@ export const STUDIO_BASE_PROMPT =
 export const PHOTO_STYLE =
   "Bright warm golden window light with soft, consistent shadows; highly saturated, vibrant, festive candy colors and a fun, celebratory mood (never washed out, dull or serious). " +
   "Natural fur texture with fine individual strands, natural anatomy and real proportions, sharp focus on the eyes, shallow depth of field like an 85mm lens at f/2. " +
+  "Keep the dog's true coat color under the scene lighting (a white dog stays white, a black dog stays black). " +
   "Photorealistic: not a drawing, painting, watercolor, sketch, cartoon, anime or 3D render.";
 
 /** [FORMATO] (§10.2). */
@@ -134,14 +135,67 @@ const BASE_PRESETS: StudioPreset[] = [
   p({ id: "pixel", category: "estilos", labelPt: "Pixel art", prompt: "Retro 16-bit pixel art of the dog: limited color palette, crisp pixels, simple pastel background, like a cozy video game sprite portrait." }),
   p({ id: "vitral", category: "estilos", labelPt: "Vitral", prompt: "The dog depicted as a colorful stained glass window: bold dark lead lines, glowing jewel-toned glass pieces, light shining through." }),
   // ---------- Fantasias (§10.5) — roupa confortável e solta; nada cobrindo olhos, nariz ou boca ----------
-  p({ id: "astronauta", category: "fantasias", labelPt: "Astronauta", prompt: "The dog as a cute astronaut floating in space wearing an open-face spacesuit (no helmet glass over the face), stars, a small planet and a friendly rocket in the background. Whimsical illustration style." }),
-  p({ id: "super-heroi", category: "fantasias", labelPt: "Super-herói", prompt: "The dog as an original superhero with a flowing cape and a simple paw emblem on the chest (no existing superhero logos or costumes), standing proudly on a rooftop at sunset. Dynamic comic illustration style." }),
-  p({ id: "realeza", category: "fantasias", labelPt: "Realeza", premium: true, credits: 2, aspect: "4:5", prompt: "The dog as royalty: a small golden crown, a red velvet royal cape with white trim, sitting on an ornate throne in a grand palace hall. Rich painterly style." }),
-  p({ id: "chef", category: "fantasias", labelPt: "Chef", prompt: "The dog as a chef wearing a small white chef hat and apron in a cozy kitchen, next to dog-safe treats on the counter (no chocolate, grapes, onions or other foods toxic to dogs). Warm illustration style." }),
-  p({ id: "explorador", category: "fantasias", labelPt: "Explorador", prompt: "The dog as a jungle explorer with a small safari hat and a little backpack, in a lush green jungle with friendly parrots far in the background. Adventure storybook style." }),
-  p({ id: "detetive", category: "fantasias", labelPt: "Detetive", prompt: "The dog as a classic detective with a small tweed cap and a magnifying glass, on a cozy old street at night under a warm lamp light. Charming noir illustration style, not dark or scary." }),
-  p({ id: "surfista", category: "fantasias", labelPt: "Surfista", prompt: "The dog on a beach at sunset next to a colorful surfboard stuck in the sand (the dog is on the sand, not in the waves), wearing a flower lei. Bright tropical illustration style." }),
-  p({ id: "futebol", category: "fantasias", labelPt: "Craque do futebol", prompt: "The dog as a soccer star on a green field with a soccer ball, wearing a plain yellow and green bandana (no team crests, no brand logos, no real kits). Energetic sports illustration style." }),
+  p({ id: "astronauta", version: 2, illustration: "The dog as a cute astronaut floating in space wearing an open-face spacesuit (no helmet glass over the face), stars, a small planet and a friendly rocket in the background. Whimsical illustration style.", category: "fantasias", labelPt: "Astronauta", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as a cute astronaut floating in outer space (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "The dog wears a white and orange open-face spacesuit with small round mission patches (no flags, no real agency logos, no helmet glass over the face), its head fully visible and happy with the mouth open, paws reaching forward as if floating.",
+    "Behind: a vivid purple and blue galaxy full of stars, a big blue planet with clouds, a small cratered moon and a friendly little red and white rocket with a glowing trail. Cinematic, colorful and magical light.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "super-heroi", version: 2, illustration: "The dog as an original superhero with a flowing cape and a simple paw emblem on the chest (no existing superhero logos or costumes), standing proudly on a rooftop at sunset. Dynamic comic illustration style.", category: "fantasias", labelPt: "Super-herói", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as an original superhero on a city rooftop at sunset (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
+    "The dog wears a flowing red cape and a comfortable red vest with a simple gold paw emblem on the chest (no existing superhero logos or costumes) and stands proudly on the edge of a rooftop.",
+    "Behind: a glowing orange and pink sunset sky over a city skyline with warm lights, softly out of focus; the cape blows in the wind.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "realeza", version: 2, illustration: "The dog as royalty: a small golden crown, a red velvet royal cape with white trim, sitting on an ornate throne in a grand palace hall. Rich painterly style.", category: "fantasias", labelPt: "Realeza", premium: true, credits: 2, aspect: "4:5", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as royalty in a grand palace (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "The dog lies regally on an ornate red velvet throne with gold carvings, wearing a small golden crown with jewels and a red velvet royal cape with white ermine trim, with a calm, proud and happy expression.",
+    "Behind: a grand palace hall with red velvet curtains and warm golden light, softly out of focus. Rich red and gold tones.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "chef", version: 2, illustration: "The dog as a chef wearing a small white chef hat and apron in a cozy kitchen, next to dog-safe treats on the counter (no chocolate, grapes, onions or other foods toxic to dogs). Warm illustration style.", category: "fantasias", labelPt: "Chef", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as a chef in a cozy home kitchen (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
+    "The dog wears a small white chef hat and a white apron with little paw prints and sits behind a wooden counter with bone-shaped dog biscuits, a cookie cutter and a little flour (no chocolate, grapes, onions or other foods toxic to dogs).",
+    "Behind: a bright cozy kitchen with jars, plants and warm window light, softly out of focus.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "explorador", version: 2, illustration: "The dog as a jungle explorer with a small safari hat and a little backpack, in a lush green jungle with friendly parrots far in the background. Adventure storybook style.", category: "fantasias", labelPt: "Explorador", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as a jungle explorer (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
+    "The dog wears a small khaki safari hat and a little canvas backpack and stands on a mossy rock in a lush green jungle.",
+    "Behind: a beautiful waterfall, big tropical leaves and colorful friendly parrots far away, softly out of focus, with warm sun rays through the trees.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "detetive", version: 2, illustration: "The dog as a classic detective with a small tweed cap and a magnifying glass, on a cozy old street at night under a warm lamp light. Charming noir illustration style, not dark or scary.", category: "fantasias", labelPt: "Detetive", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as a classic detective on a cozy old street at night (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "The dog wears a small brown tweed deerstalker cap and a matching tweed cape, sits on wet cobblestones next to a big brass magnifying glass, with a curious, friendly and happy expression.",
+    "Behind: warm glowing old street lamps and shop windows reflecting on the wet stones, softly out of focus. Warm amber and brown tones; charming, not dark or scary.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "surfista", version: 2, illustration: "The dog on a beach at sunset next to a colorful surfboard stuck in the sand (the dog is on the sand, not in the waves), wearing a flower lei. Bright tropical illustration style.", category: "fantasias", labelPt: "Surfista", prompt: [
+    "A realistic, professionally produced pet photograph: the dog on a tropical beach at sunset (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
+    "The dog wears a colorful flower lei and lies on the sand (not in the waves) next to a surfboard decorated with hibiscus flowers standing in the sand.",
+    "Behind: a glowing orange and pink sunset over the sea, palm leaves and tropical flowers, softly out of focus.",
+    PHOTO_STYLE,
+  ].join(" ") }),
+  p({ id: "futebol", version: 2, illustration: "The dog as a soccer star on a green field with a soccer ball, wearing a plain yellow and green bandana (no team crests, no brand logos, no real kits). Energetic sports illustration style.", category: "fantasias", labelPt: "Craque do futebol", prompt: [
+    "A realistic, professionally produced pet photograph: the dog as a soccer star on a green field (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "A joyful close-up at the dog's eye level: the dog fills most of the frame with a big happy open-mouth smile and the tongue slightly out, bright eyes looking at the camera.",
+    "The dog wears a plain yellow and green bandana (no team crests, no brand logos, no real kits) and runs happily on the grass with a paw on a classic black and white soccer ball.",
+    "Behind: a soccer goal, green grass and a bright blue sky with white clouds, softly out of focus. Sunny, energetic mood.",
+    PHOTO_STYLE,
+  ].join(" ") }),
   // ---------- Formatos (§10.6) ----------
   p({ id: "figurinha", category: "formatos", labelPt: "Figurinha para WhatsApp", aspect: "1:1", aspects: ["1:1"], post: "sticker", prompt: "A cute die-cut sticker of the dog's head and shoulders in a clean cartoon style, thick white outline around the whole shape, on a plain solid flat light green background (#00FF00) for easy removal, no shadow." }),
   p({ id: "papel-de-parede", category: "formatos", labelPt: "Papel de parede", aspect: "9:16", aspects: ["9:16"], post: "wallpaper", prompt: "A calm, beautiful illustrated scene with the dog resting in a soft dreamy landscape, gentle gradient sky, plenty of simple space." }),
