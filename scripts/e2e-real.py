@@ -355,7 +355,7 @@ with sync_playwright() as p:
     a.goto(BASE + "/perfil"); expect(a.get_by_role("heading", name="Luna", exact=True)).to_be_visible(timeout=20000)
     a2 = ctxA.new_page(); a2.goto(BASE + "/hoje"); a2.locator("button.dog-switch").click()
     a2.get_by_role("button", name=re.compile("^Pepe Responsável")).click(); a2.wait_for_url("**/hoje"); expect(a2.get_by_role("heading", name=re.compile("Diário de Pepe"))).to_be_visible(timeout=20000)
-    a.get_by_role("button", name=re.compile("Editar perfil")).click(); a.get_by_label("Apelido carinhoso").fill("Lulu da aba 1"); a.get_by_role("button", name="Salvar alterações").click(); a.wait_for_timeout(2500)
+    a.get_by_role("button", name=re.compile("Editar perfil")).click(); a.get_by_label("Apelido carinhoso").fill("Lulu da aba 1"); a.get_by_role("button", name="Salvar alterações").click(); a.wait_for_timeout(2500); a.locator("dialog[open]").get_by_role("button", name="Fechar").click()
     snaps = {d["name"]: d for d in [rpc(a, "snapshot", {})[1]["dog"]]}
     pepe_nick = a2.evaluate("async () => (await (await fetch('/api/rpc/snapshot',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})).json()).dog.nickname")
     luna_nick = a.evaluate("async (id) => (await (await fetch('/api/rpc/snapshot',{method:'POST',headers:{'content-type':'application/json','x-ddp-dog':id},body:'{}'})).json()).dog.nickname", luna_id)
