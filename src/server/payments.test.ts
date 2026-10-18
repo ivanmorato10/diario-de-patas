@@ -4,8 +4,8 @@ import { mapMpStatus, validMpSignature } from "./payments";
 import { CREDIT_PACKAGES, formatBRL } from "@/config/credits";
 
 describe("compra de créditos (Pix)", () => {
-  it("pacotes aprovados: 5 por R$ 4,90, 15 por R$ 7,90, 40 por R$ 19,90", () => {
-    expect(CREDIT_PACKAGES.map((p) => [p.credits, formatBRL(p.priceCents)])).toEqual([[5, "R$ 4,90"], [15, "R$ 7,90"], [40, "R$ 19,90"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
+  it("pacotes aprovados: 1 por R$ 1,00, 5 por R$ 4,90, 10 por R$ 8,90", () => {
+    expect(CREDIT_PACKAGES.map((p) => [p.credits, formatBRL(p.priceCents)])).toEqual([[1, "R$ 1,00"], [5, "R$ 4,90"], [10, "R$ 8,90"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
   });
   it("traduz o status do Mercado Pago", () => {
     expect(mapMpStatus("approved")).toBe("approved");

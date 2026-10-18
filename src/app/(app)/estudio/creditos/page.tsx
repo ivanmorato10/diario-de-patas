@@ -98,7 +98,7 @@ export default function Creditos() {
   const { ready, snap, unavailable } = useRequireDiary();
   const [shop, setShop] = useState<CreditShop | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
-  const [pick, setPick] = useState("p15");
+  const [pick, setPick] = useState("p5");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<CreditPurchase | null>(null);
@@ -158,7 +158,7 @@ export default function Creditos() {
         {paid ? (
           <section className="pix-card pix-card--done" role="status">
             <PawBurst />
-            <h2>+{paid.credits} créditos!</h2>
+            <h2>+{paid.credits} {paid.credits === 1 ? "crédito" : "créditos"}!</h2>
             <p>Pagamento confirmado. Bora criar arte?</p>
             <Link href="/estudio" className="btn btn--primary btn--block">Criar uma arte</Link>
             <button type="button" className="btn btn--ghost" onClick={() => setPaid(null)}>Comprar mais</button>
@@ -172,10 +172,10 @@ export default function Creditos() {
             {shop.test ? <div className="notice notice--warn small"><IconInfo /><span><strong>Modo de teste:</strong> nenhum dinheiro é cobrado.</span></div> : null}
             <div className="shop-packs" role="radiogroup" aria-label="Pacotes de créditos">
               {shop.packages.map((p) => (
-                <button key={p.id} type="button" role="radio" aria-checked={pick === p.id} className={`shop-pack${pick === p.id ? " is-selected" : ""}`} onClick={() => setPick(p.id)}>
+                <button key={p.id} type="button" role="radio" aria-checked={pick === p.id} aria-label={`${p.credits} ${p.credits === 1 ? "crédito" : "créditos"} por ${formatBRL(p.priceCents)}`} className={`shop-pack${pick === p.id ? " is-selected" : ""}`} onClick={() => setPick(p.id)}>
                   {p.badge ? <span className="shop-pack__badge">{p.badge}</span> : null}
                   <span className="shop-pack__credits">{p.credits}</span>
-                  <span className="shop-pack__unit">créditos</span>
+                  <span className="shop-pack__unit">{p.credits === 1 ? "crédito" : "créditos"}</span>
                   <span className="shop-pack__price">{formatBRL(p.priceCents)}</span>
                   <span className="shop-pack__per">{formatBRL(Math.round(p.priceCents / p.credits))} por arte</span>
                 </button>
