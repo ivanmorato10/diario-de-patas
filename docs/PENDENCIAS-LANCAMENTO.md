@@ -23,7 +23,7 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 
 ## Configuração
 - Mercado Pago: em produção desde 18/10/2026 (pacotes 1/R$ 1, 5/R$ 4, 10/R$ 7; email de comprovante). Trocar as credenciais que apareceram no chat.
-- Estúdio: definir `STUDIO_DAILY_BUDGET_USD` na Vercel (teto de gasto diário com o Gemini; hoje sem teto).
+- Estúdio: teto diário com o Gemini de US$ 5 (`STUDIO_DAILY_BUDGET_USD`, desde 18/10/2026). Subir conforme o uso.
 - Google Cloud: publicar o app do login com Google ("Publish app").
 - Trocar a senha de app do Gmail e o token do GitHub que apareceram no chat.
 - Amazon (Achadinhos): elegibilidade da conta de associado para fotos dos produtos.
