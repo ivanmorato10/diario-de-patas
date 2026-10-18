@@ -4,8 +4,8 @@ import { mapMpStatus, validMpSignature } from "./payments";
 import { CREDIT_PACKAGES, formatBRL } from "@/config/credits";
 
 describe("compra de créditos (Pix)", () => {
-  it("pacotes aprovados: 1 por R$ 1,00, 5 por R$ 4,90, 10 por R$ 8,90", () => {
-    expect(CREDIT_PACKAGES.map((p) => [p.credits, formatBRL(p.priceCents)])).toEqual([[1, "R$ 1,00"], [5, "R$ 4,90"], [10, "R$ 8,90"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
+  it("pacotes aprovados: 1 por R$ 1,00, 5 por R$ 4,00, 10 por R$ 7,00", () => {
+    expect(CREDIT_PACKAGES.map((p) => [p.credits, formatBRL(p.priceCents)])).toEqual([[1, "R$ 1,00"], [5, "R$ 4,00"], [10, "R$ 7,00"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
   });
   it("traduz o status do Mercado Pago", () => {
     expect(mapMpStatus("approved")).toBe("approved");
@@ -26,9 +26,9 @@ describe("compra de créditos (Pix)", () => {
 import { purchaseConfirmedEmail } from "@/lib/email-templates";
 describe("email de pagamento confirmado", () => {
   it("traz créditos, valor, diário e protege o nome do cachorro", () => {
-    const m = purchaseConfirmedEmail({ dogName: "Pepe <b>", credits: 5, amount: "R$ 4,90", paidAt: "18 de outubro", balance: 7, reference: "a1b2c3d4-x" });
+    const m = purchaseConfirmedEmail({ dogName: "Pepe <b>", credits: 5, amount: "R$ 4,00", paidAt: "18 de outubro", balance: 7, reference: "a1b2c3d4-x" });
     expect(m.subject).toContain("+5 créditos");
-    expect(m.html).toContain("R$ 4,90");
+    expect(m.html).toContain("R$ 4,00");
     expect(m.html).toContain("A1B2C3D4");
     expect(m.html).toContain("Pepe &lt;b&gt;");
     expect(m.html).not.toContain("Pepe <b>");

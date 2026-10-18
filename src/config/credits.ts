@@ -1,4 +1,4 @@
-/** Pacotes de créditos do Estúdio (revistos pelo proprietário em 18/10/2026: pacotes menores). 1 crédito = 1 arte normal. */
+/** Pacotes de créditos do Estúdio (revistos pelo proprietário em 18/10/2026: 1 por R$ 1, 5 por R$ 4, 10 por R$ 7). 1 crédito = 1 arte normal. */
 export interface CreditPackage {
   id: string;
   credits: number;
@@ -8,8 +8,8 @@ export interface CreditPackage {
 
 export const CREDIT_PACKAGES: CreditPackage[] = [
   { id: "p1", credits: 1, priceCents: 100 },
-  { id: "p5", credits: 5, priceCents: 490 },
-  { id: "p10", credits: 10, priceCents: 890, badge: "Melhor preço" },
+  { id: "p5", credits: 5, priceCents: 400 },
+  { id: "p10", credits: 10, priceCents: 700, badge: "Melhor preço" },
 ];
 
 export const packageById = (id: string) => CREDIT_PACKAGES.find((p) => p.id === id);
