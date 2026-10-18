@@ -39,6 +39,15 @@ export const STUDIO_TABS: { id: StudioCategory; labelPt: string }[] = [
 export const STUDIO_BASE_PROMPT =
   "Use the attached photo as the only reference for the dog. Keep it recognizably the same individual dog: same breed traits, the same coat colors and markings in the same places, the same ear shape and position, muzzle shape, eye color and body proportions. If a collar is visible, keep its color. If the photo shows more than one dog, use only the most prominent one. Do not add other animals or any people. Do not write any text, letters, numbers, logos, signatures or watermarks anywhere in the image. The dog must look healthy, relaxed and happy, never in danger, distress, pain or wearing anything that restricts its movement or covers its eyes, nose or mouth. Keep the dog as the clear main subject, with the whole head fully visible and not cropped.";
 
+/**
+ * Acabamento FOTOGRÁFICO, para os temas cujo exemplo é uma foto produzida (não um desenho).
+ * Os temas de estilo (aquarela, lápis, pixel…) continuam com o estilo do próprio exemplo.
+ */
+export const PHOTO_STYLE =
+  "Bright warm natural light with soft, consistent shadows; saturated, vibrant and festive colors (never washed out or dull). " +
+  "Natural fur texture with fine individual strands, natural anatomy and real proportions, sharp focus on the eyes, shallow depth of field like an 85mm lens at f/2. " +
+  "Photorealistic: not a drawing, painting, watercolor, sketch, cartoon, anime or 3D render.";
+
 /** [FORMATO] (§10.2). */
 export const STUDIO_FORMATS: Record<StudioAspect, { labelPt: string; prompt: string }> = {
   "1:1": { labelPt: "Quadrado", prompt: "Square composition, subject centered with breathing room around it." },
@@ -53,7 +62,14 @@ const p = (x: Partial<StudioPreset> & Pick<StudioPreset, "id" | "category" | "la
 
 export const STUDIO_PRESETS: StudioPreset[] = [
   // ---------- Datas (§10.3) ----------
-  p({ id: "aniversario", category: "datas", labelPt: "Aniversário", addTextOverlay: true, overlayHint: "Feliz aniversário!", prompt: "A joyful birthday illustration: the dog wearing a small soft party hat, sitting next to a dog-safe birthday cake with one candle, colorful balloons and confetti floating in a bright cheerful room. Warm soft lighting, festive pastel colors, charming editorial illustration style." }),
+  p({ id: "aniversario", version: 2, category: "datas", labelPt: "Aniversário", addTextOverlay: true, overlayHint: "Feliz aniversário!", prompt: [
+    "A realistic, professionally produced pet photograph of a birthday party (a real photo, not an illustration).",
+    "The dog is exactly the dog from the attached photo, with the same fur length and texture; never a generic example of its breed.",
+    "Close-up at the dog's eye level: the dog fills most of the frame, lying or sitting on a fluffy cream rug and wearing a small soft pink party hat with colorful pom-poms.",
+    "In the foreground, right next to the dog, a dog-safe birthday cake with creamy frosting, colorful sprinkles, bone-shaped biscuits around it and one lit striped candle.",
+    "Behind: vivid pink, yellow, lilac and turquoise balloons with polka dots, wrapped gift boxes with shiny ribbons, colorful confetti everywhere and warm glowing bokeh lights, softly out of focus.",
+    PHOTO_STYLE,
+  ].join(" ") }),
   p({ id: "natal", category: "datas", labelPt: "Natal acolhedor", addTextOverlay: true, overlayHint: "Feliz Natal!", prompt: "A cozy Christmas scene: the dog resting on a soft knitted blanket beside a decorated Christmas tree with warm glowing fairy lights and wrapped presents. Gentle warm light, red, green and gold tones, storybook illustration style." }),
   p({ id: "halloween", category: "datas", labelPt: "Halloween divertido", addTextOverlay: true, overlayHint: "Feliz Halloween!", prompt: "A cute, not scary Halloween scene: the dog sitting among carved smiling pumpkins, autumn leaves and paper bats, with a tiny soft witch hat or a comfortable orange bandana. Playful purple and orange tones, friendly children's book illustration style." }),
   p({ id: "dia-dos-animais", category: "datas", labelPt: "Dia dos Animais (4/10)", addTextOverlay: true, overlayHint: "Feliz Dia dos Animais!", prompt: "A sunny celebration in a green park: the dog surrounded by flowers and gentle sunlight, with soft bokeh and small floating paw-print shapes in the sky. Joyful, warm, hopeful mood, soft illustration style." }),
