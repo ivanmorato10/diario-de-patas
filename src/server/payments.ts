@@ -143,7 +143,7 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
     await admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" && !p.approved_at ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", p.status);
   }
   if (status === "approved") {
-    await admin.rpc("grant_purchase_credits", { p_purchase: p.id });
+    await grantCredits(p.id); // falhou? lança: o pagamento fica aprovado e a reconciliação entrega depois
     if (!p.receipt_sent_at) await sendReceipt(p.id);
   }
   // Estorno: aplica o desconto até conseguir (refund_applied_at). Se falhar, a próxima reconciliação repete.
@@ -158,14 +158,30 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
   return status;
 }
 
-/** Rotina: reconsulta Pix pendentes/vencidos dos últimos 3 dias e aplica estornos pendentes. */
-/** Email "pagamento confirmado": quem marcar a compra primeiro envia (webhook, tela e rotina não duplicam). */
+/** Entrega os créditos de uma compra aprovada (idempotente). Erro do banco não é engolido. */
+async function grantCredits(purchaseId: string) {
+  const { error } = await adminClient().rpc("grant_purchase_credits", { p_purchase: purchaseId });
+  if (error) {
+    console.error("créditos da compra não entregues (vai tentar de novo)", purchaseId, error.message);
+    throw new HttpError(500, "SERVER", "Pagamento confirmado. Os créditos entram em instantes.");
+  }
+}
+
+/**
+ * Email "pagamento confirmado": quem reservar a compra primeiro envia (webhook, tela e rotina não duplicam).
+ * Reserva com prazo (receipt_claimed_at) ≠ enviado (receipt_sent_at): se o envio falhar, a reserva é desfeita
+ * e a rotina tenta de novo.
+ */
 async function sendReceipt(purchaseId: string) {
   const admin = adminClient();
-  const { data: claimed } = await admin.from("credit_purchases").update({ receipt_sent_at: now() })
-    .eq("id", purchaseId).is("receipt_sent_at", null).eq("status", "approved").select("*").maybeSingle();
+  const stale = new Date(Date.now() - 10 * 60_000).toISOString();
+  const { data: claimed } = await admin.from("credit_purchases").update({ receipt_claimed_at: now() })
+    .eq("id", purchaseId).is("receipt_sent_at", null).eq("status", "approved")
+    .or(`receipt_claimed_at.is.null,receipt_claimed_at.lt.${stale}`).select("*").maybeSingle();
   const p = claimed as any;
-  if (!p?.owner_id) return;
+  if (!p) return;
+  const done = (ok: boolean) => admin.from("credit_purchases").update(ok ? { receipt_sent_at: now() } : { receipt_claimed_at: null }).eq("id", p.id);
+  if (!p.owner_id) return void (await done(true)); // quem comprou excluiu a conta: não há para quem enviar
   try {
     const [{ data: u }, { data: dog }, { data: balance }] = await Promise.all([
       admin.auth.admin.getUserById(p.owner_id),
@@ -173,18 +189,39 @@ async function sendReceipt(purchaseId: string) {
       admin.rpc("credit_available_dog", { p_dog: p.dog_id }),
     ]);
     const paidAt = new Date(p.approved_at ?? Date.now()).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    const sent = await sendPurchaseConfirmed(u?.user?.email ?? "", {
+    const result = await sendPurchaseConfirmed(u?.user?.email ?? "", {
       dogName: (dog as any)?.name ?? "seu cachorro", credits: p.credits, amount: formatBRL(p.amount_cents),
       paidAt, balance: typeof balance === "number" ? balance : null, reference: p.id,
     });
-    if (!sent) console.warn("comprovante não enviado", p.id);
+    if (result === "failed") console.warn("comprovante não enviado (vai tentar de novo)", p.id);
+    await done(result !== "failed"); // "skipped" = sem SMTP ou endereço de teste: nada a reenviar
   } catch (e) {
-    console.error("comprovante não enviado", p.id, e instanceof Error ? e.message : e);
+    console.error("comprovante não enviado (vai tentar de novo)", p.id, e instanceof Error ? e.message : e);
+    await done(false);
   }
 }
 
+/** Compras aprovadas sem créditos entregues ou sem comprovante: entrega agora (idempotente). */
+async function deliverApproved() {
+  const admin = adminClient();
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const approved = ((await admin.from("credit_purchases").select("id, receipt_sent_at, approved_at").eq("status", "approved").gte("created_at", since).limit(500)).data ?? []) as any[];
+  if (!approved.length) return { granted: 0, receipts: 0 };
+  const keys = approved.map((p) => `purchase:${p.id}`);
+  const have = new Set((((await admin.from("credit_ledger").select("idempotency_key").in("idempotency_key", keys)).data ?? []) as any[]).map((r) => r.idempotency_key));
+  let granted = 0, receipts = 0;
+  for (const p of approved) {
+    if (!have.has(`purchase:${p.id}`)) {
+      await grantCredits(p.id).then(() => granted++, () => undefined);
+    }
+    if (!p.receipt_sent_at) { await sendReceipt(p.id); receipts++; }
+  }
+  return { granted, receipts };
+}
+
 export async function reconcileRecentPurchases() {
-  if (!process.env.MP_ACCESS_TOKEN) return { checked: 0 };
+  const delivered = await deliverApproved().catch((e) => ({ error: e instanceof Error ? e.message : "erro" }));
+  if (!process.env.MP_ACCESS_TOKEN) return { checked: 0, delivered };
   const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
   const admin = adminClient();
   const recent = ((await admin.from("credit_purchases").select("id, status").eq("provider", "mercadopago").in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
@@ -197,7 +234,7 @@ export async function reconcileRecentPurchases() {
     const after = await syncPurchase(r.id).catch(() => before);
     if (after !== before || r.status === "refunded") changed++;
   }
-  return { checked: rows.length, changed };
+  return { checked: rows.length, changed, delivered };
 }
 
 const toPurchase = (p: any) => ({

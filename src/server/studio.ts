@@ -10,12 +10,12 @@ import { z } from "zod";
 import sharp from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
-  STUDIO_DEFAULTS, STUDIO_PRESETS, buildStudioPrompt, estimateCostUsd, imageSizeFor, presetById, type StudioAspect, type StudioPreset,
+  STUDIO_COST_USD, STUDIO_DEFAULTS, STUDIO_PRESETS, buildStudioPrompt, estimateCostUsd, imageSizeFor, presetById, type StudioAspect, type StudioPreset,
 } from "@/config/studio";
 import { civilDateInTz } from "@/domain/dates";
 import { adminClient, HttpError } from "./supabase";
 import { notifyFamily } from "./notify";
-import { ProviderError, artGenerator } from "./art-generator";
+import { ProviderError, artGenerator, type PhotoAssessment } from "./art-generator";
 import { assessPhoto, type PhotoCheck } from "./photo-quality";
 import { XP_MONTH_GOAL } from "@/config/credits";
 
@@ -55,7 +55,7 @@ async function presetsWithFlags(): Promise<(StudioPreset & { enabled: boolean })
 const toJob = (r: any) => ({
   id: r.id, presetId: r.theme_id, presetVersion: r.preset_version, aspect: r.aspect, state: r.state, failureCode: r.failure_code,
   inputEntryId: r.input_entry_id, outputEntryId: r.output_entry_id, outputMediaId: r.output_asset_id, credits: r.credits, overlay: r.overlay,
-  createdAt: r.created_at, finishedAt: r.finished_at,
+  createdAt: r.created_at, finishedAt: r.finished_at, dogId: r.dog_id as string,
 });
 
 /** Tela do Estúdio: disponibilidade, saldo de teste, limites, presets e histórico. */
@@ -152,6 +152,30 @@ async function loadInputPhoto(mediaAssetId: string, crop: Crop) {
   return input;
 }
 
+/** Análises pagas de foto por pessoa por dia (o resultado da mesma foto + recorte é reaproveitado sem custo). */
+const PHOTO_CHECKS_PER_DAY = 40;
+const cropKey = (crop: Crop) => (crop ? [crop.x, crop.y, crop.w, crop.h].map((v) => v.toFixed(2)).join(",") : "full");
+
+/** Parte paga da análise com cache (foto + recorte), limite por pessoa e custo somado ao teto do dia. */
+function photoCheckCache(assetId: string, crop: Crop, userId: string) {
+  return async (run: () => Promise<PhotoAssessment | null>): Promise<PhotoAssessment | null> => {
+    const admin = adminClient();
+    const key = cropKey(crop);
+    const hit = (await admin.from("photo_checks").select("result").eq("asset_id", assetId).eq("crop_key", key).maybeSingle()).data as any;
+    if (hit) return hit.result as PhotoAssessment;
+    const { count } = await admin.from("photo_checks").select("asset_id", { count: "exact", head: true }).eq("requested_by", userId).gte("created_at", todayUtcStart());
+    if ((count ?? 0) >= PHOTO_CHECKS_PER_DAY) return null; // segue só com as checagens locais (grátis)
+    const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD) || null;
+    if (budget) {
+      const spent = Number((await admin.rpc("studio_spent_today_usd")).data ?? 0);
+      if (spent + STUDIO_COST_USD.check > budget) return null;
+    }
+    const r = await run();
+    if (r) await admin.from("photo_checks").upsert({ asset_id: assetId, crop_key: key, result: r, cost_usd: STUDIO_COST_USD.check, requested_by: userId }, { onConflict: "asset_id,crop_key", ignoreDuplicates: true });
+    return r;
+  };
+}
+
 const CheckPhoto = z.object({
   entryId: z.string().uuid(),
   crop: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), w: z.number().min(0.1).max(1), h: z.number().min(0.1).max(1) }).nullable().optional(),
@@ -167,7 +191,8 @@ export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCh
   if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
   if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
   try {
-    const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, a.data.crop), artGenerator());
+    const crop = a.data.crop ?? null;
+    const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), artGenerator(), photoCheckCache(entry.media_asset_id, crop, ctx.user.id));
     return { ...r, issues: r.issues.map((i) => ({ ...i, message: i.message.replaceAll("{dog}", dog.name) })) };
   } catch {
     return { verdict: "warn", issues: [], aiChecked: false }; // falha nossa: não bloqueia, mas não garante nada
@@ -213,7 +238,7 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   const job = (await q(admin.from("generation_jobs").select("*").eq("id", created.data).single())) as any;
   if (job.state !== "queued") return toJob(job); // toque duplo: o mesmo pedido
   // Análise da foto (paga, barata): só depois da vaga reservada. Foto inadequada libera a vaga sem cobrar crédito.
-  const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), gen).catch(() => null);
+  const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop ?? null), gen, photoCheckCache(entry.media_asset_id, crop ?? null, ctx.user.id)).catch(() => null);
   if (photoCheck?.verdict === "bad") {
     await q(admin.from("generation_jobs").update({ state: "cancelled", failure_code: "PHOTO_UNSUITABLE", finished_at: now(), updated_at: now() }).eq("id", job.id));
     throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
@@ -229,11 +254,12 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
 
 export async function studioJob(ctx: Ctx, args: unknown) {
   const id = z.object({ id: z.string().uuid() }).parse(args).id;
-  const dog = (await currentDog(ctx))!;
-  await reconcileStuck(dog.id);
-  const job = (await q(ctx.supa.from("generation_jobs").select("*").eq("id", id).eq("dog_id", dog.id).maybeSingle())) as any;
-  if (!job) throw bad("NOT_FOUND", "Pedido não encontrado.");
-  return toJob(job);
+  // Pelo pedido, não pelo diário aberto: trocar de cachorro durante a geração não perde o acompanhamento.
+  // A regra do banco (jobs_read) só mostra pedidos de diários de que a pessoa participa.
+  const found = (await q(ctx.supa.from("generation_jobs").select("dog_id").eq("id", id).maybeSingle())) as any;
+  if (!found) throw bad("NOT_FOUND", "Pedido não encontrado.");
+  await reconcileStuck(found.dog_id);
+  return toJob(await q(ctx.supa.from("generation_jobs").select("*").eq("id", id).single()));
 }
 
 /** Termina um job com falha confirmada e devolve o crédito. */

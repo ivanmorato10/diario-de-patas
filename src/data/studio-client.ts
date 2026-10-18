@@ -6,6 +6,7 @@ export interface StudioJob {
   id: string;
   presetId: string;
   presetVersion: number;
+  dogId?: string;
   aspect: StudioAspect;
   state: "queued" | "processing" | "succeeded" | "failed" | "cancelled";
   failureCode: string | null;
@@ -46,24 +47,28 @@ export const studioCreateJob = (input: {
   entryId: string; presetId: string; aspect: StudioAspect; idempotencyKey: string;
   crop: { x: number; y: number; w: number; h: number } | null; overlay: StudioOverlay | null;
 }) => rpc<StudioJob>("studioCreateJob", input).then((j) => {
-  if (j.state === "queued" || j.state === "processing") trackArt(j.id);
+  if (j.state === "queued" || j.state === "processing") trackArt(j.id, j.dogId ?? null);
   return j;
 });
 
-/** Artes em andamento neste aparelho: o app inteiro acompanha (não só a tela do Estúdio). */
+/** Artes em andamento neste aparelho: o app inteiro acompanha (não só a tela do Estúdio), por pedido e cachorro. */
 const PENDING_KEY = "ddp-art-pending";
-export function pendingArts(): string[] {
-  try { return JSON.parse(localStorage.getItem(PENDING_KEY) ?? "[]") as string[]; } catch { return []; }
+export interface PendingArt { id: string; dogId: string | null }
+export function pendingArts(): PendingArt[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PENDING_KEY) ?? "[]") as (string | PendingArt)[];
+    return raw.map((x) => (typeof x === "string" ? { id: x, dogId: null } : x)); // formato antigo: só o id
+  } catch { return []; }
 }
-function savePendingArts(ids: string[]) {
-  try { localStorage.setItem(PENDING_KEY, JSON.stringify(ids.slice(-10))); } catch { /* sem armazenamento: só não acompanha */ }
+function savePendingArts(list: PendingArt[]) {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(list.slice(-10))); } catch { /* sem armazenamento: só não acompanha */ }
 }
-export function trackArt(id: string) {
-  const ids = pendingArts();
-  if (!ids.includes(id)) savePendingArts([...ids, id]);
+export function trackArt(id: string, dogId: string | null) {
+  const list = pendingArts();
+  if (!list.some((x) => x.id === id)) savePendingArts([...list, { id, dogId }]);
 }
 export function untrackArt(id: string) {
-  savePendingArts(pendingArts().filter((x) => x !== id));
+  savePendingArts(pendingArts().filter((x) => x.id !== id));
 }
 
 export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad"; message: string }[]; aiChecked: boolean }

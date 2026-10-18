@@ -58,13 +58,18 @@ export function combineChecks(local: Awaited<ReturnType<typeof localPhotoMetrics
   return { verdict, issues, aiChecked: !!ai };
 }
 
-/** Avalia a foto (já recortada). Se a IA falhar, fica só com as checagens locais — nunca bloqueia por erro nosso. */
-export async function assessPhoto(input: Buffer, gen: ArtGenerator | null): Promise<PhotoCheck> {
+/** Avalia a foto (já recortada). Se a IA falhar, fica só com as checagens locais — nunca bloqueia por erro nosso.
+ *  `cached` permite reaproveitar (ou pular, por limite) a parte paga da análise. */
+export async function assessPhoto(input: Buffer, gen: ArtGenerator | null,
+  cached?: (run: () => Promise<PhotoAssessment | null>) => Promise<PhotoAssessment | null>): Promise<PhotoCheck> {
   const local = await localPhotoMetrics(input);
   let ai: PhotoAssessment | null = null;
   if (gen) {
-    const small = await sharp(input).rotate().resize(768, 768, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
-    ai = await gen.assessPhoto(small, "image/jpeg").catch(() => null);
+    const run = async () => {
+      const small = await sharp(input).rotate().resize(768, 768, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
+      return gen.assessPhoto(small, "image/jpeg").catch(() => null);
+    };
+    ai = await (cached ? cached(run) : run()).catch(() => null);
   }
   return combineChecks(local, ai);
 }

@@ -15,6 +15,11 @@ begin
   insert into public.dogs (id, owner_id, name) values (d2, ivan, 'Pepe');
   perform public.grant_welcome_credits(ivan, d2, 3);
   if public.credit_available_dog(d2) <> 0 then raise exception 'apagar o diário não pode repetir as boas-vindas'; end if;
+  -- limpar o marcador do próprio perfil (a pessoa pode editar o perfil) também não repete
+  update public.profiles set welcome_credits_at = null where user_id = ivan;
+  delete from public.profiles where user_id = ivan;
+  perform public.grant_welcome_credits(ivan, d2, 3);
+  if public.credit_available_dog(d2) <> 0 then raise exception 'editar o perfil não pode repetir as boas-vindas'; end if;
 
   -- 18) Bianca compra no diário do Ivan, parte é usada, Bianca exclui a conta: o saldo do diário fica
   insert into public.dog_members (dog_id, user_id, role) values (d2, bia, 'editor');
@@ -84,6 +89,28 @@ begin
   exception when others then if sqlerrm <> 'STORAGE_QUOTA' then raise; end if;
   end;
   update public.app_limits set value = 100 where key = 'max_entries';
+
+  -- 7) arte em andamento segura a sua vaga: foto comum não ocupa; a própria arte usa a vaga
+  update public.app_limits set value = 2 where key = 'max_entries';
+  insert into public.generation_jobs (id, owner_id, dog_id, theme_id, preset_version, aspect, model, credits, cost_usd, idempotency_key)
+    values ('bbbbbbbb-0000-4000-8000-000000000001', ivan, d2, 'aniversario', 1, '1:1', 'm', 1, 0.01, 'bbbbbbbb-0000-4000-8000-000000000002');
+  begin
+    insert into public.diary_entries (owner_id, dog_id, media_asset_id, occurred_date, timezone, source, request_key) values (ivan, d2, m, '2026-10-17', 'UTC', 'free', gen_random_uuid());
+    raise exception 'foto comum ocupou a vaga reservada para a arte';
+  exception when others then if sqlerrm <> 'STORAGE_QUOTA' then raise; end if;
+  end;
+  insert into public.diary_entries (owner_id, dog_id, media_asset_id, occurred_date, timezone, source, request_key) values (ivan, d2, m, '2026-10-17', 'UTC', 'studio', 'bbbbbbbb-0000-4000-8000-000000000001');
+  delete from public.generation_jobs where dog_id = d2;
+  update public.app_limits set value = 100 where key = 'max_entries';
+
+  -- 6) análise de foto entra no teto do dia
+  insert into public.photo_checks (asset_id, crop_key, result, cost_usd, requested_by) values (m, 'full', '{}', 0.2, ivan);
+  begin
+    perform public.create_studio_job(jsonb_build_object('owner_id', ivan, 'dog_id', d2, 'theme_id', 'aniversario', 'preset_version', 1, 'aspect', '1:1', 'model', 'm', 'credits', 1, 'cost_usd', 0.01, 'idempotency_key', 'aaaaaaaa-0000-4000-8000-000000000009'), 100, 0.15);
+    raise exception 'análises de foto deveriam contar no teto';
+  exception when others then if sqlerrm <> 'BUDGET' then raise; end if;
+  end;
+  delete from public.photo_checks where asset_id = m;
 
   -- 11) aviso de arte
   insert into public.notifications (user_id, dog_id, actor_id, kind) values (bia, d2, ivan, 'art');

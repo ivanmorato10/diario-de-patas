@@ -260,6 +260,8 @@ function Estudio() {
   // Datas: a mesma ideia em foto realista ou em ilustração (cada uma com o seu exemplo).
   const [look, setLook] = useState<"realista" | "ilustracao">(presetFromUrl?.variantOf ? "ilustracao" : "realista");
   const shownId = (p: StudioPreset) => (look === "ilustracao" && p.illustration ? p.id + ILLUSTRATED_SUFFIX : p.id);
+  // Abas com os dois acabamentos: tema de estilo único (figurinha) aparece só em "Ilustração".
+  const hasLooks = SHOWCASE_PRESETS.some((p) => p.category === tab && p.illustration);
   function changeLook(next: "realista" | "ilustracao") {
     setLook(next);
     const cur = presetId ? presetById(presetId) : undefined;
@@ -449,7 +451,7 @@ function Estudio() {
                   <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{t.labelPt}</button>
                 ))}
               </div>
-              {SHOWCASE_PRESETS.some((p) => p.category === tab && p.illustration) ? (
+              {hasLooks ? (
                 <div role="radiogroup" aria-label="Acabamento" className="filter-row">
                   {([["realista", "Realista"], ["ilustracao", "Ilustração"]] as const).map(([id, label]) => (
                     <button key={id} type="button" role="radio" aria-checked={look === id} className={`filter-chip${look === id ? " is-active" : ""}`} onClick={() => changeLook(id)}>{label}</button>
@@ -457,7 +459,7 @@ function Estudio() {
                 </div>
               ) : null}
               <div role="tabpanel" id={`st-panel-${tab}`} aria-labelledby={`st-tab-${tab}`} className="preset-grid">
-                {SHOWCASE_PRESETS.filter((p) => p.category === tab).map((base) => presetById(shownId(base))!).filter((p) => flags.get(p.id)?.enabled ?? true).map((p) => {
+                {SHOWCASE_PRESETS.filter((p) => p.category === tab && (!hasLooks || p.illustration || look === "ilustracao")).map((base) => presetById(shownId(base))!).filter((p) => flags.get(p.id)?.enabled ?? true).map((p) => {
                   const c = flags.get(p.id)?.credits ?? p.credits;
                   return (
                     <button key={p.id} type="button" className={`preset-card${presetId === p.id ? " is-selected" : ""}`} aria-pressed={presetId === p.id} onClick={() => setPresetId(p.id)}>

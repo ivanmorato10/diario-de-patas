@@ -26,12 +26,12 @@ export async function sendAccountDeleted(to: string, dogName: string | null) {
     .catch((e) => console.error("email de conta excluída não enviado:", e instanceof Error ? e.message : e));
 }
 
-/** Comprovante de compra de créditos. Devolve se foi enviado (falhas só vão para o log). */
-export async function sendPurchaseConfirmed(to: string, receipt: PurchaseReceipt): Promise<boolean> {
+/** Comprovante de compra de créditos. "skipped" = não há como enviar (sem SMTP ou endereço de teste). */
+export async function sendPurchaseConfirmed(to: string, receipt: PurchaseReceipt): Promise<"sent" | "skipped" | "failed"> {
   const t = transport();
-  if (!t || !to || isTestAddress(to)) return false;
+  if (!t || !to || isTestAddress(to)) return "skipped";
   const mail = purchaseConfirmedEmail(receipt);
   return t
     .sendMail({ from: process.env.SMTP_FROM || `Diário de Patas <${process.env.SMTP_USER}>`, to, subject: mail.subject, html: mail.html, text: mail.text })
-    .then(() => true, (e) => { console.error("email de compra não enviado:", e instanceof Error ? e.message : e); return false; });
+    .then(() => "sent" as const, (e) => { console.error("email de compra não enviado:", e instanceof Error ? e.message : e); return "failed" as const; });
 }

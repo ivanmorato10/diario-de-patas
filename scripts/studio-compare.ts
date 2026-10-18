@@ -70,7 +70,7 @@ const rows: { photo: string; old: Shot; neu: Shot }[] = [];
     writeFileSync(path.join(outDir, `original-${i + 1}.jpg`), buf);
     const row = { photo: `original-${i + 1}.jpg` } as (typeof rows)[number];
     for (const which of (args.includes("--so-novo") ? ["neu"] : ["old", "neu"]) as ("old" | "neu")[]) {
-      if (which === "neu" && args.includes("--so-novo")) row.old = JSON.parse(readFileSync(path.join(outDir, "results.json"), "utf8"))[i]?.old ?? { file: `old-${i + 1}.webp`, ms: 0, same: null, photo: null, error: null };
+      if (which === "neu" && args.includes("--so-novo")) row.old = (existsSync(path.join(outDir, "results.json")) ? JSON.parse(readFileSync(path.join(outDir, "results.json"), "utf8"))[i]?.old : null) ?? { file: null, ms: 0, same: null, photo: null, error: "não gerado nesta rodada" };
       process.stdout.write(`foto ${i + 1} · ${which === "old" ? "antigo" : "novo"}… `);
       const started = Date.now();
       const shot: Shot = { file: null, ms: 0, same: null, photo: null, error: null };

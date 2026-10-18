@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DomainError, type Snapshot } from "./demo-repository";
-import { realRepository, setActiveDog } from "./real-repository";
+import { getActiveDog, realRepository, setActiveDog } from "./real-repository";
 import { syncDeviceOwner } from "./push-client";
 import { pendingArts, studioJob, untrackArt } from "./studio-client";
 import type { Repository } from "./repository";
@@ -77,21 +77,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [reload]);
 
   // Arte do Estúdio em andamento: quando terminar, o diário atualiza em qualquer tela.
+  // Erro passageiro (rede, servidor) tenta de novo; só sai da lista quando o pedido não existe mais
+  // ou depois que o diário daquele cachorro foi recarregado com sucesso.
   useEffect(() => {
     const t = setInterval(async () => {
       if (!repoRef.current || document.visibilityState !== "visible") return;
-      const ids = pendingArts();
-      if (!ids.length) return;
-      let done = false;
-      for (const id of ids) {
+      for (const p of pendingArts()) {
+        let done = false;
         try {
-          const j = await studioJob(id);
-          if (j.state !== "queued" && j.state !== "processing") { untrackArt(id); done = true; }
+          const j = await studioJob(p.id);
+          done = j.state !== "queued" && j.state !== "processing";
+          if (done && j.dogId && j.dogId !== getActiveDog()) { untrackArt(p.id); continue; } // outro cachorro: carrega ao abrir o diário dele
         } catch (e) {
-          if (e instanceof DomainError) untrackArt(id); // não existe mais / sem acesso
+          if (e instanceof DomainError && e.code === "NOT_FOUND") untrackArt(p.id);
+          continue;
+        }
+        if (done) {
+          try { await reload(); untrackArt(p.id); } catch { /* tenta de novo na próxima volta */ }
         }
       }
-      if (done) void reload().catch(() => {});
     }, 5000);
     return () => clearInterval(t);
   }, [reload]);

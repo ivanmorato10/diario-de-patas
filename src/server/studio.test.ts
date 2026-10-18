@@ -9,7 +9,7 @@ import { stickerFromGreen } from "./studio";
 describe("presets do Estúdio (adendo §10)", () => {
   it("variantes ilustradas: datas, fantasias e formatos com foto, com o prompt antigo e os mesmos créditos", () => {
     const v = STUDIO_PRESETS.filter((p) => p.variantOf);
-    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "astronauta", "capa-album", "cartao", "chef", "detetive", "dia-dos-animais", "explorador", "festa-junina", "futebol", "halloween", "natal", "papel-de-parede", "pascoa", "realeza", "super-heroi", "surfista"]);
+    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "astronauta", "capa-album", "cartao", "chef", "detetive", "dia-das-maes-pet", "dia-dos-animais", "explorador", "festa-junina", "futebol", "halloween", "natal", "papel-de-parede", "pascoa", "realeza", "super-heroi", "surfista"]);
     for (const p of v) {
       expect(p.prompt).toMatch(/illustrat|style/);
       expect(presetById(p.variantOf!)!.prompt).toMatch(/not an illustration/);

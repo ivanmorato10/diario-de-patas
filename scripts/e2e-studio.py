@@ -44,6 +44,7 @@ with sync_playwright() as p:
     def make(tab, label):
         pg.goto(BASE + "/estudio"); expect(pg.locator(".credit-line")).to_be_visible(timeout=20000)
         pg.locator(".photo-strip__item").first.click(); pg.get_by_role("tab", name=tab).click()
+        if label == "Figurinha para WhatsApp": pg.get_by_role("radio", name="Ilustração").click()  # estilo único: só em Ilustração
         pg.get_by_role("button", name=label, exact=False).first.click()
         pg.get_by_role("button", name="Criar arte").click()
         if label == "Aniversário":
@@ -71,6 +72,8 @@ with sync_playwright() as p:
     state = rpc("studioState", {})[1]
     check(f"duplo clique: mesmo job e uma cobrança (saldo {state['balance']})", j1["id"] == j2["id"] and state["balance"] == 2)
 
+    pg.goto(BASE + "/estudio"); expect(pg.locator(".credit-line")).to_be_visible(timeout=20000); pg.get_by_role("tab", name="Formatos").click()
+    check("Realista não mostra a figurinha (só desenho)", pg.get_by_role("button", name="Figurinha para WhatsApp").count() == 0)
     make("Formatos", "Figurinha para WhatsApp")
     job = [j for j in rpc("studioState", {})[1]["jobs"] if j["presetId"] == "figurinha"][0]
     raw = pg.evaluate("id => fetch('/api/media/' + id).then(r => r.arrayBuffer()).then(b => Array.from(new Uint8Array(b)))", job["outputMediaId"])
