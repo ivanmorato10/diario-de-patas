@@ -55,7 +55,9 @@ with sync_playwright() as p:
     pg.screenshot(path=f"{OUT}/02-aniversario.png", full_page=True)
     snap = rpc("snapshot", {})[1]
     art = [e for e in snap["entries"] if e["source"] == "studio"]
-    check("arte salva no diário como estúdio, no álbum Datas especiais", len(art) == 1 and any(a["albumId"] == "datas-especiais" and a["entryId"] == art[0]["id"] for a in snap["albumEntries"]))
+    studio_album = next((c["id"] for c in snap["customAlbums"] if c["title"] == "Artes do Estúdio"), None)
+    check("arte salva no diário, no álbum 'Artes do Estúdio'", len(art) == 1 and studio_album and any(a["albumId"] == studio_album and a["entryId"] == art[0]["id"] for a in snap["albumEntries"]))
+    check("a arte tem autor (quem pediu)", art[0].get("createdBy") == snap["me"]["userId"])
     st, body = rpc("submitMission", {"requestKey": str(uuid.uuid4()), "missionId": "M01", "entryId": art[0]["id"], "status": "approved"})
     check(f"arte não conclui missão ({st})", st == 400)
     state = rpc("studioState", {})[1]

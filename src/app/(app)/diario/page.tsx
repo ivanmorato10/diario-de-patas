@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { COLLECTIONS } from "@/config/catalog";
 import { useAlbumTitle } from "@/components/album-picker";
 import { LIMITS } from "@/config/business";
@@ -54,6 +54,39 @@ export default function Diario() {
     }
     return out;
   }, [snap, filter, query, albumsByEntry]);
+
+  // Ir até uma lembrança (aviso, "Ver no diário"): ?ir=<id> ou #<id>. Tira filtros que a esconderiam,
+  // rola com folga para o topo fixo e SEGURA a posição enquanto as fotos de cima carregam e mudam de
+  // altura (até a página estabilizar ou a pessoa rolar). Destaca a lembrança por um instante.
+  const target = useRef<string | null>(null);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("ir");
+    target.current = p || (window.location.hash ? decodeURIComponent(window.location.hash.slice(1)) : null);
+    if (target.current) { setFilter("all"); setQuery(""); }
+  }, []);
+  useEffect(() => {
+    const id = target.current;
+    if (!id || !snap?.dog) return;
+    let stopped = false, lastTop = NaN, still = 0, frames = 0;
+    const stop = () => { stopped = true; };
+    window.addEventListener("wheel", stop, { once: true, passive: true });
+    window.addEventListener("touchmove", stop, { once: true, passive: true });
+    const tick = () => {
+      if (stopped || frames++ > 360) return; // no máximo ~6 s
+      const el = document.getElementById(id);
+      if (el) {
+        const top = el.getBoundingClientRect().top;
+        if (Math.abs(top - 76) > 2) window.scrollBy({ top: top - 76 });
+        still = Math.abs(top - lastTop) < 1 ? still + 1 : 0;
+        lastTop = top;
+        if (frames === 1 || !el.classList.contains("is-target")) el.classList.add("is-target");
+        if (still > 45) { target.current = null; setTimeout(() => el.classList.remove("is-target"), 1600); return; }
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return () => { stopped = true; window.removeEventListener("wheel", stop); window.removeEventListener("touchmove", stop); };
+  }, [snap]);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;

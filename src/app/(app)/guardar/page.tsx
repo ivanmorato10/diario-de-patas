@@ -113,7 +113,8 @@ function GuardarInner() {
     setPickNotes([]);
     entryKey.current = newId(); // nova tentativa = nova chave; retries reutilizam
     setDate(p.takenDate && p.takenDate <= snap!.today ? p.takenDate : presetDate && isCivilDate(presetDate) && presetDate <= snap!.today ? presetDate : snap!.today);
-    setDupe(await repo!.findEntryByHash(p.hash));
+    // Conferir duplicata não pode travar nem perder a foto já preparada: se falhar, segue sem o aviso.
+    setDupe(await repo!.findEntryByHash(p.hash).catch(() => null));
     setStep({ kind: "edit" });
   }
 
@@ -128,6 +129,9 @@ function GuardarInner() {
     setStep({ kind: "batch" });
   }
 
+  /** Atualiza a tela sem reenviar nada; erro aqui não vira "não salvou". */
+  const sync = () => reload().catch(() => undefined);
+
   async function save() {
     if (!img || busy) return;
     if (!isCivilDate(date) || date > snap!.today) {
@@ -141,7 +145,8 @@ function GuardarInner() {
         requestKey: entryKey.current, image: img, caption, occurredDate: date,
         source: "free", missionId: null, albumIds: mission ? [] : albums,
       });
-      await reload();
+      // Já está salvo: a atualização da tela vai em segundo plano e, se falhar, não desfaz o "guardada".
+      void sync();
       if (mission && missionAvailable) {
         submissionKey.current = newId();
         setStep({ kind: "confirm", entry });
@@ -175,8 +180,11 @@ function GuardarInner() {
       setBatch([...next]);
     }
     setBatch(next);
-    await reload();
-    setBusy(false);
+    try {
+      await sync(); // falha de atualização não é falha de envio
+    } finally {
+      setBusy(false);
+    }
     const saved = next.filter((x) => x.state === "saved").length;
     if (saved === next.length) setStep({ kind: "batchDone", count: saved });
     else setError(`${saved} de ${next.length} fotos guardadas. Confira as marcadas e toque em “Guardar todas” de novo — as que já foram não se repetem.`);
@@ -192,8 +200,8 @@ function GuardarInner() {
         status: matches ? "approved" : "uncertain", reasonCode: matches ? "OWNER_CONFIRMED" : "OWNER_UNSURE",
         mode: "owner", providerVersion: null,
       });
-      await reload();
-      setStep({ kind: "result", entry, result });
+      setStep({ kind: "result", entry, result }); // o servidor confirmou: mostra já
+      void sync();
     } catch (err) {
       setError(err instanceof DomainError ? err.message : "Não conseguimos registrar agora. A foto já está no diário — tente de novo.");
     } finally {
@@ -341,7 +349,7 @@ function GuardarInner() {
             <div className="notice notice--info"><IconInfo /><span>Quem confirma é você. A foto já está guardada no diário.</span></div>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
-              <button type="button" className="btn btn--primary btn--block" onClick={() => confirm(step.entry, true)} disabled={busy}>Sim, mostra</button>
+              <button type="button" className="btn btn--primary btn--block" onClick={() => confirm(step.entry, true)} disabled={busy}>{busy ? "Concluindo…" : "Sim, mostra"}</button>
               <button type="button" className="btn btn--secondary btn--block" onClick={() => confirm(step.entry, false)} disabled={busy}>Não tenho certeza</button>
             </div>
           </section>

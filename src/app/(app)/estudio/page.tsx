@@ -180,6 +180,8 @@ function MakingArt({ job }: { job: StudioJob }) {
 
 /** Resultado com a foto original ao lado, selo de IA e texto desenhado pelo app. */
 function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void }) {
+  const studioAlbum = useStore().snap?.customAlbums.find((c) => c.title === "Artes do Estúdio");
+  const studioAlbumHref = studioAlbum ? `/albuns/${studioAlbum.id}` : "/diario";
   const preset = presetById(job.presetId);
   const art = useMediaBlob(job.outputMediaId, "display");
   const [composed, setComposed] = useState<Blob | null>(null);
@@ -220,7 +222,7 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
       <div className="stack">
         <button type="button" className="btn btn--primary btn--block" onClick={download} disabled={!url}><IconDownload /> {sticker ? "Baixar figurinha" : "Baixar arte"}</button>
         <button type="button" className="btn btn--secondary btn--block" onClick={onAgain}>Fazer outra versão (usa crédito)</button>
-        <Link href="/albuns/datas-especiais" className="btn btn--ghost btn--block">Ver em Datas especiais</Link>
+        <Link href={studioAlbumHref} className="btn btn--secondary btn--block">Ver em Artes do Estúdio</Link>
       </div>
     </section>
   );
@@ -276,16 +278,22 @@ function Estudio() {
     } catch { /* sem armazenamento: só espera o servidor */ }
   }, [cacheKey, snap?.dog?.id]);
 
+  // Arte pronta (aqui ou em segundo plano) que o Diário/álbuns ainda não têm: atualiza o app todo, sem
+  // precisar fechar e abrir. Só quando falta mesmo (evita recarregar à toa a cada consulta).
+  const { reload: reloadStore } = useStore();
+  const entriesRef = useRef<Set<string>>(new Set());
+  entriesRef.current = new Set((snap?.entries ?? []).map((e) => e.id));
   const refresh = useCallback(async () => {
     try {
       const fresh = await studioState();
       setState(fresh);
+      if (fresh.jobs.some((j) => j.state === "succeeded" && j.outputEntryId && !entriesRef.current.has(j.outputEntryId))) void reloadStore().catch(() => undefined);
       // Sem a lista de artes: um job antigo "em andamento" no cache abriria a tela de espera à toa.
       try { localStorage.setItem(cacheKey, JSON.stringify({ ...fresh, jobs: [] })); } catch { /* ok */ }
     } catch (e) {
       setLoadError(e instanceof DomainError ? e.message : "Não conseguimos carregar o Estúdio.");
     }
-  }, [cacheKey]);
+  }, [cacheKey, reloadStore]);
   useEffect(() => {
     idem.current = crypto.randomUUID();
     if (snap?.dog?.id) void refresh();

@@ -857,8 +857,13 @@ a.choice-card:active { transform: translateY(1px); }
 .hoje-level, .hoje-xp { box-sizing: border-box; height: 28px; padding: 0 10px; font-size: 0.8125rem; line-height: 1; white-space: nowrap; }
 .hoje-memory__photo { margin: 4px 6px 0; }
 /* Moldura de tamanho fixo: a foto troca a cada 10 s sem mexer o resto da tela (foto inteira, sem corte). */
-.hoje-memory__photo .memory-fade { display: grid; }
-.hoje-memory__photo .photo--natural { width: 100%; height: 300px; max-height: none; object-fit: contain; background: #f3ede2; border-radius: 4px; }
+/* Safari: item de grade cresce até a largura ORIGINAL da foto (min-width: auto). minmax(0, 1fr) + min-width: 0
+   prendem tudo (foto, espaço reservado e legenda) na largura da moldura, antes e depois de carregar. */
+.hoje-memory { min-width: 0; }
+.hoje-memory__photo { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.hoje-memory__photo .memory-fade { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; width: 100%; }
+.hoje-memory__photo .memory-fade > * { min-width: 0; max-width: 100%; }
+.hoje-memory__photo .photo--natural { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; height: 300px; max-height: none; aspect-ratio: auto; object-fit: contain; background: #f3ede2; border-radius: 4px; }
 .hoje-memory__photo .polaroid__note, .hoje-memory__photo .polaroid__meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adjust-later { border: 1.5px dashed var(--border); border-radius: 14px; padding: 12px 14px; background: var(--surface, #fff); }
 .adjust-later summary { cursor: pointer; font-weight: 700; color: var(--link); list-style-position: inside; }
@@ -982,3 +987,7 @@ a.choice-card:active { transform: translateY(1px); }
 .privacy-list { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
 .welcome-family { display: grid; justify-items: center; gap: 10px; text-align: center; margin-bottom: 14px; }
 .welcome-family h2 { margin: 0; }
+/* Lembrança aberta por um aviso: destaque rápido. */
+.is-target { animation: target-glow 1.8s var(--ease, ease) both; border-radius: 6px; }
+@keyframes target-glow { 0%, 60% { box-shadow: 0 0 0 4px var(--accent), 0 10px 30px rgba(227, 111, 52, 0.35); } 100% { box-shadow: none; } }
+.bone-btn--count { width: auto; padding: 0 12px; gap: 4px; font: 800 0.875rem/1 var(--font-body); color: var(--text-primary); }

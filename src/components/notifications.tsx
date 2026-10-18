@@ -3,12 +3,28 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useStore } from "@/data/store";
+import { rpc } from "@/data/real-repository";
 import { disablePush, enablePush, pushState, setNotifyPrefs, testPush, type PushState } from "@/data/push-client";
 
 /** Sininho de cachorro (sino com orelhinhas e patinha) no topo, com o número de novidades. */
 export function DogBell() {
-  const { snap } = useStore();
+  const { snap, patchSnap } = useStore();
   const n = snap?.unread ?? 0;
+  const hasDog = !!snap?.dog;
+  // Mantém a bolinha em dia com fotos, cartinhas, artes e ossinhos da família: a cada minuto com o app
+  // aberto e ao voltar para ele (só a contagem, nada pesado).
+  useEffect(() => {
+    if (!hasDog) return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      rpc<{ unread: number }>("unreadCount").then((r) => patchSnap((s) => (s.unread === r.unread ? s : { ...s, unread: r.unread }))).catch(() => undefined);
+    };
+    refresh();
+    const t = setInterval(refresh, 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("focus", refresh); };
+  }, [hasDog, patchSnap]);
   return (
     <Link href="/novidades" className="topbar__person dog-bell" aria-label={n ? `Novidades da família: ${n} ${n === 1 ? "nova" : "novas"}` : "Novidades da família"}>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

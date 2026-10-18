@@ -18,12 +18,15 @@ function Abrir() {
   const { snap, reload } = useStore();
   const [problem, setProblem] = useState<string | null>(null);
   const switching = useRef(false);
+  // Sempre busca dados novos antes de procurar: uma foto recém-guardada não pode parecer "apagada".
+  const [fresh, setFresh] = useState(false);
+  useEffect(() => { reload().catch(() => undefined).finally(() => setFresh(true)); }, [reload]);
   const cao = params.get("cao");
   const foto = params.get("foto");
   const carta = params.get("carta");
 
   useEffect(() => {
-    if (!snap || problem) return;
+    if (!snap || problem || !fresh) return;
     if (!cao) { router.replace("/novidades"); return; }
     if (snap.dog?.id !== cao) {
       if (switching.current) return; // esperando o diário certo carregar
@@ -35,8 +38,8 @@ function Abrir() {
     // Já no cachorro certo: a lembrança ainda existe?
     if (foto && !snap.entries.some((e) => e.id === foto)) { setProblem("Essa foto foi apagada."); return; }
     if (carta && !(snap.letters ?? []).some((l) => l.id === carta)) { setProblem("Essa cartinha foi apagada."); return; }
-    router.replace(foto ? `/diario#${foto}` : carta ? `/diario#carta-${carta}` : "/diario");
-  }, [snap, problem, cao, foto, carta, reload, router]);
+    router.replace(foto ? `/diario?ir=${foto}` : carta ? `/diario?ir=carta-${carta}` : "/diario");
+  }, [snap, problem, fresh, cao, foto, carta, reload, router]);
 
   if (problem) {
     return (

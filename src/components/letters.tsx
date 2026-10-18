@@ -11,6 +11,7 @@ import { formatCivilDate } from "@/domain/dates";
 export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry" | "letter"; targetId: string; authorId: string | null | undefined }) {
   const { snap, reload, patchSnap } = useStore();
   const [busy, setBusy] = useState(false);
+  const [showWho, setShowWho] = useState(false);
   const me = snap?.me?.userId;
   if (!snap || !me || (snap.members?.length ?? 0) < 2) return null;
   const bones = (snap.bones ?? []).filter((b) => b.targetType === targetType && b.targetId === targetId);
@@ -18,6 +19,7 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
   const own = !!authorId && authorId === me;
   // Como no Instagram: o ossinho aceso já mostra que você deu; o texto cita só as outras pessoas.
   const text = bonesText(bones.filter((b) => b.userId !== me), snap.members ?? [], me);
+  const allWho = bonesText(bones, snap.members ?? [], me);
   if (own && !bones.length) return null;
 
   async function toggle() {
@@ -27,13 +29,23 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
     try { await toggleBone(targetType, targetId); } finally { await reload().catch(() => undefined); setBusy(false); }
   }
 
+  // Na própria lembrança: osso aceso com o número; tocar mostra quem deu (não dá para dar em si mesmo).
+  if (own) {
+    return (
+      <div className="bone-bar">
+        <button type="button" className="bone-btn is-on bone-btn--count" onClick={() => setShowWho((v) => !v)} aria-expanded={showWho} aria-label={`${bones.length} ${bones.length === 1 ? "ossinho" : "ossinhos"}: ${allWho}`}>
+          <span aria-hidden="true">🦴</span> {bones.length}
+        </button>
+        {showWho ? <span className="caption bone-bar__who">{allWho}</span> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="bone-bar">
-      {!own ? (
-        <button type="button" className={`bone-btn${mine ? " is-on" : ""}`} onClick={toggle} disabled={busy} aria-pressed={mine} aria-label={mine ? "Tirar ossinho" : "Dar ossinho"}>
-          <span aria-hidden="true">🦴</span>
-        </button>
-      ) : null}
+      <button type="button" className={`bone-btn${mine ? " is-on" : ""}${bones.length ? " bone-btn--count" : ""}`} onClick={toggle} disabled={busy} aria-pressed={mine} aria-label={mine ? "Tirar ossinho" : "Dar ossinho"}>
+        <span aria-hidden="true">🦴</span>{bones.length ? ` ${bones.length}` : ""}
+      </button>
       {text ? <span className="caption bone-bar__who">{text}</span> : null}
     </div>
   );

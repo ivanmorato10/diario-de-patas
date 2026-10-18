@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { COLLECTIONS, MISSIONS } from "@/config/catalog";
-import { missionState } from "@/domain/missions";
+import { missionById, missionState } from "@/domain/missions";
+import { formatCivilDate } from "@/domain/dates";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MissionRow } from "@/components/mission-ui";
 
@@ -16,9 +17,12 @@ export default function Missoes() {
   if (!ready) return <main className="main"><PageLoading /></main>;
   const doneOnce = MISSIONS.filter((m) => completed.has(m.id)).length;
   const shown = MISSIONS.filter((m) => (filter === "done") === completed.has(m.id));
+  // Ideias do dia e especiais também contam (podem ser feitas de novo em outros dias/anos).
+  const repeatable = (snap!.completions ?? []).filter((c) => { const k = missionById(c.missionId)?.kind; return k === "daily" || k === "special"; })
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
   const filters: { id: Filter; label: string; count: number }[] = [
     { id: "open", label: "Disponíveis", count: MISSIONS.length - doneOnce },
-    { id: "done", label: "Concluídas", count: doneOnce },
+    { id: "done", label: "Concluídas", count: doneOnce + repeatable.length },
   ];
   return (
     <>
@@ -32,7 +36,20 @@ export default function Missoes() {
             </button>
           ))}
         </div>
-        {shown.length === 0 ? (
+        {filter === "done" && repeatable.length ? (
+          <section className="stack" aria-labelledby="col-ideias">
+            <h2 id="col-ideias">Ideias do dia e especiais</h2>
+            <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {repeatable.map((c) => (
+                <li key={c.instanceKey} className="card row-between" style={{ padding: "10px 14px" }}>
+                  <span>{missionById(c.missionId)?.title ?? "Missão"}</span>
+                  <span className="caption">{formatCivilDate(c.date ?? c.completedAt.slice(0, 10))}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        {shown.length === 0 && !(filter === "done" && repeatable.length) ? (
           <p className="muted">{filter === "done" ? "Nenhuma missão concluída ainda. A primeira é “Olá, mundo”." : "Todas as missões foram concluídas. O diário continua aberto para qualquer momento."}</p>
         ) : null}
         {COLLECTIONS.filter((c) => c.hasMissions).map((c) => {

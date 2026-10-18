@@ -135,6 +135,13 @@ export async function listNotifications(ctx: Ctx) {
   });
 }
 
+/** Só a contagem do sininho (leve: consultada a cada minuto e ao voltar para o app). */
+export async function unreadCount(ctx: Ctx) {
+  const { count, error } = await ctx.supa.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).is("read_at", null);
+  if (error) throw new Error(error.message);
+  return { unread: count ?? 0 };
+}
+
 /** Marca como lidos SÓ os avisos que a pessoa viu (os que chegarem depois continuam novos). */
 export async function markNotificationsRead(ctx: Ctx, args: unknown) {
   const { ids } = z.object({ ids: z.array(z.string().uuid()).max(100) }).parse(args);

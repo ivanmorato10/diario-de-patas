@@ -17,7 +17,8 @@ export interface PickFailure {
 export function PhotoPicker({
   onPicked, onPickedMany, maxFiles, disabled, compact, tiles,
 }: {
-  onPicked: (img: ProcessedImage) => void;
+  /** Pode ser assíncrono: o "Preparando…" fica até ele terminar. */
+  onPicked: (img: ProcessedImage) => void | Promise<void>;
   onPickedMany?: (imgs: ProcessedImage[], failures: PickFailure[], skipped: number) => void;
   /** Quantas fotos cabem nesta seleção; as excedentes não são processadas. */
   maxFiles?: number;
@@ -42,7 +43,7 @@ export function PhotoPicker({
     if (files.length === 1 || !onPickedMany) {
       setBusy("Preparando a foto…");
       try {
-        onPicked(await processImage(files[0]));
+        await onPicked(await processImage(files[0]));
       } catch (err) {
         setError(message(err));
       } finally {
