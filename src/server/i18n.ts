@@ -36,7 +36,7 @@ export async function localeOf(userId: string): Promise<AppLocale> {
   return (await localesOf([userId])).get(userId) ?? DEFAULT_LOCALE;
 }
 
-/** Região do calendário efetiva de um perfil (sem escolha: a sugestão do idioma). */
+/** Região efetiva de um perfil. Sem região gravada (conta nova, antes da primeira gravação das preferências): a sugestão do idioma. */
 export const regionOf = (profile: { region?: string | null; locale?: string | null } | null | undefined): Region =>
   isRegion(profile?.region) ? profile.region : defaultRegion(isLocale(profile?.locale) ? profile.locale : DEFAULT_LOCALE);
 

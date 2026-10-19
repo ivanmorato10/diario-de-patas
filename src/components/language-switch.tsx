@@ -1,22 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { useLocale } from "next-intl";
 import { LOCALES, LOCALE_NAMES, type AppLocale } from "@/i18n/locale";
-import { useSetPreferences } from "./locale-sync";
+import { PrefsSaveError, usePreferenceSaver } from "./locale-sync";
 
 /**
  * "Idioma / Language": o rótulo aparece nos dois idiomas, e cada opção no próprio idioma.
- * Antes do login grava o cookie; com conta, também o perfil. Trocar não recarrega a página.
+ * Antes do login grava o cookie; com conta, grava o perfil primeiro e só então troca a tela (se falhar, avisa e
+ * oferece tentar de novo, sem mudar nada). Trocar não recarrega a página.
  */
 export function LanguageSwitch({ compact = false }: { compact?: boolean }) {
   const locale = useLocale();
-  const setPrefs = useSetPreferences();
-  const [busy, setBusy] = useState(false);
-  async function pick(l: AppLocale) {
+  const { save, busy, failed, retry } = usePreferenceSaver();
+  function pick(l: AppLocale) {
     if (l === locale || busy) return;
-    setBusy(true);
-    try { await setPrefs({ locale: l }); } finally { setBusy(false); }
+    void save({ locale: l });
   }
   return (
     <div className={`lang-switch${compact ? " lang-switch--compact" : ""}`} role="radiogroup" aria-label="Idioma / Language">
@@ -29,6 +27,7 @@ export function LanguageSwitch({ compact = false }: { compact?: boolean }) {
           </button>
         ))}
       </div>
+      <PrefsSaveError failed={failed} retry={retry} busy={busy} />
     </div>
   );
 }

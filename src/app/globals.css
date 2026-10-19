@@ -226,6 +226,8 @@ input.input[type="date"]::-webkit-date-and-time-value, input.input[type="time"]:
 .input:focus, .select:focus, .textarea:focus { border-color: var(--brand-primary); outline: none; box-shadow: 0 0 0 3px var(--brand-soft); }
 .input[aria-invalid="true"] { border-color: var(--danger); }
 .field-error { color: var(--danger); font-size: 0.875rem; font-weight: 600; }
+.prefs-error { margin: 0; }
+.prefs-error__retry { color: var(--link); font: inherit; text-decoration: underline; min-height: 44px; padding: 0 4px; background: none; border: 0; }
 
 .check {
   display: flex; align-items: center; gap: 12px;

@@ -19,7 +19,7 @@ import {
 import { missionById } from "@/domain/missions";
 import type { CollectionAdvance, MissionCompletion, Medal } from "@/domain/types";
 import { adminClient, HttpError } from "./supabase";
-import { LOCALES, REGIONS, WEIGHT_UNITS, isLocale, isRegion, isWeightUnit } from "@/i18n/locale";
+import { LOCALES, REGIONS, WEIGHT_UNITS, defaultRegion, defaultWeightUnit, isLocale, isRegion, isWeightUnit, type AppLocale } from "@/i18n/locale";
 import { MESSAGES as MESSAGES_BY_LOCALE } from "@/i18n/messages";
 import { localeOf, regionOf, requestLocale, translator } from "./i18n";
 import { after } from "next/server";
@@ -154,6 +154,13 @@ export async function setPreferences(ctx: Ctx, args: unknown) {
   if (a.locale) row.locale = a.locale;
   if (a.region) row.region = a.region;
   if (a.weightUnit) row.weight_unit = a.weightUnit;
+  // O idioma só SUGERE região e unidade, uma vez: a primeira gravação fixa as que faltam pelo idioma que valia
+  // ANTES desta troca (perfil, ou o da tela). Depois disso, trocar o idioma não muda loja, compra, feriados nem kg/lb.
+  const current = (await q(adminClient().from("profiles").select("locale, region, weight_unit").eq("user_id", ctx.user.id).maybeSingle())) as any;
+  const base: AppLocale = isLocale(current?.locale) ? current.locale : await requestLocale();
+  if (!isRegion(current?.region) && !row.region) row.region = defaultRegion(base);
+  if (!isWeightUnit(current?.weight_unit) && !row.weight_unit) row.weight_unit = defaultWeightUnit(base);
+  if (!isLocale(current?.locale) && !row.locale) row.locale = base;
   await q(adminClient().from("profiles").upsert(row, { onConflict: "user_id" }));
   if (a.locale && (ctx.user.user_metadata as any)?.locale !== a.locale) {
     const { error } = await adminClient().auth.admin.updateUserById(ctx.user.id, { user_metadata: { locale: a.locale } });

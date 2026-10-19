@@ -7,7 +7,7 @@ import { useErrorText } from "@/i18n/use-error";
 import { usePrefs } from "@/i18n/use-format";
 import { LOCALE_NAMES, REGIONS } from "@/i18n/locale";
 import { LanguageSwitch } from "@/components/language-switch";
-import { useSetPreferences } from "@/components/locale-sync";
+import { PrefsSaveError, usePreferenceSaver } from "@/components/locale-sync";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { browserClient } from "@/data/supabase-browser";
@@ -39,7 +39,7 @@ export default function Conta() {
   const t = useTranslations("account");
   const errText = useErrorText();
   const prefs = usePrefs();
-  const setPrefs = useSetPreferences();
+  const regionSaver = usePreferenceSaver();
   const CONFIRM_WORD = t("confirmWord");
 
   useEffect(() => {
@@ -133,9 +133,10 @@ export default function Conta() {
               <span id="c-region" className="label" style={{ fontWeight: 600 }}>{t("region")}</span>
               <div className="filter-row">
                 {REGIONS.map((r) => (
-                  <button key={r} type="button" role="radio" aria-checked={prefs.region === r} className={`filter-chip${prefs.region === r ? " is-active" : ""}`} onClick={() => void setPrefs({ region: r })}>{t(`regions.${r}`)}</button>
+                  <button key={r} type="button" role="radio" aria-checked={prefs.region === r} className={`filter-chip${prefs.region === r ? " is-active" : ""}`} onClick={() => void regionSaver.save({ region: r })}>{t(`regions.${r}`)}</button>
                 ))}
               </div>
+              <PrefsSaveError failed={regionSaver.failed} retry={regionSaver.retry} busy={regionSaver.busy} />
               <span className="caption">{t("regionNote")}</span>
             </div>
           </div>

@@ -181,6 +181,23 @@ try:
         e.get_by_role("radio", name="kg").click(); e.get_by_role("radio", name="lb").click()  # toques rápidos
         e.wait_for_timeout(2500)
         check("toques rápidos na unidade: vale a última escolha (lb)", rpc(e, "snapshot", {})[1]["me"]["weightUnit"] == "lb")
+        # Campo preenchido: trocar a unidade converte o número (o peso que será salvo continua o mesmo).
+        e.get_by_label("Weight (lb)").fill("22.05"); e.get_by_role("radio", name="kg").click()
+        check("campo em lb vira kg ao trocar a unidade (22.05 lb → 10 kg)", eventually(lambda t: expect(e.get_by_label("Weight (kg)")).to_have_value("10", timeout=t)))
+        e.get_by_role("radio", name="lb").click()
+        check("e volta para lb sem mudar o peso (10 kg → 22.05 lb)", eventually(lambda t: expect(e.get_by_label("Weight (lb)")).to_have_value("22.05", timeout=t)))
+        # Falha ao gravar a unidade: avisa, oferece tentar de novo e nada muda (unidade e campo voltam).
+        e.wait_for_timeout(1500)
+        e.route("**/api/rpc/setPreferences", lambda r: r.abort())
+        e.get_by_role("radio", name="kg").click()
+        check("falha ao gravar a unidade: aviso com 'Try again'", eventually(lambda t: expect(e.get_by_role("alert").filter(has_text="We couldn't save your choice")).to_be_visible(timeout=t)))
+        check("falha: unidade e campo voltam para lb", eventually(lambda t: expect(e.get_by_label("Weight (lb)")).to_have_value("22.05", timeout=t)) and e.get_by_role("radio", name="lb").get_attribute("aria-checked") == "true")
+        e.unroute("**/api/rpc/setPreferences")
+        e.get_by_role("button", name="Try again").click()
+        check("tentar de novo grava kg e converte o campo", eventually(lambda t: expect(e.get_by_label("Weight (kg)")).to_have_value("10", timeout=t)))
+        e.wait_for_timeout(1500)
+        check("kg gravado no perfil depois de tentar de novo", rpc(e, "snapshot", {})[1]["me"]["weightUnit"] == "kg")
+        e.get_by_role("radio", name="lb").click(); e.wait_for_timeout(1500); e.get_by_label("Weight (lb)").fill("")
         text_checks(e, "Peso (en)", True); no_overflow(e, "Peso 375px")
         for w in (375, 320):  # a data não pode vazar da caixa do formulário (iPhone dá largura mínima ao campo de data)
             e.set_viewport_size({"width": w, "height": 740}); e.wait_for_timeout(300)
@@ -256,6 +273,32 @@ try:
         st3, err = rpc(pp, "createAlbum", {"title": ""})
         st4, err_en = rpc(e, "createAlbum", {"title": ""})
         check("erro do servidor no idioma de quem pede", err.get("message") == "Dê um nome ao álbum." and err_en.get("message") == "Give the album a name.")
+
+        # ---------- Idioma não muda região, loja, compra nem unidade ----------
+        me_p = rpc(pp, "snapshot", {})[1]["me"]
+        check(f"conta nova em português: idioma, região e unidade gravados juntos ({me_p['locale']}, {me_p['region']}, {me_p['weightUnit']})", (me_p["locale"], me_p["region"], me_p["weightUnit"]) == ("pt-BR", "BR", "kg"))
+        pp.goto(BASE + "/conta"); pp.get_by_role("button", name=re.compile("Idioma")).click()
+        dlgp = pp.locator("dialog[open]")
+        # Falha ao gravar o idioma: avisa e nada muda (tela, cookie e perfil continuam em português).
+        pp.route("**/api/rpc/setPreferences", lambda r: r.abort())
+        dlgp.get_by_role("radio", name="English").click()
+        check("falha ao gravar o idioma: aviso com 'Tentar de novo'", eventually(lambda t: expect(dlgp.get_by_role("alert").filter(has_text="Não deu para salvar a sua escolha")).to_be_visible(timeout=t)))
+        check("falha: tela e cookie continuam em português", pp.evaluate("document.documentElement.lang") == "pt-BR" and "ddp_locale=en" not in pp.evaluate("document.cookie"))
+        pp.unroute("**/api/rpc/setPreferences")
+        dlgp.get_by_role("button", name="Tentar de novo").click()
+        check("tentar de novo: tela em inglês", eventually(lambda t: expect(pp.locator("html")).to_have_attribute("lang", "en", timeout=t)))
+        me_p = rpc(pp, "snapshot", {})[1]["me"]
+        check(f"trocar para inglês não muda região nem unidade ({me_p['region']}, {me_p['weightUnit']})", (me_p["locale"], me_p["region"], me_p["weightUnit"]) == ("en", "BR", "kg"))
+        pp.goto(BASE + "/achadinhos")
+        check("em inglês com região Brasil: Achadinhos do Mercado Livre", eventually(lambda t: expect(pp.get_by_role("link", name="View on Mercado Livre").first).to_be_visible(timeout=t)))
+        pp.goto(BASE + "/estudio/creditos")
+        # Mercado do Brasil: preços em reais (BRL), ou o aviso do Pix quando a loja está desligada neste ambiente; nunca o dólar.
+        ok_brl = eventually(lambda t: expect(pp.locator("main")).to_contain_text(re.compile(r"\(BRL\)|Pix"), timeout=t), 20000)
+        check("em inglês com região Brasil: compra em reais/Pix, não a do dólar", ok_brl and "US dollars" not in pp.inner_text("main"))
+        # Idioma trocado em outro aparelho (perfil muda, cookie deste aparelho não): a página já abre no idioma do perfil.
+        rpc(pp, "setPreferences", {"locale": "pt-BR"})
+        html = pp.request.get(BASE + "/conta", headers={"accept": "text/html", "sec-fetch-dest": "document"}).text()
+        check("perfil trocado em outro aparelho: a primeira resposta já sai no idioma do perfil", '<html lang="pt-BR"' in html)
 
         check("sem erros de JavaScript nas páginas", not errors)
         if errors: print(errors[:5])

@@ -1619,7 +1619,9 @@
     "delete": "Excluir",
     "editLabel": "Editar {label}",
     "deleteLabel": "Excluir {label}",
-    "optional": "(opcional)"
+    "optional": "(opcional)",
+    "prefsFailed": "Não deu para salvar a sua escolha. Confira a internet.",
+    "prefsRetry": "Tentar de novo"
   },
   "importDemo": {
     "doneTitle": "Diário trazido para a sua conta",

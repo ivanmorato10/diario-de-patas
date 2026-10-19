@@ -1619,7 +1619,9 @@
     "delete": "Delete",
     "editLabel": "Edit {label}",
     "deleteLabel": "Delete {label}",
-    "optional": "(optional)"
+    "optional": "(optional)",
+    "prefsFailed": "We couldn't save your choice. Check your connection.",
+    "prefsRetry": "Try again"
   },
   "importDemo": {
     "doneTitle": "Diary moved to your account",

@@ -1,9 +1,10 @@
 /**
  * Proxy (antigo middleware, Next 16) — só no modo real (MUDANCAS-V2 §8):
  * renova a sessão Supabase nos cookies e leva quem não entrou para /entrar.
- * Idioma: na primeira requisição de cada conta neste aparelho, o cookie de idioma passa a espelhar a
- * preferência salva no perfil (o perfil vem antes do cookie). Assim a página já sai no idioma certo,
- * sem aparecer num idioma e trocar depois. As demais requisições não consultam o banco.
+ * Idioma: a cada abertura de página (navegação de documento, não as requisições internas do app) e na
+ * primeira requisição de cada conta neste aparelho, o cookie de idioma é conferido com o perfil (o perfil vem
+ * antes do cookie). Assim a página já sai no idioma certo, mesmo se ele foi trocado em outro aparelho, sem
+ * aparecer num idioma e trocar depois. Se a consulta falhar, a próxima requisição tenta de novo.
  * No modo demonstração não faz nada.
  */
 import { NextResponse, type NextRequest } from "next/server";
@@ -16,6 +17,11 @@ import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, isLocale } from "@/i18n/locale";
 /** Conta para a qual o cookie de idioma já foi conferido com o perfil neste aparelho. */
 const LOCALE_SYNC_COOKIE = "ddp_locale_uid";
 
+
+/** Abertura de página (barra de endereço, ícone do app, recarregar), não navegação interna nem prefetch. */
+const isDocument = (request: NextRequest) =>
+  request.method === "GET" && !request.headers.has("rsc") && !request.headers.has("next-router-prefetch") &&
+  (request.headers.get("sec-fetch-dest") === "document" || (request.headers.get("accept") ?? "").includes("text/html"));
 
 /** Link de indicação (?ref=CODIGO): guarda o código por 30 dias, até a pessoa criar o diário. */
 function keepReferral(request: NextRequest, res: NextResponse) {
@@ -44,18 +50,18 @@ async function route(request: NextRequest) {
   });
   const { data } = await supa.auth.getClaims();
   const uid = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
-  if (uid && request.cookies.get(LOCALE_SYNC_COOKIE)?.value !== uid) {
-    const { data: p } = await supa.from("profiles").select("locale").eq("user_id", uid).maybeSingle();
+  if (uid && (isDocument(request) || request.cookies.get(LOCALE_SYNC_COOKIE)?.value !== uid)) {
+    const { data: p, error } = await supa.from("profiles").select("locale").eq("user_id", uid).maybeSingle();
     const saved = (p as { locale?: string } | null)?.locale;
     const previous = response;
-    if (isLocale(saved)) {
+    if (isLocale(saved) && saved !== request.cookies.get(LOCALE_COOKIE)?.value) {
       request.cookies.set(LOCALE_COOKIE, saved); // esta mesma página já usa o idioma do perfil
       response = NextResponse.next({ request });
       for (const c of previous.cookies.getAll()) response.cookies.set(c);
       previous.headers.forEach((v, k) => { if (!k.startsWith("x-middleware") && k !== "set-cookie") response.headers.set(k, v); });
       response.cookies.set(LOCALE_COOKIE, saved, { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: "lax", secure: true });
     }
-    response.cookies.set(LOCALE_SYNC_COOKIE, uid, { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: "lax", secure: true, httpOnly: true });
+    if (!error) response.cookies.set(LOCALE_SYNC_COOKIE, uid, { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: "lax", secure: true, httpOnly: true });
   }
   const path = request.nextUrl.pathname;
   if (!data?.claims && !isPublicPath(path)) {
