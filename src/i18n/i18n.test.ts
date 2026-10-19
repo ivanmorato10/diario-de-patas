@@ -205,7 +205,7 @@ describe("região do app", () => {
     expect(achadinhosFor("BR").some((a) => a.region === "US")).toBe(false);
     const { achadinhoUrl } = await import("@/config/achadinhos");
     expect(achadinhosFor("BR").length).toBeGreaterThan(0);
-    for (const a of achadinhosFor("BR")) expect(achadinhoUrl(a)).toMatch(/^https:\/\/(www|produto)\.mercadolivre\.com\.br\/.*matt_tool=38524122/);
+    for (const a of achadinhosFor("BR")) expect(achadinhoUrl(a)).toMatch(/^https:\/\/meli\.la\/\w+$/);
     const tp = loose(createTranslator({ locale: "pt-BR", messages: MESSAGES["pt-BR"] }));
     expect(tp("finds.seeAt", { store: "Mercado Livre" })).toBe("Ver no Mercado Livre");
     expect(tp("finds.seeAt", { store: "Amazon" })).toBe("Ver na Amazon");

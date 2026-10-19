@@ -19,7 +19,7 @@ export interface Achadinho {
   category: AchadinhoCategory;
   /** Código do produto na Amazon: gera o link direto e a imagem oficial. */
   asin?: string;
-  /** Link de afiliado completo (Mercado Livre), exatamente como enviado pelo proprietário. */
+  /** Link de afiliado do Mercado Livre (meli.la), exatamente como enviado pelo proprietário. */
   url?: string;
   store: "Amazon" | "Mercado Livre";
   /** Foto própria (public/achadinhos/…), opcional. Sem ela, mostra a ilustração da categoria. */
@@ -40,10 +40,10 @@ export const ACHADINHOS: Achadinho[] = [
   { id: "lancador-automatico", region: "US", category: "brincar", asin: "B07PYPGL27", store: "Amazon" },
   { id: "petisco-wings", region: "US", category: "comer", asin: "B01HXYUUXC", store: "Amazon" },
   { id: "honest-kitchen", region: "US", category: "comer", asin: "B0HFX1WMVF", store: "Amazon" },
-  { id: "ml-chuckit", region: "BR", category: "brincar", store: "Mercado Livre", url: "https://produto.mercadolivre.com.br/MLB-7400620626-lancador-de-bola-chuckit-sport-medio-para-ces-azul-_JM?matt_tool=38524122&ua=A0ZVV6vYYeouibhDjh50BjENeLBmmw-CNj_PUzon0-5UVQ" },
-  { id: "ml-bola-voz", region: "BR", category: "brincar", store: "Mercado Livre", url: "https://www.mercadolivre.com.br/up/MLBU3822020892?matt_tool=38524122&pdp_filters=item_id:MLB6321874146&ua=beDo79Pp43YhRuQm70HMAxYSzDTJ_HDLQRyV4QeGRGPTrQ" },
-  { id: "ml-pedigree-umida", region: "BR", category: "comer", store: "Mercado Livre", url: "https://www.mercadolivre.com.br/p/MLB50787472?matt_tool=38524122&pdp_filters=item_id:MLB7446467982&ua=7jKjxz0p-3KaPgIdEkCir8sSdtv5aSwyW5G3vl1Bc3I8gQ" },
-  { id: "ml-nd-tropical", region: "BR", category: "comer", store: "Mercado Livre", url: "https://www.mercadolivre.com.br/up/MLBU1919966734?matt_tool=38524122&pdp_filters=item_id:MLB3868025111&ua=jKMfghIyWHlN_0OldL7cnwdGC9l5ZRvwI5heRWkLTNDAsg" },
+  { id: "ml-chuckit", region: "BR", category: "brincar", store: "Mercado Livre", url: "https://meli.la/27jm6iM" },
+  { id: "ml-bola-voz", region: "BR", category: "brincar", store: "Mercado Livre", url: "https://meli.la/1eHiQkV" },
+  { id: "ml-pedigree-umida", region: "BR", category: "comer", store: "Mercado Livre", url: "https://meli.la/2U1695Q" },
+  { id: "ml-nd-tropical", region: "BR", category: "comer", store: "Mercado Livre", url: "https://meli.la/1HadJVR" },
 ];
 
 /** Itens da região do app da pessoa (a outra região não aparece). */
