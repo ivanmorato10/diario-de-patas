@@ -75,7 +75,6 @@
   },
   "add": {
     "back": "Back",
-    "backSignOut": "Back to the sign-in screen (signs you out)",
     "nameTitle": "First, what's your name?",
     "nameNote": "Yours, the human one 🙂 Your dog's comes next.",
     "titleAnother": "Add a dog",
@@ -2269,7 +2268,10 @@
     "timezoneHint": "We detected this time zone from your device. It keeps the diary's dates in order.",
     "private": "The diary is private. Nothing is shared until you choose to.",
     "creating": "Creating…",
-    "create": "Create my diary"
+    "create": "Create my diary",
+    "nick": "Pet name",
+    "nickPlaceholder": "e.g., Pepito, Buddy, My Baby",
+    "nickHint": "What you call them at home. Shows on their profile, and you can change it later."
   },
   "studio": {
     "exampleAbu": "example with Abu",

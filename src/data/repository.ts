@@ -54,7 +54,7 @@ export interface Repository {
   /** Miniatura ou versão de exibição de uma foto do diário. */
   getMediaBlob(id: string, variant: "thumb" | "display"): Promise<Blob | null>;
 
-  createDiary(input: { timezone: string; name: string; birthDate: CivilDate | null; preferences: Dog["preferences"]; photo: ProcessedImage | null; another?: boolean }): Promise<Dog>;
+  createDiary(input: { timezone: string; name: string; nickname?: string | null; birthDate: CivilDate | null; preferences: Dog["preferences"]; photo: ProcessedImage | null; another?: boolean }): Promise<Dog>;
   updateDog(patch: Partial<Pick<Dog, "name" | "nickname" | "birthDate" | "preferences" | "avatarCrop">> & { photo?: ProcessedImage | null }): Promise<Dog>;
   updateTimezone(timezone: string): Promise<void>;
 

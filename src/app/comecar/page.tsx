@@ -21,6 +21,7 @@ export default function Comecar() {
   const { repo, snap, reload, unavailable } = useStore();
   const router = useRouter();
   const [name, setName] = useState("");
+  const [nick, setNick] = useState("");
   const [birth, setBirth] = useState("");
   const [photo, setPhoto] = useState<ProcessedImage | null>(null);
   const [prefs, setPrefs] = useState<DogPreferences>({ home: true, outdoor: true, people: true, socialDogs: false });
@@ -58,7 +59,7 @@ export default function Comecar() {
     setSaving(true);
     setError(null);
     try {
-      await repo!.createDiary({ timezone: tz, name, birthDate: birth || null, preferences: prefs, photo, another: !!another && !!snap?.dog });
+      await repo!.createDiary({ timezone: tz, name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs, photo, another: !!another && !!snap?.dog });
       await reload();
       router.replace(another && snap?.dog ? "/hoje" : "/hoje?bemvindo=1"); // primeiro diário: convite da família
     } catch (err) {
@@ -83,6 +84,13 @@ export default function Comecar() {
             <div className="field">
               <label htmlFor="dog-name">{t("dogName")}</label>
               <input id="dog-name" className="input" value={name} maxLength={LIMITS.dogNameMaxChars} onChange={(e) => setName(e.target.value)} autoComplete="off" aria-invalid={!!error && !name.trim()} required />
+            </div>
+
+            {/* Apelido logo no cadastro: assim a pessoa já sabe que existe (muda depois no perfil). */}
+            <div className="field">
+              <label htmlFor="dog-nick">{t("nick")} <span className="muted">{t("optional")}</span></label>
+              <input id="dog-nick" className="input" value={nick} maxLength={30} placeholder={t("nickPlaceholder")} onChange={(e) => setNick(e.target.value)} autoComplete="off" />
+              <span className="hint">{t("nickHint")}</span>
             </div>
 
             <div className="field">

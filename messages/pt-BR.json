@@ -75,7 +75,6 @@
   },
   "add": {
     "back": "Voltar",
-    "backSignOut": "Voltar para a tela de entrada (sai da conta)",
     "nameTitle": "Primeiro, qual é o seu nome?",
     "nameNote": "O seu, de humano 🙂 O do cachorro vem depois.",
     "titleAnother": "Adicionar cachorro",
@@ -2269,7 +2268,10 @@
     "timezoneHint": "Detectamos este fuso pelo aparelho. Ele organiza as datas do diário.",
     "private": "O diário é privado. Nada é compartilhado até você escolher.",
     "creating": "Criando…",
-    "create": "Criar meu diário"
+    "create": "Criar meu diário",
+    "nick": "Apelido carinhoso",
+    "nickPlaceholder": "Ex.: Pepezinho, Bolinha, Meu Bebê",
+    "nickHint": "Do jeitinho que vocês chamam em casa. Aparece no perfil e dá para mudar depois."
   },
   "studio": {
     "exampleAbu": "exemplo com o Abu",

@@ -49,14 +49,9 @@ export default function Adicionar() {
   return (
     <div className="sp sp--sheet">
       <header className="sp-top">
-        {hasDog ? (
-          <Link href="/hoje" className="sp-back" aria-label={t("back")}>{BACK}</Link>
-        ) : (
-          // Conta nova sem diário: voltar = sair da conta e voltar para a tela de entrada.
-          <SignOutForm style={{ display: "contents" }}>
-            {() => <button type="submit" className="sp-back" aria-label={t("backSignOut")}>{BACK}</button>}
-          </SignOutForm>
-        )}
+        {/* Conta nova sem diário: sem seta. Antes ela saía da conta e levava para a tela de entrada no meio do
+            cadastro; quem entrou com a conta errada usa o "Sair" lá embaixo. */}
+        {hasDog ? <Link href="/hoje" className="sp-back" aria-label={t("back")}>{BACK}</Link> : null}
         <div className="sp-top__emblem" style={{ width: 120, height: 120, borderRadius: "50%", background: "var(--paper)", display: "grid", placeItems: "end center", overflow: "hidden" }}><AbuMascot width={96} /></div>
       </header>
       <main className="sp-sheet">

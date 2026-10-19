@@ -272,13 +272,14 @@ async function readyMedia(ctx: Ctx, id: string) {
 }
 
 export async function createDiary(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ timezone: z.string(), name: z.string(), birthDate: civil.nullable(), preferences: Prefs, another: z.boolean().optional() }), args);
+  const a = parse(z.object({ timezone: z.string(), name: z.string(), nickname: z.string().nullable().optional(), birthDate: civil.nullable(), preferences: Prefs, another: z.boolean().optional() }), args);
   const name = a.name.trim().slice(0, LIMITS.dogNameMaxChars);
   if (!name) throw bad("NAME_REQUIRED", "errors.dogNameRequired");
   await ensureProfile(ctx, a.timezone);
   const existing = await dogOf(ctx, false);
   if (existing && !a.another) return toDog(existing); // retry do primeiro diário: o mesmo
-  const created = await q(ctx.supa.from("dogs").insert({ owner_id: ctx.user.id, name, birth_date: a.birthDate, preferences_json: a.preferences }).select("*").single()) as any;
+  const nickname = a.nickname?.replace(/\s+/g, " ").trim().slice(0, 30) || null;
+  const created = await q(ctx.supa.from("dogs").insert({ owner_id: ctx.user.id, name, nickname, birth_date: a.birthDate, preferences_json: a.preferences }).select("*").single()) as any;
   const admin = adminClient();
   await q(admin.from("profiles").update({ current_dog_id: created.id }).eq("user_id", ctx.user.id));
   // 1 crédito de boas-vindas: uma vez por pessoa, no primeiro diário criado.

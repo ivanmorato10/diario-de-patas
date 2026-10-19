@@ -320,7 +320,7 @@ function mediaFrom(img: ProcessedImage, kind: MediaAsset["kind"]): MediaAsset {
 
 export async function createDiary(
   db: Db,
-  input: { timezone: string; name: string; birthDate: CivilDate | null; preferences: Dog["preferences"]; photo: ProcessedImage | null },
+  input: { timezone: string; name: string; nickname?: string | null; birthDate: CivilDate | null; preferences: Dog["preferences"]; photo: ProcessedImage | null },
 ): Promise<Dog> {
   const name = input.name.trim().slice(0, LIMITS.dogNameMaxChars);
   if (!name) throw new DomainError("NAME_REQUIRED", "errors.dogNameRequired");
@@ -337,7 +337,7 @@ export async function createDiary(
     photoMediaId = m.id;
   }
   await tx.objectStore("profile").put({ id: "me", timezone: input.timezone, createdAt: now() });
-  const dog: Dog = { id: newId(), name, photoMediaId, birthDate: input.birthDate, preferences: input.preferences, createdAt: now() };
+  const dog: Dog = { id: newId(), name, nickname: input.nickname?.replace(/\s+/g, " ").trim().slice(0, 30) || null, photoMediaId, birthDate: input.birthDate, preferences: input.preferences, createdAt: now() };
   await tx.objectStore("dogs").put(dog);
   await tx.done;
   return dog;
