@@ -23,8 +23,8 @@
   tipo para todos**, com as duas versões dentro, escolhidas por `{{ .Data.locale }}` (metadados do login).
   Limitações:
   - Conta nova por email/senha ou código: o idioma vai junto no cadastro.
-  - Conta nova pelo Google/Apple: o idioma é gravado no primeiro acesso ao app; um email do Supabase antes
-    disso sai em português.
+  - Conta nova pelo Google/Apple: o idioma em uso (escolhido na entrada ou o do celular) é gravado no retorno
+    do login (`/auth/callback`), antes de qualquer email.
   - Contas antigas sem `locale` nos metadados: português (até a pessoa escolher o idioma no app).
   - O assunto também usa a condição; a documentação do Supabase confirma variáveis no assunto, mas a
     condição no assunto só fica confirmada com um envio real em inglês.
