@@ -173,7 +173,7 @@ export default function Creditos() {
         ) : current ? (
           <PixPanel purchase={current} test={!!shop?.test} onPaid={onPaid} onRestart={() => { setCurrent(null); idem.current = crypto.randomUUID(); }} />
         ) : shop && !shop.enabled ? (
-          <div className="notice notice--info"><IconInfo /><span>{t.rich("soon", { strong: (c) => <strong>{c}</strong> })}</span></div>
+          <div className="notice notice--info"><IconInfo /><span>{t.rich(shop.market === "US" ? "soonUsd" : "soon", { strong: (c) => <strong>{c}</strong> })}</span></div>
         ) : shop ? (
           <section className="stack">
             {shop.test ? <div className="notice notice--warn small"><IconInfo /><span>{t.rich("testMode", { strong: (c) => <strong>{c}</strong> })}</span></div> : null}

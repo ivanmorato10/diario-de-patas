@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { loose } from "@/i18n/keys";
+import { usePrefs } from "@/i18n/use-format";
 import { rpc } from "@/data/real-repository";
-import { ACHADINHOS, ACHADINHO_CATEGORIES, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
+import { ACHADINHO_CATEGORIES, achadinhosFor, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
 import { isStandalone } from "@/components/install-app";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
@@ -35,6 +36,7 @@ export default function Achadinhos() {
   const [info, setInfo] = useState<Info>({});
   const t = useTranslations("finds");
   const tl = loose(t);
+  const ACHADINHOS = achadinhosFor(usePrefs().region); // só os da região do app
   // Foto e título oficiais pela Creators API, quando a conta de associado estiver elegível.
   useEffect(() => {
     rpc<{ status: string; items: Info }>("achadinhosInfo").then((r) => setInfo(r.items)).catch(() => undefined);
@@ -61,6 +63,7 @@ export default function Achadinhos() {
           ))}
         </div>
 
+        {list.length === 0 ? <p className="page-note">{t("soon")}</p> : null}
         <ul className="achados-grid">
           {list.map((a) => {
             const c = ACHADINHO_CATEGORIES.find((x) => x.id === a.category)!;
@@ -77,7 +80,7 @@ export default function Achadinhos() {
           })}
         </ul>
 
-        <p className="caption achados-disclosure">{t("disclosure")}{typeof window !== "undefined" && isStandalone() ? ` ${t("backToApp")}` : ""}</p>
+        {list.length ? <p className="caption achados-disclosure">{t("disclosure")}{typeof window !== "undefined" && isStandalone() ? ` ${t("backToApp")}` : ""}</p> : null}
       </main>
     </>
   );

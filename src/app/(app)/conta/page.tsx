@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useErrorText } from "@/i18n/use-error";
 import { usePrefs } from "@/i18n/use-format";
-import { LOCALE_NAMES, REGIONS, WEIGHT_UNITS } from "@/i18n/locale";
+import { LOCALE_NAMES, REGIONS } from "@/i18n/locale";
 import { LanguageSwitch } from "@/components/language-switch";
 import { useSetPreferences } from "@/components/locale-sync";
 import { useRouter } from "next/navigation";
@@ -104,7 +104,7 @@ export default function Conta() {
         <section className="stack" style={{ gap: 8 }} aria-label={t("settings")}>
           <Row id="name" icon="✏️" label={t("name")} sub={snap.me?.nameConfirmed ? t("nameSeen", { name: snap.me.name }) : t("nameSub")} />
           {/* Idioma é da pessoa (não do cachorro); o rótulo aparece nos dois idiomas para quem procura. */}
-          <Row id="lang" icon="🌎" label="Idioma / Language" sub={`${LOCALE_NAMES[prefs.locale]} · ${t(`regions.${prefs.region}`)} · ${prefs.weightUnit}`} />
+          <Row id="lang" icon="🌎" label="Idioma / Language" sub={`${LOCALE_NAMES[prefs.locale]} · ${t(`regions.${prefs.region}`)}`} />
           {others > 0 ? <Row id="family" icon="👨‍👩‍👧" label={t("familyDiaries")} sub={t("othersDiaries", { count: others })} /> : null}
           <Row id="notify" icon="🔔" label={t("notifications")} sub={t("notificationsSub")} />
           <Row id="tz" icon="🕐" label={t("timezone")} sub={tzValue.replace(/_/g, " ")} />
@@ -137,15 +137,6 @@ export default function Conta() {
                 ))}
               </div>
               <span className="caption">{t("regionNote")}</span>
-            </div>
-            <div className="stack" style={{ gap: 6 }} role="radiogroup" aria-labelledby="c-unit">
-              <span id="c-unit" className="label" style={{ fontWeight: 600 }}>{t("unit")}</span>
-              <div className="filter-row">
-                {WEIGHT_UNITS.map((u) => (
-                  <button key={u} type="button" role="radio" aria-checked={prefs.weightUnit === u} className={`filter-chip${prefs.weightUnit === u ? " is-active" : ""}`} onClick={() => void setPrefs({ weightUnit: u })}>{t(`units.${u}`)}</button>
-                ))}
-              </div>
-              <span className="caption">{t("unitNote")}</span>
             </div>
           </div>
           <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setPanel(null)}>{t("close")}</button>

@@ -10,11 +10,11 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { ACTIVE_MARKET, CREDIT_MARKETS, PIX_EXPIRES_MINUTES, packageById } from "@/config/credits";
+import { CREDIT_MARKETS, PIX_EXPIRES_MINUTES, marketForRegion, packageById } from "@/config/credits";
 import { formatInstant, formatMoney } from "@/i18n/format";
 import { adminClient, HttpError } from "./supabase";
 import { sendPurchaseConfirmed } from "./mailer";
-import { localeOf, translator } from "./i18n";
+import { localeOf, regionOf, translator } from "./i18n";
 
 type Ctx = { supa: SupabaseClient; user: User };
 type Status = "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
@@ -254,8 +254,15 @@ const toPurchase = (p: any) => ({
 export async function creditShop(ctx: Ctx) {
   const dog = (await currentDog(ctx))!;
   const recent = (await ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10)).data ?? [];
-  const market = CREDIT_MARKETS[ACTIVE_MARKET];
-  return { enabled: paymentsEnabled() && market.packages.length > 0, test: paymentsFake() || (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"), market: ACTIVE_MARKET, currency: market.currency, packages: market.packages, purchases: recent.map(toPurchase) };
+  const code = await marketOf(ctx);
+  const market = CREDIT_MARKETS[code];
+  return { enabled: paymentsEnabled() && market.packages.length > 0, test: paymentsFake() || (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"), market: code, currency: market.currency, packages: market.packages, purchases: recent.map(toPurchase) };
+}
+
+/** Mercado da compra pela região do app de quem compra (perfil; sem escolha, a sugestão do idioma). */
+async function marketOf(ctx: Ctx) {
+  const { data } = await ctx.supa.from("profiles").select("region, locale").eq("user_id", ctx.user.id).maybeSingle();
+  return marketForRegion(regionOf(data as { region?: string | null; locale?: string | null } | null));
 }
 
 const Create = z.object({ packageId: z.string(), idempotencyKey: z.string().uuid() });
@@ -265,8 +272,9 @@ export async function createPurchase(ctx: Ctx, args: unknown) {
   if (!a.success) throw bad("INVALID", "errors.invalidRequest");
   if (!paymentsEnabled()) throw bad("PAYMENTS_OFF", "errors.paymentsOff");
   // Valor e moeda vêm do mercado no servidor; o navegador só escolhe o id do pacote.
-  const market = CREDIT_MARKETS[ACTIVE_MARKET];
-  const pkg = packageById(a.data.packageId, ACTIVE_MARKET);
+  const code = await marketOf(ctx);
+  const market = CREDIT_MARKETS[code];
+  const pkg = packageById(a.data.packageId, code);
   if (!pkg || market.provider !== "mercadopago") throw bad("INVALID", "errors.packageNotFound");
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);

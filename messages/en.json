@@ -60,18 +60,12 @@
     "delete": "Delete my account",
     "close": "Close",
     "langNote": "The language is yours: each person in the family can use their own. Switching doesn't change photos, captions, or letters.",
-    "region": "Holidays calendar",
+    "region": "App region",
     "regions": {
       "BR": "Brazil",
       "US": "United States"
     },
-    "regionNote": "Picks the dates suggested for special missions and in the Studio. Switching doesn't delete themes, art, or history.",
-    "unit": "Weight unit",
-    "units": {
-      "kg": "Kilograms (kg)",
-      "lb": "Pounds (lb)"
-    },
-    "unitNote": "It only changes how weight is shown; the record stays the same.",
+    "regionNote": "Sets the holidays for missions and the Studio, the currency for buying credits (Brazil: reais, via Pix; US: dollars, coming soon), and the store for Abu's Finds (Brazil: Mercado Livre; US: Amazon). Switching doesn't delete themes, art, or history.",
     "tzHint": "Keeps the dates of your memories and reminders in order.",
     "tzSave": "Save time zone",
     "deleteText": "The diaries you created are deleted with everything in them, including for invited family. Other people's diaries stay with them. This can't be undone.",
@@ -1183,7 +1177,8 @@
       "expired": "Expired",
       "cancelled": "Canceled",
       "refunded": "Refunded"
-    }
+    },
+    "soonUsd": "<strong>Coming soon:</strong> buying credits in US dollars for the US region. To pay in Brazilian reais with Pix, switch the app region to Brazil in My account."
   },
   "diary": {
     "title": "Diary",
@@ -1595,7 +1590,8 @@
         "abuSays": "Smells like real food. Switching food? Always check with your vet first, okay?"
       }
     },
-    "categoriesLabel": "Categories"
+    "categoriesLabel": "Categories",
+    "soon": "Abu's finds for your region are coming soon. 🐾"
   },
   "forms": {
     "saving": "Saving…",

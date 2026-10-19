@@ -8,8 +8,8 @@ export interface CreditPackage {
 }
 
 /**
- * Preços FIXOS por mercado (nunca conversão de moeda). O mercado da cobrança é decidido no servidor e não depende
- * do idioma da tela: em inglês, quem paga em reais continua vendo reais (com "BRL" explícito).
+ * Preços FIXOS por mercado (nunca conversão de moeda). O mercado da cobrança é decidido no servidor pela região do
+ * app (não pelo idioma): em inglês, quem está na região Brasil continua vendo reais (com "BRL" explícito).
  * Estados Unidos: sem checkout em dólar por enquanto — sem pacotes, sem venda (proposta em docs/PAGAMENTOS-EUA.md).
  */
 export type Market = "BR" | "US";
@@ -25,13 +25,16 @@ export const CREDIT_MARKETS: Record<Market, CreditMarket> = {
   },
   US: { currency: "USD", provider: null, packages: [] },
 };
-/** Mercado em que as compras acontecem hoje (Pix em reais, Mercado Pago), para qualquer idioma. */
-export const ACTIVE_MARKET: Market = "BR";
+/**
+ * O mercado da compra segue a REGIÃO DO APP da pessoa (Brasil → reais por Pix; EUA → dólar), nunca o idioma.
+ * EUA ainda sem checkout: a loja aparece como "em breve" para quem está nessa região.
+ */
+export const marketForRegion = (region: "BR" | "US"): Market => region;
 
-export const CREDIT_PACKAGES: CreditPackage[] = CREDIT_MARKETS[ACTIVE_MARKET].packages;
+export const CREDIT_PACKAGES: CreditPackage[] = CREDIT_MARKETS.BR.packages;
 
 /** Pacote válido NO mercado da cobrança (o servidor nunca aceita preço ou moeda vindos do navegador). */
-export const packageById = (id: string, market: Market = ACTIVE_MARKET) => CREDIT_MARKETS[market].packages.find((p) => p.id === id);
+export const packageById = (id: string, market: Market = "BR") => CREDIT_MARKETS[market].packages.find((p) => p.id === id);
 
 /** Validade do Pix gerado (minutos). */
 export const PIX_EXPIRES_MINUTES = 30;

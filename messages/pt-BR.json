@@ -60,18 +60,12 @@
     "delete": "Excluir minha conta",
     "close": "Fechar",
     "langNote": "O idioma é seu: cada pessoa da família pode usar o dela. Trocar não muda fotos, legendas nem cartinhas.",
-    "region": "Datas comemorativas",
+    "region": "Região do app",
     "regions": {
       "BR": "Brasil",
       "US": "Estados Unidos"
     },
-    "regionNote": "Escolhe as datas sugeridas nas missões especiais e no Estúdio. Trocar não apaga temas, artes nem histórico.",
-    "unit": "Unidade de peso",
-    "units": {
-      "kg": "Quilos (kg)",
-      "lb": "Libras (lb)"
-    },
-    "unitNote": "Só muda como o peso aparece; o registro continua o mesmo.",
+    "regionNote": "Define os feriados das missões e do Estúdio, a moeda da compra de créditos (Brasil: reais, por Pix; EUA: dólar, em breve) e a loja dos Achadinhos do Abu (Brasil: Mercado Livre; EUA: Amazon). Trocar não apaga temas, artes nem histórico.",
     "tzHint": "Organiza as datas das suas lembranças e lembretes.",
     "tzSave": "Salvar fuso",
     "deleteText": "Os diários que você criou são apagados com tudo o que está neles, inclusive para a família convidada. Diários de outras pessoas continuam com elas. Não dá para desfazer.",
@@ -1183,7 +1177,8 @@
       "expired": "Vencido",
       "cancelled": "Cancelado",
       "refunded": "Estornado"
-    }
+    },
+    "soonUsd": "<strong>Em breve:</strong> compra de créditos em dólar para a região EUA. Para pagar em reais por Pix, mude a região do app para Brasil em Minha conta."
   },
   "diary": {
     "title": "Diário",
@@ -1574,7 +1569,7 @@
       "banho": "Banho e cuidados",
       "comer": "Petiscos e comida"
     },
-    "seeAt": "Ver na {store} (EUA)",
+    "seeAt": "Ver na {store}",
     "disclosure": "Como associado da Amazon, ganhamos com compras qualificadas, sem mudar o seu preço.",
     "backToApp": "Para voltar ao app, toque em “OK” no canto da tela.",
     "items": {
@@ -1595,7 +1590,8 @@
         "abuSays": "Cheirinho de comida de verdade. Troca de alimentação, sempre com o veterinário, viu?"
       }
     },
-    "categoriesLabel": "Categorias"
+    "categoriesLabel": "Categorias",
+    "soon": "Em breve, os achadinhos do Abu na sua região. 🐾"
   },
   "forms": {
     "saving": "Salvando…",

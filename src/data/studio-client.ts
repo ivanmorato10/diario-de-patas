@@ -85,7 +85,7 @@ export interface CreditPurchase {
   pixQr: string | null; pixQrBase64: string | null; expiresAt: string | null; createdAt: string; test: boolean;
 }
 /** `currency`: moeda REAL da cobrança (hoje BRL), mostrada como está, sem conversão. */
-export interface CreditShop { enabled: boolean; test: boolean; market: string; currency: string; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[] }
+export interface CreditShop { enabled: boolean; test: boolean; market: "BR" | "US"; currency: string; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[] }
 export const creditShop = () => rpc<CreditShop>("creditShop");
 export const createPurchase = (packageId: string, idempotencyKey: string) => rpc<CreditPurchase>("createPurchase", { packageId, idempotencyKey });
 export const purchaseStatus = (id: string) => rpc<CreditPurchase>("purchaseStatus", { id });

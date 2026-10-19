@@ -195,6 +195,17 @@ describe("datas, números, peso e dinheiro", () => {
   });
 });
 
+describe("região do app", () => {
+  it("decide o mercado da compra e a loja dos Achadinhos (não o idioma)", async () => {
+    const { marketForRegion, CREDIT_MARKETS } = await import("@/config/credits");
+    const { achadinhosFor } = await import("@/config/achadinhos");
+    expect(CREDIT_MARKETS[marketForRegion("BR")].currency).toBe("BRL");
+    expect(CREDIT_MARKETS[marketForRegion("US")]).toMatchObject({ currency: "USD", packages: [] });
+    expect(achadinhosFor("US").every((a) => a.store === "Amazon")).toBe(true);
+    expect(achadinhosFor("BR").some((a) => a.region === "US")).toBe(false);
+  });
+});
+
 describe("mensagens que viajam como chave", () => {
   const t = loose(createTranslator({ locale: "en", messages: MESSAGES.en }));
   it("chave com parâmetros vira texto; texto do servidor passa direto", () => {

@@ -1,13 +1,14 @@
 # Pagamentos nos Estados Unidos — proposta (não implementada)
 
-Situação hoje (18/10/2026): créditos só se compram com **Pix em reais (BRL)**, pelo Mercado Pago. Isso vale
-para qualquer idioma: em inglês, a tela de Créditos mostra os mesmos valores com a moeda explícita
-("R$4.00 (BRL)") e avisa que o pagamento é por Pix. Nada é convertido para dólar.
+Situação hoje (18/10/2026): o mercado da compra segue a **região do app** da pessoa (Minha conta › Idioma /
+Language), nunca o idioma. Região Brasil: **Pix em reais (BRL)** pelo Mercado Pago — em inglês, os valores
+aparecem com a moeda explícita ("R$4.00 (BRL)"). Região EUA: a loja aparece como "em breve" (sem checkout em
+dólar). Nada é convertido.
 
 ## O que já está pronto no código
 
 - `src/config/credits.ts` → `CREDIT_MARKETS`: preços **fixos por mercado** (`BR` em BRL com Mercado Pago;
-  `US` em USD **sem pacotes e sem provedor**). `ACTIVE_MARKET = "BR"`.
+  `US` em USD **sem pacotes e sem provedor**); `marketForRegion` liga a região do app ao mercado.
 - O servidor (`src/server/payments.ts`) só aceita o **id** do pacote vindo do navegador; valor e moeda
   vêm do mercado no servidor e são gravados em `credit_purchases.currency`. A confirmação do Mercado Pago
   confere valor **e** moeda.
@@ -21,9 +22,8 @@ para qualquer idioma: em inglês, a tela de Créditos mostra os mesmos valores c
 2. **Preços** (a definir por você, fixos, não convertidos): por exemplo 1 crédito US$ 0,99 · 5 por US$ 3,99 ·
    10 por US$ 6,99. Precisam cobrir a taxa do cartão (≈ 2,9% + US$ 0,30 por compra no Stripe), por isso
    pacotes maiores fazem mais sentido em dólar.
-3. **Quem cai em qual mercado**: decisão no servidor pelo **país de cobrança** (o que o Stripe/Pix
-   confirma), nunca pelo idioma. Sugestão: mostrar as duas opções quando a região do calendário for EUA
-   e o idioma for inglês, com o Pix ainda disponível para quem tem conta no Brasil.
+3. **Quem cai em qual mercado**: a região do app (já é assim). Quem está na região EUA mas paga com Pix pode
+   mudar a região para Brasil.
 4. **Implementação**: `CREDIT_MARKETS.US = { currency: "USD", provider: "stripe", packages: [...] }`,
    rota de webhook do Stripe (assinatura verificada), mesma função idempotente `grant_purchase_credits`,
    comprovante pelo mesmo email (já sai no idioma de quem compra e com a moeda real).

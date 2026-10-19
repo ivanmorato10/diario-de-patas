@@ -10,8 +10,11 @@
 - **Trocar** (Minha conta › Idioma / Language, primeira tela da apresentação e tela de entrada): cookie na hora,
   perfil e `user_metadata.locale` com conta; a página atualiza sem recarregar (formulários, envios e artes
   continuam). Quem já usava o app ficou em português (o valor antigo do perfil foi mantido).
-- **Região do calendário** (`profiles.region`, BR/US) e **unidade de peso** (`profiles.weight_unit`, kg/lb):
-  separadas do idioma; sugestão inicial pelo idioma (inglês → EUA e lb). O peso é sempre gravado em kg.
+- **Região do app** (`profiles.region`, BR/US; Minha conta › Idioma / Language), separada do idioma, define:
+  feriados (missões especiais e ordem das datas no Estúdio), mercado da compra de créditos (Brasil: BRL por Pix;
+  EUA: dólar, em breve) e a loja dos Achadinhos (Brasil: Mercado Livre; EUA: Amazon). Sugestão inicial pelo idioma.
+- **Unidade de peso** (`profiles.weight_unit`): escolhida só na tela de Peso (kg ou lb); o peso é sempre gravado
+  em kg e convertido na entrada e na tela.
 - **Catálogo**: missões com `{dog}` explícito; nada de trocar a palavra "cachorro" no texto.
 - **Datas**: datas civis formatadas em UTC ao meio-dia (não mudam de dia); instantes no fuso da pessoa.
 - **Dinheiro**: a moeda real da cobrança (hoje BRL), sem conversão; em inglês "R$4.00 (BRL)".
