@@ -198,6 +198,34 @@ try:
         e.wait_for_timeout(1500)
         check("kg gravado no perfil depois de tentar de novo", rpc(e, "snapshot", {})[1]["me"]["weightUnit"] == "kg")
         e.get_by_role("radio", name="lb").click(); e.wait_for_timeout(1500); e.get_by_label("Weight (lb)").fill("")
+        # Dois toques rápidos com a primeira gravação falhando: só uma troca por vez, envio bloqueado enquanto isso,
+        # e na falha o campo volta ao texto original (22.047, não 22.05 de uma reconversão arredondada).
+        weights_before = len(rpc(e, "snapshot", {})[1]["health"]["weights"])
+        e.get_by_label("Weight (lb)").fill("22.047")
+        held, calls = [], [0]
+        def hold_first(route):
+            calls[0] += 1
+            if calls[0] == 1: held.append(route)
+            else: route.continue_()
+        e.route("**/api/rpc/setPreferences", hold_first)
+        state = e.evaluate("""() => new Promise((res) => {
+          const b = (n) => [...document.querySelectorAll('.weight-entry__units [role=radio]')].find((x) => x.textContent.trim() === n);
+          b('kg').click(); b('kg').click();  // dois toques no mesmo instante
+          setTimeout(() => { b('lb').click(); res({ kg: b('kg').disabled, lb: b('lb').disabled, submit: document.querySelector('form.card button[type=submit]').disabled, value: document.querySelector('#kg').value }); }, 300);
+        })""")
+        check(f"durante a troca: kg/lb e 'Add weight' bloqueados ({state})", state["kg"] and state["lb"] and state["submit"])
+        check("durante a troca: campo já convertido (10 kg)", state["value"] == "10")
+        e.locator("#kg").press("Enter")  # envio pelo teclado também bloqueado
+        e.wait_for_timeout(500)
+        check(f"dois toques rápidos: uma gravação só ({calls[0]})", calls[0] == 1 and len(held) == 1)
+        held[0].abort()
+        check("primeira gravação falhou: aviso", eventually(lambda t: expect(e.get_by_role("alert").filter(has_text="We couldn't save your choice")).to_be_visible(timeout=t)))
+        check("falha: campo volta ao texto original, sem reconverter (22.047)", eventually(lambda t: expect(e.get_by_label("Weight (lb)")).to_have_value("22.047", timeout=t)))
+        check("falha: unidade continua lb e liberada", e.get_by_role("radio", name="lb").get_attribute("aria-checked") == "true" and e.get_by_role("radio", name="kg").is_enabled())
+        e.unroute("**/api/rpc/setPreferences")
+        snap_u = rpc(e, "snapshot", {})[1]
+        check("falha: perfil continua em lb e nenhum peso foi enviado durante a troca", snap_u["me"]["weightUnit"] == "lb" and len(snap_u["health"]["weights"]) == weights_before)
+        e.get_by_label("Weight (lb)").fill("")
         text_checks(e, "Peso (en)", True); no_overflow(e, "Peso 375px")
         for w in (375, 320):  # a data não pode vazar da caixa do formulário (iPhone dá largura mínima ao campo de data)
             e.set_viewport_size({"width": w, "height": 740}); e.wait_for_timeout(300)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useFormat } from "@/i18n/use-format";
 import { PrefsSaveError, usePreferenceSaver } from "@/components/locale-sync";
@@ -23,6 +23,8 @@ export default function Peso() {
   const t = useTranslations("weightPage");
   const f = useFormat();
   const unitSaver = usePreferenceSaver();
+  /** Troca de unidade em andamento: vale já no mesmo toque (o estado busy só chega na próxima renderização). */
+  const switching = useRef(false);
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
@@ -33,24 +35,34 @@ export default function Peso() {
   /** Número digitado ("12,5", "27.6"); NaN se não for número. */
   const parse = (text: string) => Number(text.trim().replace(/\s/g, "").replace(/,(?=\d{1,2}$)/, ".").replace(/,/g, ""));
 
-  /** Converte o que está no campo de uma unidade para outra (o peso digitado continua o mesmo). */
-  const convertField = (from: WeightUnit, to: WeightUnit) =>
-    setKg((text) => {
-      const v = parse(text);
-      if (!text.trim() || Number.isNaN(v)) return text;
-      return f.number(Math.round(fromKg(toKg(v, from), to) * 100) / 100, { maximumFractionDigits: 2, useGrouping: false });
-    });
+  /** O texto do campo convertido de uma unidade para outra (o peso digitado continua o mesmo). */
+  const convert = (text: string, from: WeightUnit, to: WeightUnit) => {
+    const v = parse(text);
+    if (!text.trim() || Number.isNaN(v)) return text;
+    return f.number(Math.round(fromKg(toKg(v, from), to) * 100) / 100, { maximumFractionDigits: 2, useGrouping: false });
+  };
 
-  /** Trocar a unidade converte o campo junto; se a escolha não for gravada, o campo volta para a unidade de antes. */
+  /**
+   * Trocar a unidade converte o campo junto. Uma troca por vez: até o servidor responder, a unidade e o envio
+   * ficam bloqueados. Se a escolha não for gravada, o campo volta ao texto ORIGINAL (sem reconverter nem
+   * arredondar de novo), a menos que a pessoa já tenha mexido nele.
+   */
   async function switchUnit(u: WeightUnit) {
-    if (u === unit) return;
-    const from = unit;
-    convertField(from, u);
-    if (!(await unitSaver.save({ weightUnit: u }))) convertField(u, from);
+    if (u === unit || switching.current || unitSaver.busy) return;
+    switching.current = true;
+    const original = kg;
+    const converted = convert(original, unit, u);
+    setKg(converted);
+    try {
+      if (!(await unitSaver.save({ weightUnit: u }))) setKg((text) => (text === converted ? original : text));
+    } finally {
+      switching.current = false;
+    }
   }
 
   /** A pessoa digita na unidade dela; o servidor recebe sempre kg (o registro real não muda ao trocar a unidade). */
   async function add() {
+    if (switching.current || unitSaver.busy) return;
     const value = parse(kg);
     if (!kg.trim() || Number.isNaN(value)) return setError(`weightPage.invalid?unit=${unit}&example=${encodeURIComponent(example)}`);
     if (await run(() => repo!.addWeight({ date: date || snap!.today, kg: f.toKg(value) }))) setKg("");
@@ -87,7 +99,7 @@ export default function Peso() {
               <input id="kg" className="input" value={kg} onChange={(e) => setKg(e.target.value)} inputMode="decimal" placeholder={example} />
               <div className="weight-entry__units" role="radiogroup" aria-label={t("unitLabel")}>
                 {(["kg", "lb"] as const).map((u) => (
-                  <button key={u} type="button" role="radio" aria-checked={unit === u} className={`filter-chip${unit === u ? " is-active" : ""}`} onClick={() => void switchUnit(u)}>{u}</button>
+                  <button key={u} type="button" role="radio" aria-checked={unit === u} className={`filter-chip${unit === u ? " is-active" : ""}`} disabled={unitSaver.busy} onClick={() => void switchUnit(u)}>{u}</button>
                 ))}
               </div>
             </div>
@@ -95,7 +107,7 @@ export default function Peso() {
           <PrefsSaveError failed={unitSaver.failed} retry={() => unitSaver.failed?.weightUnit && switchUnit(unitSaver.failed.weightUnit)} busy={unitSaver.busy} />
           <Field id="wdate" label={t("date")} type="date" value={date || snap.today} max={snap.today} onChange={setDate} />
           {error ? <p className="field-error" role="alert">{error}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{t("add")}</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy || unitSaver.busy}>{t("add")}</button>
         </form>
       </main>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { weight: f.weight(toDelete.kg, 2), date: f.date(toDelete.date) }) : ""} busy={busy}
