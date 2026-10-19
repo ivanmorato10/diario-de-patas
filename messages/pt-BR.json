@@ -70,7 +70,8 @@
     "tzSave": "Salvar fuso",
     "deleteText": "Os diários que você criou são apagados com tudo o que está neles, inclusive para a família convidada. Diários de outras pessoas continuam com elas. Não dá para desfazer.",
     "confirmLabel": "Para confirmar, digite <strong>{word}</strong>",
-    "deleting": "Excluindo…"
+    "deleting": "Excluindo…",
+    "langRegionTitle": "Idioma / Language e região"
   },
   "add": {
     "back": "Voltar",

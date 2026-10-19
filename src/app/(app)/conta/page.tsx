@@ -103,8 +103,8 @@ export default function Conta() {
 
         <section className="stack" style={{ gap: 8 }} aria-label={t("settings")}>
           <Row id="name" icon="✏️" label={t("name")} sub={snap.me?.nameConfirmed ? t("nameSeen", { name: snap.me.name }) : t("nameSub")} />
-          {/* Idioma é da pessoa (não do cachorro); o rótulo aparece nos dois idiomas para quem procura. */}
-          <Row id="lang" icon="🌎" label="Idioma / Language" sub={`${LOCALE_NAMES[prefs.locale]} · ${t(`regions.${prefs.region}`)}`} />
+          {/* Idioma é da pessoa (não do cachorro); "Idioma / Language" nos dois idiomas para quem procura, e "região" para saber que ela muda aqui. */}
+          <Row id="lang" icon="🌎" label={t("langRegionTitle")} sub={`${LOCALE_NAMES[prefs.locale]} · ${t(`regions.${prefs.region}`)}`} />
           {others > 0 ? <Row id="family" icon="👨‍👩‍👧" label={t("familyDiaries")} sub={t("othersDiaries", { count: others })} /> : null}
           <Row id="notify" icon="🔔" label={t("notifications")} sub={t("notificationsSub")} />
           <Row id="tz" icon="🕐" label={t("timezone")} sub={tzValue.replace(/_/g, " ")} />
@@ -125,7 +125,7 @@ export default function Conta() {
         </Sheet>
 
         <Sheet open={panel === "lang"} onClose={() => setPanel(null)} labelledBy="c-lang">
-          <h2 id="c-lang">Idioma / Language</h2>
+          <h2 id="c-lang">{t("langRegionTitle")}</h2>
           <div className="stack">
             <LanguageSwitch />
             <p className="caption" style={{ margin: 0 }}>{t("langNote")}</p>

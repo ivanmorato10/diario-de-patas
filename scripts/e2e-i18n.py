@@ -182,6 +182,12 @@ try:
         e.wait_for_timeout(2500)
         check("toques rápidos na unidade: vale a última escolha (lb)", rpc(e, "snapshot", {})[1]["me"]["weightUnit"] == "lb")
         text_checks(e, "Peso (en)", True); no_overflow(e, "Peso 375px")
+        for w in (375, 320):  # a data não pode vazar da caixa do formulário (iPhone dá largura mínima ao campo de data)
+            e.set_viewport_size({"width": w, "height": 740}); e.wait_for_timeout(300)
+            box, field = e.locator("form.card").bounding_box(), e.locator("#wdate").bounding_box()
+            check(f"Peso {w}px: data inteira dentro da caixa", field["x"] >= box["x"] and field["x"] + field["width"] <= box["x"] + box["width"] - 8)
+            e.locator("form.card").screenshot(path=os.path.join(OUT, f"peso-form-{w}.png"))
+        e.set_viewport_size({"width": 375, "height": 667})
 
         # ---------- Estúdio: temas por região, mensagem pronta no idioma, edição preservada ----------
         e.goto(BASE + "/estudio")

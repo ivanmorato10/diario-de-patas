@@ -215,6 +215,14 @@ a.card:hover { border-color: var(--sage); }
   font-size: 1rem;
 }
 .textarea { min-height: 88px; resize: vertical; }
+/* Data: o iPhone dá ao campo de data uma largura mínima própria e ele vaza da caixa; aqui ele ocupa só a largura da coluna. */
+input.input[type="date"], input.input[type="time"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; text-align: left; }
+input.input[type="date"]::-webkit-date-and-time-value, input.input[type="time"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+/* Peso: número e unidade (kg/lb) na mesma linha; a data fica embaixo, na largura toda. */
+.weight-entry { display: flex; gap: 8px; align-items: center; }
+.weight-entry .input { flex: 1; min-width: 0; }
+.weight-entry__units { display: flex; gap: 6px; flex: none; }
+.weight-entry__units .filter-chip { min-height: 48px; min-width: 52px; justify-content: center; }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--brand-primary); outline: none; box-shadow: 0 0 0 3px var(--brand-soft); }
 .input[aria-invalid="true"] { border-color: var(--danger); }
 .field-error { color: var(--danger); font-size: 0.875rem; font-weight: 600; }

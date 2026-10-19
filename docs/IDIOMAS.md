@@ -7,10 +7,10 @@
   navegador → pt-BR. O proxy copia o idioma do perfil para o cookie na primeira requisição de cada conta no
   aparelho, então a página já sai no idioma certo. Variantes (`en-GB`, `pt-PT`) viram `en`/`pt-BR`; outros
   idiomas, pt-BR.
-- **Trocar** (Minha conta › Idioma / Language, primeira tela da apresentação e tela de entrada): cookie na hora,
+- **Trocar** (Minha conta › Idioma / Language e região, primeira tela da apresentação e tela de entrada): cookie na hora,
   perfil e `user_metadata.locale` com conta; a página atualiza sem recarregar (formulários, envios e artes
   continuam). Quem já usava o app ficou em português (o valor antigo do perfil foi mantido).
-- **Região do app** (`profiles.region`, BR/US; Minha conta › Idioma / Language), separada do idioma, define:
+- **Região do app** (`profiles.region`, BR/US; Minha conta › Idioma / Language e região), separada do idioma, define:
   feriados (missões especiais e ordem das datas no Estúdio), mercado da compra de créditos (Brasil: BRL por Pix;
   EUA: dólar, em breve) e a loja dos Achadinhos (Brasil: Mercado Livre; EUA: Amazon). Sugestão inicial pelo idioma.
 - **Unidade de peso** (`profiles.weight_unit`): escolhida só na tela de Peso (kg ou lb); o peso é sempre gravado

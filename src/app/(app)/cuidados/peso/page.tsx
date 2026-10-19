@@ -60,16 +60,18 @@ export default function Peso() {
         </section>
         <form className="card stack" onSubmit={(e) => { e.preventDefault(); add(); }} aria-labelledby="peso-novo" noValidate>
           <h2 id="peso-novo" style={{ fontSize: "1.0625rem" }}>{t("new")}</h2>
-          <div className="row" style={{ alignItems: "flex-start", flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 140px" }}><Field id="kg" label={t("weightIn", { unit })} value={kg} onChange={setKg} inputMode="decimal" placeholder={example} /></div>
-            <div style={{ flex: "1 1 140px" }}><Field id="wdate" label={t("date")} type="date" value={date || snap.today} max={snap.today} onChange={setDate} /></div>
+          <div className="field">
+            <label htmlFor="kg">{t("weightIn", { unit })}</label>
+            <div className="weight-entry">
+              <input id="kg" className="input" value={kg} onChange={(e) => setKg(e.target.value)} inputMode="decimal" placeholder={example} />
+              <div className="weight-entry__units" role="radiogroup" aria-label={t("unitLabel")}>
+                {(["kg", "lb"] as const).map((u) => (
+                  <button key={u} type="button" role="radio" aria-checked={unit === u} className={`filter-chip${unit === u ? " is-active" : ""}`} onClick={() => void setPrefs({ weightUnit: u })}>{u}</button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }} role="radiogroup" aria-label={t("unitLabel")}>
-            <span className="caption">{t("unitLabel")}</span>
-            {(["kg", "lb"] as const).map((u) => (
-              <button key={u} type="button" role="radio" aria-checked={unit === u} className={`filter-chip${unit === u ? " is-active" : ""}`} onClick={() => void setPrefs({ weightUnit: u })}>{u}</button>
-            ))}
-          </div>
+          <Field id="wdate" label={t("date")} type="date" value={date || snap.today} max={snap.today} onChange={setDate} />
           {error ? <p className="field-error" role="alert">{error}</p> : null}
           <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{t("add")}</button>
         </form>

@@ -70,7 +70,8 @@
     "tzSave": "Save time zone",
     "deleteText": "The diaries you created are deleted with everything in them, including for invited family. Other people's diaries stay with them. This can't be undone.",
     "confirmLabel": "To confirm, type <strong>{word}</strong>",
-    "deleting": "Deleting…"
+    "deleting": "Deleting…",
+    "langRegionTitle": "Idioma / Language & region"
   },
   "add": {
     "back": "Back",
