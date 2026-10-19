@@ -1,9 +1,9 @@
 // Service worker mínimo (§15 + PWA): guarda só o shell estático. Nunca respostas autenticadas, APIs nem fotos.
 // Versão nova a cada mudança deste arquivo; o navegador busca o sw.js sem cache (updateViaCache: "none"
 // e Cache-Control no-cache em next.config.ts), ativa na hora e apaga caches antigos.
-const VERSION = "ddp-v8";
+const VERSION = "ddp-v9";
 const CACHE = `ddp-static-${VERSION}`;
-const SHELL = ["/offline.html", "/brand/favicon-64.png", "/brand/abu-mascote.png", "/brand/icon-192.png", "/manifest.webmanifest"];
+const SHELL = ["/offline.html", "/brand/favicon-64.png", "/brand/abu-mascote.png", "/brand/icon-192.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -47,11 +47,13 @@ self.addEventListener("fetch", (e) => {
 });
 
 // Avisos da família (Web Push): "Ivan guardou uma foto de Pepe 📸". Mesma `tag` substitui o aviso anterior.
+// O texto vem pronto do servidor, no idioma de quem recebe; o reserva abaixo só aparece se o aviso vier vazio.
+const EN = /^en/i.test(self.navigator.language || "");
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : "" }; }
   e.waitUntil(self.registration.showNotification(d.title || "Diário de Patas", {
-    body: d.body || "Novidades da família 🐾",
+    body: d.body || (EN ? "Family updates 🐾" : "Novidades da família 🐾"),
     icon: "/brand/icon-192.png",
     badge: "/brand/favicon-64.png",
     tag: d.tag || undefined,

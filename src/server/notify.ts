@@ -13,6 +13,8 @@ import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { adminClient } from "./supabase";
 import { nameFromUser } from "./family";
+import { localesOf, requestLocale, translator, type ServerT } from "./i18n";
+import { DEFAULT_LOCALE } from "@/i18n/locale";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { supa: SupabaseClient; user: User };
@@ -22,25 +24,30 @@ const GROUP_MS = 2 * 3600_000; // fotos dentro de 2 h viram um aviso só (ver bu
 
 const pushReady = () => !!(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
-/** Texto do aviso no sininho (uma linha). */
-export function noticeText(n: { kind: NotifyKind; count: number; targetType: string | null }, actor: string, dog: string) {
-  if (n.kind === "photo") return n.count > 1 ? `${actor} guardou ${n.count} momentos de ${dog} 📸` : `${actor} guardou uma aventura de ${dog} 📸`;
-  if (n.kind === "letter") return `${actor} escreveu uma cartinha para ${dog} 💌`;
-  if (n.kind === "art") return `${actor} criou uma arte de ${dog} 🎨`;
-  return `${actor} deu um ossinho na sua ${n.targetType === "letter" ? "cartinha" : "foto"} de ${dog} 🦴`;
+/** Texto do aviso no sininho (uma linha), no idioma de quem RECEBE (`t`). Nomes nunca são traduzidos. */
+export function noticeText(t: ServerT, n: { kind: NotifyKind; count: number; targetType: string | null }, actor: string, dog: string) {
+  const v = { actor, dog, count: n.count };
+  if (n.kind === "photo") return t("notices.photo", v);
+  if (n.kind === "letter") return t("notices.letter", v);
+  if (n.kind === "art") return t("notices.art", v);
+  return t(n.targetType === "letter" ? "notices.boneLetter" : "notices.bonePhoto", v);
 }
 
 /**
  * Push no celular: título com quem fez e o que foi (o iPhone já mostra o nome do app embaixo; repetir
  * "Diário de Patas" no título soava frio) e um convite carinhoso no texto.
  */
-export function pushText(n: { kind: NotifyKind; count: number; targetType: string | null; detail?: string | null }, actor: string, dog: string) {
-  if (n.kind === "photo") return n.count > 1
-    ? { title: `Novas aventuras de ${dog} 🐾`, body: `${actor} guardou ${n.count} momentos no diário. Vem ver!` }
-    : { title: `Uma nova aventura de ${dog} 🐾`, body: `${actor} guardou um momento no diário. Vem ver!` };
-  if (n.kind === "letter") return { title: `Uma cartinha para ${dog} 💌`, body: `${actor} escreveu com carinho. Vamos ler?` };
-  if (n.kind === "art") return { title: `${dog} ganhou uma nova arte 🎨`, body: `${actor} criou ${n.detail ? `uma arte “${n.detail}”` : "uma arte nova"}. Vem ver como ficou!` };
-  return { title: `${actor} deixou um ossinho 🦴`, body: `Uma ${n.targetType === "letter" ? "cartinha" : "foto"} de ${dog} ganhou carinho. Vamos ver qual?` };
+export function pushText(t: ServerT, n: { kind: NotifyKind; count: number; targetType: string | null; detail?: string | null }, actor: string, dog: string) {
+  const v = { actor, dog, count: n.count };
+  if (n.kind === "photo") return { title: t("push.photoTitle", v), body: t("push.photoBody", v) };
+  if (n.kind === "letter") return { title: t("push.letterTitle", v), body: t("push.letterBody", v) };
+  if (n.kind === "art") {
+    // `detail`: id do tema do Estúdio, com o nome no idioma de quem recebe.
+    const key = `studioCatalog.presets.${n.detail}.label`;
+    const theme = n.detail && t.has(key as never) ? t(key as never) : null;
+    return { title: t("push.artTitle", v), body: theme ? t("push.artBodyTheme", { ...v, theme }) : t("push.artBody", v) };
+  }
+  return { title: t("push.boneTitle", v), body: t(n.targetType === "letter" ? "push.boneLetterBody" : "push.bonePhotoBody", v) };
 }
 /** Destino do aviso: /abrir confere o acesso, abre o cachorro certo e só então mostra a foto/cartinha. */
 export const noticeUrl = (n: { dogId: string; targetType: string | null; targetId: string | null }) =>
@@ -92,7 +99,9 @@ export function notifyFamily(ctx: { user: User }, a: { dogId: string; dogName: s
     recipients = recipients.filter((u) => !off.has(u));
     if (!recipients.length) return;
     const actorName = await displayName(actor, ctx.user);
+    const locales = await localesOf(recipients); // cada pessoa recebe no próprio idioma
     await Promise.all(recipients.map(async (uid) => {
+      const t = translator(locales.get(uid) ?? DEFAULT_LOCALE);
       let count = 1;
       if (a.kind === "photo") {
         // No banco, com trava: envios simultâneos somam no mesmo aviso.
@@ -106,7 +115,7 @@ export function notifyFamily(ctx: { user: User }, a: { dogId: string; dogName: s
         const { error } = await admin.from("notifications").insert({ user_id: uid, dog_id: a.dogId, actor_id: actor, kind: a.kind, target_type: a.targetType, target_id: a.targetId });
         if (error) throw new Error(`aviso ${a.kind}: ${error.message}`);
       }
-      const { title, body } = pushText({ kind: a.kind, count, targetType: a.targetType, detail: a.detail }, actorName, a.dogName);
+      const { title, body } = pushText(t, { kind: a.kind, count, targetType: a.targetType, detail: a.detail }, actorName, a.dogName);
       // Atualização do mesmo grupo substitui o aviso no celular SEM tocar/vibrar de novo.
       await sendPush(uid, { title, body, url: noticeUrl(a), tag: a.kind === "photo" ? `photo:${a.dogId}:${actor}` : `${a.kind}:${a.targetId}`, renotify: count === 1 });
     }));
@@ -129,9 +138,10 @@ export async function listNotifications(ctx: Ctx) {
   ]);
   const dogName = new Map(((dogs.data ?? []) as any[]).map((d) => [d.id, d.name]));
   const actorName = new Map(((profs.data ?? []) as any[]).map((p) => [p.user_id, p.display_name]));
+  const t = translator(await requestLocale()); // lista vista agora: o idioma da tela de quem abre
   return rows.map((r) => {
     const n = { kind: r.kind as NotifyKind, count: r.count as number, dogId: r.dog_id as string, targetType: r.target_type as string | null, targetId: r.target_id as string | null };
-    return { id: r.id, dogId: r.dog_id, read: !!r.read_at, createdAt: r.created_at, text: noticeText(n, actorName.get(r.actor_id) || "Alguém da família", dogName.get(r.dog_id) ?? "o cachorro"), url: noticeUrl(n) };
+    return { id: r.id, dogId: r.dog_id, read: !!r.read_at, createdAt: r.created_at, text: noticeText(t, n, actorName.get(r.actor_id) || t("notices.someone"), dogName.get(r.dog_id) ?? t("notices.theDog")), url: noticeUrl(n) };
   });
 }
 
@@ -173,7 +183,8 @@ export async function setNotifyPrefs(ctx: Ctx, args: unknown) {
 /** Teste: manda um aviso só para você. Diz a verdade: sem configuração ou sem aparelho, não "enviou". */
 export async function testPush(ctx: Ctx) {
   if (!pushReady()) return { configured: false, devices: 0, accepted: 0 };
-  const r = await sendPush(ctx.user.id, { title: "Diário de Patas", body: "Prontinho! Os avisos da família vão chegar assim 🐾", url: "/novidades", tag: "teste", renotify: true });
+  const t = translator((await localesOf([ctx.user.id])).get(ctx.user.id) ?? DEFAULT_LOCALE);
+  const r = await sendPush(ctx.user.id, { title: "Diário de Patas", body: t("push.test"), url: "/novidades", tag: "teste", renotify: true });
   return { configured: true, ...r };
 }
 

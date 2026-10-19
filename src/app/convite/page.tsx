@@ -1,10 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useErrorText } from "@/i18n/use-error";
 import { useRouter, useSearchParams } from "next/navigation";
 import { browserClient } from "@/data/supabase-browser";
 import { useStore } from "@/data/store";
-import { ROLE_HELP, ROLE_PT, acceptInvite, inviteFormatError, previewInvite } from "@/data/family-client";
+import { acceptInvite, inviteFormatError, previewInvite } from "@/data/family-client";
 import type { DiaryRole } from "@/domain/types";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
@@ -24,7 +26,11 @@ function Convite() {
   const [info, setInfo] = useState<{ dogName: string; invitedBy: string; role: DiaryRole } | null>(null);
   const [logged, setLogged] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorKey, setError] = useState<string | null>(null);
+  const t = useTranslations("invite");
+  const tf = useTranslations("family");
+  const errText = useErrorText();
+  const error = errorKey ? errText(errorKey) : null;
 
   useEffect(() => {
     browserClient().auth.getUser().then(({ data }) => {
@@ -41,7 +47,7 @@ function Convite() {
     if (bad) return setError(bad);
     setError(null);
     setBusy(true);
-    try { setInfo(await previewInvite(c)); } catch (e) { setInfo(null); setError(e instanceof Error ? e.message : "Convite inválido."); } finally { setBusy(false); }
+    try { setInfo(await previewInvite(c)); } catch (e) { setInfo(null); setError(e instanceof Error ? e.message : "family.errors.invalid"); } finally { setBusy(false); }
   }
   useEffect(() => {
     if (params.get("codigo")) void look(params.get("codigo")!);
@@ -57,7 +63,7 @@ function Convite() {
       router.replace("/hoje");
     } catch (e) {
       setBusy(false);
-      setError(e instanceof Error ? e.message : "Não deu para aceitar o convite.");
+      setError(e instanceof Error ? e.message : "errors.acceptFailed");
     }
   }
 
@@ -66,7 +72,7 @@ function Convite() {
   return (
     <div className="sp sp--sheet">
       <header className="sp-top">
-        <button type="button" className="sp-back" aria-label="Voltar" onClick={() => (info ? (setInfo(null), setError(null)) : window.history.length > 1 ? router.back() : router.replace("/"))}>
+        <button type="button" className="sp-back" aria-label={t("back")} onClick={() => (info ? (setInfo(null), setError(null)) : window.history.length > 1 ? router.back() : router.replace("/"))}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
         <div className="sp-top__emblem" style={{ width: 120, height: 120, borderRadius: "50%", background: "var(--paper)", display: "grid", placeItems: "end center", overflow: "hidden" }}><AbuMascot width={96} /></div>
@@ -74,33 +80,33 @@ function Convite() {
       <main className="sp-sheet">
         {!info ? (
           <form className="stack" onSubmit={(e) => { e.preventDefault(); void look(); }}>
-            <h1 className="sp-sheet__title">Convite para um diário</h1>
-            <p className="page-note">Digite o código que a família mandou para você. Você entra com a sua própria conta.</p>
+            <h1 className="sp-sheet__title">{t("title")}</h1>
+            <p className="page-note">{t("text")}</p>
             <div className="field">
-              <label htmlFor="codigo">Código do convite</label>
+              <label htmlFor="codigo">{t("code")}</label>
               <input id="codigo" className="input sp-code" style={{ letterSpacing: "0.12em", fontSize: "1.3rem" }} autoCapitalize="characters" placeholder="PATA-XXXX-XXXX" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().slice(0, 16)); setError(null); }} autoFocus />
             </div>
             {error ? <p className="field-error" role="alert" style={{ margin: 0 }}>{error}</p> : null}
-            <button type="submit" className="sp-btn sp-btn--main" disabled={busy}>{busy ? "Conferindo…" : "Ver convite"}</button>
+            <button type="submit" className="sp-btn sp-btn--main" disabled={busy}>{busy ? t("checking") : t("see")}</button>
           </form>
         ) : (
           <div className="stack">
-            <h1 className="sp-sheet__title">{info.invitedBy} convidou você para o diário de {info.dogName}</h1>
-            <p className="invite-role"><Paw size={16} /> Seu papel: <strong>{ROLE_PT[info.role]}</strong></p>
-            <p className="caption" style={{ marginTop: -6 }}>{ROLE_HELP[info.role]}</p>
+            <h1 className="sp-sheet__title">{t("invitedYou", { person: info.invitedBy, dog: info.dogName })}</h1>
+            <p className="invite-role"><Paw size={16} /> {t.rich("yourRole", { role: tf(`roles.${info.role}`), strong: (c) => <strong>{c}</strong> })}</p>
+            <p className="caption" style={{ marginTop: -6 }}>{tf(`roleHelp.${info.role}`)}</p>
             {logged ? (
               <>
               <div className="field">
-                <label htmlFor="meu-nome">Seu nome <span className="muted">(o seu, não o do cachorro)</span></label>
-                <input id="meu-nome" className="input" value={nameValue} maxLength={40} autoComplete="given-name" placeholder="Seu nome" onChange={(e) => setMyName(e.target.value)} />
+                <label htmlFor="meu-nome">{t("yourName")} <span className="muted">{t("yourNameHint")}</span></label>
+                <input id="meu-nome" className="input" value={nameValue} maxLength={40} autoComplete="given-name" placeholder={t("yourName")} onChange={(e) => setMyName(e.target.value)} />
               </div>
-              <button type="button" className="sp-btn sp-btn--main" onClick={accept} disabled={busy}>{busy ? "Entrando…" : `Aceitar e abrir o diário de ${info.dogName}`}</button>
+              <button type="button" className="sp-btn sp-btn--main" onClick={accept} disabled={busy}>{busy ? t("entering") : t("accept", { dog: info.dogName })}</button>
               </>
             ) : (
               <>
-                <p className="page-note">Para aceitar, entre com a sua conta. Se ainda não tem, crie uma: é rápido e não precisa cadastrar cachorro.</p>
-                <a className="sp-btn sp-btn--main" href={`/entrar?modo=criar&next=${next}`}>Criar minha conta</a>
-                <a className="sp-btn sp-btn--ghost" href={`/entrar?modo=entrar&next=${next}`}>Já tenho conta</a>
+                <p className="page-note">{t("signInToAccept")}</p>
+                <a className="sp-btn sp-btn--main" href={`/entrar?modo=criar&next=${next}`}>{t("createMine")}</a>
+                <a className="sp-btn sp-btn--ghost" href={`/entrar?modo=entrar&next=${next}`}>{t("haveAccount")}</a>
               </>
             )}
           </div>

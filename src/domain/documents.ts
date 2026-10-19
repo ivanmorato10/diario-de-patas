@@ -7,32 +7,24 @@ import { isCivilDate } from "./dates";
 import { dueStatus, type DueStatus } from "./health";
 import type { CivilDate } from "./types";
 
-export const DOCUMENT_CATEGORIES = {
-  vaccination_card: "Carteira de vacinação",
-  id_chip: "RG pet / microchip",
-  pedigree: "Pedigree",
-  exams: "Exames",
-  prescriptions: "Receitas",
-  insurance: "Seguro / plano",
-  adoption: "Contrato de adoção ou compra",
-  other: "Outros",
-} as const;
-export type DocumentCategory = keyof typeof DOCUMENT_CATEGORIES;
+/** Nomes em care.docCategories.<categoria>. */
+export const DOCUMENT_CATEGORIES = ["vaccination_card", "id_chip", "pedigree", "exams", "prescriptions", "insurance", "adoption", "other"] as const;
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
 
 export const DOCUMENT_MIME = ["application/pdf", "image/jpeg", "image/png", "image/webp"] as const;
 export type DocumentMime = (typeof DOCUMENT_MIME)[number];
 
-const civil = z.string().refine(isCivilDate, "Data inválida.");
+const civil = z.string().refine(isCivilDate, "validation.invalidDate");
 
 export const DocumentMetaSchema = z
   .object({
-    title: z.string().trim().min(1, "Dê um título ao documento.").max(80, "Use até 80 caracteres."),
-    category: z.enum(Object.keys(DOCUMENT_CATEGORIES) as [DocumentCategory, ...DocumentCategory[]]),
+    title: z.string().trim().min(1, "validation.docTitleRequired").max(80, "validation.maxChars?max=80"),
+    category: z.enum(DOCUMENT_CATEGORIES),
     docDate: civil.nullable().default(null),
     expiresOn: civil.nullable().default(null),
-    notes: z.string().trim().max(500, "Use até 500 caracteres.").default(""),
+    notes: z.string().trim().max(500, "validation.maxChars?max=500").default(""),
   })
-  .refine((d) => !d.expiresOn || !d.docDate || d.expiresOn >= d.docDate, { message: "A validade deve ser depois da data do documento.", path: ["expiresOn"] });
+  .refine((d) => !d.expiresOn || !d.docDate || d.expiresOn >= d.docDate, { message: "validation.expiryAfterDoc", path: ["expiresOn"] });
 export type DocumentMetaInput = z.input<typeof DocumentMetaSchema>;
 
 /** Metadados (vão no snapshot). O arquivo fica num store separado. */
@@ -57,4 +49,4 @@ export function expiryStatus(expiresOn: CivilDate | null, today: CivilDate): Due
   return dueStatus(expiresOn, today);
 }
 
-export const EXPIRY_LABEL: Record<DueStatus, string> = { none: "Sem validade", ok: "Válido", soon: "Vence em breve", overdue: "Vencido" };
+/* Rótulos da validade em care.expiry.<status>. */

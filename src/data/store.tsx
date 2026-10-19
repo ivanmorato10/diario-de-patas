@@ -8,6 +8,7 @@ import { pendingArts, studioJob, untrackArt } from "./studio-client";
 import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
 import { CONFIG_OK } from "@/config/mode";
+import type { Region } from "@/i18n/locale";
 
 interface StoreValue {
   /** Dados da conta (Supabase). */
@@ -165,11 +166,11 @@ export function useMediaBlob(id: string | null | undefined, variant: "thumb" | "
   return b;
 }
 
-/** Contexto do ciclo de missões a partir do snapshot (§7). */
-export function cycleContext(snap: Snapshot): CycleContext | null {
+/** Contexto do ciclo de missões a partir do snapshot (§7). `region`: calendário de quem está usando (usePrefs). */
+export function cycleContext(snap: Snapshot, region: Region): CycleContext | null {
   if (!snap.dog) return null;
   return {
-    dogId: snap.dog.id, dogName: snap.dog.name, birthDate: snap.dog.birthDate, today: snap.today,
+    dogId: snap.dog.id, region, birthDate: snap.dog.birthDate, today: snap.today,
     plan: snap.dailyPlan, completions: snap.completions, advances: snap.collectionAdvances,
   };
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/data/store";
 import { switchDog } from "@/data/family-client";
@@ -17,6 +18,7 @@ function Abrir() {
   const router = useRouter();
   const { snap, reload } = useStore();
   const [problem, setProblem] = useState<string | null>(null);
+  const t = useTranslations("open");
   const switching = useRef(false);
   // Sempre busca dados novos antes de procurar: uma foto recém-guardada não pode parecer "apagada".
   const [fresh, setFresh] = useState(false);
@@ -35,24 +37,24 @@ function Abrir() {
     if (!cao) { router.replace("/novidades"); return; }
     if (snap.dog?.id !== cao) {
       if (switching.current) return; // esperando o diário certo carregar
-      if (!(snap.diaries ?? []).some((d) => d.id === cao)) { setProblem("Você não tem mais acesso a este diário."); return; }
+      if (!(snap.diaries ?? []).some((d) => d.id === cao)) { setProblem(t("noAccess")); return; }
       switching.current = true;
-      switchDog(cao).then(() => reload()).catch(() => setProblem("Não conseguimos abrir este diário agora. Tente de novo."));
+      switchDog(cao).then(() => reload()).catch(() => setProblem(t("openFailed")));
       return;
     }
     // Já no cachorro certo: a lembrança ainda existe?
-    if (foto && !snap.entries.some((e) => e.id === foto)) { setProblem("Essa foto foi apagada."); return; }
-    if (carta && !(snap.letters ?? []).some((l) => l.id === carta)) { setProblem("Essa cartinha foi apagada."); return; }
+    if (foto && !snap.entries.some((e) => e.id === foto)) { setProblem(t("photoDeleted")); return; }
+    if (carta && !(snap.letters ?? []).some((l) => l.id === carta)) { setProblem(t("letterDeleted")); return; }
     router.replace(foto ? `/diario?ir=${foto}` : carta ? `/diario?ir=carta-${carta}` : "/diario");
-  }, [snap, problem, fresh, cao, foto, carta, reload, router]);
+  }, [snap, problem, fresh, cao, foto, carta, reload, router, t]);
 
   if (loadFailed) {
     return (
       <>
-        <TopBar title="Novidades" back="/novidades" />
+        <TopBar title={t("title")} back="/novidades" emoji="🔔" />
         <main className="main">
-          <p className="page-note">Não conseguimos carregar agora.</p>
-          <button type="button" className="btn btn--secondary btn--block" onClick={load}>Tentar de novo</button>
+          <p className="page-note">{t("loadFailed")}</p>
+          <button type="button" className="btn btn--secondary btn--block" onClick={load}>{t("retry")}</button>
         </main>
       </>
     );
@@ -60,10 +62,10 @@ function Abrir() {
   if (problem) {
     return (
       <>
-        <TopBar title="Novidades" back="/novidades" />
+        <TopBar title={t("title")} back="/novidades" emoji="🔔" />
         <main className="main">
           <p className="page-note">{problem}</p>
-          <Link href="/novidades" className="btn btn--secondary btn--block">Voltar para Novidades</Link>
+          <Link href="/novidades" className="btn btn--secondary btn--block">{t("back")}</Link>
         </main>
       </>
     );

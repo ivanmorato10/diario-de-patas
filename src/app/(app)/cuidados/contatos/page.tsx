@@ -2,6 +2,7 @@
 
 import { mapsUrl } from "@/lib/maps";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -22,6 +23,8 @@ export default function Contatos() {
   const { busy, error, setError, run } = useCareMutation();
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
+  const t = useTranslations("contactsPage");
+  const tc = useTranslations("care");
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
@@ -34,28 +37,28 @@ export default function Contatos() {
 
   return (
     <>
-      <TopBar title="Contatos" back="/cuidados" />
+      <TopBar title={t("title")} back="/cuidados" emoji="📞" />
       <main className="main">
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> Adicionar contato</button>
-        <a className="btn btn--secondary btn--block" href={mapsUrl("veterinário", true)} target="_blank" rel="noopener">📍 Achar veterinário perto de mim</a>
-        {contacts.length === 0 ? <p className="page-note">Guarde aqui o veterinário, uma emergência 24h, o pet sitter… para achar rápido quando precisar.</p> : null}
+        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> {t("add")}</button>
+        <a className="btn btn--secondary btn--block" href={mapsUrl(t("vetSearch"), t("nearMe"))} target="_blank" rel="noopener">{t("findVet")}</a>
+        {contacts.length === 0 ? <p className="page-note">{t("empty")}</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {contacts.map((c) => (
             <li key={c.id} className="card stack" style={{ padding: 14, gap: 8 }}>
               <div className="row-between" style={{ alignItems: "flex-start" }}>
                 <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                  <span className="caption">{CONTACT_KINDS[c.kind]}</span>
+                  <span className="caption">{tc(`contactKinds.${c.kind}`)}</span>
                   <strong style={{ overflowWrap: "anywhere" }}>{c.name}</strong>
                   {c.phone ? <span className="small">{c.phone}</span> : null}
                   {c.address ? <span className="small" style={{ overflowWrap: "anywhere" }}>{c.address}</span> : null}
                 </span>
-                <RowActions label={`contato ${c.name}`} onEdit={() => openEdit(c)} onDelete={() => setToDelete(c)} />
+                <RowActions label={t("rowLabel", { name: c.name })} onEdit={() => openEdit(c)} onDelete={() => setToDelete(c)} />
               </div>
               {c.notes ? <p className="small" style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{c.notes}</p> : null}
               {c.phone || c.address ? (
                 <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-                  {c.phone ? <a href={telHref(c.phone)} className="btn btn--secondary btn--small" aria-label={`Ligar para ${c.name}`}><IconPhone size={18} /> Ligar</a> : null}
-                  {c.address ? <a href={mapHref(c.address)} target="_blank" rel="noopener noreferrer" className="btn btn--secondary btn--small" aria-label={`Abrir endereço de ${c.name} no mapa`}><IconPin size={18} /> Abrir no mapa</a> : null}
+                  {c.phone ? <a href={telHref(c.phone)} className="btn btn--secondary btn--small" aria-label={t("callLabel", { name: c.name })}><IconPhone size={18} /> {t("call")}</a> : null}
+                  {c.address ? <a href={mapHref(c.address)} target="_blank" rel="noopener noreferrer" className="btn btn--secondary btn--small" aria-label={t("mapLabel", { name: c.name })}><IconPin size={18} /> {t("map")}</a> : null}
                 </div>
               ) : null}
             </li>
@@ -64,23 +67,23 @@ export default function Contatos() {
         <HealthDisclaimer />
       </main>
 
-      <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Editar contato" : "Novo contato"} onSubmit={submit} busy={busy} error={error}>
+      <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? t("editTitle") : t("newTitle")} onSubmit={submit} busy={busy} error={error}>
         {editing ? (
           <>
             <div className="field">
-              <label htmlFor="ckind">Tipo</label>
+              <label htmlFor="ckind">{t("type")}</label>
               <select id="ckind" className="input" value={editing.form.kind} onChange={(e) => set({ kind: e.target.value as ContactKind })}>
-                {Object.entries(CONTACT_KINDS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                {CONTACT_KINDS.map((k) => <option key={k} value={k}>{tc(`contactKinds.${k}`)}</option>)}
               </select>
             </div>
-            <Field id="kname" label="Nome" value={editing.form.name} onChange={(v) => set({ name: v })} maxLength={80} />
-            <Field id="kphone" label="Telefone" optional type="tel" inputMode="tel" value={editing.form.phone} onChange={(v) => set({ phone: v })} maxLength={30} />
-            <Field id="kaddr" label="Endereço" optional value={editing.form.address} onChange={(v) => set({ address: v })} maxLength={200} />
-            <Field id="knotes" label="Observações" optional multiline value={editing.form.notes} onChange={(v) => set({ notes: v })} maxLength={500} />
+            <Field id="kname" label={t("name")} value={editing.form.name} onChange={(v) => set({ name: v })} maxLength={80} />
+            <Field id="kphone" label={t("phone")} optional type="tel" inputMode="tel" value={editing.form.phone} onChange={(v) => set({ phone: v })} maxLength={30} />
+            <Field id="kaddr" label={t("address")} optional value={editing.form.address} onChange={(v) => set({ address: v })} maxLength={200} />
+            <Field id="knotes" label={t("notes")} optional multiline value={editing.form.notes} onChange={(v) => set({ notes: v })} maxLength={500} />
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este contato?" text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
+      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("contacts", toDelete.id)))) setToDelete(null); }} />
     </>
   );

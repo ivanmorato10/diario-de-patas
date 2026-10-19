@@ -326,8 +326,8 @@ with sync_playwright() as p:
     check("tocar no 🦴 mostra quem deu", a.locator(".letter-card").get_by_text("Bianca deu um ossinho").is_visible())
     st, _ = rpc(a, "toggleBone", {"targetType": "letter", "targetId": letter_id})
     check(f"ossinho não vale na própria cartinha ({st})", st == 400)
-    got = notices(a, "Bianca deu um ossinho na sua cartinha de Luna")
-    check(f"Ivan recebe o aviso do ossinho ({got[:1]})", any("Bianca deu um ossinho na sua cartinha de Luna" in t for t in got))
+    got = notices(a, "Bianca deu um ossinho na sua cartinha para Luna")
+    check(f"Ivan recebe o aviso do ossinho ({got[:1]})", any("Bianca deu um ossinho na sua cartinha para Luna" in t for t in got))
     a.goto(BASE + "/novidades"); expect(a.locator(".notice-item").first).to_be_visible(timeout=20000)
     check("Novidades zera o sininho", eventually(lambda t: expect(a.locator(".dog-bell__count")).to_have_count(0, timeout=t)))
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click(); a.get_by_role("button", name="Editar o perfil de Luna").click(); a.wait_for_url("**/perfil")
@@ -411,7 +411,7 @@ with sync_playwright() as p:
     a.get_by_role("button", name="Criar link com 1 foto").click()
     link_input = a.get_by_label("Link do álbum compartilhado"); expect(link_input).to_be_visible(timeout=20000)
     share_url = link_input.input_value()
-    ctxV = browser.new_context(viewport={"width": 390, "height": 844})
+    ctxV = browser.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR")
     v = ctxV.new_page(); v.goto(share_url)
     html = v.content()
     img_status = v.evaluate("() => fetch(document.querySelector('figure img').src).then(r => r.status)")
@@ -421,7 +421,7 @@ with sync_playwright() as p:
     check("página compartilhada convida a criar conta (logo e botão)", v.locator('a[href="/entrar?modo=criar"]').count() >= 3)
     check(f"visitante sem conta vê só a seleção (1 foto, {img_status})", v.locator("figure.shared-photo").count() == 1 and img_status == 200 and v.get_by_role("heading", name="Para a vovó").is_visible())
     check("página compartilhada sem dados de saúde, email ou noindex ausente",
-          "V10" not in html and emails["A"] not in html and 'name="robots" content="noindex' in html)
+          "V10" not in v.inner_text("body") and emails["A"] not in html and 'name="robots" content="noindex' in html)  # html inclui os textos de exemplo do app ("Ex.: V10")
     img_url = v.evaluate("() => document.querySelector('figure img').src")
     a.goto(BASE + "/perfil"); a.get_by_role("button", name=re.compile("Gerenciar diário")).click(); a.get_by_role("button", name="Revogar o link Para a vovó").click(); a.wait_for_timeout(1500)
     v.goto(share_url)
@@ -429,6 +429,10 @@ with sync_playwright() as p:
     av_after = v.evaluate("() => fetch(location.pathname + '/perfil').then(r => r.status)")
     check(f"foto de perfil some junto com o link ({av_after})", av_after == 404)
     check(f"link revogado para de funcionar (página e foto {st})", eventually(lambda t: expect(v.get_by_role("heading", name="Este álbum não está disponível")).to_be_visible(timeout=t)) and st == 404)
+    # Quem abre o link vê a página no próprio idioma (não no de quem compartilhou).
+    ctxVen = browser.new_context(viewport={"width": 390, "height": 844}, locale="en-US"); ven = ctxVen.new_page(); ven.goto(share_url)
+    check("link aberto por quem usa inglês: página em inglês", eventually(lambda t: expect(ven.get_by_role("heading", name="This album isn't available")).to_be_visible(timeout=t)))
+    ctxVen.close()
     ctxV.close()
 
     # ---------- Sair e entrar de novo ----------

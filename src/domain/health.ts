@@ -9,13 +9,13 @@ import { civilDayNumber, isCivilDate } from "./dates";
 import type { CivilDate } from "./types";
 import type { HealthDocument } from "./documents";
 
-export const HEALTH_DISCLAIMER = "Estas anotações não substituem o veterinário. Em emergência, procure atendimento.";
+/* Textos (rótulos, avisos, validação) ficam nos arquivos de idioma: care.*, validation.* — aqui só regras e chaves. */
 
 /** Janela de “próxima em breve” e do cartão “Próximos cuidados”. */
 export const CARE_WINDOW_DAYS = 30;
 
-const civil = z.string().refine(isCivilDate, "Data inválida.");
-const text = (max: number) => z.string().trim().max(max, `Use até ${max} caracteres.`);
+const civil = z.string().refine(isCivilDate, "validation.invalidDate");
+const text = (max: number) => z.string().trim().max(max, `validation.maxChars?max=${max}`);
 const optionalText = (max: number) => text(max).default("");
 
 // ---------- Dados do cachorro ----------
@@ -38,7 +38,7 @@ export interface HealthProfile extends HealthProfileData {
 // ---------- Peso ----------
 export const WeightSchema = z.object({
   date: civil,
-  kg: z.number().positive("Informe um peso maior que zero.").max(150, "Confira o peso informado."),
+  kg: z.number().positive("validation.weightPositive").max(150, "validation.weightCheck"),
 });
 export type WeightInput = z.input<typeof WeightSchema>;
 export interface WeightRecord extends z.output<typeof WeightSchema> {
@@ -48,19 +48,20 @@ export interface WeightRecord extends z.output<typeof WeightSchema> {
 }
 
 // ---------- Vacinas e vermífugos ----------
-export const VACCINE_KINDS = { vaccine: "Vacina", dewormer: "Vermífugo", antiflea: "Antipulgas", other: "Outro" } as const;
-export type VaccineKind = keyof typeof VACCINE_KINDS;
+/** Nomes em care.vaccineKinds.<tipo>. */
+export const VACCINE_KINDS = ["vaccine", "dewormer", "antiflea", "other"] as const;
+export type VaccineKind = (typeof VACCINE_KINDS)[number];
 
 export const VaccineSchema = z
   .object({
     kind: z.enum(["vaccine", "dewormer", "antiflea", "other"]),
-    name: text(80).min(1, "Informe o nome."),
+    name: text(80).min(1, "validation.nameRequired"),
     appliedDate: civil,
     nextDate: civil.nullable().default(null),
     clinic: optionalText(120),
     documentId: z.string().nullable().default(null),
   })
-  .refine((v) => !v.nextDate || v.nextDate >= v.appliedDate, { message: "A próxima dose deve ser depois da aplicação.", path: ["nextDate"] });
+  .refine((v) => !v.nextDate || v.nextDate >= v.appliedDate, { message: "validation.nextDoseAfter", path: ["nextDate"] });
 export type VaccineInput = z.input<typeof VaccineSchema>;
 export interface Vaccine extends z.output<typeof VaccineSchema> {
   id: string;
@@ -74,7 +75,7 @@ export const VisitSchema = z
   .object({
     date: civil,
     /** Horário opcional (HH:MM). */
-    time: z.string().regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Confira o horário.").default(""),
+    time: z.string().regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "validation.checkTime").default(""),
     clinic: optionalText(120),
     vet: optionalText(120),
     reason: optionalText(200),
@@ -82,7 +83,7 @@ export const VisitSchema = z
     nextDate: civil.nullable().default(null),
     documentIds: z.array(z.string()).default([]),
   })
-  .refine((v) => !v.nextDate || v.nextDate >= v.date, { message: "A próxima consulta deve ser depois desta.", path: ["nextDate"] });
+  .refine((v) => !v.nextDate || v.nextDate >= v.date, { message: "validation.nextVisitAfter", path: ["nextDate"] });
 export type VisitInput = z.input<typeof VisitSchema>;
 export interface Visit extends z.output<typeof VisitSchema> {
   id: string;
@@ -94,7 +95,7 @@ export interface Visit extends z.output<typeof VisitSchema> {
 // ---------- Medicamentos ----------
 export const MedicationSchema = z
   .object({
-    name: text(80).min(1, "Informe o nome."),
+    name: text(80).min(1, "validation.nameRequired"),
     dose: optionalText(80),
     frequency: optionalText(80),
     /** Repetição para o aviso ("" = sem aviso; uso contínuo descrito em `frequency`). */
@@ -105,7 +106,7 @@ export const MedicationSchema = z
     endDate: civil.nullable().default(null),
     notes: optionalText(500),
   })
-  .refine((m) => !m.endDate || m.endDate >= m.startDate, { message: "O fim deve ser depois do início.", path: ["endDate"] });
+  .refine((m) => !m.endDate || m.endDate >= m.startDate, { message: "validation.endAfterStart", path: ["endDate"] });
 export type MedicationInput = z.input<typeof MedicationSchema>;
 export interface Medication extends z.output<typeof MedicationSchema> {
   id: string;
@@ -115,13 +116,14 @@ export interface Medication extends z.output<typeof MedicationSchema> {
 }
 
 // ---------- Contatos ----------
-export const CONTACT_KINDS = { vet: "Veterinário", clinic: "Clínica", emergency: "Emergência 24h", sitter: "Pet sitter", other: "Outro" } as const;
-export type ContactKind = keyof typeof CONTACT_KINDS;
+/** Nomes em care.contactKinds.<tipo>. */
+export const CONTACT_KINDS = ["vet", "clinic", "emergency", "sitter", "other"] as const;
+export type ContactKind = (typeof CONTACT_KINDS)[number];
 
 export const ContactSchema = z.object({
   kind: z.enum(["vet", "clinic", "emergency", "sitter", "other"]),
-  name: text(80).min(1, "Informe o nome."),
-  phone: optionalText(30).refine((p) => p === "" || /^[+\d][\d\s().-]{5,}$/.test(p), "Confira o telefone."),
+  name: text(80).min(1, "validation.nameRequired"),
+  phone: optionalText(30).refine((p) => p === "" || /^[+\d][\d\s().-]{5,}$/.test(p), "validation.checkPhone"),
   address: optionalText(200),
   notes: optionalText(500),
 });
@@ -169,22 +171,7 @@ export function dueStatus(nextDate: CivilDate | null, today: CivilDate, windowDa
   return "ok";
 }
 
-export const DUE_LABEL: Record<DueStatus, string> = {
-  none: "Sem próxima dose",
-  ok: "Em dia",
-  soon: "Próxima em até 30 dias",
-  overdue: "Atrasada",
-};
-
-/** Texto curto da distância até a data, para acompanhar o rótulo (nunca só cor). */
-export function dueText(nextDate: CivilDate, today: CivilDate): string {
-  const d = daysUntil(nextDate, today);
-  if (d === 0) return "hoje";
-  if (d === 1) return "amanhã";
-  if (d > 1) return `em ${d} dias`;
-  if (d === -1) return "há 1 dia";
-  return `há ${-d} dias`;
-}
+/* Rótulos do status em care.due.<status>; distância até a data em care.dueIn (plural, nunca só cor). */
 
 const vaccineKey = (v: Pick<Vaccine, "kind" | "name">) => `${v.kind}:${v.name.trim().toLocaleLowerCase("pt-BR")}`;
 
@@ -212,8 +199,9 @@ export function medicationActive(m: Pick<Medication, "startDate" | "endDate">, t
   return m.startDate <= today && (!m.endDate || m.endDate >= today);
 }
 
-export const MED_REPEAT = { "": "Sem aviso", daily: "Todo dia", weekly: "Toda semana", monthly: "Todo mês", quarterly: "A cada 3 meses", yearly: "Todo ano" } as const;
-export type MedRepeat = keyof typeof MED_REPEAT;
+/** Nomes em care.repeat.<chave> ("none" = sem aviso). */
+export const MED_REPEAT = ["", "daily", "weekly", "monthly", "quarterly", "yearly"] as const;
+export type MedRepeat = (typeof MED_REPEAT)[number];
 
 export function addMonths(date: CivilDate, months: number): CivilDate {
   const [y, m, d] = date.split("-").map(Number);
@@ -247,10 +235,16 @@ export function medsDue(meds: Medication[], today: CivilDate) {
   return meds.map((m) => ({ m, due: medNextDue(m) })).filter((x): x is { m: Medication; due: CivilDate } => !!x.due && x.due <= today);
 }
 
+/** Item de "Próximos cuidados": dados, não frase — a tela monta o texto no idioma da pessoa. */
 export interface CareItem {
   kind: "vaccine" | "visit" | "document" | "medication";
   id: string;
-  title: string;
+  /** Nome digitado pela pessoa (vacina, remédio, título do documento, motivo da consulta). */
+  name: string;
+  vaccineKind?: VaccineKind;
+  /** Consulta: marcada (`scheduled`, com horário opcional) ou lembrete da próxima (`next`). */
+  visit?: "scheduled" | "next";
+  time?: string;
   date: CivilDate;
   status: Exclude<DueStatus, "none" | "ok">;
   href: string;
@@ -261,33 +255,36 @@ export function upcomingCare(h: Pick<HealthData, "vaccines" | "visits"> & { docu
   const items: CareItem[] = [];
   for (const v of latestVaccines(h.vaccines)) {
     const s = dueStatus(v.nextDate, today, windowDays);
-    if (s === "soon" || s === "overdue") items.push({ kind: "vaccine", id: v.id, title: `${VACCINE_KINDS[v.kind]}: ${v.name}`, date: v.nextDate!, status: s, href: "/cuidados/vacinas" });
+    if (s === "soon" || s === "overdue") items.push({ kind: "vaccine", id: v.id, name: v.name, vaccineKind: v.kind, date: v.nextDate!, status: s, href: "/cuidados/vacinas" });
   }
   // Consultas marcadas (hoje ou depois) sempre aparecem como compromisso, mesmo que estejam longe.
   for (const v of h.visits.filter((x) => x.date >= today)) {
-    const when = v.date === today ? `hoje${v.time ? ` às ${v.time}` : ""}` : v.time ? `às ${v.time}` : "";
-    items.push({ kind: "visit", id: v.id, title: `Consulta marcada${when ? ` ${when}` : ""}${v.reason ? `: ${v.reason}` : ""}`, date: v.date, status: "soon", href: "/cuidados/consultas" });
+    items.push({ kind: "visit", id: v.id, name: v.reason, visit: "scheduled", time: v.time || undefined, date: v.date, status: "soon", href: "/cuidados/consultas" });
   }
   // Consulta: só a próxima marcada mais recente conta (uma consulta nova cumpre a anterior).
   const lastVisit = [...h.visits].filter((x) => x.date < today).sort((a, b) => b.date.localeCompare(a.date))[0];
   const scheduled = h.visits.some((x) => x.date >= today); // consulta já marcada cumpre o lembrete
   if (lastVisit?.nextDate && !scheduled) {
     const s = dueStatus(lastVisit.nextDate, today, windowDays);
-    if (s === "soon" || s === "overdue") items.push({ kind: "visit", id: lastVisit.id, title: "Próxima consulta", date: lastVisit.nextDate, status: s, href: "/cuidados/consultas" });
+    if (s === "soon" || s === "overdue") items.push({ kind: "visit", id: lastVisit.id, name: "", visit: "next", date: lastVisit.nextDate, status: s, href: "/cuidados/consultas" });
   }
   for (const m of h.medications ?? []) {
     const due = medNextDue(m);
     const s = dueStatus(due, today, Math.min(windowDays, 7));
-    if (due && (s === "soon" || s === "overdue")) items.push({ kind: "medication", id: m.id, title: `Remédio: ${m.name}`, date: due, status: s, href: "/cuidados/medicamentos" });
+    if (due && (s === "soon" || s === "overdue")) items.push({ kind: "medication", id: m.id, name: m.name, date: due, status: s, href: "/cuidados/medicamentos" });
   }
   for (const d of h.documents ?? []) {
     const s = dueStatus(d.expiresOn, today, windowDays);
-    if (s === "soon" || s === "overdue") items.push({ kind: "document", id: d.id, title: `Documento: ${d.title}`, date: d.expiresOn!, status: s, href: "/cuidados/documentos" });
+    if (s === "soon" || s === "overdue") items.push({ kind: "document", id: d.id, name: d.title, date: d.expiresOn!, status: s, href: "/cuidados/documentos" });
   }
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** Mensagem do primeiro erro de validação, para mostrar junto do formulário. */
+/**
+ * Chave do primeiro erro de validação (ex.: "validation.maxChars?max=80"), para mostrar junto do formulário.
+ * A tela (ou a rota, no servidor) traduz no idioma da pessoa.
+ */
 export function firstIssue(err: z.ZodError): string {
-  return err.issues[0]?.message ?? "Confira os dados.";
+  const m = err.issues[0]?.message;
+  return m && /^(validation|errors)\./.test(m) ? m : "validation.checkData";
 }

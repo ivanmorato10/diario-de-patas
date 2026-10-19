@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { listNotifications, markNotificationsRead, pushState, type Notice, type PushState } from "@/data/push-client";
@@ -8,15 +9,18 @@ import { PageLoading, TopBar, useRequireDiary } from "@/components/shell";
 import { NotificationSettings } from "@/components/notifications";
 import { Sheet } from "@/components/entry-actions";
 
-const when = (iso: string) => {
-  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
-  if (m < 1) return "agora";
-  if (m < 60) return `há ${m} min`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `há ${h} h`;
-  const d = Math.round(h / 24);
-  return d === 1 ? "ontem" : `há ${d} dias`;
-};
+/** "agora", "há 5 min", "ontem"… no idioma da pessoa. */
+function useWhen() {
+  const t = useTranslations("news.when");
+  return (iso: string) => {
+    const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    if (m < 1) return t("now");
+    if (m < 60) return t("minutes", { n: m });
+    const h = Math.round(m / 60);
+    if (h < 24) return t("hours", { n: h });
+    return t("days", { n: Math.round(h / 24) });
+  };
+}
 
 /** Novidades da família: fotos, cartinhas e ossinhos de quem participa dos seus diários. */
 export default function Novidades() {
@@ -27,6 +31,8 @@ export default function Novidades() {
   const [failed, setFailed] = useState(false);
   const [push, setPush] = useState<PushState | null>(null);
   const [settings, setSettings] = useState(false);
+  const t = useTranslations("news");
+  const when = useWhen();
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -58,22 +64,22 @@ export default function Novidades() {
 
   return (
     <>
-      <TopBar title="Novidades" back="/hoje" />
+      <TopBar title={t("title")} back="/hoje" emoji="🔔" />
       <main className="main">
         {push === "off" || push === "needs-install" ? (
           <button type="button" className="card row-between profile-row" onClick={() => setSettings(true)}>
-            <span className="profile-row__text"><span>🔔 Receber avisos no celular</span><span className="caption">{push === "needs-install" ? "Instale o app na Tela de Início para ligar" : "Quando alguém da família guardar algo"}</span></span>
+            <span className="profile-row__text"><span>{t("getPush")}</span><span className="caption">{push === "needs-install" ? t("needsInstall") : t("whenSaved")}</span></span>
             <span aria-hidden="true">›</span>
           </button>
         ) : null}
 
         {failed ? (
           <div className="notice notice--warn stack" role="alert">
-            <span>Não conseguimos carregar as novidades.</span>
-            <button type="button" className="btn btn--secondary btn--small" onClick={() => void load()}>Tentar novamente</button>
+            <span>{t("loadFailed")}</span>
+            <button type="button" className="btn btn--secondary btn--small" onClick={() => void load()}>{t("retry")}</button>
           </div>
         ) : items === null ? <PageLoading /> : items.length === 0 ? (
-          <p className="page-note">Quando alguém da família guardar uma foto, escrever uma cartinha ou der um ossinho, aparece aqui.</p>
+          <p className="page-note">{t("empty")}</p>
         ) : (
           <ul className="notice-list" role="list">
             {items.map((n) => (
@@ -87,11 +93,11 @@ export default function Novidades() {
           </ul>
         )}
 
-        <button type="button" className="btn btn--secondary btn--block" onClick={() => setSettings(true)}>Ajustar avisos</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={() => setSettings(true)}>{t("adjust")}</button>
         <Sheet open={settings} onClose={() => { setSettings(false); void pushState().then(setPush); }} labelledBy="avisos-title">
-          <h2 id="avisos-title">Avisos da família</h2>
+          <h2 id="avisos-title">{t("settingsTitle")}</h2>
           <NotificationSettings />
-          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => { setSettings(false); void pushState().then(setPush); }}>Fechar</button>
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => { setSettings(false); void pushState().then(setPush); }}>{t("close")}</button>
         </Sheet>
       </main>
     </>

@@ -16,14 +16,14 @@ type Ctx = { supa: SupabaseClient; user: User };
 export type Role = "admin" | "editor" | "viewer";
 export interface CurrentDog { id: string; owner_id: string; role: Role; [k: string]: any }
 
-const bad = (code: string, message: string) => new HttpError(400, code, message);
+const bad = (code: string, message: string, params?: Record<string, string | number>) => new HttpError(400, code, message, params);
 const cache = new WeakMap<object, CurrentDog | null>();
 
 /** Diário aberto agora (com o papel da pessoa nele). */
 export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog | null> {
   if (cache.has(ctx)) {
     const c = cache.get(ctx)!;
-    if (!c && required) throw bad("NO_DOG", "Crie o diário antes.");
+    if (!c && required) throw bad("NO_DOG", "errors.noDog");
     return c;
   }
   const admin = adminClient();
@@ -37,12 +37,12 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
   // (ex.: acesso removido com a tela aberta). Sem indicação: o salvo na conta, senão o primeiro.
   const hint = (ctx as { dogHint?: string | null }).dogHint;
   if (hint && !members.some((x) => x.dog_id === hint)) {
-    throw new HttpError(403, "DIARY_GONE", "Você não tem mais acesso a este diário.");
+    throw new HttpError(403, "DIARY_GONE", "errors.diaryGone");
   }
   const m = (hint ? members.find((x) => x.dog_id === hint) : undefined) ?? members.find((x) => x.dog_id === (prof as any)?.current_dog_id) ?? members[0];
   const dog: CurrentDog | null = m?.dogs ? { ...m.dogs, role: m.role } : null;
   cache.set(ctx, dog);
-  if (!dog && required) throw bad("NO_DOG", "Crie o diário antes.");
+  if (!dog && required) throw bad("NO_DOG", "errors.noDog");
   return dog;
 }
 
@@ -51,10 +51,10 @@ export function forgetDog(ctx: Ctx) {
 }
 
 export function requireEditor(dog: CurrentDog) {
-  if (dog.role === "viewer") throw new HttpError(403, "VIEW_ONLY", "Você está acompanhando este diário. Para adicionar momentos, peça para quem é responsável mudar seu papel.");
+  if (dog.role === "viewer") throw new HttpError(403, "VIEW_ONLY", "errors.viewOnly");
 }
 export function requireAdmin(dog: CurrentDog) {
-  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "Só quem é responsável pelo diário pode fazer isso.");
+  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "errors.adminOnly");
 }
 
 /** Nome para mostrar ("guardada por Bianca"): perfil, metadados do login ou o começo do email. */
@@ -88,7 +88,7 @@ export async function switchDog(ctx: Ctx, args: unknown) {
   const { dogId } = z.object({ dogId: z.string().uuid() }).parse(args);
   const admin = adminClient();
   const { data } = await admin.from("dog_members").select("dog_id").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle();
-  if (!data) throw bad("NOT_FOUND", "Diário não encontrado.");
+  if (!data) throw bad("NOT_FOUND", "errors.diaryNotFound");
   await admin.from("profiles").update({ current_dog_id: dogId }).eq("user_id", ctx.user.id);
   forgetDog(ctx);
   return {};
@@ -108,7 +108,7 @@ export async function createInvite(ctx: Ctx, args: unknown) {
   const code = `PATA-${raw.slice(0, 4)}-${raw.slice(4)}`;
   const expiresAt = new Date(Date.now() + INVITE_DAYS * 86_400_000).toISOString();
   const { error } = await adminClient().from("dog_invites").insert({ dog_id: dog.id, role, code_hash: hashInvite(code), created_by: ctx.user.id, expires_at: expiresAt });
-  if (error) throw new HttpError(500, "SERVER", "Não conseguimos criar o convite agora.");
+  if (error) throw new HttpError(500, "SERVER", "errors.inviteFailed");
   return { code, role, expiresAt, dogName: dog.name };
 }
 
@@ -122,10 +122,10 @@ export function inviteRateLimited(ip: string) {
 
 async function findInvite(code: string) {
   const norm = normalizeInvite(code);
-  if (norm.length !== 8) throw bad("INVALID_CODE", "Confira o código.");
+  if (norm.length !== 8) throw bad("INVALID_CODE", "errors.checkCode");
   const { data } = await adminClient().from("dog_invites").select("*").eq("code_hash", hashInvite(norm)).maybeSingle();
   const inv = data as any;
-  if (!inv || inv.used_at || Date.parse(inv.expires_at) < Date.now()) throw bad("INVALID_CODE", "Convite inválido, vencido ou já usado. Peça um novo para quem convidou.");
+  if (!inv || inv.used_at || Date.parse(inv.expires_at) < Date.now()) throw bad("INVALID_CODE", "errors.inviteInvalid");
   return inv;
 }
 
@@ -145,11 +145,11 @@ export async function previewInvite(code: string) {
 export async function acceptInvite(ctx: Ctx, args: unknown) {
   const { code, name } = z.object({ code: z.string(), name: z.string().optional() }).parse(args);
   const norm = normalizeInvite(code);
-  if (norm.length !== 8) throw bad("INVALID_CODE", "Confira o código.");
+  if (norm.length !== 8) throw bad("INVALID_CODE", "errors.checkCode");
   const { data, error } = await adminClient().rpc("accept_invite", { p_code_hash: hashInvite(norm), p_user: ctx.user.id, p_name: name ?? null });
   if (error) {
-    if (/INVALID_CODE/.test(error.message)) throw bad("INVALID_CODE", "Convite inválido, vencido ou já usado. Peça um novo para quem convidou.");
-    throw new HttpError(500, "SERVER", "Não deu para aceitar o convite agora. Tente de novo.");
+    if (/INVALID_CODE/.test(error.message)) throw bad("INVALID_CODE", "errors.inviteInvalid");
+    throw new HttpError(500, "SERVER", "errors.acceptFailed");
   }
   forgetDog(ctx);
   return { dogId: data as string };
@@ -162,7 +162,7 @@ export async function updateMember(ctx: Ctx, args: unknown) {
   const admin = adminClient();
   if (a.userId === ctx.user.id && a.role !== "admin") {
     const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
-    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "O diário precisa de pelo menos uma pessoa responsável.");
+    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "errors.lastAdmin");
   }
   await admin.from("dog_members").update({ role: a.role }).eq("dog_id", dog.id).eq("user_id", a.userId);
   return {};
@@ -174,10 +174,10 @@ export async function removeMember(ctx: Ctx, args: unknown) {
   const admin = adminClient();
   const self = a.userId === ctx.user.id;
   if (!self) requireAdmin(dog);
-  if (a.userId === dog.owner_id) throw bad("OWNER", "Quem criou o diário não pode ser removido. Para encerrar, exclua o diário.");
+  if (a.userId === dog.owner_id) throw bad("OWNER", "errors.ownerCantBeRemoved");
   if (self && dog.role === "admin") {
     const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
-    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "Você é a única pessoa responsável. Passe esse papel para alguém antes de sair.");
+    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "errors.lastAdminLeave");
   }
   await admin.from("dog_members").delete().eq("dog_id", dog.id).eq("user_id", a.userId);
   if (self) {
@@ -193,11 +193,11 @@ export async function leaveDiary(ctx: Ctx, args: unknown) {
   const admin = adminClient();
   const { data: m } = await admin.from("dog_members").select("role, dogs!inner(owner_id)").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle();
   const mem = m as any;
-  if (!mem) throw new HttpError(404, "NOT_FOUND", "Diário não encontrado.");
-  if (mem.dogs.owner_id === ctx.user.id) throw bad("OWNER", "Você criou este diário. Para encerrar, apague o diário no perfil do cachorro.");
+  if (!mem) throw new HttpError(404, "NOT_FOUND", "errors.diaryNotFound");
+  if (mem.dogs.owner_id === ctx.user.id) throw bad("OWNER", "errors.ownerLeave");
   if (mem.role === "admin") {
     const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dogId).eq("role", "admin");
-    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "Você é a única pessoa responsável. Passe esse papel para alguém antes de sair.");
+    if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "errors.lastAdminLeave");
   }
   await admin.from("dog_members").delete().eq("dog_id", dogId).eq("user_id", ctx.user.id);
   await admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id).eq("current_dog_id", dogId);

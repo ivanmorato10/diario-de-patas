@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useErrorText } from "@/i18n/use-error";
 import { processImage, ImageError } from "@/lib/image";
 import type { ProcessedImage } from "@/data/demo-repository";
 import { IconCamera, IconImage } from "./icons";
@@ -32,8 +34,10 @@ export function PhotoPicker({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const errId = useId();
+  const t = useTranslations("photoPicker");
+  const errText = useErrorText();
 
-  const message = (err: unknown) => (err instanceof ImageError ? err.message : "Não conseguimos abrir essa foto. Tente outra.");
+  const message = (err: unknown) => errText(err instanceof ImageError ? err.message : "errors.imageOpen");
 
   async function handle(e: React.ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])];
@@ -41,7 +45,7 @@ export function PhotoPicker({
     if (files.length === 0) return;
     setError(null);
     if (files.length === 1 || !onPickedMany) {
-      setBusy("Preparando a foto…");
+      setBusy(t("preparing"));
       try {
         await onPicked(await processImage(files[0]));
       } catch (err) {
@@ -56,11 +60,11 @@ export function PhotoPicker({
     const failures: PickFailure[] = [];
     try {
       for (const [i, f] of take.entries()) {
-        setBusy(`Preparando ${i + 1} de ${take.length} fotos…`);
+        setBusy(t("preparingMany", { n: i + 1, total: take.length }));
         try {
           imgs.push(await processImage(f));
         } catch (err) {
-          failures.push({ name: f.name || `Foto ${i + 1}`, message: message(err) });
+          failures.push({ name: f.name || t("photoN", { n: i + 1 }), message: message(err) });
         }
       }
     } finally {
@@ -74,19 +78,19 @@ export function PhotoPicker({
       {tiles ? (
         <div className="pick-tiles">
           <button type="button" className="pick-tile pick-tile--cam" onClick={() => cam.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
-            <span className="pick-tile__icon" aria-hidden="true">📷</span><strong>Tirar foto</strong><span className="pick-tile__sub">agora</span>
+            <span className="pick-tile__icon" aria-hidden="true">📷</span><strong>{t("takePhoto")}</strong><span className="pick-tile__sub">{t("now")}</span>
           </button>
           <button type="button" className="pick-tile pick-tile--gal" onClick={() => gal.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
-            <span className="pick-tile__icon" aria-hidden="true">🖼️</span><strong>Da galeria</strong><span className="pick-tile__sub">{onPickedMany ? "uma ou várias" : "até antigas"}</span>
+            <span className="pick-tile__icon" aria-hidden="true">🖼️</span><strong>{t("fromGallery")}</strong><span className="pick-tile__sub">{onPickedMany ? t("oneOrMany") : t("evenOld")}</span>
           </button>
         </div>
       ) : (
       <div className="row" style={{ flexWrap: "wrap" }}>
         <button type="button" className={`btn btn--secondary${compact ? " btn--small" : ""}`} onClick={() => cam.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
-          <IconCamera /> Tirar foto
+          <IconCamera /> {t("takePhoto")}
         </button>
         <button type="button" className={`btn btn--secondary${compact ? " btn--small" : ""}`} onClick={() => gal.current?.click()} disabled={disabled || !!busy} aria-describedby={error ? errId : undefined}>
-          <IconImage /> {onPickedMany ? "Escolher da galeria (uma ou várias)" : "Escolher da galeria"}
+          <IconImage /> {onPickedMany ? t("pickManyFromGallery") : t("pickFromGallery")}
         </button>
       </div>
       )}

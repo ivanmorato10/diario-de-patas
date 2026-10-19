@@ -1004,3 +1004,14 @@ a.done-card:active { transform: scale(0.97); }
 .done-card__check svg { stroke-width: 3; }
 .done-card__title { font-weight: 700; font-size: 0.9375rem; line-height: 1.2; padding: 2px 2px 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .done-card__meta { font-size: 0.8125rem; color: var(--text-secondary); padding: 0 2px; }
+
+/* Idioma / Language: seletor (Minha conta, primeira tela da apresentação e tela de entrada). */
+.lang-switch { display: grid; gap: 6px; }
+.lang-switch__label { font-weight: 600; font-size: 0.875rem; color: var(--text-secondary); }
+.lang-switch--compact .filter-row { justify-content: center; }
+.intro__main > .lang-switch--compact { margin-top: 4px; }
+.sp-lang { display: flex; justify-content: center; }
+.sp-lang .filter-chip { background: rgba(255, 248, 236, 0.85); }
+/* "Paw Diary": só em inglês, discreto, abaixo do nome da marca (cabeçalho do Hoje, entrada e apresentação). */
+.brand-lockup__tag--en { font-weight: 600; letter-spacing: 0.02em; }
+.sp-brand__en { display: block; font-size: 0.8125rem; font-weight: 600; opacity: 0.85; margin-top: 2px; }

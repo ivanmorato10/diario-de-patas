@@ -28,7 +28,7 @@ export async function rpc<T>(method: string, args: unknown = {}): Promise<T> {
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     // Sem sessão: quem leva para /entrar é o proxy (nas páginas protegidas); aqui só sinaliza.
-    throw new DomainError(body?.code ?? "SERVER", body?.message ?? "Não conseguimos falar com o servidor. Tente de novo.");
+    throw new DomainError(body?.code ?? "SERVER", body?.message ?? "errors.serverUnreachable");
   }
   return body as T;
 }
@@ -47,7 +47,7 @@ async function upload(kind: "media" | "document", meta: Record<string, unknown>,
     if (!b) continue;
     // Direto para o bucket privado, com o token de uso único que o servidor gerou.
     const { error } = await browserClient().storage.from(ticket.bucket).uploadToSignedUrl(u.path, u.token, b, { contentType: b.type || "application/octet-stream" });
-    if (error) throw new DomainError("UPLOAD", "Não conseguimos enviar o arquivo. Tente de novo.");
+    if (error) throw new DomainError("UPLOAD", "errors.uploadFailed");
   }
   await rpc("confirmUpload", { kind, id: ticket.id });
   return ticket.id;

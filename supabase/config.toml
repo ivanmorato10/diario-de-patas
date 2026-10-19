@@ -249,34 +249,34 @@ sender_name = "Diário de Patas"
 # O plano gratuito RECUSA modelos próprios com o provedor padrão: descomente junto com [auth.email.smtp]
 # (Gmail com senha de app, por exemplo) e rode `npx supabase config push`. Ver docs/SUPABASE.md §5.
 [auth.email.template.confirmation]
-subject = "Bem-vindo ao Diário de Patas! Confirme seu email 🐾"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}Welcome to Diário de Patas! Confirm your email 🐾{{ else }}Bem-vindo ao Diário de Patas! Confirme seu email 🐾{{ end }}"
 content_path = "./supabase/templates/confirmation.html"
 [auth.email.template.magic_link]
-subject = "Seu código para entrar no Diário de Patas"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}Your code to sign in to Diário de Patas{{ else }}Seu código para entrar no Diário de Patas{{ end }}"
 content_path = "./supabase/templates/magic_link.html"
 [auth.email.template.recovery]
-subject = "Recuperar o acesso ao Diário de Patas"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}Get back into Diário de Patas{{ else }}Recuperar o acesso ao Diário de Patas{{ end }}"
 content_path = "./supabase/templates/recovery.html"
 [auth.email.template.email_change]
-subject = "Confirme seu novo email no Diário de Patas"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}Confirm your new email on Diário de Patas{{ else }}Confirme seu novo email no Diário de Patas{{ end }}"
 content_path = "./supabase/templates/email_change.html"
 [auth.email.template.invite]
-subject = "Você foi convidado para o Diário de Patas 🐾"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}You're invited to Diário de Patas 🐾{{ else }}Você foi convidado para o Diário de Patas 🐾{{ end }}"
 content_path = "./supabase/templates/invite.html"
 [auth.email.template.reauthentication]
-subject = "Seu código de confirmação do Diário de Patas"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}Your Diário de Patas confirmation code{{ else }}Seu código de confirmação do Diário de Patas{{ end }}"
 content_path = "./supabase/templates/reauthentication.html"
 [auth.email.notification.email_changed]
 enabled = true
-subject = "O email da sua conta foi alterado"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}Your account email was changed{{ else }}O email da sua conta foi alterado{{ end }}"
 content_path = "./supabase/templates/email_changed.html"
 [auth.email.notification.identity_linked]
 enabled = true
-subject = "Nova forma de entrar na sua conta"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}A new way to sign in to your account{{ else }}Nova forma de entrar na sua conta{{ end }}"
 content_path = "./supabase/templates/identity_linked.html"
 [auth.email.notification.identity_unlinked]
 enabled = true
-subject = "Uma forma de entrar foi removida da sua conta"
+subject = "{{ if and .Data.locale (eq .Data.locale \"en\") }}A sign-in method was removed from your account{{ else }}Uma forma de entrar foi removida da sua conta{{ end }}"
 content_path = "./supabase/templates/identity_unlinked.html"
 
 [auth.sms]

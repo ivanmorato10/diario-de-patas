@@ -9,7 +9,7 @@ import { z } from "zod";
 import sharp from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { COLLECTIONS } from "@/config/catalog";
-import { LIMITS, fullDiaryText, serverMaxEntries } from "@/config/business";
+import { LIMITS, fullDiaryParams, serverMaxEntries } from "@/config/business";
 import { activeSpecials, buildHistory, generatePlan, swapInPlan, type DailyPlan } from "@/domain/cycle";
 import { civilDateInTz, isCivilDate, isValidTimezone } from "@/domain/dates";
 import { DocumentMetaSchema } from "@/domain/documents";
@@ -19,6 +19,9 @@ import {
 import { missionById } from "@/domain/missions";
 import type { CollectionAdvance, MissionCompletion, Medal } from "@/domain/types";
 import { adminClient, HttpError } from "./supabase";
+import { LOCALES, REGIONS, WEIGHT_UNITS, isLocale, isRegion, isWeightUnit } from "@/i18n/locale";
+import { MESSAGES as MESSAGES_BY_LOCALE } from "@/i18n/messages";
+import { localeOf, regionOf, requestLocale, translator } from "./i18n";
 import { after } from "next/server";
 import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
@@ -38,7 +41,7 @@ import {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { user: User; supa: SupabaseClient };
 
-const bad = (code: string, message: string) => new HttpError(400, code, message);
+const bad = (code: string, message: string, params?: Record<string, string | number>) => new HttpError(400, code, message, params);
 const now = () => new Date().toISOString();
 const uuid = () => crypto.randomUUID();
 
@@ -53,23 +56,24 @@ async function q(p: PromiseLike<{ data: any; error: any }>): Promise<any> {
   if (error) {
     const msg = String(error.message ?? "");
     const known = /^(LOCKED|NOT_TODAY|OUT_OF_WINDOW|PHOTO_ALREADY_USED|ART_NOT_ALLOWED|NOT_FOUND|UNKNOWN_MISSION|DOC_QUOTA|FOREIGN_MEDIA)/.exec(msg);
-    if (known) throw bad(known[1], MESSAGES[known[1]] ?? msg);
+    if (known) throw bad(known[1], MESSAGES[known[1]] ?? msg, known[1] === "DOC_QUOTA" ? { max: LIMITS.maxDocuments } : undefined);
     console.error("supabase:", error.code, msg);
-    throw new HttpError(500, "SERVER", "Não conseguimos salvar agora. Tente de novo.");
+    throw new HttpError(500, "SERVER", "errors.saveFailed");
   }
   return data;
 }
 
+/** Erros de regra que vêm do banco (exceções das funções SQL) → chave do texto. */
 const MESSAGES: Record<string, string> = {
-  LOCKED: "Essa missão abre depois de concluir a anterior.",
-  NOT_TODAY: "Essa missão do dia não está nas sugestões de hoje. A foto continua no diário.",
-  OUT_OF_WINDOW: "Essa missão especial não está disponível agora. A foto continua no diário.",
-  PHOTO_ALREADY_USED: "Essa foto já rendeu pontos em outra missão. Escolha outra foto.",
-  ART_NOT_ALLOWED: "Artes do Estúdio não concluem missões — escolha uma foto.",
-  NOT_FOUND: "Não encontramos essa lembrança.",
-  UNKNOWN_MISSION: "Missão não encontrada.",
-  DOC_QUOTA: `Cabem até ${LIMITS.maxDocuments} documentos nesta versão de teste. Exclua algum para guardar outro.`,
-  FOREIGN_MEDIA: "Foto inválida.",
+  LOCKED: "errors.locked",
+  NOT_TODAY: "errors.notToday",
+  OUT_OF_WINDOW: "errors.outOfWindow",
+  PHOTO_ALREADY_USED: "errors.photoAlreadyUsedMission",
+  ART_NOT_ALLOWED: "errors.artNotAllowed",
+  NOT_FOUND: "errors.memoryNotFound",
+  UNKNOWN_MISSION: "errors.unknownMission",
+  DOC_QUOTA: "errors.docQuota",
+  FOREIGN_MEDIA: "errors.foreignMedia",
 };
 
 async function profileOf({ supa, user }: Ctx) {
@@ -102,7 +106,7 @@ async function albumRowId(ctx: Ctx, dogId: string, clientId: string): Promise<st
   const found = (await q(admin.from("albums").select("id").eq("dog_id", dogId).eq("collection_id", col.id).maybeSingle())) as any;
   if (found) return found.id;
   const owner = (await dogOf(ctx)).owner_id;
-  const created = (await q(admin.from("albums").upsert({ owner_id: owner, dog_id: dogId, collection_id: col.id, title: col.title.slice(0, 40), type: "collection" }, { onConflict: "dog_id,collection_id" }).select("id").single())) as any;
+  const created = (await q(admin.from("albums").upsert({ owner_id: owner, dog_id: dogId, collection_id: col.id, title: MESSAGES_BY_LOCALE["pt-BR"].catalog.collections[col.id].title.slice(0, 40), type: "collection" }, { onConflict: "dog_id,collection_id" }).select("id").single())) as any;
   return created.id;
 }
 
@@ -136,8 +140,27 @@ const meOf = (ctx: Ctx, profile: any) => {
   return {
     userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed, suggestedName: fromLogin.slice(0, 40),
     notify: { photo: profile?.notify_photo !== false, letter: profile?.notify_letter !== false, bone: profile?.notify_bone !== false },
+    locale: isLocale(profile?.locale) ? profile.locale : null, region: isRegion(profile?.region) ? profile.region : null, weightUnit: isWeightUnit(profile?.weight_unit) ? profile.weight_unit : null,
   };
 };
+
+/**
+ * Idioma, região do calendário e unidade de peso da pessoa. O idioma também vai para os metadados do login
+ * (user_metadata.locale): é o que os emails do Supabase Auth (código, confirmação, senha) usam para escolher o idioma.
+ */
+export async function setPreferences(ctx: Ctx, args: unknown) {
+  const a = parse(z.object({ locale: z.enum(LOCALES).optional(), region: z.enum(REGIONS).optional(), weightUnit: z.enum(WEIGHT_UNITS).optional() }), args);
+  const row: any = { user_id: ctx.user.id };
+  if (a.locale) row.locale = a.locale;
+  if (a.region) row.region = a.region;
+  if (a.weightUnit) row.weight_unit = a.weightUnit;
+  await q(adminClient().from("profiles").upsert(row, { onConflict: "user_id" }));
+  if (a.locale && (ctx.user.user_metadata as any)?.locale !== a.locale) {
+    const { error } = await adminClient().auth.admin.updateUserById(ctx.user.id, { user_metadata: { locale: a.locale } });
+    if (error) console.error("idioma nos metadados do login:", error.message);
+  }
+  return {};
+}
 
 export async function snapshot(ctx: Ctx) {
   const { supa } = ctx;
@@ -224,7 +247,7 @@ export async function snapshot(ctx: Ctx) {
 // ---------- Perfil e cachorro ----------
 
 const Prefs = z.object({ home: z.boolean(), outdoor: z.boolean(), socialDogs: z.boolean(), people: z.boolean() });
-const civil = z.string().refine(isCivilDate, "Data inválida.");
+const civil = z.string().refine(isCivilDate, "errors.invalidDate");
 
 async function ensureProfile(ctx: Ctx, timezone?: string) {
   const tz = timezone && isValidTimezone(timezone) ? timezone : "America/Sao_Paulo";
@@ -237,14 +260,14 @@ async function ensureProfile(ctx: Ctx, timezone?: string) {
 /** A mídia precisa ser do próprio dono e estar pronta (bytes já inspecionados). */
 async function readyMedia(ctx: Ctx, id: string) {
   const m = (await q(ctx.supa.from("media_assets").select("id, status, kind").eq("id", id).maybeSingle())) as any;
-  if (!m || m.status !== "ready") throw bad("NOT_FOUND", "Foto não encontrada. Envie de novo.");
+  if (!m || m.status !== "ready") throw bad("NOT_FOUND", "errors.photoNotFoundResend");
   return m;
 }
 
 export async function createDiary(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ timezone: z.string(), name: z.string(), birthDate: civil.nullable(), preferences: Prefs, another: z.boolean().optional() }), args);
   const name = a.name.trim().slice(0, LIMITS.dogNameMaxChars);
-  if (!name) throw bad("NAME_REQUIRED", "Conte para a gente o nome do seu cachorro.");
+  if (!name) throw bad("NAME_REQUIRED", "errors.dogNameRequired");
   await ensureProfile(ctx, a.timezone);
   const existing = await dogOf(ctx, false);
   if (existing && !a.another) return toDog(existing); // retry do primeiro diário: o mesmo
@@ -265,7 +288,7 @@ export async function updateDog(ctx: Ctx, args: unknown) {
   const patch: any = {};
   if (a.name !== undefined) {
     const n = a.name.trim().slice(0, LIMITS.dogNameMaxChars);
-    if (!n) throw bad("NAME_REQUIRED", "O nome não pode ficar vazio.");
+    if (!n) throw bad("NAME_REQUIRED", "errors.nameEmpty");
     patch.name = n;
   }
   if (a.birthDate !== undefined) patch.birth_date = a.birthDate;
@@ -289,7 +312,7 @@ export async function updateDog(ctx: Ctx, args: unknown) {
 }
 
 export async function updateTimezone(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ timezone: z.string().refine(isValidTimezone, "Fuso horário inválido.") }), args);
+  const a = parse(z.object({ timezone: z.string().refine(isValidTimezone, "errors.invalidTimezone") }), args);
   await ensureProfile(ctx, a.timezone);
   return {};
 }
@@ -319,23 +342,23 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   }), args);
   const dog = await editableDog(ctx);
   const profile = await profileOf(ctx);
-  if (a.occurredDate > todayOf(profile)) throw bad("INVALID", "Escolha uma data até hoje.");
+  if (a.occurredDate > todayOf(profile)) throw bad("INVALID", "errors.dateUpToToday");
   const prior = (await q(ctx.supa.from("diary_entries").select("*").eq("dog_id", dog.id).eq("request_key", a.requestKey).maybeSingle())) as any;
   if (prior) return toEntry(prior, null); // retry: mesma lembrança
   const { count } = await ctx.supa.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
-  if ((count ?? 0) >= serverMaxEntries()) throw bad("STORAGE_QUOTA", fullDiaryText(dog.name));
+  if ((count ?? 0) >= serverMaxEntries()) throw bad("STORAGE_QUOTA", "errors.fullDiary", fullDiaryParams(dog.name));
   await readyMedia(ctx, a.mediaId);
   const used = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).eq("media_asset_id", a.mediaId).limit(1))) as any[];
-  if (used.length) throw bad("INVALID", "Essa foto já foi usada. Envie de novo.");
+  if (used.length) throw bad("INVALID", "errors.photoAlreadyUsed");
   const ins = await adminClient().from("diary_entries").insert({
     owner_id: dog.owner_id, created_by: ctx.user.id, dog_id: dog.id, media_asset_id: a.mediaId, caption: a.caption.trim().slice(0, LIMITS.captionMaxChars),
     occurred_date: a.occurredDate, timezone: profile?.timezone ?? "America/Sao_Paulo", source: a.source === "mission" ? "free" : a.source, request_key: a.requestKey,
   }).select("*").single();
   // Rede de segurança do banco: duas gravações ao mesmo tempo não passam do limite.
   if (ins.error) {
-    if (/STORAGE_QUOTA/.test(ins.error.message)) throw bad("STORAGE_QUOTA", fullDiaryText(dog.name));
+    if (/STORAGE_QUOTA/.test(ins.error.message)) throw bad("STORAGE_QUOTA", "errors.fullDiary", fullDiaryParams(dog.name));
     console.error("saveEntry:", ins.error.message);
-    throw new HttpError(500, "SERVER", "Não conseguimos guardar a foto agora. Tente de novo.");
+    throw new HttpError(500, "SERVER", "errors.savePhotoFailed");
   }
   const row = ins.data as any;
   await setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false);
@@ -350,11 +373,11 @@ export async function updateEntry(ctx: Ctx, args: unknown) {
   const patch: any = {};
   if (a.caption !== undefined) patch.caption = a.caption.trim().slice(0, LIMITS.captionMaxChars);
   if (a.occurredDate !== undefined) {
-    if (a.occurredDate > todayOf(await profileOf(ctx))) throw bad("INVALID", "Escolha uma data até hoje.");
+    if (a.occurredDate > todayOf(await profileOf(ctx))) throw bad("INVALID", "errors.dateUpToToday");
     patch.occurred_date = a.occurredDate;
   }
   const rows = (await q(ctx.supa.from("diary_entries").update(patch).eq("id", a.id).eq("dog_id", dog.id).is("deleted_at", null).select("*"))) as any[];
-  if (!rows[0]) throw bad("NOT_FOUND", "Lembrança não encontrada.");
+  if (!rows[0]) throw bad("NOT_FOUND", "errors.memoryNotFoundShort");
   if (a.albumIds) await setEntryAlbums(ctx, dog.id, a.id, a.albumIds, true);
   return toEntry(rows[0], null);
 }
@@ -387,11 +410,11 @@ export async function deleteEntry(ctx: Ctx, args: unknown) {
 
 const albumTitle = (t: string) => {
   const title = t.trim().replace(/\s+/g, " ").slice(0, LIMITS.albumTitleMaxChars);
-  if (!title) throw bad("INVALID", "Dê um nome ao álbum.");
+  if (!title) throw bad("INVALID", "errors.albumNameRequired");
   return title;
 };
 const customUuid = (id: string) => {
-  if (!id.startsWith("custom-")) throw bad("NOT_FOUND", "Álbum não encontrado.");
+  if (!id.startsWith("custom-")) throw bad("NOT_FOUND", "errors.albumNotFound");
   return id.slice(7);
 };
 
@@ -399,7 +422,7 @@ export async function createAlbum(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ title: z.string() }), args);
   const dog = await editableDog(ctx);
   const { count } = await ctx.supa.from("albums").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("type", "custom");
-  if ((count ?? 0) >= LIMITS.maxCustomAlbums) throw bad("ALBUM_QUOTA", `Cabem até ${LIMITS.maxCustomAlbums} álbuns nesta versão de teste.`);
+  if ((count ?? 0) >= LIMITS.maxCustomAlbums) throw bad("ALBUM_QUOTA", "errors.albumQuota", { max: LIMITS.maxCustomAlbums });
   return toCustomAlbum(await q(ctx.supa.from("albums").insert({ owner_id: dog.owner_id, dog_id: dog.id, title: albumTitle(a.title), type: "custom" }).select("*").single()));
 }
 
@@ -407,7 +430,7 @@ export async function renameAlbum(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ id: z.string(), title: z.string() }), args);
   const dog = await editableDog(ctx);
   const rows = (await q(ctx.supa.from("albums").update({ title: albumTitle(a.title) }).eq("id", customUuid(a.id)).eq("dog_id", dog.id).eq("type", "custom").select("*"))) as any[];
-  if (!rows[0]) throw bad("NOT_FOUND", "Álbum não encontrado.");
+  if (!rows[0]) throw bad("NOT_FOUND", "errors.albumNotFound");
   return toCustomAlbum(rows[0]);
 }
 
@@ -422,7 +445,7 @@ export async function addEntriesToAlbum(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ albumId: z.string(), entryIds: z.array(z.string().uuid()).max(LIMITS.maxEntries) }), args);
   const dog = await editableDog(ctx);
   const albumId = await albumRowId(ctx, dog.id, a.albumId);
-  if (!albumId) throw bad("NOT_FOUND", "Álbum não encontrado.");
+  if (!albumId) throw bad("NOT_FOUND", "errors.albumNotFound");
   const own = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).in("id", [...new Set(a.entryIds)]).is("deleted_at", null))) as any[];
   if (own.length) await q(ctx.supa.from("album_entries").upsert(own.map((e) => ({ album_id: albumId, entry_id: e.id })), { onConflict: "album_id,entry_id", ignoreDuplicates: true }));
   return {};
@@ -435,10 +458,12 @@ export async function submitMission(ctx: Ctx, args: unknown) {
   const mission = missionById(a.missionId);
   if (!mission) throw bad("UNKNOWN_MISSION", MESSAGES.UNKNOWN_MISSION);
   const dog = await editableDog(ctx);
-  const today = todayOf(await profileOf(ctx));
+  const profile = await profileOf(ctx);
+  const today = todayOf(profile);
   let period: string | null = null;
   if (mission.kind === "special") {
-    const w = activeSpecials(today, dog.birth_date, dog.name).find((x) => x.mission.id === mission.id);
+    // Janela pela região do calendário de quem envia; a recompensa continua uma por cachorro e ano.
+    const w = activeSpecials(today, dog.birth_date, regionOf(profile)).find((x) => x.mission.id === mission.id);
     if (!w) throw bad("OUT_OF_WINDOW", MESSAGES.OUT_OF_WINDOW);
     period = w.occurrence;
   }
@@ -512,7 +537,7 @@ export async function saveCare(ctx: Ctx, args: unknown) {
   const saved = a.id
     ? ((await q(ctx.supa.from(a.store).update(row).eq("id", a.id).eq("dog_id", dog.id).select("*"))) as any[])[0]
     : await q(ctx.supa.from(a.store).insert({ ...row, owner_id: dog.owner_id, dog_id: dog.id }).select("*").single());
-  if (!saved) throw bad("NOT_FOUND", "Registro não encontrado.");
+  if (!saved) throw bad("NOT_FOUND", "errors.recordNotFound");
   if (a.store === "visits") {
     const ids: string[] = data.documentIds ?? [];
     for (const id of ids) await ownDocument(ctx, id);
@@ -534,7 +559,7 @@ export async function deleteCare(ctx: Ctx, args: unknown) {
 async function ownDocument(ctx: Ctx, id: string) {
   const dog = await dogOf(ctx);
   const d = (await q(ctx.supa.from("documents").select("*").eq("id", id).eq("dog_id", dog.id).maybeSingle())) as any;
-  if (!d || d.status === "deleted") throw bad("NOT_FOUND", "Documento não encontrado.");
+  if (!d || d.status === "deleted") throw bad("NOT_FOUND", "errors.documentNotFound");
   return d;
 }
 
@@ -573,19 +598,19 @@ export async function createUpload(ctx: Ctx, args: unknown) {
     width: z.number().int().positive().optional(), height: z.number().int().positive().optional(), hash: z.string().max(128).optional(), mediaKind: z.enum(["photo", "art"]).optional(),
     title: z.string().optional(), category: z.string().optional(), docDate: z.string().nullable().optional(), expiresOn: z.string().nullable().optional(), notes: z.string().optional(),
   }), args);
-  for (const s of Object.values(a.sizes)) if (s > LIMITS.maxUploadBytes) throw bad("TOO_LARGE", `O arquivo passa de ${LIMITS.maxUploadBytes / 1024 / 1024} MB.`);
+  for (const s of Object.values(a.sizes)) if (s > LIMITS.maxUploadBytes) throw bad("TOO_LARGE", "errors.fileTooLarge", { mb: LIMITS.maxUploadBytes / 1024 / 1024 });
   const dog = await editableDog(ctx);
   const admin = adminClient();
   const id = uuid();
   const base = `${ctx.user.id}/${id}`;
   if (a.kind === "media") {
-    if (!(IMAGE_MIME as readonly string[]).includes(a.mime) || !a.width || !a.height || !a.hash) throw bad("UNSUPPORTED", "Esse arquivo não parece uma foto JPEG, PNG ou WebP.");
+    if (!(IMAGE_MIME as readonly string[]).includes(a.mime) || !a.width || !a.height || !a.hash) throw bad("UNSUPPORTED", "errors.notAPhoto");
     const key = `${base}.${EXT[a.mime]}`, thumb = `${base}-thumb.${EXT[a.mime]}`;
     await q(admin.from("media_assets").insert({ id, owner_id: dog.owner_id, dog_id: dog.id, private_storage_key: key, thumb_storage_key: thumb, mime: a.mime, bytes: Math.max(1, a.sizes.display ?? 1), width: a.width, height: a.height, hash: a.hash, kind: a.mediaKind ?? "photo", status: "pending_upload" }));
     return { id, bucket: "media", uploads: await Promise.all([["display", key], ["thumb", thumb]].map(async ([variant, path]) => ({ variant, path, token: (await q(admin.storage.from("media").createSignedUploadUrl(path)) as any).token }))) };
   }
   const meta = parse(DocumentMetaSchema, { title: a.title, category: a.category, docDate: a.docDate ?? null, expiresOn: a.expiresOn ?? null, notes: a.notes ?? "" });
-  if (!["application/pdf", ...IMAGE_MIME].includes(a.mime)) throw bad("UNSUPPORTED", "Esse arquivo não parece um PDF ou uma imagem JPEG, PNG ou WebP.");
+  if (!["application/pdf", ...IMAGE_MIME].includes(a.mime)) throw bad("UNSUPPORTED", "errors.notPdfOrImage");
   const key = `${base}.${EXT[a.mime]}`;
   const thumb = a.sizes.thumb ? `${base}-thumb.${a.mime === "application/pdf" ? "webp" : EXT[a.mime]}` : null;
   await q(admin.from("documents").insert({ id, owner_id: dog.owner_id, dog_id: dog.id, title: meta.title, category: meta.category, doc_date: meta.docDate, expires_on: meta.expiresOn, notes: meta.notes, private_storage_key: key, thumb_storage_key: thumb, mime: a.mime, bytes: Math.max(1, a.sizes.file ?? 1), status: "pending_upload" }));
@@ -601,7 +626,7 @@ export async function confirmUpload(ctx: Ctx, args: unknown) {
   const bucket = a.kind === "media" ? "media" : "documents";
   const dog = await editableDog(ctx);
   const row = (await q(admin.from(table).select("*").eq("id", a.id).eq("dog_id", dog.id).maybeSingle())) as any;
-  if (!row) throw bad("NOT_FOUND", "Envio não encontrado.");
+  if (!row) throw bad("NOT_FOUND", "errors.uploadNotFound");
   if (row.status === "ready") return { ok: true };
   const reject = async (message: string) => {
     await admin.storage.from(bucket).remove([row.private_storage_key, row.thumb_storage_key].filter(Boolean));
@@ -623,16 +648,16 @@ export async function confirmUpload(ctx: Ctx, args: unknown) {
     }
   };
   const main = await download(row.private_storage_key);
-  if (!main) return reject("O arquivo não chegou. Tente enviar de novo.");
+  if (!main) return reject("errors.fileMissing");
   if (a.kind === "media") {
     const m = await inspectImage(main);
     const t = row.thumb_storage_key ? await inspectImage(await download(row.thumb_storage_key)) : null;
-    if (!m || !t) return reject("Esse arquivo não parece uma foto JPEG, PNG ou WebP.");
+    if (!m || !t) return reject("errors.notAPhoto");
     await q(admin.from("media_assets").update({ status: "ready", bytes: main.length, width: m.width, height: m.height }).eq("id", row.id));
   } else {
     const isPdf = row.mime === "application/pdf";
-    if (isPdf ? main.subarray(0, 5).toString("latin1") !== "%PDF-" : !(await inspectImage(main))) return reject(isPdf ? "Esse arquivo não parece um PDF." : "Esse arquivo não parece uma imagem JPEG, PNG ou WebP.");
-    if (row.thumb_storage_key && !(await inspectImage(await download(row.thumb_storage_key)))) return reject("Miniatura inválida.");
+    if (isPdf ? main.subarray(0, 5).toString("latin1") !== "%PDF-" : !(await inspectImage(main))) return reject(isPdf ? "errors.notPdf" : "errors.notImage");
+    if (row.thumb_storage_key && !(await inspectImage(await download(row.thumb_storage_key)))) return reject("errors.badThumb");
     await q(admin.from("documents").update({ status: "ready", bytes: main.length }).eq("id", row.id)); // gatilho de cota: 50 por cachorro
   }
   return { ok: true };
@@ -647,8 +672,8 @@ export async function exportMetadata(ctx: Ctx) {
 export async function deleteDiary(ctx: Ctx, args: unknown) {
   const { confirmName } = parse(z.object({ confirmName: z.string() }), args);
   const dog = await dogOf(ctx);
-  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "Só quem é responsável pelo diário pode apagá-lo.");
-  if (confirmName.trim() !== dog.name) throw bad("CONFIRM", `Digite o nome ${dog.name} para confirmar.`);
+  if (dog.role !== "admin") throw new HttpError(403, "ADMIN_ONLY", "errors.adminOnlyDelete");
+  if (confirmName.trim() !== dog.name) throw bad("CONFIRM", "errors.confirmName", { dog: dog.name });
   const admin = adminClient();
   await q(admin.rpc("prepare_dog_deletion", { p_dog: dog.id }));
   await processCleanup(500);
@@ -661,12 +686,13 @@ export async function deleteDiary(ctx: Ctx, args: unknown) {
 export async function deleteAccount(ctx: Ctx) {
   const admin = adminClient();
   const dog = (((await admin.from("dogs").select("name").eq("owner_id", ctx.user.id).order("created_at").limit(1)).data ?? []) as { name: string }[])[0]?.name ?? null;
+  const locale = await localeOf(ctx.user.id); // antes de apagar o perfil: o email de despedida vai no idioma da pessoa
   await q(admin.rpc("prepare_account_deletion", { p_owner: ctx.user.id }));
   await processCleanup(500);
   const { error } = await admin.auth.admin.deleteUser(ctx.user.id);
-  if (error) throw new HttpError(500, "SERVER", "Não conseguimos excluir a conta agora. Tente de novo.");
+  if (error) throw new HttpError(500, "SERVER", "errors.deleteAccountFailed");
   await ctx.supa.auth.signOut().catch(() => undefined);
-  if (ctx.user.email) await sendAccountDeleted(ctx.user.email, dog);
+  if (ctx.user.email) await sendAccountDeleted(ctx.user.email, dog, locale);
   return {};
 }
 
@@ -711,13 +737,13 @@ export async function sha256hex(text: string) {
 }
 
 export async function createShare(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ title: z.string(), entryIds: z.array(z.string().uuid()).min(1, "Escolha pelo menos uma foto.").max(LIMITS.maxEntries) }), args);
-  const title = a.title.trim().replace(/\s+/g, " ").slice(0, 60) || "Lembranças";
+  const a = parse(z.object({ title: z.string(), entryIds: z.array(z.string().uuid()).min(1, "errors.pickOnePhoto").max(LIMITS.maxEntries) }), args);
+  const title = a.title.trim().replace(/\s+/g, " ").slice(0, 60) || translator(await requestLocale())("shared.defaultTitle");
   const dog = await editableDog(ctx);
   const own = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).in("id", [...new Set(a.entryIds)]).is("deleted_at", null))) as any[];
-  if (!own.length) throw bad("NOT_FOUND", "Não encontramos essas fotos.");
+  if (!own.length) throw bad("NOT_FOUND", "errors.photosNotFound");
   const { count } = await ctx.supa.from("share_links").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("revoked_at", null);
-  if ((count ?? 0) >= 20) throw bad("SHARE_QUOTA", "Cabem até 20 links ativos. Revogue algum para criar outro.");
+  if ((count ?? 0) >= 20) throw bad("SHARE_QUOTA", "errors.shareQuota");
   const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
   const admin = adminClient();
   const link = (await q(admin.from("share_links").insert({ owner_id: dog.owner_id, dog_id: dog.id, token_hash: await sha256hex(token), title }).select("id").single())) as any;
@@ -736,7 +762,7 @@ export async function revokeShare(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ id: z.string().uuid() }), args);
   const dog = await editableDog(ctx);
   const own = (await q(ctx.supa.from("share_links").select("id").eq("id", a.id).eq("dog_id", dog.id).maybeSingle())) as any;
-  if (!own) throw bad("NOT_FOUND", "Link não encontrado.");
+  if (!own) throw bad("NOT_FOUND", "errors.linkNotFound");
   await q(adminClient().from("share_links").update({ revoked_at: now() }).eq("id", a.id).eq("dog_id", dog.id).is("revoked_at", null));
   return {};
 }
@@ -774,6 +800,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
   achadinhosInfo: () => achadinhosInfo(),
+  setPreferences,
   switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead, checkPushSubscription, unreadCount: (c) => unreadCount(c), savePushSubscription, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },

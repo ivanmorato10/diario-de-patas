@@ -8,6 +8,7 @@ import { LIMITS } from "@/config/business";
 import type { DocumentMime } from "@/domain/documents";
 import { ImageError, processImage, sniffMime } from "./image";
 
+/** `message` é uma chave dos arquivos de idioma (a tela traduz). */
 export class DocumentFileError extends Error {
   constructor(readonly code: "TOO_LARGE" | "UNSUPPORTED", message: string) {
     super(message);
@@ -31,12 +32,12 @@ export interface ProcessedDocument {
 
 export async function processDocument(file: Blob): Promise<ProcessedDocument> {
   if (file.size > LIMITS.maxUploadBytes) {
-    throw new DocumentFileError("TOO_LARGE", `O arquivo passa de ${Math.round(LIMITS.maxUploadBytes / 1024 / 1024)} MB. Escolha uma versão menor.`);
+    throw new DocumentFileError("TOO_LARGE", `errors.docTooLarge?mb=${Math.round(LIMITS.maxUploadBytes / 1024 / 1024)}`);
   }
   const buf = await file.arrayBuffer();
   const mime = sniffDocument(new Uint8Array(buf, 0, Math.min(32, buf.byteLength)));
   if (!mime) {
-    throw new DocumentFileError("UNSUPPORTED", "Esse arquivo não parece um PDF ou uma imagem JPEG, PNG ou WebP.");
+    throw new DocumentFileError("UNSUPPORTED", "errors.notPdfOrImage");
   }
   if (mime === "application/pdf") return { mime, bytes: buf.byteLength, file: new Blob([buf], { type: mime }), thumb: null };
   try {

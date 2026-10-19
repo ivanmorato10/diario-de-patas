@@ -6,12 +6,16 @@
  *
  * Sem --yes, só mostra o custo estimado e não chama a API. A chave vem do .env.local (ART_GENERATOR_API_KEY).
  */
+import { MESSAGES } from "@/i18n/messages";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { STUDIO_PRESETS, STUDIO_MODELS, buildStudioPrompt, estimateCostUsd, imageSizeFor, type StudioPreset } from "@/config/studio";
 import { geminiGenerator, ProviderError } from "@/server/art-generator";
 import { stickerFromGreen } from "@/server/studio";
+
+/** Nome do tema em português (os relatórios internos ficam em pt-BR). */
+const presetLabel = (id: string) => (MESSAGES["pt-BR"].studioCatalog.presets as Record<string, { label: string }>)[id.replace(/-ilustrado$/, "")]?.label ?? id;
 
 const root = path.resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
@@ -87,7 +91,7 @@ const originals: Record<string, string> = {};
     originals[photo] = name;
     for (const preset of presets) {
       const started = Date.now();
-      const row: Row = { preset: preset.id, label: preset.labelPt, photo, file: null, ms: 0, costUsd: estimateCostUsd(preset, preset.aspect), dog: null, text: null, score: null, error: null };
+      const row: Row = { preset: preset.id, label: presetLabel(preset.id), photo, file: null, ms: 0, costUsd: estimateCostUsd(preset, preset.aspect), dog: null, text: null, score: null, error: null };
       process.stdout.write(`${preset.id} × foto ${pi + 1}… `);
       try {
         const out = await gen.generate({ image: buf, mime: "image/jpeg", prompt: buildStudioPrompt(preset, preset.aspect), aspect: preset.aspect, imageSize: imageSizeFor(preset.aspect), premium: preset.premium });
@@ -116,7 +120,7 @@ const originals: Record<string, string> = {};
     const r = rows.filter((x) => x.preset === p.id);
     const ok = r.filter((x) => x.file);
     const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-    return { id: p.id, label: p.labelPt, premium: p.premium, credits: p.credits, ok: ok.length, total: r.length, avgCostUsd: avg(ok.map((x) => x.costUsd)), avgSeconds: avg(ok.map((x) => x.ms / 1000)), avgScore: avg(ok.map((x) => x.score ?? 0).filter(Boolean)) };
+    return { id: p.id, label: presetLabel(p.id), premium: p.premium, credits: p.credits, ok: ok.length, total: r.length, avgCostUsd: avg(ok.map((x) => x.costUsd)), avgSeconds: avg(ok.map((x) => x.ms / 1000)), avgScore: avg(ok.map((x) => x.score ?? 0).filter(Boolean)) };
   });
   writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ date: new Date().toISOString(), models: STUDIO_MODELS, summary, rows }, null, 2));
 
@@ -124,7 +128,7 @@ const originals: Record<string, string> = {};
   const cards = presets.map((p) => {
     const s = summary.find((x) => x.id === p.id)!;
     const imgs = rows.filter((r) => r.preset === p.id).map((r) => `<figure><img src="${r.file ?? ""}" alt="" loading="lazy">${r.file ? "" : `<p class="err">${esc(r.error ?? "")}</p>`}<figcaption>${(r.ms / 1000).toFixed(1)} s · semelhança ${r.score ?? "?"}/5${r.text ? " · TEXTO!" : ""}${r.dog === false ? " · SEM CACHORRO" : ""}</figcaption></figure>`).join("");
-    return `<section><header><h2>${esc(p.labelPt)} <small>${p.id} v${p.version}${p.premium ? " · premium" : ""} · ${p.credits} crédito(s)</small></h2>
+    return `<section><header><h2>${esc(presetLabel(p.id))} <small>${p.id} v${p.version}${p.premium ? " · premium" : ""} · ${p.credits} crédito(s)</small></h2>
 <p>Custo médio US$ ${s.avgCostUsd?.toFixed(3) ?? "—"} · tempo médio ${s.avgSeconds?.toFixed(1) ?? "—"} s · semelhança média ${s.avgScore?.toFixed(1) ?? "—"}/5 · ${s.ok}/${s.total} geradas</p>
 <label class="ok"><input type="checkbox" data-id="${p.id}"> Aprovar — o cachorro ficou reconhecível</label></header><div class="row">${imgs}</div></section>`;
   }).join("\n");

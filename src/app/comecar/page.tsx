@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useErrorText } from "@/i18n/use-error";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore, useBlobUrl } from "@/data/store";
@@ -23,8 +25,11 @@ export default function Comecar() {
   const [photo, setPhoto] = useState<ProcessedImage | null>(null);
   const [prefs, setPrefs] = useState<DogPreferences>({ home: true, outdoor: true, people: true, socialDogs: false });
   const [tz, setTz] = useState("America/Sao_Paulo");
-  const [error, setError] = useState<string | null>(null);
+  const [errorKey, setError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
+  const t = useTranslations("start");
+  const errText = useErrorText();
+  const error = errorKey ? errText(errorKey) : null;
   const photoUrl = useBlobUrl(photo?.thumb);
 
   // ?novo=1: mais um cachorro na mesma conta (só com conta; cada diário tem seus créditos e sua família).
@@ -42,12 +47,12 @@ export default function Comecar() {
     e.preventDefault();
     if (!repo || saving) return;
     if (!name.trim()) {
-      setError("Conte para a gente o nome do seu cachorro.");
+      setError("errors.dogNameRequired");
       document.getElementById("dog-name")?.focus();
       return;
     }
     if (birth && !isCivilDate(birth)) {
-      setError("Essa data não parece válida.");
+      setError("validation.invalidDate");
       return;
     }
     setSaving(true);
@@ -57,66 +62,66 @@ export default function Comecar() {
       await reload();
       router.replace(another && snap?.dog ? "/hoje" : "/hoje?bemvindo=1"); // primeiro diário: convite da família
     } catch (err) {
-      setError(err instanceof DomainError ? err.message : "Não conseguimos criar o diário. Tente novamente.");
+      setError(err instanceof DomainError ? err : "errors.createDiaryFailed");
       setSaving(false);
     }
   }
 
   return (
     <div className="shell">
-      <header className="topbar"><div className="topbar__inner"><Link href="/adicionar" className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link></div></header>
+      <header className="topbar"><div className="topbar__inner"><Link href="/adicionar" className="icon-btn" aria-label={t("back")}><IconArrowLeft /></Link></div></header>
       <main className="main main--bare">
         {another ? null : <ImportDemoCard />}
         {unavailable ? <StorageUnavailable /> : (
           <form className="stack-lg" onSubmit={submit} noValidate>
             <div className="stack">
-              <h1>{another && snap?.dog ? "Mais um cachorro na família!" : "Vamos criar o diário"}</h1>
-              <AbuSays>{another && snap?.dog ? "Que legal, mais um amigo! Ele ganha um diário só dele, com missões e créditos próprios." : "Me conta: como se chama o seu melhor amigo?"}</AbuSays>
-              <p className="muted">Só o nome é obrigatório. O resto você ajusta quando quiser.</p>
+              <h1>{another && snap?.dog ? t("titleAnother") : t("title")}</h1>
+              <AbuSays>{another && snap?.dog ? t("abuAnother") : t("abu")}</AbuSays>
+              <p className="muted">{t("onlyName")}</p>
             </div>
 
             <div className="field">
-              <label htmlFor="dog-name">Nome do cachorro</label>
+              <label htmlFor="dog-name">{t("dogName")}</label>
               <input id="dog-name" className="input" value={name} maxLength={LIMITS.dogNameMaxChars} onChange={(e) => setName(e.target.value)} autoComplete="off" aria-invalid={!!error && !name.trim()} required />
             </div>
 
             <div className="field">
-              <span className="label">Foto de perfil <span className="muted">(opcional)</span></span>
+              <span className="label">{t("photo")} <span className="muted">{t("optional")}</span></span>
               {photo && photoUrl ? (
                 <div className="row">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl} alt="Foto de perfil escolhida" className="avatar avatar--xl" />
-                  <button type="button" className="btn btn--secondary btn--small" onClick={() => setPhoto(null)}><IconTrash /> Remover foto</button>
+                  <img src={photoUrl} alt={t("photoAlt")} className="avatar avatar--xl" />
+                  <button type="button" className="btn btn--secondary btn--small" onClick={() => setPhoto(null)}><IconTrash /> {t("removePhoto")}</button>
                 </div>
               ) : <PhotoPicker onPicked={setPhoto} compact />}
             </div>
 
             <div className="field">
-              <label htmlFor="birth">Data de nascimento <span className="muted">(opcional)</span></label>
+              <label htmlFor="birth">{t("birth")} <span className="muted">{t("optional")}</span></label>
               <input id="birth" type="date" className="input" value={birth} onChange={(e) => setBirth(e.target.value)} />
             </div>
 
             {/* Nome e foto bastam para começar; o resto já vem num jeito bom e muda depois em Ajustes. */}
             <details className="adjust-later">
-              <summary>Ajustar depois: rotina e fuso horário</summary>
+              <summary>{t("adjustLater")}</summary>
               <div className="stack" style={{ marginTop: 12 }}>
                 <PreferencesFields value={prefs} onChange={setPrefs} />
                 <div className="field">
-                  <label htmlFor="tz">Fuso horário</label>
+                  <label htmlFor="tz">{t("timezone")}</label>
                   <TimezoneSelect id="tz" value={tz} onChange={setTz} />
-                  <span className="hint">Detectamos este fuso pelo aparelho. Ele organiza as datas do diário.</span>
+                  <span className="hint">{t("timezoneHint")}</span>
                 </div>
               </div>
             </details>
 
             <div className="notice notice--info">
               <IconInfo />
-              <span>O diário é privado. Nada é compartilhado até você escolher.</span>
+              <span>{t("private")}</span>
             </div>
 
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <button type="submit" className="btn btn--primary btn--block" disabled={saving || !repo}>
-              {saving ? "Criando…" : "Criar meu diário"}
+              {saving ? t("creating") : t("create")}
             </button>
           </form>
         )}

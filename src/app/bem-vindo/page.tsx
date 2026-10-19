@@ -2,44 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AbuCard, AbuFace, AbuMascot } from "@/components/brand";
+import { useTranslations } from "next-intl";
+import { AbuCard, AbuFace, AbuMascot, PawDiaryNote } from "@/components/brand";
+import { LanguageSwitch } from "@/components/language-switch";
+import { loose } from "@/i18n/keys";
 import { IconStar, Paw } from "@/components/icons";
 
 /**
  * Introdução emocional (pedido do proprietário): o Abu se apresenta e conta por que o app existe.
- * Nada aqui inventa fatos sobre o Abu — só o propósito do diário.
+ * Nada aqui inventa fatos sobre o Abu — só o propósito do diário. Textos em intro.steps.* (mesmo sentido
+ * nos dois idiomas, sem tradução literal). `paw`: patinha no fim do título; `cta`: texto próprio do botão.
  */
-const STEPS: { title: string; text: string; paw?: boolean; cta?: string }[] = [
-  {
-    title: "Oi, eu sou o Abu!",
-    paw: true,
-    cta: "Vamos nessa, Abu!",
-    text: "Minha vida tem passeios, sonecas e umas travessuras que merecem ser lembradas.\nAposto que a do seu cachorro também.\nVamos guardar essas histórias juntos?",
-  },
-  {
-    title: "Pra você, uma foto.\nPra mim, um dia com você.",
-    paw: true,
-    cta: "Cada momento conta",
-    text: "O passeio de sempre, a soneca no sofá, aquela pose por um petisco… Nosso álbum está nessas pequenas coisas.\nVamos guardar as favoritas?",
-  },
-  {
-    title: "Um álbum todinho dele.\nCheio de vocês.",
-    cta: "Vamos começar",
-    text: "A primeira aventura, o brinquedo favorito, as mil posições de dormir. Junte as fotos e veja a história do seu cachorro ganhar um lugar só dela.",
-  },
-  {
-    title: "Tem muita aventura pela frente!",
-    text: "Uma soneca engraçada, um passeio diferente, uma pose com o brinquedo favorito. As missões dão ideias para fotografar esses momentos e deixar o diário com a carinha do seu cachorro.",
-  },
-  {
-    title: "Um diário de família.",
-    text: "Chame quem também ama o seu cachorro. Cada pessoa entra com a própria conta e guarda fotos, escreve cartinhas e dá ossinho. Os avós podem só acompanhar.",
-  },
-  {
-    title: "Já me conheceu.\nAgora, quem é o seu melhor\u00a0amigo?",
-    text: "Me conta o nome dele e escolhe uma foto. Temos muitas aventuras pela frente!",
-  },
-];
+const STEPS: { paw?: boolean; cta?: boolean }[] = [{ paw: true, cta: true }, { paw: true, cta: true }, { cta: true }, {}, {}, {}];
 
 /** Cada frase do título é um bloco (quebra equilibrada); a patinha fica presa à última palavra. */
 function Title({ title, paw }: { title: string; paw?: boolean }) {
@@ -60,19 +34,21 @@ function Title({ title, paw }: { title: string; paw?: boolean }) {
 }
 
 function StepVisual({ step }: { step: number }) {
+  const t = useTranslations("intro");
+  const tb = useTranslations("brand");
   if (step === 0) {
     return (
       <div className="intro-visual">
         <div className="intro-halo" aria-hidden="true" />
-        <div className="anim-bounce-in"><div className="anim-hello"><div className="anim-float"><AbuMascot width={190} alt="Abu, o cachorro que inspirou o app, segurando um livro" /></div></div></div>
+        <div className="anim-bounce-in"><div className="anim-hello"><div className="anim-float"><AbuMascot width={190} alt={tb("abuHolding")} /></div></div></div>
       </div>
     );
   }
   if (step === 1) {
     const moments = [
-      { src: "/moments/soneca.webp", label: "Soneca no sol", focus: "45% 62%" },
-      { src: "/moments/passeio.webp", label: "Passeio", focus: "62% 72%" },
-      { src: "/moments/pose.webp", label: "Fazendo pose", focus: "50% 22%" },
+      { src: "/moments/soneca.webp", label: t("moments.nap"), focus: "45% 62%" },
+      { src: "/moments/passeio.webp", label: t("moments.walk"), focus: "62% 72%" },
+      { src: "/moments/pose.webp", label: t("moments.pose"), focus: "50% 22%" },
     ];
     return (
       <div className="intro-visual intro-moments" aria-hidden="true">
@@ -89,7 +65,7 @@ function StepVisual({ step }: { step: number }) {
     return (
       <div className="intro-visual" aria-hidden="true">
         <div className="intro-album anim-pop">
-          <div className="intro-album__title">Nosso álbum</div>
+          <div className="intro-album__title">{t("ourAlbum")}</div>
           <div className="intro-album__grid">
             {[0, 1, 2, 3, 4, 5].map((i) =>
               i < 4 ? (
@@ -123,7 +99,8 @@ function StepVisual({ step }: { step: number }) {
 
 export default function BemVindo() {
   const [step, setStep] = useState(0);
-  const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const t = useTranslations("intro");
+  const tl = loose(t);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const last = step === STEPS.length - 1;
 
@@ -135,31 +112,33 @@ export default function BemVindo() {
     <div className="shell intro">
       <main className="main main--bare intro__main">
         <div className="row-between">
-          <span className="row" style={{ gap: 8 }}><AbuFace size={34} className="brand-lockup__face" /><span className="brand-lockup__name" style={{ fontSize: "1.15rem" }}>Diário de Patas</span></span>
-          {!last ? <button type="button" className="btn btn--ghost btn--small" onClick={() => setStep(STEPS.length - 1)}>Pular</button> : null}
+          <span className="row" style={{ gap: 8 }}><AbuFace size={34} className="brand-lockup__face" /><span><span className="brand-lockup__name" style={{ fontSize: "1.15rem" }}>Diário de Patas</span><PawDiaryNote className="brand-lockup__tag brand-lockup__tag--en" /></span></span>
+          {!last ? <button type="button" className="btn btn--ghost btn--small" onClick={() => setStep(STEPS.length - 1)}>{t("skip")}</button> : null}
         </div>
+        {/* Idioma já na primeira tela: a pessoa escolhe antes de ler a apresentação. */}
+        {step === 0 ? <LanguageSwitch compact /> : null}
 
         <section key={step} className="intro__slide" aria-live="polite">
           <StepVisual step={step} />
           <div className="stack intro-diary anim-rise" style={{ rotate: `${step % 2 ? 1 : -1.2}deg` }}>
-            <h1 ref={titleRef} tabIndex={-1} className="anim-rise"><Title title={STEPS[step].title} paw={STEPS[step].paw} /></h1>
-            <p className="anim-rise-2 intro__text" style={{ whiteSpace: "pre-line" }}>{STEPS[step].text}</p>
+            <h1 ref={titleRef} tabIndex={-1} className="anim-rise"><Title title={tl(`steps.s${step}.title`)} paw={STEPS[step].paw} /></h1>
+            <p className="anim-rise-2 intro__text" style={{ whiteSpace: "pre-line" }}>{tl(`steps.s${step}.text`)}</p>
           </div>
         </section>
 
         <div className="stack intro__actions">
-          <div className="intro-dots" role="img" aria-label={`Passo ${step + 1} de ${STEPS.length}`}>
+          <div className="intro-dots" role="img" aria-label={t("stepOf", { n: step + 1, total: STEPS.length })}>
             {STEPS.map((_, i) => <span key={i} className={i === step ? "is-active" : i < step ? "is-done" : ""} />)}
           </div>
           {last ? (
             <>
-              <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">Apresentar meu cachorro</Link>
+              <Link href="/comecar" className="btn btn--primary btn--block anim-rise-3">{t("introduceDog")}</Link>
             </>
           ) : (
             <div className="row" style={{ gap: 10 }}>
-              {step > 0 ? <button type="button" className="btn btn--secondary" onClick={() => setStep((s) => s - 1)} aria-label="Voltar">Voltar</button> : null}
+              {step > 0 ? <button type="button" className="btn btn--secondary" onClick={() => setStep((s) => s - 1)}>{t("back")}</button> : null}
               <button type="button" className="btn btn--primary" style={{ flex: 1 }} onClick={() => setStep((s) => s + 1)}>
-                {STEPS[step].cta ?? "Continuar"}
+                {STEPS[step].cta ? tl(`steps.s${step}.cta`) : t("continue")}
               </button>
             </div>
           )}

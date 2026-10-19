@@ -1,77 +1,76 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { LEVELS } from "@/config/catalog";
 import { XP_MONTH_GOAL } from "@/config/credits";
 import { SUPPORT } from "@/config/business";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
+import { levelName } from "@/i18n/catalog";
+import { loose } from "@/i18n/keys";
+
+const strong = { strong: (c: React.ReactNode) => <strong>{c}</strong> };
+/** Itens da privacidade, em about.privacy.<chave>. */
+const PRIVACY = ["who", "links", "where", "studio", "payments", "push", "delete"] as const;
 
 export default function Sobre() {
+  const t = useTranslations("about");
+  const tAll = loose(useTranslations());
   return (
     <>
-      <TopBar title="Sobre" back="/conta" />
+      <TopBar title={t("title")} back="/conta" emoji="🐾" />
       <main className="main">
         <section className="stack-lg" aria-labelledby="historia">
           <div className="achados-hero">
-            <div className="achados-hero__abu"><AbuMascot width={96} alt="Abu, o cachorro que inspirou o Diário de Patas, segurando o livro" /></div>
+            <div className="achados-hero__abu"><AbuMascot width={96} alt={t("abuAlt")} /></div>
             <div>
-              <p className="studio-title" style={{ fontSize: "2rem", margin: 0 }}>Sobre o Diário</p>
-              <p className="muted" style={{ margin: 0 }}>Quem somos, como cuidamos dos seus dados e como o app funciona.</p>
+              <p className="studio-title" style={{ fontSize: "2rem", margin: 0 }}>{t("heading")}</p>
+              <p className="muted" style={{ margin: 0 }}>{t("sub")}</p>
             </div>
           </div>
           <article className="stack intro-diary anim-rise about-letter" style={{ rotate: "-1deg" }}>
-            <h1 id="historia">Nossa história</h1>
-            <p className="intro__text">O Diário de Patas nasceu do amor que sentimos pelo Abu.</p>
-            <p className="intro__text">Amamos a companhia dele, suas manias e o jeito como transforma um dia comum em um dia mais feliz. Ele faz parte da nossa família — e de tantas lembranças que queremos guardar com carinho.</p>
-            <p className="intro__text">Criamos este espaço para reunir os passeios, as sonecas, as carinhas engraçadas e aqueles momentos que talvez só façam sentido para quem ama um cachorro como nós amamos o Abu.</p>
-            <p className="intro__text">É ele quem aparece no nosso logo e recebe você por aqui. Uma homenagem ao nosso companheiro e um convite para você contar a história do seu.</p>
-            <p className="intro__text about-letter__sign">Com amor, para o Abu.<br />E para todos os cachorros que fazem parte da família. <Paw size={22} className="intro-diary__paw" /></p>
+            <h1 id="historia">{t("storyTitle")}</h1>
+            {(["p1", "p2", "p3", "p4"] as const).map((k) => <p key={k} className="intro__text">{t(`story.${k}`)}</p>)}
+            <p className="intro__text about-letter__sign">{t("story.sign1")}<br />{t("story.sign2")} <Paw size={22} className="intro-diary__paw" /></p>
           </article>
         </section>
 
-
         <section id="niveis" className="card stack" aria-labelledby="niveis-t">
-          <h2 id="niveis-t">Patinhas, níveis e a arte do mês</h2>
-          <p className="small">Patinhas 🐾 são os pontos das missões (10 ou 20 por foto guardada). O app conta de dois jeitos:</p>
+          <h2 id="niveis-t">{t("levelsTitle")}</h2>
+          <p className="small">{t("levelsIntro")}</p>
           <ul className="small" style={{ margin: 0, paddingLeft: "1.2em", display: "grid", gap: 4 }}>
-            <li><strong>Patinhas de sempre:</strong> somam tudo, ficam guardadas para sempre e definem o nível do seu cachorro.</li>
-            <li><strong>Patinhas do mês:</strong> a contagem recomeça no dia 1º, com uma nova aventura. Com {XP_MONTH_GOAL} patinhas no mês, você ganha 1 crédito para criar uma arte no Estúdio (uma vez por mês).</li>
+            <li>{t.rich("pawsForever", strong)}</li>
+            <li>{t.rich("pawsMonth", { ...strong, goal: XP_MONTH_GOAL })}</li>
           </ul>
           <ol className="levels">
             {LEVELS.map((l, i) => (
-              <li key={l.title}>
+              <li key={l.minXp}>
                 <span className="levels__n">{i + 1}</span>
-                <span className="levels__t">{l.title}</span>
-                <span className="levels__xp">{l.minXp === 0 ? "início" : `${l.minXp} 🐾`}</span>
+                <span className="levels__t">{levelName(tAll, { level: i, endless: 0 })}</span>
+                <span className="levels__xp">{l.minXp === 0 ? t("start") : `${l.minXp} 🐾`}</span>
               </li>
             ))}
-            <li><span className="levels__n">∞</span><span className="levels__t">Sempre juntos II, III…</span><span className="levels__xp">+250 🐾 cada</span></li>
+            <li><span className="levels__n">∞</span><span className="levels__t">{t("endless", { last: levelName(tAll, { level: LEVELS.length - 1, endless: 0 }) })}</span><span className="levels__xp">{t("each")}</span></li>
           </ol>
         </section>
 
         <section className="stack" aria-labelledby="priv">
-          <h2 id="priv">Privacidade</h2>
+          <h2 id="priv">{t("privacyTitle")}</h2>
           <ul className="small privacy-list">
-            <li><strong>Quem vê o diário:</strong> você e as pessoas que você convidar, conforme o papel de cada uma (pode adicionar momentos ou pode acompanhar). Quem é responsável pelo diário pode tirar alguém a qualquer momento.</li>
-            <li><strong>Links compartilhados:</strong> quem tiver o link vê só as fotos que você escolheu, sem cuidados, documentos ou email. Você revoga em Perfil › Gerenciar diário; revogar não apaga cópias que alguém já tenha baixado.</li>
-            <li><strong>Onde ficam as fotos:</strong> num armazenamento privado ligado à sua conta. Ao guardar, removemos a localização e outros dados escondidos da foto.</li>
-            <li><strong>Estúdio:</strong> para conferir a foto e criar a arte, ela é enviada à API paga do Google (Gemini). Pelos termos dessa API, o conteúdo não é usado para treinar produtos do Google; pode ficar um registro por tempo limitado, só para detectar abusos. A arte sai com uma marca d’água invisível do Google.</li>
-            <li><strong>Pagamentos:</strong> o Pix é processado pelo Mercado Pago; o app não vê dados bancários.</li>
-            <li><strong>Avisos no celular:</strong> passam pelo serviço de notificações do seu aparelho (Apple ou Google). Você desliga em Minha conta › Notificações.</li>
-            <li><strong>Excluir:</strong> em Minha conta › Excluir minha conta, ou só um diário em Perfil › Gerenciar diário.</li>
+            {PRIVACY.map((k) => <li key={k}>{t.rich(`privacy.${k}`, strong)}</li>)}
           </ul>
-          <p className="caption" style={{ margin: 0 }}>Os termos de uso e a política de privacidade completos serão publicados antes do lançamento público.</p>
+          <p className="caption" style={{ margin: 0 }}>{t("terms")}</p>
         </section>
 
         <section id="estudio" className="stack" aria-labelledby="estudio-t">
-          <h2 id="estudio-t">Estúdio de artes</h2>
-          <p className="small">Cada arte aparece no diário com o selo “🎨 Arte do Estúdio” e entra no limite de lembranças. Se o diário estiver cheio, a arte não é criada e nenhum crédito é usado.</p>
+          <h2 id="estudio-t">{t("studioTitle")}</h2>
+          <p className="small">{t("studioText")}</p>
         </section>
 
         <section className="stack" aria-labelledby="sup">
-          <h2 id="sup">Suporte</h2>
-          {SUPPORT.email ? <p className="small"><a href={`mailto:${SUPPORT.email}`}>{SUPPORT.email}</a></p> : <p className="small muted">Canal de suporte ainda não definido.</p>}
+          <h2 id="sup">{t("supportTitle")}</h2>
+          {SUPPORT.email ? <p className="small"><a href={`mailto:${SUPPORT.email}`}>{SUPPORT.email}</a></p> : <p className="small muted">{t("noSupport")}</p>}
         </section>
       </main>
     </>

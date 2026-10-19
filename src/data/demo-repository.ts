@@ -7,7 +7,7 @@
 import { xpMonthOf } from "@/config/credits";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import { COLLECTIONS, type CollectionId } from "@/config/catalog";
-import { LIMITS, fullDiaryText } from "@/config/business";
+import { LIMITS, fullDiaryParams } from "@/config/business";
 import { civilDateInTz } from "@/domain/dates";
 import { missionById } from "@/domain/missions";
 import {
@@ -214,7 +214,7 @@ export async function loadSnapshot(db: Db): Promise<Snapshot> {
 
 const albumTitle = (t: string) => {
   const title = t.trim().replace(/\s+/g, " ").slice(0, LIMITS.albumTitleMaxChars);
-  if (!title) throw new DomainError("INVALID", "Dê um nome ao álbum.");
+  if (!title) throw new DomainError("INVALID", "errors.albumNameRequired");
   return title;
 };
 
@@ -222,7 +222,7 @@ export async function createAlbum(db: Db, title: string): Promise<CustomAlbum> {
   const name = albumTitle(title);
   const tx = db.transaction("customAlbums", "readwrite");
   if ((await tx.store.count()) >= LIMITS.maxCustomAlbums) {
-    return fail(tx, new DomainError("ALBUM_QUOTA", `Cabem até ${LIMITS.maxCustomAlbums} álbuns nesta versão de teste.`));
+    return fail(tx, new DomainError("ALBUM_QUOTA", `errors.albumQuota?max=${LIMITS.maxCustomAlbums}`));
   }
   const album: CustomAlbum = { id: `custom-${newId()}`, title: name, createdAt: now() };
   await tx.store.put(album);
@@ -232,7 +232,7 @@ export async function createAlbum(db: Db, title: string): Promise<CustomAlbum> {
 
 export async function renameAlbum(db: Db, id: string, title: string): Promise<CustomAlbum> {
   const album = await db.get("customAlbums", id);
-  if (!album) throw new DomainError("NOT_FOUND", "Álbum não encontrado.");
+  if (!album) throw new DomainError("NOT_FOUND", "errors.albumNotFound");
   const next = { ...album, title: albumTitle(title) };
   await db.put("customAlbums", next);
   return next;
@@ -256,7 +256,7 @@ async function validAlbumIds(db: Db, ids: readonly string[]): Promise<AlbumId[]>
 /** Coloca várias fotos do diário num álbum (sem duplicar). */
 export async function addEntriesToAlbum(db: Db, albumId: string, entryIds: readonly string[]) {
   const [ok] = await validAlbumIds(db, [albumId]);
-  if (!ok) throw new DomainError("NOT_FOUND", "Álbum não encontrado.");
+  if (!ok) throw new DomainError("NOT_FOUND", "errors.albumNotFound");
   const tx = db.transaction(["entries", "albumEntries"], "readwrite");
   for (const entryId of new Set(entryIds)) {
     if (await tx.objectStore("entries").get(entryId)) await tx.objectStore("albumEntries").put({ key: `${ok}:${entryId}`, albumId: ok, entryId, addedAt: now() });
@@ -289,7 +289,7 @@ export async function ensureDailyPlan(db: Db, dog: Dog, today: CivilDate): Promi
 export async function swapDaily(db: Db, slot: DailySlot): Promise<DailyPlan> {
   const [dog] = await db.getAll("dogs");
   const profile = await db.get("profile", "me");
-  if (!dog || !profile) throw new DomainError("NO_DOG", "Crie o diário antes.");
+  if (!dog || !profile) throw new DomainError("NO_DOG", "errors.noDog");
   const today = civilDateInTz(new Date(), profile.timezone);
   const plan = await ensureDailyPlan(db, dog, today);
   const next = swapInPlan(plan, slot, dog.preferences, await dailyHistory(db, dog.id, today));
@@ -323,7 +323,7 @@ export async function createDiary(
   input: { timezone: string; name: string; birthDate: CivilDate | null; preferences: Dog["preferences"]; photo: ProcessedImage | null },
 ): Promise<Dog> {
   const name = input.name.trim().slice(0, LIMITS.dogNameMaxChars);
-  if (!name) throw new DomainError("NAME_REQUIRED", "Conte para a gente o nome do seu cachorro.");
+  if (!name) throw new DomainError("NAME_REQUIRED", "errors.dogNameRequired");
   const tx = db.transaction(["profile", "dogs", "media"], "readwrite");
   const existing = await tx.objectStore("dogs").getAll();
   if (existing.length >= LIMITS.dogsPerAccount) {
@@ -336,7 +336,7 @@ export async function createDiary(
     await tx.objectStore("media").put(m);
     photoMediaId = m.id;
   }
-  await tx.objectStore("profile").put({ id: "me", timezone: input.timezone, locale: "pt-BR", createdAt: now() });
+  await tx.objectStore("profile").put({ id: "me", timezone: input.timezone, createdAt: now() });
   const dog: Dog = { id: newId(), name, photoMediaId, birthDate: input.birthDate, preferences: input.preferences, createdAt: now() };
   await tx.objectStore("dogs").put(dog);
   await tx.done;
@@ -346,11 +346,11 @@ export async function createDiary(
 export async function updateDog(db: Db, patch: Partial<Pick<Dog, "name" | "nickname" | "birthDate" | "preferences" | "avatarCrop">> & { photo?: ProcessedImage | null }) {
   const tx = db.transaction(["dogs", "media"], "readwrite");
   const [dog] = await tx.objectStore("dogs").getAll();
-  if (!dog) throw new DomainError("NO_DOG", "Diário não encontrado.");
+  if (!dog) throw new DomainError("NO_DOG", "errors.diaryNotFound");
   const next: Dog = { ...dog };
   if (patch.name !== undefined) {
     const n = patch.name.trim().slice(0, LIMITS.dogNameMaxChars);
-    if (!n) throw new DomainError("NAME_REQUIRED", "O nome não pode ficar vazio.");
+    if (!n) throw new DomainError("NAME_REQUIRED", "errors.nameEmpty");
     next.name = n;
   }
   if (patch.birthDate !== undefined) next.birthDate = patch.birthDate;
@@ -411,10 +411,10 @@ export async function saveEntry(
   }
   const [dog] = await tx.objectStore("dogs").getAll();
   const profile = await tx.objectStore("profile").get("me");
-  if (!dog || !profile) throw new DomainError("NO_DOG", "Crie o diário antes de guardar fotos.");
+  if (!dog || !profile) throw new DomainError("NO_DOG", "errors.noDog");
   const count = await tx.objectStore("entries").count();
   if (count >= LIMITS.maxEntries) {
-    return fail(tx, new DomainError("STORAGE_QUOTA", fullDiaryText()));
+    return fail(tx, new DomainError("STORAGE_QUOTA", `errors.fullDiary?${new URLSearchParams(Object.entries(fullDiaryParams(dog.name)).map(([k, v]) => [k, String(v)]))}`));
   }
   const media = mediaFrom(input.image, input.kind ?? "photo");
   await tx.objectStore("media").put(media);
@@ -442,7 +442,7 @@ export async function updateEntry(db: Db, id: string, patch: { caption?: string;
   const albumIds = patch.albumIds ? await validAlbumIds(db, patch.albumIds) : undefined;
   const tx = db.transaction(["entries", "albumEntries"], "readwrite");
   const e = await tx.objectStore("entries").get(id);
-  if (!e) throw new DomainError("NOT_FOUND", "Lembrança não encontrada.");
+  if (!e) throw new DomainError("NOT_FOUND", "errors.memoryNotFoundShort");
   const next = { ...e };
   if (patch.caption !== undefined) next.caption = patch.caption.trim().slice(0, LIMITS.captionMaxChars);
   if (patch.occurredDate !== undefined) next.occurredDate = patch.occurredDate;
@@ -493,7 +493,7 @@ export async function submitMission(
   input: { requestKey: string; missionId: string; entryId: string; status: SubmissionStatus; reasonCode: string | null; mode: MissionSubmission["mode"]; providerVersion: string | null },
 ): Promise<SubmitResult> {
   const mission = missionById(input.missionId);
-  if (!mission) throw new DomainError("UNKNOWN_MISSION", "Missão não encontrada.");
+  if (!mission) throw new DomainError("UNKNOWN_MISSION", "errors.unknownMission");
   const tx = db.transaction(["profile", "dogs", "entries", "submissions", "completions", "xp", "albumEntries", "dailyPlans", "collectionAdvances", "medals"], "readwrite");
   const prior = await tx.objectStore("submissions").index("requestKey").get(input.requestKey);
   if (prior) {
@@ -505,37 +505,37 @@ export async function submitMission(
   const profile = await tx.objectStore("profile").get("me");
   const entry = await tx.objectStore("entries").get(input.entryId);
   if (!dog || !profile || !entry || entry.dogId !== dog.id) {
-    return fail(tx, new DomainError("NOT_FOUND", "Não encontramos essa lembrança."));
+    return fail(tx, new DomainError("NOT_FOUND", "errors.memoryNotFound"));
   }
   // Arte do Estúdio nunca conclui missão de foto real (§11).
   if (entry.source === "studio") {
-    return fail(tx, new DomainError("ART_NOT_ALLOWED", "Artes do Estúdio não concluem missões — escolha uma foto."));
+    return fail(tx, new DomainError("ART_NOT_ALLOWED", "errors.artNotAllowed"));
   }
   // Uma foto rende pontos em uma única missão (MUDANCAS-V2 §7.1).
   if (entry.missionId && entry.missionId !== mission.id) {
-    return fail(tx, new DomainError("PHOTO_ALREADY_USED", "Essa foto já foi usada em outra missão. Escolha outra foto."));
+    return fail(tx, new DomainError("PHOTO_ALREADY_USED", "errors.photoAlreadyUsedMission"));
   }
   const allCompletions = await tx.objectStore("completions").getAll();
   const completedSet = new Set(allCompletions.map((c) => c.missionId));
   if (mission.prerequisiteId && !completedSet.has(mission.prerequisiteId)) {
-    return fail(tx, new DomainError("LOCKED", "Essa missão abre depois de concluir a anterior."));
+    return fail(tx, new DomainError("LOCKED", "errors.locked"));
   }
   const today = civilDateInTz(new Date(), profile.timezone);
   let occurrence: string | undefined;
   if (mission.kind === "daily") {
     const plan = await tx.objectStore("dailyPlans").get(`${dog.id}:${today}`);
     if (!plan || !Object.values(plan.slots).includes(mission.id)) {
-      return fail(tx, new DomainError("NOT_TODAY", "Essa missão do dia não está nas sugestões de hoje. A foto continua no diário."));
+      return fail(tx, new DomainError("NOT_TODAY", "errors.notToday"));
     }
   } else if (mission.kind === "special") {
-    const w = activeSpecials(today, dog.birthDate, dog.name).find((x) => x.mission.id === mission.id);
-    if (!w) return fail(tx, new DomainError("OUT_OF_WINDOW", "Essa missão especial não está disponível agora. A foto continua no diário."));
+    const w = activeSpecials(today, dog.birthDate).find((x) => x.mission.id === mission.id);
+    if (!w) return fail(tx, new DomainError("OUT_OF_WINDOW", "errors.outOfWindow"));
     occurrence = w.occurrence;
   }
   const key = instanceKeyFor(dog.id, mission, today, occurrence);
   // Uma foto rende pontos em uma única conquista — nem a mesma missão do dia em outro dia.
   if (input.status === "approved" && allCompletions.some((c) => c.entryId === entry.id && c.instanceKey !== key)) {
-    return fail(tx, new DomainError("PHOTO_ALREADY_USED", "Essa foto já rendeu pontos em outra missão. Escolha outra foto."));
+    return fail(tx, new DomainError("PHOTO_ALREADY_USED", "errors.photoAlreadyUsedMission"));
   }
   const submission: MissionSubmission = {
     id: newId(), requestKey: input.requestKey, missionId: mission.id, dogId: dog.id, entryId: entry.id,
@@ -601,7 +601,7 @@ function parse<T>(schema: ZodType<T>, input: unknown): T {
 
 async function currentDogId(db: Db): Promise<string> {
   const [dog] = await db.getAll("dogs");
-  if (!dog) throw new DomainError("NO_DOG", "Crie o diário antes.");
+  if (!dog) throw new DomainError("NO_DOG", "errors.noDog");
   return dog.id;
 }
 
@@ -627,7 +627,7 @@ async function upsertCare<S extends CareStore>(db: Db, store: S, schema: ZodType
   const data = parse(schema, input);
   const dogId = await currentDogId(db);
   const prev = id ? ((await db.get(store, id)) as CareRecord[S] | undefined) : undefined;
-  if (id && !prev) throw new DomainError("NOT_FOUND", "Registro não encontrado.");
+  if (id && !prev) throw new DomainError("NOT_FOUND", "errors.recordNotFound");
   const rec = { ...data, id: id ?? newId(), dogId, createdAt: prev?.createdAt ?? now(), updatedAt: now() } as CareRecord[S];
   await db.put(store, rec as never);
   return rec;
@@ -649,7 +649,7 @@ export async function addDocument(db: Db, meta: DocumentMetaInput, file: Process
   const dogId = await currentDogId(db);
   const tx = db.transaction(["documents", "documentFiles"], "readwrite");
   if ((await tx.objectStore("documents").count()) >= LIMITS.maxDocuments) {
-    return fail(tx, new DomainError("DOC_QUOTA", `Cabem até ${LIMITS.maxDocuments} documentos nesta versão de teste. Exclua algum para guardar outro.`));
+    return fail(tx, new DomainError("DOC_QUOTA", `errors.docQuota?max=${LIMITS.maxDocuments}`));
   }
   const doc: HealthDocument = { ...data, id: newId(), dogId, mime: file.mime, bytes: file.bytes, hasThumb: !!file.thumb, createdAt: now(), updatedAt: now() };
   await tx.objectStore("documents").put(doc);
@@ -661,7 +661,7 @@ export async function addDocument(db: Db, meta: DocumentMetaInput, file: Process
 export async function updateDocument(db: Db, id: string, meta: DocumentMetaInput): Promise<HealthDocument> {
   const data = parse(DocumentMetaSchema, meta);
   const prev = await db.get("documents", id);
-  if (!prev) throw new DomainError("NOT_FOUND", "Documento não encontrado.");
+  if (!prev) throw new DomainError("NOT_FOUND", "errors.documentNotFound");
   const next = { ...prev, ...data, updatedAt: now() };
   await db.put("documents", next);
   return next;

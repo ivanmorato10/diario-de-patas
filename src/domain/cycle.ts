@@ -10,6 +10,7 @@ import {
 import { civilDayNumber, isCivilDate } from "./dates";
 import { addDays } from "./health";
 import type { CivilDate, DogPreferences } from "./types";
+import type { Region } from "@/i18n/locale";
 
 export const ALL_MISSIONS: MissionTemplate[] = [...MISSIONS, ...DAILY_MISSIONS, ...COLLECTION_ITEMS, ...SPECIAL_MISSIONS];
 
@@ -109,32 +110,46 @@ export interface SpecialWindow {
   occurrence: string;
   start: CivilDate;
   end: CivilDate;
-  title: string;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 
-/** Especiais ativas hoje (§7.6). S01 só existe se a data de nascimento foi informada. */
-export function activeSpecials(today: CivilDate, birthDate: CivilDate | null, dogName: string): SpecialWindow[] {
+/** Thanksgiving (EUA): quarta quinta-feira de novembro, calculada para cada ano. */
+export function thanksgivingDate(year: number): CivilDate {
+  const firstWeekday = new Date(Date.UTC(year, 10, 1)).getUTCDay(); // 0 = domingo
+  const firstThursday = 1 + ((4 - firstWeekday + 7) % 7);
+  return `${year}-11-${pad(firstThursday + 21)}`;
+}
+
+/**
+ * Especiais ativas hoje (§7.6). S01 só existe se a data de nascimento foi informada.
+ * Região do calendário: Brasil mantém as datas de sempre; EUA somam National Dog Day e Thanksgiving.
+ * A recompensa é por cachorro, missão e ano (instanceKey): trocar de região ou idioma não repete pontos.
+ */
+export function activeSpecials(today: CivilDate, birthDate: CivilDate | null, region: Region = "BR"): SpecialWindow[] {
   const y = Number(today.slice(0, 4));
   const out: SpecialWindow[] = [];
-  const [s01, s02, s03] = SPECIAL_MISSIONS;
+  const byId = (id: string) => SPECIAL_MISSIONS.find((m) => m.id === id)!;
   if (birthDate && isCivilDate(birthDate)) {
     for (const yy of [y - 1, y, y + 1]) {
       let md = birthDate.slice(5);
       if (md === "02-29" && !isLeap(yy)) md = "02-28";
       const day = `${yy}-${md}`;
       const start = addDays(day, -7), end = addDays(day, 7);
-      if (today >= start && today <= end && yy >= Number(birthDate.slice(0, 4))) out.push({ mission: s01, occurrence: String(yy), start, end, title: `Aniversário de ${dogName}` });
+      if (today >= start && today <= end && yy >= Number(birthDate.slice(0, 4))) out.push({ mission: byId("S01"), occurrence: String(yy), start, end });
     }
   }
-  const fixed = (m: MissionTemplate, from: string, to: string) => {
-    const start = `${y}-${from}`, end = `${y}-${to}`;
-    if (today >= start && today <= end) out.push({ mission: m, occurrence: String(y), start, end, title: m.title });
+  const window = (id: string, start: CivilDate, end: CivilDate) => {
+    const m = byId(id);
+    if (m.region && m.region !== region) return;
+    if (today >= start && today <= end) out.push({ mission: m, occurrence: String(y), start, end });
   };
-  fixed(s02, "12-01", "12-26");
-  fixed(s03, "10-24", "10-31");
+  window("S02", `${y}-12-01`, `${y}-12-26`);
+  window("S03", `${y}-10-24`, `${y}-10-31`);
+  window("S04", `${y}-08-20`, `${y}-08-27`);
+  const tg = thanksgivingDate(y);
+  window("S05", addDays(tg, -3), addDays(tg, 3));
   return out;
 }
 
@@ -187,7 +202,8 @@ export type CycleState = "completed" | "available" | "locked" | "not_today" | "o
 
 export interface CycleContext {
   dogId: string;
-  dogName: string;
+  /** Região do calendário de quem está usando (datas especiais). */
+  region: Region;
   birthDate: CivilDate | null;
   today: CivilDate;
   plan: Pick<DailyPlan, "slots"> | null;
@@ -203,7 +219,7 @@ export function missionStatus(m: MissionTemplate, ctx: CycleContext): CycleState
     return ctx.plan && Object.values(ctx.plan.slots).includes(m.id) ? "available" : "not_today";
   }
   if (m.kind === "special") {
-    const w = activeSpecials(ctx.today, ctx.birthDate, ctx.dogName).find((x) => x.mission.id === m.id);
+    const w = activeSpecials(ctx.today, ctx.birthDate, ctx.region).find((x) => x.mission.id === m.id);
     if (!w) return "out_of_window";
     if (ctx.completions.some((c) => c.instanceKey === instanceKey(ctx.dogId, m, ctx.today, w.occurrence))) return "completed";
     return m.prerequisiteId && !done(m.prerequisiteId) ? "locked" : "available";

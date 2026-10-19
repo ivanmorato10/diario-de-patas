@@ -10,6 +10,7 @@ import { IMAGE, LIMITS } from "@/config/business";
 import type { ProcessedImage } from "@/data/demo-repository";
 import { readPhotoDate } from "./exif";
 
+/** `message` é uma chave dos arquivos de idioma (a tela traduz). */
 export class ImageError extends Error {
   constructor(readonly code: "TOO_LARGE" | "UNSUPPORTED" | "HEIC" | "CORRUPT" | "TOO_MANY_PIXELS", message: string) {
     super(message);
@@ -49,10 +50,10 @@ async function encode(bmp: ImageBitmap, maxEdge: number, quality: number, mime: 
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new ImageError("CORRUPT", "Não conseguimos preparar a foto.");
+  if (!ctx) throw new ImageError("CORRUPT", "errors.imagePrepare");
   ctx.drawImage(bmp, 0, 0, w, h);
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, mime, quality));
-  if (!blob) throw new ImageError("CORRUPT", "Não conseguimos preparar a foto.");
+  if (!blob) throw new ImageError("CORRUPT", "errors.imagePrepare");
   return blob;
 }
 
@@ -92,27 +93,27 @@ function readDimensions(buf: Uint8Array, mime: string): { w: number; h: number }
 export async function processImage(file: Blob, opts: { displayMaxEdge?: number } = {}): Promise<ProcessedImage> {
   const maxEdge = opts.displayMaxEdge ?? IMAGE.displayMaxEdge;
   if (file.size > LIMITS.maxUploadBytes) {
-    throw new ImageError("TOO_LARGE", `A foto passa de ${Math.round(LIMITS.maxUploadBytes / 1024 / 1024)} MB. Escolha uma versão menor.`);
+    throw new ImageError("TOO_LARGE", `errors.imageTooLarge?mb=${Math.round(LIMITS.maxUploadBytes / 1024 / 1024)}`);
   }
   const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
   const mime = sniffMime(bytes.subarray(0, 32));
   if (mime === "image/heic") {
-    throw new ImageError("HEIC", "Fotos HEIC do iPhone ainda não são aceitas aqui. No iPhone, use Ajustes › Câmera › Formatos › Mais Compatível, ou envie a foto pelo navegador da galeria em JPEG.");
+    throw new ImageError("HEIC", "errors.imageHeic");
   }
   if (!mime || !(IMAGE.acceptedMime as readonly string[]).includes(mime)) {
-    throw new ImageError("UNSUPPORTED", "Esse arquivo não parece uma foto JPEG, PNG ou WebP.");
+    throw new ImageError("UNSUPPORTED", "errors.notAPhoto");
   }
   const takenDate = readPhotoDate(bytes, mime); // lido antes de re-codificar (que remove o EXIF)
   const dims = readDimensions(bytes, mime);
   if (dims && dims.w * dims.h > LIMITS.maxUploadPixels) {
-    throw new ImageError("TOO_MANY_PIXELS", "A foto tem resolução grande demais para esta versão. Tente uma versão reduzida.");
+    throw new ImageError("TOO_MANY_PIXELS", "errors.imageTooManyPixels");
   }
   let bmp: ImageBitmap;
   try {
     bmp = await createImageBitmap(new Blob([buf], { type: mime }), { imageOrientation: "from-image" });
   } catch {
-    throw new ImageError("CORRUPT", "Não conseguimos abrir essa foto. Ela pode estar corrompida — tente outra.");
+    throw new ImageError("CORRUPT", "errors.imageCorrupt");
   }
   const out = supportsWebpEncode() ? "image/webp" : "image/jpeg";
   try {
@@ -138,7 +139,7 @@ export async function rotateProcessed(img: ProcessedImage): Promise<ProcessedIma
     ctx.drawImage(bmp, 0, 0);
     bmp.close();
     const out = await new Promise<Blob | null>((r) => canvas.toBlob(r, img.mime, q));
-    if (!out) throw new ImageError("CORRUPT", "Não conseguimos girar a foto.");
+    if (!out) throw new ImageError("CORRUPT", "errors.imageRotate");
     return out;
   };
   return {

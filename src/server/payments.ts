@@ -10,16 +10,18 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { CREDIT_PACKAGES, formatBRL, PIX_EXPIRES_MINUTES, packageById } from "@/config/credits";
+import { ACTIVE_MARKET, CREDIT_MARKETS, PIX_EXPIRES_MINUTES, packageById } from "@/config/credits";
+import { formatInstant, formatMoney } from "@/i18n/format";
 import { adminClient, HttpError } from "./supabase";
 import { sendPurchaseConfirmed } from "./mailer";
+import { localeOf, translator } from "./i18n";
 
 type Ctx = { supa: SupabaseClient; user: User };
 type Status = "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
 
 /** Só em teste local (nunca na Vercel): MP_API_BASE aponta para um Mercado Pago simulado (scripts/e2e-pix.py). */
 const MP_API = (!process.env.VERCEL && process.env.MP_API_BASE) || "https://api.mercadopago.com/v1";
-const bad = (code: string, message: string) => new HttpError(400, code, message);
+const bad = (code: string, message: string, params?: Record<string, string | number>) => new HttpError(400, code, message, params);
 const now = () => new Date().toISOString();
 
 export const paymentsFake = () => process.env.PAYMENTS_FAKE === "1" && !process.env.VERCEL;
@@ -44,7 +46,7 @@ export function mapMpStatus(s: string | undefined): Status {
  */
 class MpError extends HttpError {
   constructor(readonly certain: boolean) {
-    super(502, "PAYMENT_PROVIDER", certain ? "O Mercado Pago recusou o Pix. Tente de novo em instantes." : "Não conseguimos confirmar o Pix agora. Tente de novo em instantes.");
+    super(502, "PAYMENT_PROVIDER", certain ? "errors.pixRefused" : "errors.pixUncertain");
   }
 }
 
@@ -127,11 +129,11 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
     } catch {
       return p.status; // incerto: tenta de novo depois (webhook, consulta da tela ou rotina)
     }
-    if (String(json.external_reference) !== p.id) throw new HttpError(409, "MISMATCH", "Pagamento não confere.");
+    if (String(json.external_reference) !== p.id) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
     const paidCents = Math.round(Number(json.transaction_amount) * 100);
-    if (paidCents !== p.amount_cents || (json.currency_id && json.currency_id !== "BRL")) {
+    if (paidCents !== p.amount_cents || (json.currency_id && json.currency_id !== (p.currency || "BRL"))) {
       console.error("pagamento com valor/moeda diferente", p.id, paidCents, json.currency_id);
-      throw new HttpError(409, "MISMATCH", "Pagamento não confere.");
+      throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
     }
     status = mapMpStatus(json.status);
     // Pix ainda pendente e passado do prazo (confirmado pelo provedor): vencido.
@@ -151,7 +153,7 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
     const { data: taken, error } = await admin.rpc("revoke_purchase_credits", { p_purchase: p.id });
     if (error) {
       console.error("estorno não aplicado (vai tentar de novo)", p.id, error.message);
-      throw new HttpError(500, "SERVER", "Não conseguimos aplicar o estorno agora.");
+      throw new HttpError(500, "SERVER", "errors.refundFailed");
     }
     console.warn("estorno de compra", p.id, "créditos retirados:", taken, "de", p.credits);
   }
@@ -163,7 +165,7 @@ async function grantCredits(purchaseId: string) {
   const { error } = await adminClient().rpc("grant_purchase_credits", { p_purchase: purchaseId });
   if (error) {
     console.error("créditos da compra não entregues (vai tentar de novo)", purchaseId, error.message);
-    throw new HttpError(500, "SERVER", "Pagamento confirmado. Os créditos entram em instantes.");
+    throw new HttpError(500, "SERVER", "errors.creditsSoon");
   }
 }
 
@@ -183,16 +185,20 @@ async function sendReceipt(purchaseId: string) {
   const done = (ok: boolean) => admin.from("credit_purchases").update(ok ? { receipt_sent_at: now() } : { receipt_claimed_at: null }).eq("id", p.id);
   if (!p.owner_id) return void (await done(true)); // quem comprou excluiu a conta: não há para quem enviar
   try {
-    const [{ data: u }, { data: dog }, { data: balance }] = await Promise.all([
+    const [{ data: u }, { data: dog }, { data: balance }, { data: prof }] = await Promise.all([
       admin.auth.admin.getUserById(p.owner_id),
       admin.from("dogs").select("name").eq("id", p.dog_id).maybeSingle(),
       admin.rpc("credit_available_dog", { p_dog: p.dog_id }),
+      admin.from("profiles").select("timezone").eq("user_id", p.owner_id).maybeSingle(),
     ]);
-    const paidAt = new Date(p.approved_at ?? Date.now()).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    // Comprovante no idioma de quem comprou; valor na moeda REAL da cobrança; hora no fuso da pessoa.
+    const locale = await localeOf(p.owner_id);
+    const tz = (prof as any)?.timezone || "America/Sao_Paulo";
+    const paidAt = formatInstant(p.approved_at ?? new Date(), locale, tz);
     const result = await sendPurchaseConfirmed(u?.user?.email ?? "", {
-      dogName: (dog as any)?.name ?? "seu cachorro", credits: p.credits, amount: formatBRL(p.amount_cents),
+      dogName: (dog as any)?.name ?? translator(locale)("emails.yourDog"), credits: p.credits, amount: formatMoney(p.amount_cents, p.currency || "BRL", locale),
       paidAt, balance: typeof balance === "number" ? balance : null, reference: p.id,
-    });
+    }, locale);
     if (result === "failed") console.warn("comprovante não enviado (vai tentar de novo)", p.id);
     await done(result !== "failed"); // "skipped" = sem SMTP ou endereço de teste: nada a reenviar
   } catch (e) {
@@ -238,7 +244,7 @@ export async function reconcileRecentPurchases() {
 }
 
 const toPurchase = (p: any) => ({
-  id: p.id as string, packageId: p.package_id as string, credits: p.credits as number, amountCents: p.amount_cents as number,
+  id: p.id as string, packageId: p.package_id as string, credits: p.credits as number, amountCents: p.amount_cents as number, currency: (p.currency as string) || "BRL",
   status: p.status as Status, pixQr: p.pix_qr as string | null, pixQrBase64: p.pix_qr_base64 as string | null,
   expiresAt: p.expires_at as string | null, createdAt: p.created_at as string, test: p.provider === "teste",
 });
@@ -248,17 +254,20 @@ const toPurchase = (p: any) => ({
 export async function creditShop(ctx: Ctx) {
   const dog = (await currentDog(ctx))!;
   const recent = (await ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10)).data ?? [];
-  return { enabled: paymentsEnabled(), test: paymentsFake() || (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"), packages: CREDIT_PACKAGES, purchases: recent.map(toPurchase) };
+  const market = CREDIT_MARKETS[ACTIVE_MARKET];
+  return { enabled: paymentsEnabled() && market.packages.length > 0, test: paymentsFake() || (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"), market: ACTIVE_MARKET, currency: market.currency, packages: market.packages, purchases: recent.map(toPurchase) };
 }
 
 const Create = z.object({ packageId: z.string(), idempotencyKey: z.string().uuid() });
 
 export async function createPurchase(ctx: Ctx, args: unknown) {
   const a = Create.safeParse(args);
-  if (!a.success) throw bad("INVALID", "Pedido inválido.");
-  if (!paymentsEnabled()) throw bad("PAYMENTS_OFF", "A compra de créditos ainda não está disponível.");
-  const pkg = packageById(a.data.packageId);
-  if (!pkg) throw bad("INVALID", "Pacote não encontrado.");
+  if (!a.success) throw bad("INVALID", "errors.invalidRequest");
+  if (!paymentsEnabled()) throw bad("PAYMENTS_OFF", "errors.paymentsOff");
+  // Valor e moeda vêm do mercado no servidor; o navegador só escolhe o id do pacote.
+  const market = CREDIT_MARKETS[ACTIVE_MARKET];
+  const pkg = packageById(a.data.packageId, ACTIVE_MARKET);
+  if (!pkg || market.provider !== "mercadopago") throw bad("INVALID", "errors.packageNotFound");
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);
   const admin = adminClient();
@@ -270,9 +279,9 @@ export async function createPurchase(ctx: Ctx, args: unknown) {
     return toPurchase(prior);
   }
   const pending = (await admin.from("credit_purchases").select("id").eq("owner_id", ctx.user.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 3600_000).toISOString())).data ?? [];
-  if (pending.length >= 5) throw bad("TOO_MANY", "Você tem vários Pix em aberto. Pague um deles ou espere vencer.");
+  if (pending.length >= 5) throw bad("TOO_MANY", "errors.tooManyPix");
   const row = (await admin.from("credit_purchases").insert({
-    owner_id: ctx.user.id, dog_id: dog.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: "BRL",
+    owner_id: ctx.user.id, dog_id: dog.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: market.currency,
     provider: paymentsFake() ? "teste" : "mercadopago", idempotency_key: `${ctx.user.id}:${a.data.idempotencyKey}`,
   }).select("*").single()).data as any;
   return attachPix(row, dog.name, ctx.user.email ?? "");
@@ -300,17 +309,17 @@ async function attachPix(row: any, dogName: string, email: string) {
 export async function purchaseStatus(ctx: Ctx, args: unknown) {
   const id = z.object({ id: z.string().uuid() }).parse(args).id;
   const own = (await ctx.supa.from("credit_purchases").select("id").eq("id", id).maybeSingle()).data;
-  if (!own) throw new HttpError(404, "NOT_FOUND", "Compra não encontrada.");
+  if (!own) throw new HttpError(404, "NOT_FOUND", "errors.purchaseNotFound");
   await syncPurchase(id);
   return toPurchase((await ctx.supa.from("credit_purchases").select("*").eq("id", id).single()).data);
 }
 
 /** Só no modo de teste local: simula o pagamento aprovado. */
 export async function fakePayPurchase(ctx: Ctx, args: unknown) {
-  if (!paymentsFake()) throw new HttpError(404, "NOT_FOUND", "Indisponível.");
+  if (!paymentsFake()) throw new HttpError(404, "NOT_FOUND", "errors.unavailable");
   const id = z.object({ id: z.string().uuid() }).parse(args).id;
   const own = (await ctx.supa.from("credit_purchases").select("id, status").eq("id", id).maybeSingle()).data as any;
-  if (!own) throw new HttpError(404, "NOT_FOUND", "Compra não encontrada.");
+  if (!own) throw new HttpError(404, "NOT_FOUND", "errors.purchaseNotFound");
   await adminClient().from("credit_purchases").update({ status: "approved", approved_at: now(), updated_at: now() }).eq("id", id).eq("status", "pending");
   await syncPurchase(id);
   return { ok: true };

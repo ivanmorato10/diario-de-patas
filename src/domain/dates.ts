@@ -41,23 +41,10 @@ export function isCivilDate(v: string): v is CivilDate {
   return d <= daysInMonth;
 }
 
-const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-
-/** Formata sem passar por Date local — evita "voltar um dia" (§12). */
-export function formatCivilDate(d: CivilDate): string {
-  const m = CIVIL_RE.exec(d);
-  if (!m) return d;
-  return `${Number(m[3])} de ${MONTHS[Number(m[2]) - 1]} de ${m[1]}`;
-}
+/* Formatação por idioma (datas por extenso, meses): src/i18n/format.ts. */
 
 export function monthKey(d: CivilDate): string {
   return d.slice(0, 7);
-}
-
-export function formatMonthKey(key: string): string {
-  const [y, mo] = key.split("-");
-  const name = MONTHS[Number(mo) - 1] ?? mo;
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)} de ${y}`;
 }
 
 /** Dias desde a época para uma data civil — usado só para rotação determinística de sugestões. */

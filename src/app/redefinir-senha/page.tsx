@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { browserClient } from "@/data/supabase-browser";
 import { AbuMascot } from "@/components/brand";
 
@@ -11,17 +12,18 @@ export default function RedefinirSenhaPage() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("resetPassword");
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (pw.length < 8) return setError("A senha precisa de pelo menos 8 caracteres.");
-    if (pw !== pw2) return setError("As duas senhas não estão iguais.");
+    if (pw.length < 8) return setError(t("tooShort"));
+    if (pw !== pw2) return setError(t("mismatch"));
     setBusy(true);
     setError(null);
     const { error: err } = await browserClient().auth.updateUser({ password: pw });
     if (err) {
       setBusy(false);
-      return setError(/session|missing/i.test(err.message) ? "O link venceu. Peça “Esqueci minha senha” de novo." : /password/i.test(err.message) ? "Escolha uma senha mais forte (ou diferente da anterior)." : "Não deu para salvar agora. Tente de novo.");
+      return setError(/session|missing/i.test(err.message) ? t("expired") : /password/i.test(err.message) ? t("weak") : t("failed"));
     }
     window.location.assign("/");
   }
@@ -33,19 +35,19 @@ export default function RedefinirSenhaPage() {
       </header>
       <main className="sp-sheet">
         <form className="stack" onSubmit={save} noValidate>
-          <h1 className="sp-sheet__title">Nova senha</h1>
+          <h1 className="sp-sheet__title">{t("title")}</h1>
           <div className="field">
-            <label htmlFor="pw">Senha nova</label>
+            <label htmlFor="pw">{t("newPassword")}</label>
             <div className="pw-field">
-              <input id="pw" type={show ? "text" : "password"} className="input" autoComplete="new-password" placeholder="8 caracteres ou mais" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus />
-              <button type="button" className="pw-toggle" onClick={() => setShow((v) => !v)} aria-label={show ? "Esconder senha" : "Mostrar senha"}>{show ? "Esconder" : "Mostrar"}</button>
+              <input id="pw" type={show ? "text" : "password"} className="input" autoComplete="new-password" placeholder={t("hint")} value={pw} onChange={(e) => setPw(e.target.value)} autoFocus />
+              <button type="button" className="pw-toggle" onClick={() => setShow((v) => !v)} aria-label={show ? t("hideLabel") : t("showLabel")}>{show ? t("hide") : t("show")}</button>
             </div>
           </div>
           <div className="field">
-            <label htmlFor="pw2">Repita a senha</label>
+            <label htmlFor="pw2">{t("repeat")}</label>
             <input id="pw2" type={show ? "text" : "password"} className="input" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
           </div>
-          <button type="submit" className="sp-btn sp-btn--main" disabled={busy}>{busy ? "Salvando…" : "Salvar senha e entrar"}</button>
+          <button type="submit" className="sp-btn sp-btn--main" disabled={busy}>{busy ? t("saving") : t("save")}</button>
           {error ? <p className="field-error" role="alert">{error}</p> : null}
         </form>
       </main>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useErrorText } from "@/i18n/use-error";
 import { DomainError } from "@/data/demo-repository";
 import { useStore } from "@/data/store";
 import { Sheet } from "./entry-actions";
@@ -10,7 +12,9 @@ import { IconPencil, IconTrash } from "./icons";
 export function useCareMutation() {
   const { reload } = useStore();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorRaw, setError] = useState<string | null>(null);
+  const errText = useErrorText();
+  const error = errorRaw ? errText(errorRaw) : null;
   const run = useCallback(
     async (fn: () => Promise<unknown>): Promise<boolean> => {
       setBusy(true);
@@ -20,7 +24,7 @@ export function useCareMutation() {
         await reload();
         return true;
       } catch (e) {
-        setError(e instanceof DomainError ? e.message : "Não conseguimos salvar. Tente novamente.");
+        setError(e instanceof DomainError ? e.message : "errors.saveFailed");
         return false;
       } finally {
         setBusy(false);
@@ -33,7 +37,7 @@ export function useCareMutation() {
 
 /** Janela de criar/editar um registro. */
 export function FormSheet({
-  open, onClose, title, onSubmit, busy, error, submitLabel = "Salvar", children,
+  open, onClose, title, onSubmit, busy, error, submitLabel, children,
 }: {
   open: boolean;
   onClose: () => void;
@@ -45,6 +49,7 @@ export function FormSheet({
   children: React.ReactNode;
 }) {
   const id = useId();
+  const t = useTranslations("forms");
   return (
     <Sheet open={open} onClose={onClose} labelledBy={id}>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); onSubmit(); }} noValidate>
@@ -52,8 +57,8 @@ export function FormSheet({
         {children}
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? "Salvando…" : submitLabel}</button>
-          <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>Cancelar</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? t("saving") : submitLabel ?? t("save")}</button>
+          <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>{t("cancel")}</button>
         </div>
       </form>
     </Sheet>
@@ -63,13 +68,14 @@ export function FormSheet({
 /** Confirmação de exclusão. */
 export function DeleteSheet({ open, onClose, title, text, onConfirm, busy }: { open: boolean; onClose: () => void; title: string; text: string; onConfirm: () => void; busy: boolean }) {
   const id = useId();
+  const t = useTranslations("forms");
   return (
     <Sheet open={open} onClose={onClose} labelledBy={id}>
       <h2 id={id}>{title}</h2>
-      <p>{text} Não dá para desfazer.</p>
+      <p>{text} {t("noUndo")}</p>
       <div className="stack">
-        <button type="button" className="btn btn--danger btn--block" onClick={onConfirm} disabled={busy}>Excluir</button>
-        <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>Cancelar</button>
+        <button type="button" className="btn btn--danger btn--block" onClick={onConfirm} disabled={busy}>{t("delete")}</button>
+        <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>{t("cancel")}</button>
       </div>
     </Sheet>
   );
@@ -77,10 +83,11 @@ export function DeleteSheet({ open, onClose, title, text, onConfirm, busy }: { o
 
 /** Botões editar/excluir de uma linha. */
 export function RowActions({ label, onEdit, onDelete }: { label: string; onEdit?: () => void; onDelete: () => void }) {
+  const t = useTranslations("forms");
   return (
     <div className="row" style={{ gap: 0, flex: "none" }}>
-      {onEdit ? <button type="button" className="icon-btn" onClick={onEdit} aria-label={`Editar ${label}`}><IconPencil /></button> : null}
-      <button type="button" className="icon-btn" onClick={onDelete} aria-label={`Excluir ${label}`} style={{ color: "var(--danger)" }}><IconTrash /></button>
+      {onEdit ? <button type="button" className="icon-btn" onClick={onEdit} aria-label={t("editLabel", { label })}><IconPencil /></button> : null}
+      <button type="button" className="icon-btn" onClick={onDelete} aria-label={t("deleteLabel", { label })} style={{ color: "var(--danger)" }}><IconTrash /></button>
     </div>
   );
 }
@@ -102,9 +109,10 @@ export function Field({
   multiline?: boolean;
   hint?: string;
 }) {
+  const t = useTranslations("forms");
   return (
     <div className="field">
-      <label htmlFor={id}>{label} {optional ? <span className="muted">(opcional)</span> : null}</label>
+      <label htmlFor={id}>{label} {optional ? <span className="muted">{t("optional")}</span> : null}</label>
       {multiline ? (
         <textarea id={id} className="textarea" value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       ) : (

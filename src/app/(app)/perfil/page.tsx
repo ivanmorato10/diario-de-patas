@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useCatalog } from "@/i18n/catalog";
+import { useFormat } from "@/i18n/use-format";
+import { useErrorText } from "@/i18n/use-error";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
-import { LIMITS, fullDiaryText } from "@/config/business";
+import { LIMITS, fullDiaryParams } from "@/config/business";
 import { rpc } from "@/data/real-repository";
 import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { AvatarCropSheet } from "@/components/avatar-crop";
 import { FamilySection } from "@/components/family-section";
-import { formatCivilDate, isCivilDate } from "@/domain/dates";
+import { isCivilDate } from "@/domain/dates";
 import { Sheet } from "@/components/entry-actions";
 import type { DogPreferences } from "@/domain/types";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -42,6 +46,11 @@ export default function Perfil() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [askSave, setAskSave] = useState(false);
+  const t = useTranslations("profile");
+  const te = useTranslations("errors");
+  const cat = useCatalog(snap?.dog?.name ?? "");
+  const f = useFormat();
+  const errText = useErrorText();
   // Link antigo "Família e convites" (/config#familia → /perfil#familia) abre a família direto.
   useEffect(() => { if (window.location.hash === "#familia") setPanel("family"); }, []);
 
@@ -72,26 +81,26 @@ export default function Perfil() {
       setMsg({ kind: "ok", text: ok });
       return true;
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof DomainError ? e.message : "Não conseguimos salvar. Tente novamente." });
+      setMsg({ kind: "error", text: errText(e instanceof DomainError ? e : null, "errors.saveFailed") });
       return false;
     }
   }
 
   async function saveProfile(e?: React.FormEvent) {
     e?.preventDefault();
-    if (birth && !isCivilDate(birth)) { setAskSave(false); setMsg({ kind: "error", text: "Essa data não parece válida." }); return false; }
+    if (birth && !isCivilDate(birth)) { setAskSave(false); setMsg({ kind: "error", text: errText("validation.invalidDate") }); return false; }
     // Se falhar, os campos continuam preenchidos e o erro aparece na janela.
-    const ok = await run(() => repo!.updateDog({ name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs! }), "Perfil salvo.");
+    const ok = await run(() => repo!.updateDog({ name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs! }), t("saved"));
     if (!ok) setAskSave(false);
     return ok;
   }
   const SaveAsk = () => askSave ? (
-    <div className="save-ask" role="alertdialog" aria-label="Salvar alterações?">
-      <strong>Salvar as alterações?</strong>
+    <div className="save-ask" role="alertdialog" aria-label={t("askSave")}>
+      <strong>{t("askSave")}</strong>
       <div className="stack" style={{ gap: 8 }}>
-        <button type="button" className="btn btn--primary btn--block" onClick={async () => { if (await saveProfile()) close(); }}>Salvar</button>
-        <button type="button" className="btn btn--secondary btn--block" onClick={close}>Descartar</button>
-        <button type="button" className="btn btn--secondary btn--block" onClick={() => setAskSave(false)}>Continuar editando</button>
+        <button type="button" className="btn btn--primary btn--block" onClick={async () => { if (await saveProfile()) close(); }}>{t("save")}</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={close}>{t("discard")}</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={() => setAskSave(false)}>{t("keepEditing")}</button>
       </div>
     </div>
   ) : null;
@@ -104,7 +113,7 @@ export default function Perfil() {
       await reload();
       router.replace("/");
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Não deu para apagar agora.");
+      setDeleteError(errText(e instanceof Error ? e.message : "profile.deleteFailed"));
       setDeleting(false);
     }
   }
@@ -125,7 +134,7 @@ export default function Perfil() {
 
   return (
     <>
-      <TopBar title={`Perfil de ${dog.name}`} back="/hoje" />
+      <TopBar title={t("title", { dog: dog.name })} back="/hoje" emoji="🐶" />
       <main className="main">
         {dog.photoMediaId && cropOpen ? (
           <AvatarCropSheet open mediaId={dog.photoMediaId} name={dog.name} value={dog.avatarCrop} onClose={() => setCropOpen(false)}
@@ -133,16 +142,16 @@ export default function Perfil() {
             onSave={(c) => {
               // A foto muda na hora; o servidor grava em seguida (e o reload confirma).
               patchSnap((s) => (s.dog ? { ...s, dog: { ...s.dog, avatarCrop: c } } : s));
-              void run(() => repo!.updateDog({ avatarCrop: c }), "Foto ajustada.");
+              void run(() => repo!.updateDog({ avatarCrop: c }), t("photoAdjusted"));
             }} />
         ) : null}
 
         {/* Quem é o cachorro: foto (tocar ajusta), nome, aniversário, patinhas e nível. */}
         <section className="profile-head" aria-labelledby="perfil">
           {dog.photoMediaId && !viewer ? (
-            <button type="button" className="avatar-edit" onClick={() => setCropOpen(true)} aria-label={`Ajustar zoom e posição da foto de ${dog.name}`}>
+            <button type="button" className="avatar-edit" onClick={() => setCropOpen(true)} aria-label={t("adjustLabel", { dog: dog.name })}>
               <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
-              <span className="avatar-edit__hint" aria-hidden="true">Ajustar</span>
+              <span className="avatar-edit__hint" aria-hidden="true">{t("adjust")}</span>
             </button>
           ) : (
             <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="xl" />
@@ -150,90 +159,90 @@ export default function Perfil() {
           <div className="stack" style={{ gap: 4, minWidth: 0 }}>
             <h2 id="perfil" className="profile-head__name">{dog.name}</h2>
             {dog.nickname ? <span className="profile-head__nick">“{dog.nickname}”</span> : null}
-            {dog.birthDate ? <span className="small">🎂 {formatCivilDate(dog.birthDate)}</span> : null}
-            <Link href="/sobre#niveis" className="profile-head__xp">🐾 {snap.xpTotal} patinhas · {lv.title}</Link>
+            {dog.birthDate ? <span className="small">🎂 {f.date(dog.birthDate)}</span> : null}
+            <Link href="/sobre#niveis" className="profile-head__xp">🐾 {t("paws", { count: snap.xpTotal })} · {cat.level(lv)}</Link>
           </div>
         </section>
         {msg && !panel ? <MsgLine /> : null}
 
-        <section className="stack" style={{ gap: 8 }} aria-label="Opções do perfil">
-          {!viewer ? <Row id="edit" icon="✏️" label="Editar perfil" sub="Foto, nome, apelido e aniversário" /> : null}
-          <Row id="family" icon="👨‍👩‍👧" label={`Família de ${dog.name}`} sub={`${snap.members?.length ?? 1} ${(snap.members?.length ?? 1) === 1 ? "pessoa" : "pessoas"}`} />
-          {!viewer ? <Row id="prefs" icon="🎯" label="Preferências das missões" sub="Que tipo de missão combina com vocês" /> : null}
-          {!viewer ? <Row id="manage" icon="⚙️" label="Gerenciar diário" sub="Espaço, links compartilhados e apagar" /> : null}
+        <section className="stack" style={{ gap: 8 }} aria-label={t("options")}>
+          {!viewer ? <Row id="edit" icon="✏️" label={t("edit")} sub={t("editSub")} /> : null}
+          <Row id="family" icon="👨‍👩‍👧" label={t("family", { dog: dog.name })} sub={t("people", { count: snap.members?.length ?? 1 })} />
+          {!viewer ? <Row id="prefs" icon="🎯" label={t("prefs")} sub={t("prefsSub")} /> : null}
+          {!viewer ? <Row id="manage" icon="⚙️" label={t("manage")} sub={t("manageSub")} /> : null}
         </section>
 
         <ImportDemoCard />
 
         <Sheet open={panel === "edit"} onClose={close} onAttemptClose={tryClose} labelledBy="p-edit">
-          <h2 id="p-edit">Editar perfil</h2>
+          <h2 id="p-edit">{t("edit")}</h2>
           <form className="stack" onSubmit={saveProfile}>
             <div className="stack" style={{ gap: 6 }}>
               <PhotoPicker compact onPicked={async (p) => {
                 // Já abre o ajuste de zoom e posição da foto nova (depois que ela chega no perfil).
-                if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), "Foto atualizada.")) { setPanel(null); setCropOpen(true); }
+                if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), t("photoUpdated"))) { setPanel(null); setCropOpen(true); }
               }} />
-              {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), "Foto removida.")}><IconTrash /> Remover foto</button> : null}
+              {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), t("photoRemoved"))}><IconTrash /> {t("removePhoto")}</button> : null}
             </div>
             <div className="field">
-              <label htmlFor="name">Nome</label>
+              <label htmlFor="name">{t("name")}</label>
               <input id="name" className="input" value={name} maxLength={LIMITS.dogNameMaxChars} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="field">
-              <label htmlFor="nick">Apelido carinhoso <span className="muted">(opcional)</span></label>
-              <input id="nick" className="input" value={nick} maxLength={30} placeholder="Ex.: Pepezinho, Bolinha, Meu Bebê" onChange={(e) => setNick(e.target.value)} />
+              <label htmlFor="nick">{t("nick")} <span className="muted">{t("optional")}</span></label>
+              <input id="nick" className="input" value={nick} maxLength={30} placeholder={t("nickPlaceholder")} onChange={(e) => setNick(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="birth">Aniversário <span className="muted">(opcional)</span></label>
+              <label htmlFor="birth">{t("birthday")} <span className="muted">{t("optional")}</span></label>
               <input id="birth" type="date" className="input" value={birth} onChange={(e) => setBirth(e.target.value)} />
             </div>
             <MsgLine />
             <SaveAsk />
-            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
-            {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>Fechar</button> : null}
+            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">{t("saveChanges")}</button> : null}
+            {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>{t("close")}</button> : null}
           </form>
         </Sheet>
 
         <Sheet open={panel === "prefs"} onClose={close} onAttemptClose={tryClose} labelledBy="p-prefs">
-          <h2 id="p-prefs" className="sr-only">Preferências das missões</h2>
+          <h2 id="p-prefs" className="sr-only">{t("prefs")}</h2>
           <form className="stack" onSubmit={saveProfile}>
             <PreferencesFields value={prefs} onChange={setPrefs} />
             <MsgLine />
             <SaveAsk />
-            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">Salvar alterações</button> : null}
-            {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>Fechar</button> : null}
+            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">{t("saveChanges")}</button> : null}
+            {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>{t("close")}</button> : null}
           </form>
         </Sheet>
 
         <Sheet open={panel === "family"} onClose={close} labelledBy="familia-titulo">
           <FamilySection />
-          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={close}>Fechar</button>
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={close}>{t("close")}</button>
         </Sheet>
 
         <Sheet open={panel === "manage"} onClose={close} labelledBy="p-manage">
-          <h2 id="p-manage">Gerenciar diário</h2>
+          <h2 id="p-manage">{t("manage")}</h2>
           <div className="stack">
-            <p className="small" style={{ margin: 0 }}>Espaço: <strong>{snap.entries.length} de {LIMITS.maxEntries}</strong> lembranças nesta versão.</p>
-            {snap.entries.length >= LIMITS.maxEntries ? <p className="notice notice--warn small" style={{ margin: 0 }}><span>{fullDiaryText(dog.name)}</span></p> : null}
+            <p className="small" style={{ margin: 0 }}>{t.rich("space", { n: snap.entries.length, max: LIMITS.maxEntries, strong: (c) => <strong>{c}</strong> })}</p>
+            {snap.entries.length >= LIMITS.maxEntries ? <p className="notice notice--warn small" style={{ margin: 0 }}><span>{te("fullDiary", fullDiaryParams(dog.name))}</span></p> : null}
             <section className="stack" aria-labelledby="links">
-              <h3 id="links">Links compartilhados</h3>
+              <h3 id="links">{t("links")}</h3>
               <ShareLinksList />
             </section>
             {snap.role === "admin" ? (
               <details className="more-details danger-details">
-                <summary>Apagar o diário de {dog.name}</summary>
+                <summary>{t("deleteDiary", { dog: dog.name })}</summary>
                 <div className="stack" style={{ marginTop: 10 }}>
-                  <p className="small" style={{ margin: 0 }}>Apaga tudo de {dog.name} para <strong>toda a família</strong>: fotos, cartinhas, álbuns, cuidados e créditos. Sua conta e seus outros cachorros continuam. Não dá para desfazer.</p>
+                  <p className="small" style={{ margin: 0 }}>{t.rich("deleteText", { dog: dog.name, strong: (c) => <strong>{c}</strong> })}</p>
                   <div className="field">
-                    <label htmlFor="confirm">Para confirmar, digite o nome: <strong>{dog.name}</strong></label>
+                    <label htmlFor="confirm">{t.rich("confirmLabel", { dog: dog.name, strong: (c) => <strong>{c}</strong> })}</label>
                     <input id="confirm" className="input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
                   </div>
                   {deleteError ? <p className="field-error" role="alert">{deleteError}</p> : null}
-                  <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name || deleting} onClick={wipe}>{deleting ? "Apagando…" : `Apagar o diário de ${dog.name}`}</button>
+                  <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name || deleting} onClick={wipe}>{deleting ? t("deleting") : t("deleteDiary", { dog: dog.name })}</button>
                 </div>
               </details>
             ) : null}
-            <button type="button" className="btn btn--secondary btn--block" onClick={close}>Fechar</button>
+            <button type="button" className="btn btn--secondary btn--block" onClick={close}>{t("close")}</button>
           </div>
         </Sheet>
       </main>

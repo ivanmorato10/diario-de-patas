@@ -64,10 +64,13 @@ export function totalCatalogXp(): number {
   return MISSIONS.reduce((s, m) => s + m.xp, 0);
 }
 
+/** Nível: `level` aponta o nome (catalog.levels.l<level>); depois do último, `endless` conta II, III… */
 export interface LevelInfo {
-  title: string;
+  level: number;
+  /** 0 = o nível em si; 1 = “II”, 2 = “III”… (só no último nível). */
+  endless: number;
   xp: number;
-  nextTitle: string | null;
+  next: { level: number; endless: number } | null;
   nextAt: number | null;
 }
 
@@ -82,16 +85,15 @@ export function roman(n: number): string {
 }
 
 export function levelFor(xp: number): LevelInfo {
-  const last = LEVELS[LEVELS.length - 1];
+  const lastIdx = LEVELS.length - 1;
+  const last = LEVELS[lastIdx];
   if (xp >= last.minXp) {
     const n = Math.floor((xp - last.minXp) / ENDLESS_STEP); // 0 = “Sempre juntos”, 1 = “II”…
-    const title = n === 0 ? last.title : `${last.title} ${roman(n + 1)}`;
-    return { title, xp, nextTitle: `${last.title} ${roman(n + 2)}`, nextAt: last.minXp + (n + 1) * ENDLESS_STEP };
+    return { level: lastIdx, endless: n, xp, next: { level: lastIdx, endless: n + 1 }, nextAt: last.minXp + (n + 1) * ENDLESS_STEP };
   }
   let idx = 0;
   LEVELS.forEach((l, i) => {
     if (xp >= l.minXp) idx = i;
   });
-  const next = LEVELS[idx + 1];
-  return { title: LEVELS[idx].title, xp, nextTitle: next.title, nextAt: next.minXp };
+  return { level: idx, endless: 0, xp, next: { level: idx + 1, endless: 0 }, nextAt: LEVELS[idx + 1].minXp };
 }

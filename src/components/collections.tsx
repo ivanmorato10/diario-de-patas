@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useCatalog } from "@/i18n/catalog";
 import { getMedia, type Snapshot } from "@/data/demo-repository";
 import { useStore } from "@/data/store";
 import { setProgress, type SetProgress } from "@/domain/cycle";
@@ -15,37 +17,40 @@ export function CollectionsView({ snap }: { snap: Snapshot }) {
   const medals = new Set(snap.medals.map((m) => m.setId));
   const entries = new Map(snap.entries.map((e) => [e.id, e]));
   const next = progress.filter((p) => !p.complete).sort((a, b) => b.done - a.done)[0];
+  const t = useTranslations("collections");
+  const cat = useCatalog(snap.dog?.name ?? "");
 
   return (
     <div className="stack-lg">
-      <p className="page-note">Cada coleção tem 6 desafios, sem prazo. Completar uma coleção vale uma medalha, uma capa especial e +50 patinhas 🐾.</p>
+      <p className="page-note">{t("intro")}</p>
       {next && progress.some((p) => p.complete) ? (
-        <p className="notice notice--info small"><IconStar size={18} /><span>Próxima sugestão: <strong>{next.set.title}</strong> ({next.done} de 6).</span></p>
+        <p className="notice notice--info small"><IconStar size={18} /><span>{t.rich("next", { title: cat.set(next.set.id).title, n: next.done, strong: (c) => <strong>{c}</strong> })}</span></p>
       ) : null}
       {progress.map((p) => (
         <section key={p.set.id} className="card stack" aria-labelledby={`set-${p.set.id}`}>
           <div className="row-between" style={{ alignItems: "flex-start" }}>
             <div className="stack" style={{ gap: 2 }}>
-              <h2 id={`set-${p.set.id}`} style={{ fontSize: "1.125rem" }}>{p.set.title}</h2>
-              <span className="caption">{p.done} de 6{p.set.note ? ` · ${p.set.note}` : ""}</span>
+              <h2 id={`set-${p.set.id}`} style={{ fontSize: "1.125rem" }}>{cat.set(p.set.id).title}</h2>
+              <span className="caption">{t("of6", { n: p.done })}{cat.set(p.set.id).note ? ` · ${cat.set(p.set.id).note}` : ""}</span>
             </div>
-            {medals.has(p.set.id) ? <span className="medal anim-stamp" role="img" aria-label="Medalha conquistada"><IconStar size={22} /></span> : null}
+            {medals.has(p.set.id) ? <span className="medal anim-stamp" role="img" aria-label={t("medal")}><IconStar size={22} /></span> : null}
           </div>
-          <ul className="set-grid" aria-label={`Espaços de ${p.set.title}`}>
+          <ul className="set-grid" aria-label={t("slots", { title: cat.set(p.set.id).title })}>
             {p.items.map((it) => {
               const m = missionById(it.missionId)!;
+              const mt = cat.title(m);
               const entry = it.entryId ? entries.get(it.entryId) : undefined;
               return (
                 <li key={it.missionId}>
                   {it.done ? (
-                    <Link href={entry ? `/diario#${entry.id}` : `/missoes/${m.slug}`} className="set-slot set-slot--done" aria-label={`${m.title}: concluído`}>
+                    <Link href={entry ? `/diario#${entry.id}` : `/missoes/${m.slug}`} className="set-slot set-slot--done" aria-label={t("slotDone", { title: mt })}>
                       {entry ? <MediaImage id={entry.mediaId} alt="" className="set-slot__img" /> : <span className="set-slot__icon"><IconCheck /></span>}
-                      <span className="set-slot__label">{m.title}</span>
+                      <span className="set-slot__label">{mt}</span>
                     </Link>
                   ) : (
-                    <Link href={`/missoes/${m.slug}`} className="set-slot" aria-label={`${m.title}: ainda não`}>
+                    <Link href={`/missoes/${m.slug}`} className="set-slot" aria-label={t("slotTodo", { title: mt })}>
                       <span className="set-slot__icon"><IconStar /></span>
-                      <span className="set-slot__label">{m.title}</span>
+                      <span className="set-slot__label">{mt}</span>
                     </Link>
                   )}
                 </li>
@@ -64,6 +69,10 @@ function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapsho
   const { repo } = useStore();
   const [url, setUrl] = useState<string | null>(null);
   const entries = useMemo(() => new Map(snap.entries.map((e) => [e.id, e])), [snap]);
+  const t = useTranslations("collections");
+  const cat = useCatalog(snap.dog?.name ?? "");
+  const setTitle = cat.set(progress.set.id).title;
+  const subtitle = t("coverSubtitle", { dog: snap.dog?.name ?? "" });
 
   useEffect(() => {
     let alive = true;
@@ -80,9 +89,9 @@ function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapsho
       ctx.fillStyle = "#3d2d1e";
       ctx.font = "700 40px 'Baloo 2 Variable', system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(progress.set.title, W / 2, 62);
+      ctx.fillText(setTitle, W / 2, 62);
       ctx.font = "600 22px 'Nunito Variable', system-ui, sans-serif";
-      ctx.fillText(`Coleção completa · ${snap.dog?.name ?? ""}`, W / 2, 94);
+      ctx.fillText(subtitle, W / 2, 94);
       for (const [i, it] of progress.items.entries()) {
         const x = gap + (i % 2) * (cell + gap) + 6, y = top + Math.floor(i / 2) * (cell + gap);
         ctx.fillStyle = "#d3efea";
@@ -115,14 +124,14 @@ function SpecialCover({ progress, snap }: { progress: SetProgress; snap: Snapsho
       alive = false;
       if (made) URL.revokeObjectURL(made);
     };
-  }, [repo, progress, entries, snap.dog?.name]);
+  }, [repo, progress, entries, setTitle, subtitle]);
 
   if (!url) return <div className="skeleton" style={{ aspectRatio: "2 / 3", maxWidth: 240 }} aria-hidden="true" />;
   return (
     <div className="stack" style={{ alignItems: "flex-start" }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={`Capa especial da coleção ${progress.set.title}, com as 6 fotos`} className="set-cover anim-pop" />
-      <a href={url} download={`capa-${progress.set.id}.jpg`} className="btn btn--secondary btn--small"><IconDownload size={18} /> Baixar capa</a>
+      <img src={url} alt={t("coverAlt", { title: setTitle })} className="set-cover anim-pop" />
+      <a href={url} download={`${t("coverFile")}-${progress.set.id}.jpg`} className="btn btn--secondary btn--small"><IconDownload size={18} /> {t("downloadCover")}</a>
     </div>
   );
 }

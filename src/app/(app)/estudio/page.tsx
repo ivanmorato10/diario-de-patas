@@ -1,17 +1,22 @@
 "use client";
 
 import { XP_MONTH_GOAL } from "@/config/credits";
-import { LIMITS, fullDiaryText } from "@/config/business";
+import { LIMITS, fullDiaryParams } from "@/config/business";
 import { Sheet } from "@/components/entry-actions";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { loose } from "@/i18n/keys";
+import { usePrefs } from "@/i18n/use-format";
+import { useErrorText } from "@/i18n/use-error";
+import { isUpcoming, orderDatePresets } from "@/domain/calendar";
 import {
-  ILLUSTRATED_SUFFIX, SHOWCASE_PRESETS, STUDIO_FORMATS, STUDIO_TABS, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
+  ILLUSTRATED_SUFFIX, SHOWCASE_PRESETS, STUDIO_TABS, presetById, type StudioAspect, type StudioCategory, type StudioPreset,
 } from "@/config/studio";
 import { DomainError } from "@/data/demo-repository";
 import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
-import { FAILURE_PT, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
+import { FAILURE_CODES, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
 import { composeArt } from "@/lib/compose-art";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
@@ -29,18 +34,19 @@ const CATEGORY_LOOK: Record<StudioCategory, { bg: string; fg: string }> = {
 function PresetVignette({ preset }: { preset: StudioPreset }) {
   const look = CATEGORY_LOOK[preset.category];
   const [broken, setBroken] = useState(false);
+  const t = useTranslations("studio");
   if (!broken) {
     return (
       <span className="preset-vignette preset-vignette--photo" style={{ background: look.bg }} aria-hidden="true">
         <img src={`/estudio/${preset.id}.webp`} alt="" loading="lazy" width={180} height={180} onError={() => setBroken(true)} />
-        <span className="preset-vignette__tag">exemplo com o Abu</span>
+        <span className="preset-vignette__tag">{t("exampleAbu")}</span>
       </span>
     );
   }
   return (
     <span className="preset-vignette" style={{ background: look.bg, color: look.fg }} aria-hidden="true">
       <IconBrush size={22} />
-      <span className="preset-vignette__tag">exemplo de estilo</span>
+      <span className="preset-vignette__tag">{t("exampleStyle")}</span>
     </span>
   );
 }
@@ -49,7 +55,8 @@ type Crop = { x: number; y: number; w: number; h: number };
 
 /** Recorte manual (quando há mais de um cachorro): arraste o quadro sobre a foto. Coordenadas 0..1. */
 function CropBox({ entryMediaId, value, onChange }: { entryMediaId: string; value: Crop; onChange: (v: Crop) => void }) {
-  const name = useStore().snap?.dog?.name ?? "seu cachorro";
+  const name = useStore().snap?.dog?.name ?? "";
+  const t = useTranslations("studio");
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const clamp = (v: number, max: number) => Math.min(Math.max(0, v), max);
@@ -63,15 +70,15 @@ function CropBox({ entryMediaId, value, onChange }: { entryMediaId: string; valu
           onChange({ ...value, x: clamp(drag.current.x + (e.clientX - drag.current.px) / r.width, 1 - value.w), y: clamp(drag.current.y + (e.clientY - drag.current.py) / r.height, 1 - value.h) });
         }}
         onPointerUp={() => { drag.current = null; }}>
-        <MediaImage id={entryMediaId} variant="display" alt="Foto escolhida para recortar" className="crop-area__img" />
+        <MediaImage id={entryMediaId} variant="display" alt={t("cropAlt")} className="crop-area__img" />
         <span className="crop-area__box" style={{ left: `${value.x * 100}%`, top: `${value.y * 100}%`, width: `${value.w * 100}%`, height: `${value.h * 100}%` }} />
       </div>
       <label className="field" style={{ gap: 4 }}>
-        <span className="small">Tamanho do recorte</span>
+        <span className="small">{t("cropSize")}</span>
         <input type="range" min={30} max={100} value={Math.round(value.w * 100)}
           onChange={(e) => { const s = Number(e.target.value) / 100; onChange({ w: s, h: s, x: clamp(value.x, 1 - s), y: clamp(value.y, 1 - s) }); }} />
       </label>
-      <p className="caption">Arraste o quadro até {name}.</p>
+      <p className="caption">{t("cropDrag", { dog: name })}</p>
     </div>
   );
 }
@@ -79,27 +86,26 @@ function CropBox({ entryMediaId, value, onChange }: { entryMediaId: string; valu
 function StudioEntryThumb({ entryId }: { entryId: string }) {
   const { snap } = useStore();
   const e = snap?.entries.find((x) => x.id === entryId);
-  return e ? <MediaImage id={e.mediaId} variant="thumb" alt="Foto original" className="studio-art" /> : <div className="studio-art" style={{ display: "grid", placeItems: "center", background: "var(--brand-soft)", aspectRatio: "1" }}><span className="caption">foto excluída</span></div>;
+  const t = useTranslations("studio");
+  return e ? <MediaImage id={e.mediaId} variant="thumb" alt={t("original")} className="studio-art" /> : <div className="studio-art" style={{ display: "grid", placeItems: "center", background: "var(--brand-soft)", aspectRatio: "1" }}><span className="caption">{t("photoDeleted")}</span></div>;
 }
 
 /** Créditos com patinhas (disponíveis × usados) e barra de artes do dia. */
 /** Dicas da foto: um link pequeno que abre a lista (não ocupa a tela toda vez). */
 function PhotoTips({ dogName }: { dogName: string }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("studio.tips");
+  const strong = { strong: (c: React.ReactNode) => <strong>{c}</strong> };
   return (
     <>
-      <button type="button" className="sp-link tips-link" onClick={() => setOpen(true)}>🐾 Dicas do Abu</button>
+      <button type="button" className="sp-link tips-link" onClick={() => setOpen(true)}>{t("link")}</button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="tips-title">
-        <h2 id="tips-title">Dicas do Abu para a foto</h2>
+        <h2 id="tips-title">{t("title")}</h2>
         <ol className="tips-list">
-          <li><strong>Rostinho de frente:</strong> dá para ver os olhos e o focinho de {dogName}.</li>
-          <li><strong>Boa luz:</strong> perto da janela ou ao ar livre, sem contraluz.</li>
-          <li><strong>{dogName} bem grande:</strong> ocupando boa parte da foto. Se estiver longe, use o recorte.</li>
-          <li><strong>Foto nítida:</strong> sem tremido nem desfoque.</li>
-          <li><strong>Um só cachorro:</strong> se tiver mais de um, o recorte ajuda a escolher {dogName}.</li>
+          {(["face", "light", "big", "sharp", "one"] as const).map((k) => <li key={k}>{t.rich(k, { ...strong, dog: dogName })}</li>)}
         </ol>
-        <p className="caption">Eu confiro a foto antes de usar qualquer crédito.</p>
-        <button type="button" className="btn btn--secondary btn--block" onClick={() => setOpen(false)}>Entendi</button>
+        <p className="caption">{t("check")}</p>
+        <button type="button" className="btn btn--secondary btn--block" onClick={() => setOpen(false)}>{t("gotIt")}</button>
       </Sheet>
     </>
   );
@@ -109,21 +115,22 @@ function PhotoTips({ dogName }: { dogName: string }) {
 function CreditMeter({ state, dogName }: { state: StudioState; dogName: string }) {
   const out = state.balance <= 0;
   const dayFull = !!state.dailyLimit && state.dailyUsed >= state.dailyLimit;
+  const t = useTranslations("studio.credits");
   return (
-    <section className={`credit-line${out ? " credit-line--out" : ""}`} aria-label="Seus créditos">
+    <section className={`credit-line${out ? " credit-line--out" : ""}`} aria-label={t("label")}>
       {out ? (
         <>
-          <p className="credit-line__text"><span aria-hidden="true">🎨</span> Os créditos acabaram por enquanto. Quer criar mais artes de {dogName}?</p>
-          <Link href="/estudio/creditos" className="btn btn--primary btn--small">Ver créditos</Link>
-          <p className="caption" style={{ margin: 0 }}>Ou junte {XP_MONTH_GOAL} patinhas no mês e ganhe 1 crédito.</p>
+          <p className="credit-line__text"><span aria-hidden="true">🎨</span> {t("out", { dog: dogName })}</p>
+          <Link href="/estudio/creditos" className="btn btn--primary btn--small">{t("see")}</Link>
+          <p className="caption" style={{ margin: 0 }}>{t("orEarn", { goal: XP_MONTH_GOAL })}</p>
         </>
       ) : (
         <>
           <div className="credit-line__top">
-            <span className="credit-line__text">Você tem <strong>{state.balance} {state.balance === 1 ? "crédito" : "créditos"}</strong> para criar artes de {dogName}</span>
-            <Link href="/estudio/creditos" className="credit-line__buy">Comprar mais</Link>
+            <span className="credit-line__text">{t.rich("have", { count: state.balance, dog: dogName, strong: (c) => <strong>{c}</strong> })}</span>
+            <Link href="/estudio/creditos" className="credit-line__buy">{t("buy")}</Link>
           </div>
-          <div className="credit-meter__paws credit-line__paws" role="img" aria-label={`${state.balance} ${state.balance === 1 ? "crédito" : "créditos"}`}>
+          <div className="credit-meter__paws credit-line__paws" role="img" aria-label={t("count", { count: state.balance })}>
             {Array.from({ length: Math.min(state.balance, 12) }, (_, k) => (
               <span key={k} className="is-on" style={{ animationDelay: `${k * 70}ms` }}><Paw size={18} /></span>
             ))}
@@ -131,24 +138,20 @@ function CreditMeter({ state, dogName }: { state: StudioState; dogName: string }
           </div>
         </>
       )}
-      {dayFull ? <p className="caption" style={{ margin: 0 }}>Por hoje já foram {state.dailyUsed} artes. Amanhã tem mais!</p> : null}
+      {dayFull ? <p className="caption" style={{ margin: 0 }}>{t("dayFull", { count: state.dailyUsed })}</p> : null}
     </section>
   );
 }
 
-const MAKING_LINES = (name: string) => [
-  `Olhando cada detalhe de ${name}…`,
-  "Escolhendo as cores do pelo…",
-  "Caprichando nos bigodes…",
-  "Colocando as orelhas no lugar certinho…",
-  "Dando os últimos retoques…",
-  "Quase pronta! Segura a ansiedade…",
-];
+/** Frases da espera, em studio.making.l0…l5. */
+const MAKING_LINES = 6;
 
 /** Tela de espera: a foto vira o estilo escolhido, com mensagens e progresso estimado (~15 s por arte). */
 function MakingArt({ job }: { job: StudioJob }) {
   const preset = presetById(job.presetId);
-  const name = useStore().snap?.dog?.name ?? "seu cachorro";
+  const name = useStore().snap?.dog?.name ?? "";
+  const t = useTranslations("studio.making");
+  const label = usePresetLabel();
   const [secs, setSecs] = useState(() => Math.max(0, Math.round((Date.now() - Date.parse(job.createdAt)) / 1000)));
   useEffect(() => {
     const t = setInterval(() => setSecs((x) => x + 1), 1000);
@@ -156,8 +159,7 @@ function MakingArt({ job }: { job: StudioJob }) {
   }, []);
   const expected = preset?.premium ? 25 : preset?.post === "wallpaper" ? 22 : 16;
   const pct = Math.min(94, Math.round(100 * (1 - Math.exp(-secs / (expected * 0.75)))));
-  const lines = MAKING_LINES(name);
-  const line = lines[Math.min(lines.length - 1, Math.floor(secs / 4))];
+  const line = loose(t)(`l${Math.min(MAKING_LINES - 1, Math.floor(secs / 4))}`, { dog: name });
   return (
     <section className="making" aria-live="polite">
       <div className="making__stage" aria-hidden="true">
@@ -169,18 +171,20 @@ function MakingArt({ job }: { job: StudioJob }) {
           <span className="making__shine" />
         </div>
       </div>
-      <h2 className="making__title">Preparando “{preset?.labelPt}” de {name}</h2>
+      <h2 className="making__title">{t("title", { theme: label(job.presetId), dog: name })}</h2>
       <p className="making__line" key={line}>{line}</p>
-      <div className="making__bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Progresso estimado"><span style={{ width: `${pct}%` }} /></div>
-      <p className="making__meta">{secs} s · costuma levar uns {expected} segundos</p>
-      <p className="caption" style={{ textAlign: "center" }}>Pode sair desta tela se quiser: eu continuo caprichando e a arte aparece aqui e no Diário.</p>
+      <div className="making__bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t("progress")}><span style={{ width: `${pct}%` }} /></div>
+      <p className="making__meta">{t("meta", { secs, expected })}</p>
+      <p className="caption" style={{ textAlign: "center" }}>{t("leave")}</p>
     </section>
   );
 }
 
 /** Resultado com a foto original ao lado, selo de IA e texto desenhado pelo app. */
 function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void }) {
-  const studioAlbum = useStore().snap?.customAlbums.find((c) => c.title === "Artes do Estúdio");
+  const studioAlbum = useStore().snap?.customAlbums.find((c) => c.systemKey === "studio");
+  const t = useTranslations("studio.result");
+  const label = usePresetLabel();
   const studioAlbumHref = studioAlbum ? `/albuns/${studioAlbum.id}` : "/diario";
   const preset = presetById(job.presetId);
   const art = useMediaBlob(job.outputMediaId, "display");
@@ -199,7 +203,7 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
     if (!composed || !url) return;
     const a = document.createElement("a");
     a.href = url;
-    a.download = `diario-de-patas-${job.presetId}.${composed.type === "image/png" ? "png" : "webp"}`;
+    a.download = `diario-de-patas-${job.presetId}.${composed.type === "image/png" ? "png" : "webp"}`; // nome do arquivo igual nos dois idiomas
     a.click();
   };
   return (
@@ -207,51 +211,67 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
       <div className="studio-compare">
         <figure className="stack" style={{ margin: 0, gap: 4 }}>
           {job.inputEntryId ? <StudioEntryThumb entryId={job.inputEntryId} /> : null}
-          <figcaption className="caption">Foto original</figcaption>
+          <figcaption className="caption">{t("original")}</figcaption>
         </figure>
         <figure className="stack" style={{ margin: 0, gap: 4 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {url ? <img src={url} alt={`Arte ${preset?.labelPt ?? ""} do Estúdio`} className={`studio-art${sticker ? " studio-art--sticker" : ""}`} /> : <div className="skeleton studio-art" style={{ aspectRatio: "1" }} aria-hidden="true" />}
-          <figcaption><span className="chip chip--accent">🎨 Arte do Estúdio</span></figcaption>
+          {url ? <img src={url} alt={t("alt", { theme: label(job.presetId) })} className={`studio-art${sticker ? " studio-art--sticker" : ""}`} /> : <div className="skeleton studio-art" style={{ aspectRatio: "1" }} aria-hidden="true" />}
+          <figcaption><span className="chip chip--accent">{t("chip")}</span></figcaption>
         </figure>
       </div>
-      <p className="small muted">Cada arte é única: alguns detalhes podem ficar um pouquinho diferentes da foto.</p>
+      <p className="small muted">{t("unique")}</p>
       {sticker ? (
-        <div className="notice notice--info small"><IconInfo size={18} /><span>Para usar no WhatsApp: baixe a figurinha (WebP 512×512 transparente) e adicione com um app de figurinhas, como o Sticker.ly. O Diário de Patas não acessa o seu WhatsApp.</span></div>
+        <div className="notice notice--info small"><IconInfo size={18} /><span>{t("sticker")}</span></div>
       ) : null}
       <div className="stack">
-        <button type="button" className="btn btn--primary btn--block" onClick={download} disabled={!url}><IconDownload /> {sticker ? "Baixar figurinha" : "Baixar arte"}</button>
-        <button type="button" className="btn btn--secondary btn--block" onClick={onAgain}>Fazer outra versão (usa crédito)</button>
-        <Link href={studioAlbumHref} className="btn btn--secondary btn--block">Ver em Artes do Estúdio</Link>
+        <button type="button" className="btn btn--primary btn--block" onClick={download} disabled={!url}><IconDownload /> {sticker ? t("downloadSticker") : t("download")}</button>
+        <button type="button" className="btn btn--secondary btn--block" onClick={onAgain}>{t("again")}</button>
+        <Link href={studioAlbumHref} className="btn btn--secondary btn--block">{t("seeAlbum")}</Link>
       </div>
     </section>
   );
 }
 
 function PhotoCheckNote({ check }: { check: PhotoCheck | "checking" | null }) {
-  const name = useStore().snap?.dog?.name ?? "seu cachorro";
+  const name = useStore().snap?.dog?.name ?? "";
+  const t = useTranslations("studio.check");
+  const ti = loose(useTranslations("studio.issues"));
   if (!check) return null;
-  if (check === "checking") return <p className="caption" role="status">Conferindo se a foto vai dar uma arte bonita…</p>;
-  if (check.verdict === "good") return <p className="notice notice--positive small" role="status"><span>Foto ótima de {name}! Vai ficar linda. 🐾</span></p>;
+  if (check === "checking") return <p className="caption" role="status">{t("checking")}</p>;
+  if (check.verdict === "good") return <p className="notice notice--positive small" role="status"><span>{t("good", { dog: name })}</span></p>;
   if (!check.aiChecked && check.issues.length === 0) {
-    return <p className="notice notice--warn small" role="status"><span>Não conseguimos conferir a foto agora. Confira se {name} aparece bem, de frente e com boa luz.</span></p>;
+    return <p className="notice notice--warn small" role="status"><span>{t("unchecked", { dog: name })}</span></p>;
   }
   const bad = check.verdict === "bad";
   return (
     <div className={`notice ${bad ? "notice--error" : "notice--warn"} small`} role="status">
       <span>
-        <strong>{bad ? "Essa foto não vai dar uma boa arte" : "A arte pode não ficar tão boa"}</strong>
-        <ul style={{ margin: "4px 0 0", paddingLeft: "1.1em" }}>{check.issues.map((i) => <li key={i.code}>{i.message}</li>)}</ul>
-        {bad ? <>Escolha outra foto ou use o recorte. Nenhum crédito foi usado.</> : <>Você pode seguir assim ou escolher outra foto.</>}
-        {!check.aiChecked ? <><br />Não deu para confirmar se {name} está na foto.</> : null}
+        <strong>{bad ? t("badTitle") : t("warnTitle")}</strong>
+        <ul style={{ margin: "4px 0 0", paddingLeft: "1.1em" }}>{check.issues.map((i) => <li key={i.code}>{ti.has(i.code) ? ti(i.code, { dog: name }) : t("generic")}</li>)}</ul>
+        {bad ? t("badNext") : t("warnNext")}
+        {!check.aiChecked ? <><br />{t("notConfirmed", { dog: name })}</> : null}
       </span>
     </div>
   );
 }
 
+/** Nome do tema no idioma da pessoa (a variante ilustrada usa o nome do tema original). */
+function usePresetLabel() {
+  const tl = loose(useTranslations("studioCatalog"));
+  return useCallback((id: string) => {
+    const base = presetById(id)?.variantOf ?? id;
+    return tl.has(`presets.${base}.label`) ? tl(`presets.${base}.label`) : id;
+  }, [tl]);
+}
+
 function Estudio() {
   const { ready, snap, unavailable } = useRequireDiary();
   const params = useSearchParams();
+  const t = useTranslations("studio");
+  const tc = loose(useTranslations("studioCatalog"));
+  const label = usePresetLabel();
+  const errText = useErrorText();
+  const { region } = usePrefs();
   const [state, setState] = useState<StudioState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const presetFromUrl = presetById(params.get("tema") ?? "");
@@ -302,9 +322,9 @@ function Estudio() {
       // Sem a lista de artes: um job antigo "em andamento" no cache abriria a tela de espera à toa.
       try { localStorage.setItem(cacheKey, JSON.stringify({ ...fresh, jobs: [] })); } catch { /* ok */ }
     } catch (e) {
-      setLoadError(e instanceof DomainError ? e.message : "Não conseguimos carregar o Estúdio.");
+      setLoadError(errText(e instanceof DomainError ? e : null, "studio.loadFailed"));
     }
-  }, [cacheKey, reloadStore]);
+  }, [cacheKey, reloadStore, errText]);
   useEffect(() => {
     idem.current = crypto.randomUUID();
     if (snap?.dog?.id) void refresh();
@@ -351,10 +371,16 @@ function Estudio() {
   const photos = useMemo(() => (snap?.entries ?? []).filter((e) => e.source !== "studio"), [snap]);
   const dogName = snap?.dog?.name ?? "";
 
+  // Mensagem pronta no idioma da pessoa. Se ela editar, o texto dela fica (inclusive ao trocar de idioma).
+  const hintBase = preset ? preset.variantOf ?? preset.id : null;
+  const hint = hintBase && tc.has(`presets.${hintBase}.hint`) ? tc(`presets.${hintBase}.hint`) : "";
+  const [editedMsg, setEditedMsg] = useState<string | null>(null);
+  const message = editedMsg ?? hint;
   useEffect(() => {
     if (preset) {
       setAspect(preset.aspect);
-      setOverlay((o) => ({ ...o, message: preset.overlayHint ?? "", name: o.name || dogName }));
+      setEditedMsg(null);
+      setOverlay((o) => ({ ...o, name: o.name || dogName }));
     }
   }, [preset, dogName]);
 
@@ -373,12 +399,12 @@ function Estudio() {
     try {
       const job = await studioCreateJob({
         entryId: photo.id, presetId: preset.id, aspect: aspect ?? preset.aspect, idempotencyKey: idem.current,
-        crop: cropOn ? crop : null, overlay: preset.addTextOverlay ? overlay : null,
+        crop: cropOn ? crop : null, overlay: preset.addTextOverlay ? { ...overlay, message } : null,
       });
       setCurrent(job);
       void refresh();
     } catch (e) {
-      setError(e instanceof DomainError ? e.message : "Não conseguimos começar a arte. Tente de novo.");
+      setError(errText(e instanceof DomainError ? e : null, "errors.startArtFailed"));
     } finally {
       setBusy(false);
     }
@@ -391,19 +417,19 @@ function Estudio() {
 
   return (
     <>
-      <TopBar title="Estúdio" />
+      <TopBar title={t("title")} emoji="🎨" />
       <main className="main">
         <div className="stack">
-          <h1 className="studio-title">Artes de {snap.dog.name} <Paw size={26} className="studio-title__paw" /></h1>
-          <p className="page-note">Uma foto de {snap.dog.name}, uma arte especial.</p>
+          <h1 className="studio-title">{t("heading", { dog: snap.dog.name })} <Paw size={26} className="studio-title__paw" /></h1>
+          <p className="page-note">{t("note", { dog: snap.dog.name })}</p>
         </div>
 
         {loadError ? (
           <p className="field-error" role="alert">{loadError}</p>
         ) : state && !state.configured ? (
-          <div className="notice notice--info"><IconInfo /><span><strong>O Estúdio está quase pronto.</strong> Volte daqui a pouquinho!</span></div>
+          <div className="notice notice--info"><IconInfo /><span>{t.rich("almostReady", { strong: (c) => <strong>{c}</strong> })}</span></div>
         ) : state?.paused ? (
-          <div className="notice notice--warn"><IconInfo /><span>O Estúdio está dando uma pausa rapidinho. O resto do diário segue normal.</span></div>
+          <div className="notice notice--warn"><IconInfo /><span>{t("paused")}</span></div>
         ) : state ? (
           <>
             <CreditMeter state={state} dogName={snap.dog.name} />
@@ -416,82 +442,84 @@ function Estudio() {
           <StudioResult job={current} onAgain={again} />
         ) : current && ["failed", "cancelled"].includes(current.state) ? (
           <section className="notice notice--warn stack" role="alert">
-            <span>{(FAILURE_PT[current.failureCode ?? "TECHNICAL"] ?? FAILURE_PT.TECHNICAL).replaceAll("{dog}", snap.dog.name)}</span>
-            <button type="button" className="btn btn--secondary btn--small" onClick={again}>Tentar de novo</button>
+            <span>{t(`failures.${(FAILURE_CODES as readonly string[]).includes(current.failureCode ?? "") ? (current.failureCode as (typeof FAILURE_CODES)[number]) : "TECHNICAL"}`, { dog: snap.dog.name })}</span>
+            <button type="button" className="btn btn--secondary btn--small" onClick={again}>{t("retry")}</button>
           </section>
         ) : (
           <>
             <section className="stack" aria-labelledby="st-foto">
               <div className="row-between" style={{ alignItems: "baseline", gap: 8 }}>
-                <h2 id="st-foto">Selecione a foto</h2>
+                <h2 id="st-foto">{t("pickPhoto")}</h2>
                 {photos.length ? <PhotoTips dogName={snap.dog.name} /> : null}
               </div>
               {photos.length === 0 ? (
-                <Link href="/guardar" className="btn btn--secondary btn--block">Guardar uma foto de {snap.dog.name} primeiro</Link>
+                <Link href="/guardar" className="btn btn--secondary btn--block">{t("saveFirst", { dog: snap.dog.name })}</Link>
               ) : (
-                <div className="photo-strip" role="radiogroup" aria-label="Fotos do diário">
+                <div className="photo-strip" role="radiogroup" aria-label={t("photos")}>
                   {photos.slice(0, 24).map((e) => (
-                    <button key={e.id} type="button" role="radio" aria-checked={photoId === e.id} className={`photo-strip__item${photoId === e.id ? " is-selected" : ""}`} onClick={() => { setPhotoId(e.id); setCropOn(false); }} aria-label={e.caption ? `Foto: ${e.caption}` : `Foto de ${e.occurredDate}`}>
+                    <button key={e.id} type="button" role="radio" aria-checked={photoId === e.id} className={`photo-strip__item${photoId === e.id ? " is-selected" : ""}`} onClick={() => { setPhotoId(e.id); setCropOn(false); }} aria-label={e.caption ? t("photoCaption", { caption: e.caption }) : t("photoDate", { date: e.occurredDate })}>
                       <MediaImage id={e.mediaId} alt="" />
                     </button>
                   ))}
                 </div>
               )}
               {photo ? (
-                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>Recortar a foto (aproximar {snap.dog.name} ou escolher só ele)</span></label>
+                <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>{t("crop", { dog: snap.dog.name })}</span></label>
               ) : null}
               {photo && cropOn ? <CropBox entryMediaId={photo.mediaId} value={crop} onChange={setCrop} /> : null}
               {photo ? <PhotoCheckNote check={photoCheck} /> : null}
             </section>
 
             <section className="stack" aria-labelledby="st-tema">
-              <h2 id="st-tema">Selecione o tema</h2>
-              <div role="tablist" aria-label="Tipos de arte" className="tabs">
+              <h2 id="st-tema">{t("pickTheme")}</h2>
+              <div role="tablist" aria-label={t("types")} className="tabs">
                 {STUDIO_TABS.map((t) => (
-                  <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{t.labelPt}</button>
+                  <button key={t.id} type="button" role="tab" id={`st-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`st-panel-${t.id}`} className={`tab${tab === t.id ? " is-active" : ""}`} onClick={() => setTab(t.id)}>{tc(`tabs.${t.id}`)}</button>
                 ))}
               </div>
               {hasLooks ? (
-                <div role="radiogroup" aria-label="Acabamento" className="filter-row">
-                  {([["realista", "Realista"], ["ilustracao", "Ilustração"]] as const).map(([id, label]) => (
+                <div role="radiogroup" aria-label={t("finish")} className="filter-row">
+                  {([["realista", t("realistic")], ["ilustracao", t("illustration")]] as const).map(([id, label]) => (
                     <button key={id} type="button" role="radio" aria-checked={look === id} className={`filter-chip${look === id ? " is-active" : ""}`} onClick={() => changeLook(id)}>{label}</button>
                   ))}
                 </div>
               ) : null}
               <div role="tabpanel" id={`st-panel-${tab}`} aria-labelledby={`st-tab-${tab}`} className="preset-grid">
-                {SHOWCASE_PRESETS.filter((p) => p.category === tab && (!hasLooks || p.illustration || look === "ilustracao")).map((base) => presetById(shownId(base))!).filter((p) => flags.get(p.id)?.enabled ?? true).map((p) => {
+                {(tab === "datas" ? orderDatePresets(SHOWCASE_PRESETS.filter((p) => p.category === "datas"), region, snap.today) : SHOWCASE_PRESETS.filter((p) => p.category === tab)).filter((p) => !hasLooks || p.illustration || look === "ilustracao").map((base) => presetById(shownId(base))!).filter((p) => flags.get(p.id)?.enabled ?? true).map((p) => {
                   const c = flags.get(p.id)?.credits ?? p.credits;
+                  // Datas: "em breve" para as da região da pessoa que estão chegando; as de outra região dizem de onde são.
+                  const tag = p.category === "datas" ? (p.region && p.region !== region ? t(`regionTag.${p.region}`) : isUpcoming(p, region, snap.today) ? t("soon") : null) : null;
                   return (
                     <button key={p.id} type="button" className={`preset-card${presetId === p.id ? " is-selected" : ""}`} aria-pressed={presetId === p.id} onClick={() => setPresetId(p.id)}>
                       <PresetVignette preset={p} />
-                      <strong>{p.labelPt}</strong>
-                      <span className="caption">{c} {c === 1 ? "crédito" : "créditos"}{p.premium ? " · premium" : ""}</span>
+                      <strong>{label(p.id)}</strong>
+                      <span className="caption">{t("creditsN", { count: c })}{p.premium ? " · premium" : ""}{tag ? ` · ${tag}` : ""}</span>
                     </button>
                   );
                 })}
               </div>
               {preset && (preset.aspects.length > 1 || preset.addTextOverlay || preset.post === "card") ? (
-                <div className="stack studio-details" aria-label={`Detalhes de ${preset.labelPt}`}>
+                <div className="stack studio-details" aria-label={t("details", { theme: label(preset.id) })}>
                 {preset.aspects.length > 1 ? (
-                  <div role="radiogroup" aria-label="Proporção" className="filter-row filter-row--wrap">
+                  <div role="radiogroup" aria-label={t("aspect")} className="filter-row filter-row--wrap">
                     {preset.aspects.map((a) => (
                       <button key={a} type="button" role="radio" aria-checked={(aspect ?? preset.aspect) === a} className={`filter-chip${(aspect ?? preset.aspect) === a ? " is-active" : ""}`} onClick={() => setAspect(a)}>
-                        {STUDIO_FORMATS[a].labelPt} ({a})
+                        {tc(`formats.${a}`)} ({a})
                       </button>
                     ))}
                   </div>
                 ) : null}
                 {preset.addTextOverlay ? (
                   <>
-                    <div className="field"><label htmlFor="st-msg">Mensagem <span className="muted">(eu escrevo caprichado por cima da arte)</span></label><input id="st-msg" className="input" maxLength={80} value={overlay.message ?? ""} onChange={(e) => setOverlay({ ...overlay, message: e.target.value })} /></div>
-                    <div className="field"><label htmlFor="st-nome">Nome</label><input id="st-nome" className="input" maxLength={40} value={overlay.name ?? ""} onChange={(e) => setOverlay({ ...overlay, name: e.target.value })} /></div>
+                    <div className="field"><label htmlFor="st-msg">{t("message")} <span className="muted">{t("messageHint")}</span></label><input id="st-msg" className="input" maxLength={80} value={message} onChange={(e) => setEditedMsg(e.target.value)} /></div>
+                    <div className="field"><label htmlFor="st-nome">{t("name")}</label><input id="st-nome" className="input" maxLength={40} value={overlay.name ?? ""} onChange={(e) => setOverlay({ ...overlay, name: e.target.value })} /></div>
                   </>
                 ) : null}
                 {preset.post === "card" ? (
-                  <div role="radiogroup" aria-label="Moldura" className="filter-row filter-row--wrap">
+                  <div role="radiogroup" aria-label={t("frame")} className="filter-row filter-row--wrap">
                     {(["simples", "patinhas", "festa"] as const).map((f) => (
                       <button key={f} type="button" role="radio" aria-checked={overlay.frame === f} className={`filter-chip${overlay.frame === f ? " is-active" : ""}`} onClick={() => setOverlay({ ...overlay, frame: f })}>
-                        Moldura {f}
+                        {tc(`frames.${f}`)}
                       </button>
                     ))}
                   </div>
@@ -501,27 +529,27 @@ function Estudio() {
             </section>
 
             <section className="card stack" aria-labelledby="st-custo">
-              {full ? <p className="notice notice--warn small" role="alert" style={{ margin: 0 }}><span>{fullDiaryText(snap.dog.name)} Nenhum crédito é usado.</span></p> : null}
-              <h2 id="st-custo" className="sr-only">Criar a arte</h2>
-              {preset ? <p className="small" style={{ margin: 0 }}>{credits} {credits === 1 ? "crédito" : "créditos"}{state ? <> · você tem {state.balance}</> : null}. Se não der certo, o crédito volta.</p> : null}
+              {full ? <p className="notice notice--warn small" role="alert" style={{ margin: 0 }}><span>{errText(`errors.fullDiaryNoCredit?${new URLSearchParams(Object.entries(fullDiaryParams(snap.dog.name)).map(([k, v]) => [k, String(v)]))}`)}</span></p> : null}
+              <h2 id="st-custo" className="sr-only">{t("create")}</h2>
+              {preset ? <p className="small" style={{ margin: 0 }}>{t("creditsN", { count: credits })}{state ? <> · {t("youHave", { n: state.balance })}</> : null}. {t("refund")}</p> : null}
               {error ? <p className="field-error" role="alert">{error}</p> : null}
               <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
-                <IconBrush /> {busy ? "Começando…" : preset ? `Criar arte (${credits} ${credits === 1 ? "crédito" : "créditos"})` : "Criar arte"}
+                <IconBrush /> {busy ? t("starting") : preset ? t("createWith", { count: credits }) : t("create")}
               </button>
-              {state && preset && state.balance < credits ? <p className="small">Os créditos acabaram por enquanto. <Link href="/estudio/creditos">Ver créditos</Link></p> : null}
+              {state && preset && state.balance < credits ? <p className="small">{t("outOfCredits")} <Link href="/estudio/creditos">{t("seeCredits")}</Link></p> : null}
             </section>
           </>
         )}
 
         {state && state.jobs.some((j) => j.state === "succeeded") ? (
           <section className="stack" aria-labelledby="st-hist">
-            <h2 id="st-hist">Histórico</h2>
+            <h2 id="st-hist">{t("history")}</h2>
             <ul className="preset-grid" style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {state.jobs.filter((j) => j.state === "succeeded" && j.outputMediaId).map((j) => (
                 <li key={j.id}>
-                  <button type="button" className="preset-card" onClick={() => setCurrent(j)} aria-label={`Abrir arte ${presetById(j.presetId)?.labelPt ?? ""}`}>
+                  <button type="button" className="preset-card" onClick={() => setCurrent(j)} aria-label={t("openArt", { theme: label(j.presetId) })}>
                     <MediaImage id={j.outputMediaId} alt="" className="studio-history__img" />
-                    <span className="caption">{presetById(j.presetId)?.labelPt}</span>
+                    <span className="caption">{label(j.presetId)}</span>
                   </button>
                 </li>
               ))}

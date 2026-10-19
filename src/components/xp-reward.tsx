@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { XP_MONTH_GOAL, monthReward } from "@/config/credits";
 import { useStore } from "@/data/store";
 import { IconStar, Paw } from "@/components/icons";
@@ -13,40 +14,42 @@ import { IconStar, Paw } from "@/components/icons";
 export function XpRewardBar({ xpMonth }: { xpMonth: number; compact?: boolean }) {
   const { snap } = useStore();
   const [help, setHelp] = useState(false);
+  const t = useTranslations("xpReward");
   const r = monthReward(xpMonth);
   const close = !r.reached && r.missing <= 40;
-  const name = snap?.dog?.name ?? "seu cachorro";
+  const name = snap?.dog?.name ?? "";
   return (
-    <section className={`xp-reward xp-reward--compact${close ? " is-close" : ""}${r.reached ? " is-done" : ""}`} aria-label="Arte do mês">
+    <section className={`xp-reward xp-reward--compact${close ? " is-close" : ""}${r.reached ? " is-done" : ""}`} aria-label={t("label")}>
       <div className="xp-reward__row">
         <span className="xp-reward__gift" aria-hidden="true">{r.reached ? "🏆" : "🎁"}</span>
         <div className="xp-reward__text">
           {r.reached ? (
-            <strong>Você ganhou 1 crédito! <Link href="/estudio">Criar arte →</Link></strong>
+            <strong>{t("earned")} <Link href="/estudio">{t("createArt")}</Link></strong>
           ) : (
-            <strong>Arte do mês · {Math.min(xpMonth, XP_MONTH_GOAL)}/{XP_MONTH_GOAL} 🐾</strong>
+            <strong>{t("progress", { n: Math.min(xpMonth, XP_MONTH_GOAL), goal: XP_MONTH_GOAL })}</strong>
           )}
         </div>
-        <button type="button" className="xp-reward__info" onClick={() => setHelp((v) => !v)} aria-expanded={help} aria-label="Como funciona a arte do mês">ⓘ</button>
+        <button type="button" className="xp-reward__info" onClick={() => setHelp((v) => !v)} aria-expanded={help} aria-label={t("howLabel")}>ⓘ</button>
       </div>
       {!r.reached ? (
-        <div className="xp-reward__bar" role="progressbar" aria-valuemin={0} aria-valuemax={XP_MONTH_GOAL} aria-valuenow={Math.min(xpMonth, XP_MONTH_GOAL)} aria-label="Patinhas do mês">
+        <div className="xp-reward__bar" role="progressbar" aria-valuemin={0} aria-valuemax={XP_MONTH_GOAL} aria-valuenow={Math.min(xpMonth, XP_MONTH_GOAL)} aria-label={t("pawsLabel")}>
           <span style={{ width: `${Math.max(3, r.pct)}%` }} />
           <i aria-hidden="true">{r.reached ? <IconStar size={14} /> : <Paw size={14} />}</i>
         </div>
       ) : null}
-      {help ? <p className="caption" style={{ margin: 0 }}>Cada missão vale patinhas 🐾. Juntando {XP_MONTH_GOAL} no mês, você ganha 1 crédito para criar uma arte de {name} no Estúdio. A contagem recomeça todo mês.</p> : null}
+      {help ? <p className="caption" style={{ margin: 0 }}>{t("help", { goal: XP_MONTH_GOAL, dog: name })}</p> : null}
     </section>
   );
 }
 
 /** Aviso ao concluir a missão que completa as patinhas do mês. */
 export function CreditEarned({ n }: { n: number }) {
+  const t = useTranslations("xpReward");
   if (!n) return null;
   return (
     <div className="notice notice--positive xp-earned" role="status">
       <span className="xp-reward__gift" aria-hidden="true">🏆</span>
-      <span><strong>Você ganhou 1 crédito!</strong> <Link href="/estudio">Criar arte →</Link></span>
+      <span><strong>{t("earned")}</strong> <Link href="/estudio">{t("createArt")}</Link></span>
     </div>
   );
 }

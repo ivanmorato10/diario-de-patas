@@ -16,11 +16,12 @@ describe("configuração ausente", () => {
     vi.resetModules();
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const { configMissing } = await import("./config-check");
-    const { CONFIG_OK, UNAVAILABLE_TEXT } = await import("@/config/mode");
+    const { CONFIG_OK } = await import("@/config/mode");
     expect(CONFIG_OK).toBe(false);
     const res = configMissing();
     expect(res?.status).toBe(503);
-    expect(await res!.json()).toEqual({ code: "UNAVAILABLE", message: UNAVAILABLE_TEXT });
+    expect(await res!.json()).toEqual({ code: "UNAVAILABLE", message: "O app está temporariamente indisponível. Tente de novo em alguns minutos." });
+    expect((await configMissing("en")!.json()).message).toBe("The app is temporarily unavailable. Please try again in a few minutes.");
     configMissing();
     expect(log).toHaveBeenCalledTimes(1);
   });

@@ -3,21 +3,35 @@ export interface CreditPackage {
   id: string;
   credits: number;
   priceCents: number;
-  badge?: string;
+  /** Selo do pacote (texto em credits.badges.<chave>). */
+  badge?: "best";
 }
 
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: "p1", credits: 1, priceCents: 100 },
-  { id: "p5", credits: 5, priceCents: 400 },
-  { id: "p10", credits: 10, priceCents: 700, badge: "Melhor preço" },
-];
+/**
+ * Preços FIXOS por mercado (nunca conversão de moeda). O mercado da cobrança é decidido no servidor e não depende
+ * do idioma da tela: em inglês, quem paga em reais continua vendo reais (com "BRL" explícito).
+ * Estados Unidos: sem checkout em dólar por enquanto — sem pacotes, sem venda (proposta em docs/PAGAMENTOS-EUA.md).
+ */
+export type Market = "BR" | "US";
+export interface CreditMarket { currency: "BRL" | "USD"; provider: "mercadopago" | null; packages: CreditPackage[] }
+export const CREDIT_MARKETS: Record<Market, CreditMarket> = {
+  BR: {
+    currency: "BRL", provider: "mercadopago",
+    packages: [
+      { id: "p1", credits: 1, priceCents: 100 },
+      { id: "p5", credits: 5, priceCents: 400 },
+      { id: "p10", credits: 10, priceCents: 700, badge: "best" },
+    ],
+  },
+  US: { currency: "USD", provider: null, packages: [] },
+};
+/** Mercado em que as compras acontecem hoje (Pix em reais, Mercado Pago), para qualquer idioma. */
+export const ACTIVE_MARKET: Market = "BR";
 
-export const packageById = (id: string) => CREDIT_PACKAGES.find((p) => p.id === id);
+export const CREDIT_PACKAGES: CreditPackage[] = CREDIT_MARKETS[ACTIVE_MARKET].packages;
 
-export const formatBRL = (cents: number) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-/** Preço por crédito, para mostrar "R$ 0,53 por arte". */
-export const perCredit = (p: CreditPackage) => formatBRL(Math.round(p.priceCents / p.credits));
+/** Pacote válido NO mercado da cobrança (o servidor nunca aceita preço ou moeda vindos do navegador). */
+export const packageById = (id: string, market: Market = ACTIVE_MARKET) => CREDIT_MARKETS[market].packages.find((p) => p.id === id);
 
 /** Validade do Pix gerado (minutos). */
 export const PIX_EXPIRES_MINUTES = 30;

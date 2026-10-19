@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { rpc } from "@/data/real-repository";
 import { useStore } from "@/data/store";
 import { Sheet } from "./entry-actions";
@@ -12,7 +13,8 @@ interface ReferralInfo { code: string; joined: number; confirmed: number; xpEarn
 /** Indicar o app: link próprio; quando o amigo cria o diário e guarda a primeira foto, o cachorro ganha patinhas. */
 export function ShareApp() {
   const { snap } = useStore();
-  const name = snap?.dog?.name ?? "meu cachorro";
+  const t = useTranslations("shareApp");
+  const name = snap?.dog?.name ?? t("myDog");
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState<ReferralInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,32 +22,32 @@ export function ShareApp() {
   async function show() {
     setOpen(true);
     setError(null);
-    try { setInfo(await rpc<ReferralInfo>("referralInfo")); } catch { setError("Não deu para preparar o seu link agora. Tente de novo."); }
+    try { setInfo(await rpc<ReferralInfo>("referralInfo")); } catch { setError(t("failed")); }
   }
 
   const link = info ? `${window.location.origin}/?ref=${info.code}` : "";
-  const text = `Oi! Estou guardando os momentos de ${name} no Diário de Patas 🐾 É grátis e privado. Cria o diário do seu cachorro também: ${link}`;
+  const text = t("message", { dog: name, link });
 
   return (
     <>
       <button type="button" className="card row-between profile-row" onClick={show}>
-        <span className="profile-row__text"><span>💌 Indicar o Diário de Patas</span><span className="caption">20 patinhas por amigo que entrar</span></span><IconChevron />
+        <span className="profile-row__text"><span>{t("row")}</span><span className="caption">{t("rowSub")}</span></span><IconChevron />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="share-app-title">
-        <h2 id="share-app-title">Indicar o Diário de Patas</h2>
-        <p className="page-note">Conhece alguém que ama um cachorro? Mande o seu link. Quando a pessoa criar o diário e guardar a primeira foto, {name} ganha {info?.xpPerFriend ?? 20} patinhas!</p>
+        <h2 id="share-app-title">{t("title")}</h2>
+        <p className="page-note">{t("intro", { dog: name, paws: info?.xpPerFriend ?? 20 })}</p>
         {info ? (
           <div className="stack" style={{ gap: 10 }}>
-            <input className="input" readOnly value={link} aria-label="Seu link de indicação" onFocus={(e) => e.currentTarget.select()} />
-            <ShareActions text={text} onCopyError={() => setError("Não deu para copiar automaticamente: toque e segure no link para copiar.")} />
+            <input className="input" readOnly value={link} aria-label={t("linkLabel")} onFocus={(e) => e.currentTarget.select()} />
+            <ShareActions text={text} onCopyError={() => setError(t("copyFailed"))} />
             <p className="caption" style={{ margin: 0 }}>
-              {info.joined === 0 ? "Ninguém entrou pelo seu link ainda." : `${info.joined} ${info.joined === 1 ? "pessoa entrou" : "pessoas entraram"} pelo seu link · ${info.xpEarned} patinhas ganhas.`}
-              {" "}Vale para até {info.monthlyCap} amigos por mês.
+              {info.joined === 0 ? t("nobody") : t("joined", { count: info.joined, paws: info.xpEarned })}
+              {" "}{t("cap", { cap: info.monthlyCap })}
             </p>
           </div>
-        ) : !error ? <p className="caption">Preparando o seu link…</p> : null}
+        ) : !error ? <p className="caption">{t("preparing")}</p> : null}
         {error ? <p className="field-error" role="alert">{error}</p> : null}
-        <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setOpen(false)}>Fechar</button>
+        <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => setOpen(false)}>{t("close")}</button>
       </Sheet>
     </>
   );

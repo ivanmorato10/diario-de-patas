@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useFormat } from "@/i18n/use-format";
+import { useCareText } from "@/i18n/use-care";
 
 import { useStore } from "@/data/store";
 import { LIMITS } from "@/config/business";
@@ -9,9 +12,7 @@ import { DueBadge } from "@/components/health-ui";
 import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
 import { DocumentButtons, DocumentFileInput, DocumentThumb, type PickedDocument } from "@/components/document-ui";
 import { IconPlus } from "@/components/icons";
-import { formatCivilDate } from "@/domain/dates";
-import { dueText } from "@/domain/health";
-import { DOCUMENT_CATEGORIES, EXPIRY_LABEL, expiryStatus, type DocumentCategory, type HealthDocument } from "@/domain/documents";
+import { DOCUMENT_CATEGORIES, expiryStatus, type DocumentCategory, type HealthDocument } from "@/domain/documents";
 
 interface Form { title: string; category: DocumentCategory; docDate: string; expiresOn: string; notes: string }
 
@@ -22,6 +23,10 @@ export default function Documentos() {
   const [editing, setEditing] = useState<{ id?: string; form: Form } | null>(null);
   const [file, setFile] = useState<PickedDocument[]>([]);
   const [toDelete, setToDelete] = useState<HealthDocument | null>(null);
+  const t = useTranslations("docsPage");
+  const tc = useTranslations("care");
+  const fmt = useFormat();
+  const { dueText } = useCareText();
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
@@ -36,20 +41,20 @@ export default function Documentos() {
   async function submit() {
     if (!editing) return;
     const meta = { ...editing.form, docDate: editing.form.docDate || null, expiresOn: editing.form.expiresOn || null };
-    if (!editing.id && !file[0]) return setError("Escolha o arquivo do documento.");
+    if (!editing.id && !file[0]) return setError("docsPage.pickFile");
     const ok = await run(() => (editing.id ? repo!.updateDocument(editing.id, meta) : repo!.addDocument(meta, file[0].doc)));
     if (ok) setEditing(null);
   }
 
   return (
     <>
-      <TopBar title="Documentos" back="/cuidados" />
+      <TopBar title={t("title")} back="/cuidados" emoji="📄" />
       <main className="main">
-        <p className="page-note">Carteira de vacinação, exames, receitas…</p>
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew} disabled={full}><IconPlus /> Adicionar documento</button>
+        <p className="page-note">{t("note")}</p>
+        <button type="button" className="btn btn--primary btn--block" onClick={openNew} disabled={full}><IconPlus /> {t("add")}</button>
         {/* Limite só aparece quando estiver perto. */}
-        {LIMITS.maxDocuments - docs.length <= 3 ? <p className="caption">{full ? `Chegou ao limite de ${LIMITS.maxDocuments} documentos desta versão de teste. Exclua algum para guardar outro.` : `Cabem só mais ${LIMITS.maxDocuments - docs.length} documentos nesta versão de teste.`}</p> : null}
-        {docs.length === 0 ? <p className="muted">Nenhum documento ainda.</p> : null}
+        {LIMITS.maxDocuments - docs.length <= 3 ? <p className="caption">{full ? t("full", { max: LIMITS.maxDocuments }) : t("left", { count: LIMITS.maxDocuments - docs.length })}</p> : null}
+        {docs.length === 0 ? <p className="muted">{t("empty")}</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {docs.map((d) => {
             const st = expiryStatus(d.expiresOn, today);
@@ -58,16 +63,16 @@ export default function Documentos() {
                 <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
                   <DocumentThumb doc={d} />
                   <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
-                    <span className="caption">{DOCUMENT_CATEGORIES[d.category]}</span>
+                    <span className="caption">{tc(`docCategories.${d.category}`)}</span>
                     <strong style={{ overflowWrap: "anywhere" }}>{d.title}</strong>
-                    {d.docDate ? <span className="small">Data: {formatCivilDate(d.docDate)}</span> : null}
+                    {d.docDate ? <span className="small">{t("date", { date: fmt.date(d.docDate) })}</span> : null}
                   </span>
-                  <RowActions label={`documento ${d.title}`} onEdit={() => openEdit(d)} onDelete={() => setToDelete(d)} />
+                  <RowActions label={t("rowLabel", { title: d.title })} onEdit={() => openEdit(d)} onDelete={() => setToDelete(d)} />
                 </div>
                 {d.expiresOn ? (
                   <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-                    <span className="small">Validade: {formatCivilDate(d.expiresOn)} ({dueText(d.expiresOn, today)})</span>
-                    <DueBadge status={st} label={EXPIRY_LABEL[st]} />
+                    <span className="small">{t("expires", { date: fmt.date(d.expiresOn) })} ({dueText(d.expiresOn, today)})</span>
+                    <DueBadge status={st} label={tc(`expiry.${st}`)} />
                   </div>
                 ) : null}
                 {d.notes ? <p className="small" style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{d.notes}</p> : null}
@@ -78,24 +83,24 @@ export default function Documentos() {
         </ul>
       </main>
 
-      <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? "Editar documento" : "Novo documento"} onSubmit={submit} busy={busy} error={error}>
+      <FormSheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? t("editTitle") : t("newTitle")} onSubmit={submit} busy={busy} error={error}>
         {editing ? (
           <>
-            {!editing.id ? <DocumentFileInput label="Arquivo" value={file} onChange={(f) => { setFile(f); if (!editing.form.title && f[0]) set({ title: f[0].name.replace(/\.[^.]+$/, "").slice(0, 80) }); }} /> : null}
-            <Field id="dtitle" label="Título" value={editing.form.title} onChange={(v) => set({ title: v })} maxLength={80} />
+            {!editing.id ? <DocumentFileInput label={t("file")} value={file} onChange={(f) => { setFile(f); if (!editing.form.title && f[0]) set({ title: f[0].name.replace(/\.[^.]+$/, "").slice(0, 80) }); }} /> : null}
+            <Field id="dtitle" label={t("titleField")} value={editing.form.title} onChange={(v) => set({ title: v })} maxLength={80} />
             <div className="field">
-              <label htmlFor="dcat">Categoria</label>
+              <label htmlFor="dcat">{t("category")}</label>
               <select id="dcat" className="input" value={editing.form.category} onChange={(e) => set({ category: e.target.value as DocumentCategory })}>
-                {Object.entries(DOCUMENT_CATEGORIES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                {DOCUMENT_CATEGORIES.map((k) => <option key={k} value={k}>{tc(`docCategories.${k}`)}</option>)}
               </select>
             </div>
-            <Field id="ddate" label="Data do documento" optional type="date" value={editing.form.docDate} onChange={(v) => set({ docDate: v })} />
-            <Field id="dexp" label="Validade" optional type="date" value={editing.form.expiresOn} onChange={(v) => set({ expiresOn: v })} hint="Avisamos quando faltar 30 dias ou menos." />
-            <Field id="dnotes" label="Observações" optional multiline value={editing.form.notes} onChange={(v) => set({ notes: v })} maxLength={500} />
+            <Field id="ddate" label={t("docDate")} optional type="date" value={editing.form.docDate} onChange={(v) => set({ docDate: v })} />
+            <Field id="dexp" label={t("expiry")} optional type="date" value={editing.form.expiresOn} onChange={(v) => set({ expiresOn: v })} hint={t("expiryHint")} />
+            <Field id="dnotes" label={t("notes")} optional multiline value={editing.form.notes} onChange={(v) => set({ notes: v })} maxLength={500} />
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title="Excluir este documento?" text={toDelete ? `“${toDelete.title}” e o arquivo serão apagados deste aparelho.` : ""} busy={busy}
+      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { title: toDelete.title }) : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteDocument(toDelete.id)))) setToDelete(null); }} />
     </>
   );

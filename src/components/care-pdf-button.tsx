@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useMediaBlob, useStore } from "@/data/store";
+import { usePrefs } from "@/i18n/use-format";
+import { loose } from "@/i18n/keys";
 import type { AvatarCrop } from "@/domain/types";
 
 const buf = (url: string) => fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
@@ -37,6 +40,9 @@ export function CarePdfButton() {
   const photo = useMediaBlob(snap?.dog?.photoMediaId ?? null, "thumb");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const tAll = loose(useTranslations());
+  const t = useTranslations("pdf");
+  const { locale, weightUnit } = usePrefs();
   if (!snap?.dog) return null;
 
   async function make() {
@@ -52,11 +58,11 @@ export function CarePdfButton() {
       ]);
       const fonts = heading && hand && body && bodyBold ? { heading, hand, body, bodyBold } : null;
       const avatar = photo ? await avatarPng(photo, snap.dog.avatarCrop) : null;
-      const bytes = await buildCarePdf({ dogName: snap.dog.name, birthDate: snap.dog.birthDate, today: snap.today, health: snap.health, logoPng, avatarPng: avatar, fonts });
-      const name = `ficha-de-cuidados-${snap.dog.name.normalize("NFD").replace(/[^\w]+/g, "-").toLowerCase()}.pdf`;
+      const bytes = await buildCarePdf({ dogName: snap.dog.name, birthDate: snap.dog.birthDate, today: snap.today, health: snap.health, logoPng, avatarPng: avatar, fonts, t: tAll, locale, weightUnit });
+      const name = `${t("fileName")}-${snap.dog.name.normalize("NFD").replace(/[^\w]+/g, "-").toLowerCase()}.pdf`;
       const file = new File([bytes as BlobPart], name, { type: "application/pdf" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `Ficha de cuidados de ${snap.dog.name}` }).catch(() => undefined);
+        await navigator.share({ files: [file], title: t("shareTitle", { dog: snap.dog.name }) }).catch(() => undefined);
       } else {
         const url = URL.createObjectURL(file);
         const a = document.createElement("a");
@@ -64,10 +70,10 @@ export function CarePdfButton() {
         a.download = name;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
-        setMsg("PDF baixado.");
+        setMsg(t("downloaded"));
       }
     } catch {
-      setMsg("Não conseguimos gerar o PDF. Tente de novo.");
+      setMsg(t("failed"));
     } finally {
       setBusy(false);
     }
@@ -75,7 +81,7 @@ export function CarePdfButton() {
 
   return (
     <div className="stack" style={{ gap: 4 }}>
-      <button type="button" className="btn btn--block btn--vet" onClick={make} disabled={busy}>📄 {busy ? "Gerando PDF…" : "PDF para o veterinário"}</button>
+      <button type="button" className="btn btn--block btn--vet" onClick={make} disabled={busy}>📄 {busy ? t("generating") : t("button")}</button>
       {msg ? <span className="caption" style={{ textAlign: "center" }}>{msg}</span> : null}
     </div>
   );

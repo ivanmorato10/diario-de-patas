@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { civilDateInTz, formatCivilDate, isCivilDate, monthKey } from "./dates";
+import { civilDateInTz, isCivilDate, monthKey } from "./dates";
+import { formatCivilDate } from "@/i18n/format";
 import { dailySuggestions, levelFor, missionState, totalCatalogXp, missionById } from "./missions";
 import { decideStatus } from "./validation";
 import { computeBalance, consume, release, reserve, CreditError, type CreditEntry } from "./credits";
@@ -14,7 +15,8 @@ describe("datas civis (§12)", () => {
     expect(civilDateInTz(new Date("2026-03-15T01:30:00Z"), "Asia/Tokyo")).toBe("2026-03-15");
   });
   it("formata sem conversão para UTC", () => {
-    expect(formatCivilDate("2026-01-01")).toBe("1 de janeiro de 2026");
+    expect(formatCivilDate("2026-01-01", "pt-BR")).toBe("1 de janeiro de 2026");
+    expect(formatCivilDate("2026-01-01", "en")).toBe("January 1, 2026");
     expect(monthKey("2026-01-31")).toBe("2026-01");
   });
   it("valida datas", () => {
@@ -50,10 +52,10 @@ describe("missões (§9)", () => {
   });
   it("níveis anunciados são alcançáveis pelo catálogo", () => {
     expect(totalCatalogXp()).toBeGreaterThanOrEqual(LEVELS[LEVELS.length - 1].minXp);
-    expect(levelFor(0).title).toBe("Novo companheiro");
-    expect(levelFor(75).title).toBe("Explorador");
-    expect(levelFor(349).title).toBe("Contador de histórias");
-    expect(levelFor(500).title).toBe("Sempre juntos");
+    expect(levelFor(0).level).toBe(0);
+    expect(levelFor(75).level).toBe(2);
+    expect(levelFor(349).level).toBe(4);
+    expect(levelFor(500).level).toBe(6);
   });
 });
 
@@ -73,7 +75,7 @@ describe("catálogo v2 (MUDANCAS-V2 §3)", () => {
   it("toda missão externa tem uma alternativa em casa", () => {
     const outdoor = MISSIONS.filter((m) => m.context === "outdoor");
     expect(outdoor.length).toBeGreaterThan(0);
-    expect(outdoor.every((m) => (m.homeAlternative ?? "").length > 10)).toBe(true);
+    expect(outdoor.every((m) => m.homeAlternative === true)).toBe(true); // texto em catalog.missions.<id>.homeAlternative (teste de idiomas)
   });
   it("níveis em ordem crescente", () => {
     expect(LEVELS.map((l) => l.minXp)).toEqual([0, 30, 70, 120, 220, 350, 500]);

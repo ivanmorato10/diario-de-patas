@@ -1,4 +1,5 @@
 import type { CollectionId } from "@/config/catalog";
+import type { AppLocale, Region, WeightUnit } from "@/i18n/locale";
 
 /** Data civil "AAAA-MM-DD" — nunca convertida para UTC (§12). */
 export type CivilDate = string;
@@ -15,7 +16,6 @@ export interface DogPreferences {
 export interface Profile {
   id: "me";
   timezone: string;
-  locale: "pt-BR";
   createdAt: string;
   /** Quando o diário do modo demonstração foi trazido para a conta (uma única vez, §8.2). */
   demoImportedAt?: string | null;
@@ -77,7 +77,14 @@ export type DiaryRole = "admin" | "editor" | "viewer";
 export interface DiarySummary { id: string; name: string; photoMediaId: string | null; avatarCrop: AvatarCrop | null; role: DiaryRole; mine?: boolean }
 export interface Letter { id: string; body: string; date: CivilDate; createdBy: string | null; createdByName: string | null; mine: boolean; createdAt: string }
 export interface Bone { targetType: "entry" | "letter"; targetId: string; userId: string }
-export interface Me { userId: string; name: string; nameConfirmed: boolean; suggestedName?: string; notify?: { photo: boolean; letter: boolean; bone: boolean } }
+/**
+ * Quem está usando. Idioma, região do calendário e unidade de peso são da pessoa (não do cachorro);
+ * null = ainda não escolheu (vale a sugestão do idioma).
+ */
+export interface Me {
+  userId: string; name: string; nameConfirmed: boolean; suggestedName?: string; notify?: { photo: boolean; letter: boolean; bone: boolean };
+  locale?: AppLocale | null; region?: Region | null; weightUnit?: WeightUnit | null;
+}
 export interface DiaryMember { userId: string; name: string; email: string; role: DiaryRole; me: boolean; owner: boolean }
 
 /** Álbum: uma coleção fixa do catálogo ou um álbum criado pela pessoa (`custom-…`). */
@@ -87,6 +94,8 @@ export interface CustomAlbum {
   id: `custom-${string}`;
   title: string;
   createdAt: string;
+  /** Álbum do sistema ("studio" = Artes do Estúdio): nome mostrado no idioma de quem vê, até a pessoa renomear. */
+  systemKey?: string;
 }
 
 export interface AlbumEntry {

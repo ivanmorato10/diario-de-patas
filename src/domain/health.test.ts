@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { civilDateInTz } from "./dates";
 import {
-  ContactSchema, MedicationSchema, VaccineSchema, addDays, dueStatus, dueText, isSuperseded, latestVaccines, medicationActive, upcomingCare,
+  ContactSchema, MedicationSchema, VaccineSchema, addDays, daysUntil, dueStatus, isSuperseded, latestVaccines, medicationActive, upcomingCare,
   type Vaccine, type Visit,
 } from "./health";
 
@@ -24,9 +24,9 @@ describe("status de vacinas pela data (MUDANCAS-V2 §4.2)", () => {
     expect(dueStatus("2026-10-11", today)).toBe("overdue");
   });
   it("texto acompanha o status (não só cor)", () => {
-    expect(dueText("2026-10-22", today)).toBe("em 10 dias");
-    expect(dueText("2026-10-13", today)).toBe("amanhã");
-    expect(dueText("2026-10-10", today)).toBe("há 2 dias");
+    expect(daysUntil("2026-10-22", today)).toBe(10); // texto ("em 10 dias", "in 10 days") no teste de idiomas
+    expect(daysUntil("2026-10-13", today)).toBe(1);
+    expect(daysUntil("2026-10-10", today)).toBe(-2);
   });
   it("respeita o fuso do usuário na virada do dia (São Paulo × Tóquio)", () => {
     const instant = new Date("2026-10-13T01:30:00Z"); // 22h30 do dia 12 em SP; 10h30 do dia 13 em Tóquio
@@ -67,7 +67,7 @@ describe("próximos cuidados (§4.6)", () => {
       visit({ id: "hoje", date: "2026-10-14", time: "19:15", nextDate: null }),
       visit({ id: "longe", date: "2027-02-01", nextDate: null }),
     ] }, "2026-10-14");
-    expect(care.map((c) => [c.id, c.title])).toEqual([["hoje", "Consulta marcada hoje às 19:15"], ["longe", "Consulta marcada"]]);
+    expect(care.map((c) => [c.id, c.visit, c.time ?? null])).toEqual([["hoje", "scheduled", "19:15"], ["longe", "scheduled", null]]);
   });
   it("só a consulta mais recente conta para a próxima consulta", () => {
     const care = upcomingCare({ vaccines: [], visits: [visit({ id: "old", date: "2026-05-01", nextDate: "2026-09-01" }), visit({ id: "new", date: "2026-09-02", nextDate: null })] }, "2026-10-12");

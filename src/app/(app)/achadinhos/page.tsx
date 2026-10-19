@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { loose } from "@/i18n/keys";
 import { rpc } from "@/data/real-repository";
-import { ACHADINHOS, ACHADINHO_CATEGORIES, AFFILIATE_DISCLOSURE, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
+import { ACHADINHOS, ACHADINHO_CATEGORIES, amazonUrl, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
 import { isStandalone } from "@/components/install-app";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
@@ -31,6 +33,8 @@ function ProductArt({ a, emoji, bg, label, image }: { a: Achadinho; emoji: strin
 export default function Achadinhos() {
   const [cat, setCat] = useState<AchadinhoCategory | "todos">("todos");
   const [info, setInfo] = useState<Info>({});
+  const t = useTranslations("finds");
+  const tl = loose(t);
   // Foto e título oficiais pela Creators API, quando a conta de associado estiver elegível.
   useEffect(() => {
     rpc<{ status: string; items: Info }>("achadinhosInfo").then((r) => setInfo(r.items)).catch(() => undefined);
@@ -39,18 +43,18 @@ export default function Achadinhos() {
   const list = ACHADINHOS.filter((a) => cat === "todos" || a.category === cat);
   return (
     <>
-      <TopBar title="Achadinhos do Abu" back="/hoje" />
+      <TopBar title={t("title")} back="/hoje" emoji="🛍️" />
       <main className="main">
         <section className="achados-hero">
           <div className="achados-hero__abu" aria-hidden="true"><AbuMascot width={96} /></div>
           <div>
-            <h1 className="studio-title" style={{ fontSize: "2rem" }}>Achadinhos do Abu</h1>
-            <p className="page-note">As coisas que eu uso, roo e aprovo. Escolhidas com carinho, sem patrocínio de marca.</p>
+            <h1 className="studio-title" style={{ fontSize: "2rem" }}>{t("title")}</h1>
+            <p className="page-note">{t("intro")}</p>
           </div>
         </section>
 
-        <div className="filter-row" role="tablist" aria-label="Categorias">
-          {[{ id: "todos" as const, label: "Todos", emoji: "🐾" }, ...used].map((c) => (
+        <div className="filter-row" role="tablist" aria-label={t("categoriesLabel")}>
+          {[{ id: "todos" as const, emoji: "🐾" }, ...used].map((c) => ({ ...c, label: tl(`categories.${c.id}`) })).map((c) => (
             <button key={c.id} type="button" role="tab" aria-selected={cat === c.id} className={`filter-chip${cat === c.id ? " is-active" : ""}`} onClick={() => setCat(c.id)}>
               <span aria-hidden="true">{c.emoji}</span> {c.label}
             </button>
@@ -62,18 +66,18 @@ export default function Achadinhos() {
             const c = ACHADINHO_CATEGORIES.find((x) => x.id === a.category)!;
             return (
               <li key={a.id} className="achado">
-                <ProductArt a={a} emoji={c.emoji} bg={c.bg} label={c.label} image={info[a.asin]?.image} />
+                <ProductArt a={a} emoji={c.emoji} bg={c.bg} label={tl(`categories.${c.id}`)} image={info[a.asin]?.image} />
                 <div className="achado__body">
-                  <h2>{a.name}</h2>
-                  <p className="achado__abu">“{a.abuSays}”</p>
-                  <a className="achado__btn" href={amazonUrl(a)} target="_blank" rel="sponsored noopener noreferrer">Ver na {a.store}</a>
+                  <h2>{tl(`items.${a.id}.name`)}</h2>
+                  <p className="achado__abu">“{tl(`items.${a.id}.abuSays`)}”</p>
+                  <a className="achado__btn" href={amazonUrl(a)} target="_blank" rel="sponsored noopener noreferrer">{t("seeAt", { store: a.store })}</a>
                 </div>
               </li>
             );
           })}
         </ul>
 
-        <p className="caption achados-disclosure">{AFFILIATE_DISCLOSURE}{typeof window !== "undefined" && isStandalone() ? " Para voltar ao app, toque em “OK” no canto da tela." : ""}</p>
+        <p className="caption achados-disclosure">{t("disclosure")}{typeof window !== "undefined" && isStandalone() ? ` ${t("backToApp")}` : ""}</p>
       </main>
     </>
   );

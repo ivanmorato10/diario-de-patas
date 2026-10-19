@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { AvatarCrop } from "@/domain/types";
 import { Sheet } from "@/components/entry-actions";
 import { MediaImage, avatarImgStyle } from "@/components/media";
@@ -15,6 +16,7 @@ export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave, o
   onPreview?: (c: AvatarCrop) => void;
 }) {
   const [crop, setCrop] = useState<AvatarCrop>(value ?? CENTER);
+  const t = useTranslations("avatarCrop");
   const preview = useRef(onPreview);
   preview.current = onPreview;
   useEffect(() => { preview.current?.(crop); }, [crop]);
@@ -40,28 +42,28 @@ export function AvatarCropSheet({ open, onClose, mediaId, name, value, onSave, o
 
   return (
     <Sheet open={open} onClose={close} labelledBy="crop-title">
-      <h2 id="crop-title">Ajustar foto de {name}</h2>
-      <p className="page-note">Arraste a foto para posicionar e use o zoom para aproximar o rostinho. O ajuste é salvo ao fechar.</p>
+      <h2 id="crop-title">{t("title", { dog: name })}</h2>
+      <p className="page-note">{t("note")}</p>
       <div className="avatar-crop" style={{ width: SIZE, height: SIZE }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-        role="img" aria-label="Prévia da foto de perfil">
+        role="img" aria-label={t("preview")}>
         <MediaImage id={mediaId} variant="display" alt="" className="avatar__img" style={{ ...avatarImgStyle(crop), pointerEvents: "none" }} />
       </div>
-      <button type="button" className="btn btn--primary btn--block" onClick={close}>{dirty ? "Salvar ajuste" : "Pronto"}</button>
+      <button type="button" className="btn btn--primary btn--block" onClick={close}>{dirty ? t("save") : t("done")}</button>
       <div className="field">
-        <label htmlFor="crop-zoom">Zoom</label>
+        <label htmlFor="crop-zoom">{t("zoom")}</label>
         <input id="crop-zoom" type="range" min={1} max={3} step={0.05} value={crop.zoom} onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })} />
       </div>
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
         <div className="field" style={{ flex: 1, minWidth: 120 }}>
-          <label htmlFor="crop-x">Esquerda ↔ direita</label>
+          <label htmlFor="crop-x">{t("x")}</label>
           <input id="crop-x" type="range" min={0} max={100} value={crop.x} onChange={(e) => setCrop({ ...crop, x: Number(e.target.value) })} />
         </div>
         <div className="field" style={{ flex: 1, minWidth: 120 }}>
-          <label htmlFor="crop-y">Cima ↕ baixo</label>
+          <label htmlFor="crop-y">{t("y")}</label>
           <input id="crop-y" type="range" min={0} max={100} value={crop.y} onChange={(e) => setCrop({ ...crop, y: Number(e.target.value) })} />
         </div>
       </div>
-      <button type="button" className="btn btn--ghost btn--block" onClick={() => setCrop(CENTER)}>Voltar ao centro</button>
+      <button type="button" className="btn btn--ghost btn--block" onClick={() => setCrop(CENTER)}>{t("center")}</button>
     </Sheet>
   );
 }

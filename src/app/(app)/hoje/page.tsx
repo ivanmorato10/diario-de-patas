@@ -1,13 +1,16 @@
 "use client";
 
-import { petText } from "@/domain/pet-text";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useCatalog } from "@/i18n/catalog";
+import { useFormat, usePrefs } from "@/i18n/use-format";
+import { useErrorText } from "@/i18n/use-error";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { DogAvatar, MediaImage } from "@/components/media";
 import { AbuSays } from "@/components/brand";
 import { IconCheck, IconPlus, IconShuffle, IconStar } from "@/components/icons";
-import { collectionMissions, collectionTitle } from "@/components/mission-ui";
+import { collectionMissions } from "@/components/mission-ui";
 import { UpcomingCareCard } from "@/components/health-ui";
 import { PawBurst } from "@/components/celebrate";
 import { ImportDemoCard } from "@/components/import-demo";
@@ -24,7 +27,6 @@ import { FamilyNudge } from "@/components/family-nudge";
 import { WelcomeFamily } from "@/components/welcome-family";
 import { MemoryRotator } from "@/components/memory-rotator";
 import { NameAsk } from "@/components/name-ask";
-import { formatCivilDate } from "@/domain/dates";
 import { upcomingCare } from "@/domain/health";
 
 export default function Hoje() {
@@ -34,19 +36,24 @@ export default function Hoje() {
   const [swapError, setSwapError] = useState<string | null>(null);
   const [ideasHelp, setIdeasHelp] = useState(false);
   const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
+  const t = useTranslations("today");
+  const cat = useCatalog(snap?.dog?.name ?? "");
+  const f = useFormat();
+  const { region } = usePrefs();
+  const errText = useErrorText();
 
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog || !repo) return <main className="main"><PageLoading /></main>;
 
   const dog = snap.dog;
-  const ctx = cycleContext(snap)!;
+  const ctx = cycleContext(snap, region)!;
   const level = levelFor(snap.xpTotal);
   const levelPct = level.nextAt ? Math.min(100, Math.round((snap.xpTotal / level.nextAt) * 100)) : 100;
   const hasFirst = snap.completions.some((c) => c.missionId === "M01");
   const plan = snap.dailyPlan;
   const daily = plan ? DAILY_SLOTS.map((s) => ({ slot: s, m: missionById(plan.slots[s.id])! })) : [];
   const doneToday = daily.filter(({ m }) => missionStatus(m, ctx) === "completed").length;
-  const specials = activeSpecials(snap.today, dog.birthDate, dog.name).filter((w) => missionStatus(w.mission, ctx) !== "completed");
+  const specials = activeSpecials(snap.today, dog.birthDate, region).filter((w) => missionStatus(w.mission, ctx) !== "completed");
   const focusCollection = daily.find(({ m }) => missionStatus(m, ctx) !== "completed")?.m.collectionId ?? "primeiras-lembrancas";
   const colMissions = collectionMissions(focusCollection);
   const colDone = colMissions.filter((m) => snap.completions.some((c) => c.missionId === m.id)).length;
@@ -60,7 +67,7 @@ export default function Hoje() {
       await repo!.swapDaily(slot);
       await reload();
     } catch (e) {
-      setSwapError(e instanceof DomainError ? e.message : "Não conseguimos trocar agora. Tente de novo.");
+      setSwapError(errText(e instanceof DomainError ? e : null, "today.swapFailed"));
     } finally {
       setSwapping(null);
     }
@@ -73,10 +80,10 @@ export default function Hoje() {
         <section className="row" aria-labelledby="dog-title">
           <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} size="lg" />
           <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-            <h1 id="dog-title" className="hoje-title">Diário de {dog.name}</h1>
+            <h1 id="dog-title" className="hoje-title">{t("title", { dog: dog.name })}</h1>
             <div className="hoje-badges">
-              <span className="hoje-level"><IconStar size={14} /> {level.title}</span>
-              <span className="hoje-xp">🐾 {snap.xpTotal} patinhas</span>
+              <span className="hoje-level"><IconStar size={14} /> {cat.level(level)}</span>
+              <span className="hoje-xp">🐾 {t("paws", { count: snap.xpTotal })}</span>
             </div>
           </div>
         </section>
@@ -89,18 +96,18 @@ export default function Hoje() {
 
         {/* Primeiro as lembranças: este é o cantinho do cachorro. */}
         <section className="stack hoje-memory" aria-labelledby="last-title">
-          <h2 id="last-title" className="sr-only">Última lembrança</h2>
+          <h2 id="last-title" className="sr-only">{t("lastMemory")}</h2>
           {last ? (
             <>
               <MemoryRotator entries={snap.entries} dogName={dog.name} />
-              <Link href="/guardar" className="btn btn--primary btn--block"><IconPlus /> Guardar momento</Link>
+              <Link href="/guardar" className="btn btn--primary btn--block"><IconPlus /> {t("saveMoment")}</Link>
               {/* Aviso de espaço só quando estiver chegando ao limite. */}
-              {LIMITS.maxEntries - snap.entries.length <= 10 ? <p className="caption" style={{ margin: 0, textAlign: "center" }}>{snap.entries.length >= LIMITS.maxEntries ? "O diário chegou ao limite desta versão. Veja em Perfil › Gerenciar diário." : `Cabem só mais ${LIMITS.maxEntries - snap.entries.length} lembranças nesta versão.`}</p> : null}
+              {LIMITS.maxEntries - snap.entries.length <= 10 ? <p className="caption" style={{ margin: 0, textAlign: "center" }}>{snap.entries.length >= LIMITS.maxEntries ? t("full") : t("spaceLeft", { count: LIMITS.maxEntries - snap.entries.length })}</p> : null}
             </>
           ) : (
             <div className="card stitched empty stack" style={{ boxShadow: "none" }}>
-              <p>O diário de {dog.name} está esperando a primeira página. Pode ser qualquer momento, até uma soneca.</p>
-              <Link href="/guardar" className="btn btn--primary"><IconPlus /> Guardar o primeiro momento</Link>
+              <p>{t("emptyText", { dog: dog.name })}</p>
+              <Link href="/guardar" className="btn btn--primary"><IconPlus /> {t("saveFirst")}</Link>
             </div>
           )}
         </section>
@@ -114,13 +121,13 @@ export default function Hoje() {
               <div className="hero-mission__band">
                 <span className="mission-stamp" aria-hidden="true"><IconStar /></span>
                 <div className="stack" style={{ gap: 4 }}>
-                  <span className="caption hero-mission__kicker">Primeiras lembranças</span>
-                  <h2 style={{ fontSize: "1.25rem" }}>Olá, mundo</h2>
+                  <span className="caption hero-mission__kicker">{cat.collection("primeiras-lembrancas").title}</span>
+                  <h2 style={{ fontSize: "1.25rem" }}>{cat.title("M01")}</h2>
                 </div>
               </div>
               <div className="stack" style={{ padding: 20 }}>
-                <p>Uma foto em que dê para ver bem {dog.name}. Depois dela, chegam ideias novas todo dia.</p>
-                <div className="row-between"><span className="chip chip--reward">+10 🐾</span><span className="btn btn--primary btn--small">Ver missão</span></div>
+                <p>{t("firstMissionText", { dog: dog.name })}</p>
+                <div className="row-between"><span className="chip chip--reward">+10 🐾</span><span className="btn btn--primary btn--small">{t("seeMission")}</span></div>
               </div>
             </Link>
           </>
@@ -128,25 +135,25 @@ export default function Hoje() {
           <section className="stack" aria-labelledby="daily-title">
             <div className="row-between" style={{ alignItems: "center" }}>
               <h2 id="daily-title" className="title-with-info">
-                Ideias para hoje
-                <button type="button" className="xp-reward__info" onClick={() => setIdeasHelp((v) => !v)} aria-expanded={ideasHelp} aria-label="O que são as ideias para hoje">ⓘ</button>
+                {t("ideas")}
+                <button type="button" className="xp-reward__info" onClick={() => setIdeasHelp((v) => !v)} aria-expanded={ideasHelp} aria-label={t("ideasHelpLabel")}>ⓘ</button>
               </h2>
-              <span className="caption" aria-live="polite">{doneToday} de 3</span>
+              <span className="caption" aria-live="polite">{t("doneOf", { n: doneToday, total: 3 })}</span>
             </div>
-            {ideasHelp ? <p className="caption" style={{ marginTop: -6 }}>São as missões do dia: sugestões de fotos de {dog.name}. Sem pressa: o que não der para fazer hoje não tira nada.</p> : null}
+            {ideasHelp ? <p className="caption" style={{ marginTop: -6 }}>{t("ideasHelp", { dog: dog.name })}</p> : null}
 
             {specials.map((w) => (
               <Link key={w.mission.id} href={`/missoes/${w.mission.slug}`} className="hero-mission" style={{ textDecoration: "none", color: "inherit" }}>
                 <div className="hero-mission__band">
                   <span className="mission-stamp" aria-hidden="true"><IconStar /></span>
                   <div className="stack" style={{ gap: 4 }}>
-                    <span className="caption hero-mission__kicker">Especial · até {formatCivilDate(w.end)}</span>
-                    <h3 style={{ fontSize: "1.25rem" }}>{w.title}</h3>
+                    <span className="caption hero-mission__kicker">{t("specialUntil", { date: f.date(w.end) })}</span>
+                    <h3 style={{ fontSize: "1.25rem" }}>{cat.title(w.mission)}</h3>
                   </div>
                 </div>
                 <div className="stack" style={{ padding: 20 }}>
-                  <p>{petText(w.mission.description, dog.name)}</p>
-                  <div className="row-between"><span className="chip chip--reward">+{w.mission.xp} 🐾</span><span className="btn btn--primary btn--small">Ver especial</span></div>
+                  <p>{cat.mission(w.mission).description}</p>
+                  <div className="row-between"><span className="chip chip--reward">+{w.mission.xp} 🐾</span><span className="btn btn--primary btn--small">{t("seeSpecial")}</span></div>
                 </div>
               </Link>
             ))}
@@ -154,10 +161,10 @@ export default function Hoje() {
             {doneToday === 3 ? (
               <div className="card stack daily-done" role="status" style={{ position: "relative", overflow: "visible" }}>
                 <PawBurst />
-                <h3>Momentos guardados! Até a próxima aventura 🐾</h3>
+                <h3>{t("allDone")}</h3>
                 <div className="stack">
-                  <Link href="/albuns?aba=colecoes" className="btn btn--primary btn--block">Ver coleções</Link>
-                  <Link href="/guardar" className="btn btn--secondary btn--block">Guardar mais um momento</Link>
+                  <Link href="/albuns?aba=colecoes" className="btn btn--primary btn--block">{t("seeCollections")}</Link>
+                  <Link href="/guardar" className="btn btn--secondary btn--block">{t("saveAnother")}</Link>
                 </div>
               </div>
             ) : null}
@@ -170,14 +177,14 @@ export default function Hoje() {
                     <Link href={`/missoes/${m.slug}`} className="daily-card__main">
                       <span className={`mission-stamp${done ? " mission-stamp--done" : ""}`} aria-hidden="true">{done ? <IconCheck /> : <IconStar />}</span>
                       <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
-                        <span className="caption">{slot.title}</span>
-                        <strong>{m.title}</strong>
-                        <span className="small muted">{done ? "Guardada hoje" : petText(m.description, dog.name)}</span>
+                        <span className="caption">{cat.slot(slot.id)}</span>
+                        <strong>{cat.title(m)}</strong>
+                        <span className="small muted">{done ? t("savedToday") : cat.mission(m).description}</span>
                       </span>
                       <span className="chip chip--reward">{done ? <IconCheck size={14} /> : null}+{m.xp} 🐾</span>
                     </Link>
                     {!done ? (
-                      <button type="button" className="daily-card__swap" onClick={() => swap(slot.id)} disabled={!!swapping} aria-label={`Outra ideia no lugar de “${m.title}”`} title="Outra ideia">
+                      <button type="button" className="daily-card__swap" onClick={() => swap(slot.id)} disabled={!!swapping} aria-label={t("swapLabel", { title: cat.title(m) })} title={t("swapTitle")}>
                         {swapping === slot.id ? "…" : <IconShuffle size={18} />}
                       </button>
                     ) : null}
@@ -186,7 +193,7 @@ export default function Hoje() {
               })}
             </ul>
             {swapError ? <p className="field-error" role="alert">{swapError}</p> : null}
-            <Link href="/missoes" className="btn btn--secondary btn--block hoje-all"><IconStar size={18} /> Ver todas as missões</Link>
+            <Link href="/missoes" className="btn btn--secondary btn--block hoje-all"><IconStar size={18} /> {t("allMissions")}</Link>
           </section>
         )}
 

@@ -27,3 +27,9 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - Google Cloud: publicar o app do login com Google ("Publish app").
 - Trocar a senha de app do Gmail e o token do GitHub que apareceram no chat.
 - Amazon (Achadinhos): elegibilidade da conta de associado para fotos dos produtos.
+
+## Inglês (desde 18/10/2026)
+- Aprovar os textos em inglês do Abu (apresentação `intro.steps` e carta "Our story" `about.story`).
+- Conferir um email de login em inglês de verdade (assunto com a condição de idioma; ver docs/IDIOMAS.md).
+- Termos de uso, política de privacidade e reembolso também em inglês.
+- Pagamento em dólar: decidir provedor e preços (docs/PAGAMENTOS-EUA.md).

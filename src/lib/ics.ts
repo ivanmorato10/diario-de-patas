@@ -1,5 +1,6 @@
 /** Eventos de calendário (.ics) para o celular: dia inteiro, repetição opcional e alarme às 9h do dia. */
-export interface IcsEvent { uid: string; title: string; date: string; time?: string; description?: string; location?: string; rrule?: string }
+/** `tz`: fuso da pessoa, para eventos com horário (consultas). */
+export interface IcsEvent { uid: string; title: string; date: string; time?: string; tz?: string; description?: string; location?: string; rrule?: string }
 
 const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
 const day = (d: string) => d.replace(/-/g, "");
@@ -11,11 +12,11 @@ export function buildIcs(ev: IcsEvent, until?: string | null): string {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const rule = ev.rrule ? `${ev.rrule}${until ? `;UNTIL=${day(until)}` : ""}` : null;
   return [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Diario de Patas//PT-BR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Diario de Patas//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
     "BEGIN:VEVENT",
     `UID:${ev.uid}@diariodepatas`, `DTSTAMP:${stamp}`,
     ...(ev.time
-      ? [`DTSTART;TZID=America/Sao_Paulo:${day(ev.date)}T${ev.time.replace(":", "")}00`, `DURATION:PT1H`]
+      ? [`DTSTART;TZID=${ev.tz ?? "America/Sao_Paulo"}:${day(ev.date)}T${ev.time.replace(":", "")}00`, `DURATION:PT1H`]
       : [`DTSTART;VALUE=DATE:${day(ev.date)}`, `DTEND;VALUE=DATE:${day(nextDay(ev.date))}`]),
     ...(rule ? [`RRULE:${rule}`] : []),
     `SUMMARY:${esc(ev.title)}`,

@@ -1,11 +1,12 @@
-import Link from "next/link";
-import { COLLECTIONS, MISSIONS, type MissionTemplate } from "@/config/catalog";
-import type { MissionState } from "@/domain/missions";
-import { IconCheck, IconChevron, IconLock, IconStar } from "./icons";
+"use client";
 
-export function collectionTitle(id: string) {
-  return COLLECTIONS.find((c) => c.id === id)?.title ?? id;
-}
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { MISSIONS, type MissionTemplate } from "@/config/catalog";
+import type { MissionState } from "@/domain/missions";
+import { useCatalog } from "@/i18n/catalog";
+import { useStore } from "@/data/store";
+import { IconCheck, IconChevron, IconLock, IconStar } from "./icons";
 
 export function collectionMissions(id: string) {
   return MISSIONS.filter((m) => m.collectionId === id);
@@ -18,15 +19,15 @@ export function MissionStamp({ state, slot = false }: { state: MissionState; slo
   return <span className={cls} aria-hidden="true"><Icon /></span>;
 }
 
-const STATE_LABEL: Record<MissionState, string> = { completed: "Concluída", available: "Disponível", locked: "Abre depois de “Olá, mundo”" };
-
 export function MissionRow({ m, state }: { m: MissionTemplate; state: MissionState }) {
+  const t = useTranslations("missions");
+  const cat = useCatalog(useStore().snap?.dog?.name ?? "");
   return (
     <Link href={`/missoes/${m.slug}`} className="card mission-card" style={{ padding: 14 }}>
       <MissionStamp state={state} />
       <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
-        <strong>{m.title}</strong>
-        <span className="caption">{collectionTitle(m.collectionId)} · {STATE_LABEL[state]}</span>
+        <strong>{cat.title(m)}</strong>
+        <span className="caption">{cat.collection(m.collectionId).title} · {t(`state.${state}`)}</span>
       </span>
       <span className="chip chip--reward">+{m.xp} 🐾</span>
       <IconChevron size={18} className="muted" />

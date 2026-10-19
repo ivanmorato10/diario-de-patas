@@ -20,7 +20,7 @@ describe("seed SQL espelha o catálogo", () => {
 describe("seed SQL espelha o ciclo (§7)", () => {
   it("itens de coleção, especiais e missões do dia batem com cycle.ts", () => {
     const sql = readFileSync(path.resolve(__dirname, "../../supabase/seed.sql"), "utf8");
-    const rows = [...sql.matchAll(/\('([CSD]\d+)','([^']+)',.*?,(\d+),'([^']+)','([^']+)','(M01)',(true|false),'([a-z_]+)',(null|'[ABC]'),(true|false),(null|'[MC]\d+'),(null|'[a-z]+')\)/g)];
+    const rows = [...sql.matchAll(/\('([CSD]\d+)','([^']+)',.*?,(\d+),'([^']+)','([^']+)','(M01)',(true|false),'([a-z_]+)',(null|'[ABC]'),(true|false),(null|'[MC]\d+'),(null|'[a-z-]+')\)/g)];
     const all = [...COLLECTION_ITEMS, ...SPECIAL_MISSIONS, ...DAILY_MISSIONS];
     expect(rows).toHaveLength(all.length);
     for (const [, id, slug, xp, col, ctx, , subj, kind, slot, portrait, adv, theme] of rows) {

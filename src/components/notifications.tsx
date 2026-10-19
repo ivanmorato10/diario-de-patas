@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useStore } from "@/data/store";
 import { rpc } from "@/data/real-repository";
 import { disablePush, enablePush, pushState, setNotifyPrefs, testPush, type PushState } from "@/data/push-client";
@@ -11,6 +12,7 @@ export function DogBell() {
   const { snap, patchSnap } = useStore();
   const n = snap?.unread ?? 0;
   const hasDog = !!snap?.dog;
+  const t = useTranslations("notify");
   // Mantém a bolinha em dia com fotos, cartinhas, artes e ossinhos da família: a cada minuto com o app
   // aberto e ao voltar para ele (só a contagem, nada pesado).
   useEffect(() => {
@@ -26,7 +28,7 @@ export function DogBell() {
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("focus", refresh); };
   }, [hasDog, patchSnap]);
   return (
-    <Link href="/novidades" className="topbar__person dog-bell" aria-label={n ? `Novidades da família: ${n} ${n === 1 ? "nova" : "novas"}` : "Novidades da família"}>
+    <Link href="/novidades" className="topbar__person dog-bell" aria-label={n ? t("bellNew", { count: n }) : t("bell")}>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {/* sino */}
         <path d="M18 16V11a6 6 0 0 0-12 0v5l-1.5 2h15Z" />
@@ -43,13 +45,7 @@ export function DogBell() {
   );
 }
 
-const PUSH_TEXT: Record<PushState, string> = {
-  on: "Ligados neste aparelho.",
-  off: "Desligados neste aparelho.",
-  denied: "Bloqueados nos ajustes do celular. Para ligar, permita as notificações do Diário de Patas nos ajustes do aparelho.",
-  "needs-install": "No iPhone, os avisos só chegam com o app instalado na Tela de Início.",
-  unsupported: "Este navegador não recebe avisos.",
-};
+/* Estado do push neste aparelho: notify.state.<estado>. */
 
 /** Ligar/desligar o push neste aparelho e escolher quais avisos receber. */
 export function NotificationSettings() {
@@ -57,6 +53,7 @@ export function NotificationSettings() {
   const [state, setState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const t = useTranslations("notify");
   const prefs = snap?.me?.notify ?? { photo: true, letter: true, bone: true };
   useEffect(() => { void pushState().then(setState); }, []);
 
@@ -66,7 +63,7 @@ export function NotificationSettings() {
     try {
       setState(state === "on" ? await disablePush() : await enablePush());
     } catch {
-      setMsg("Não deu agora. Tente de novo.");
+      setMsg(t("failed"));
     } finally {
       setBusy(false);
     }
@@ -77,39 +74,39 @@ export function NotificationSettings() {
     setMsg(null);
     try {
       const r = await testPush();
-      if (!r.configured) setMsg("Os avisos ainda não estão configurados no servidor.");
-      else if (!r.devices) { setMsg("Este aparelho não está registrado. Toque em “Ligar avisos” de novo."); setState("off"); }
-      else if (!r.accepted) setMsg("O serviço de avisos recusou o envio. Desligue e ligue os avisos de novo.");
-      else setMsg("Enviado para o serviço de avisos. Se não aparecer em alguns segundos, confira as notificações do app nos ajustes do celular.");
+      if (!r.configured) setMsg(t("notConfigured"));
+      else if (!r.devices) { setMsg(t("notRegistered")); setState("off"); }
+      else if (!r.accepted) setMsg(t("refused"));
+      else setMsg(t("sent"));
     } catch {
-      setMsg("Não deu para mandar o teste agora. Tente de novo.");
+      setMsg(t("testFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   async function pref(k: "photo" | "letter" | "bone", v: boolean) {
-    await setNotifyPrefs({ ...prefs, [k]: v }).catch(() => setMsg("Não deu para salvar agora."));
+    await setNotifyPrefs({ ...prefs, [k]: v }).catch(() => setMsg(t("saveFailed")));
     await reload();
   }
 
   return (
     <div className="stack">
       <div className="stack" style={{ gap: 6 }}>
-        <strong>Avisos no celular</strong>
-        <span className="caption">{state ? PUSH_TEXT[state] : "…"}</span>
+        <strong>{t("title")}</strong>
+        <span className="caption">{state ? t(`state.${state}`) : "…"}</span>
         {state === "on" || state === "off" ? (
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className={`btn btn--small ${state === "on" ? "btn--secondary" : "btn--primary"}`} disabled={busy} onClick={toggle}>{busy ? "…" : state === "on" ? "Desligar" : "🔔 Ligar avisos"}</button>
-            {state === "on" ? <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={runTest}>Mandar um teste</button> : null}
+            <button type="button" className={`btn btn--small ${state === "on" ? "btn--secondary" : "btn--primary"}`} disabled={busy} onClick={toggle}>{busy ? "…" : state === "on" ? t("turnOff") : t("turnOn")}</button>
+            {state === "on" ? <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={runTest}>{t("test")}</button> : null}
           </div>
         ) : null}
       </div>
       <fieldset className="invite-box__roles">
-        <legend className="caption">Me avise quando alguém da família:</legend>
-        <label className="check"><input type="checkbox" checked={prefs.photo} onChange={(e) => pref("photo", e.target.checked)} /><span>📸 guardar uma foto</span></label>
-        <label className="check"><input type="checkbox" checked={prefs.letter} onChange={(e) => pref("letter", e.target.checked)} /><span>💌 escrever uma cartinha</span></label>
-        <label className="check"><input type="checkbox" checked={prefs.bone} onChange={(e) => pref("bone", e.target.checked)} /><span>🦴 der ossinho no que você guardou</span></label>
+        <legend className="caption">{t("legend")}</legend>
+        <label className="check"><input type="checkbox" checked={prefs.photo} onChange={(e) => pref("photo", e.target.checked)} /><span>{t("photo")}</span></label>
+        <label className="check"><input type="checkbox" checked={prefs.letter} onChange={(e) => pref("letter", e.target.checked)} /><span>{t("letter")}</span></label>
+        <label className="check"><input type="checkbox" checked={prefs.bone} onChange={(e) => pref("bone", e.target.checked)} /><span>{t("bone")}</span></label>
       </fieldset>
       {msg ? <p className="small" role="status" style={{ margin: 0 }}>{msg}</p> : null}
     </div>

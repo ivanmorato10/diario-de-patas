@@ -1,7 +1,11 @@
-/** Operações do modo real (MUDANCAS-V2 §8). Sessão obrigatória; erros no formato { code, message }. */
+/**
+ * Operações do modo real (MUDANCAS-V2 §8). Sessão obrigatória; erros no formato { code, message },
+ * com a mensagem no idioma de quem pediu (cookie de idioma).
+ */
 import { NextResponse } from "next/server";
 import { configMissing } from "@/server/config-check";
 import { HttpError, requireUser } from "@/server/supabase";
+import { requestLocale, translateKey, translator } from "@/server/i18n";
 import { RPC } from "@/server/rpc";
 
 export const dynamic = "force-dynamic";
@@ -9,14 +13,18 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(req: Request, { params }: { params: Promise<{ method: string }> }) {
-  const missing = configMissing();
+  const locale = await requestLocale();
+  const missing = configMissing(locale);
   if (missing) return missing;
+  const t = translator(locale);
+  const fail = (status: number, code: string, key: string, values?: Record<string, string | number>) =>
+    NextResponse.json({ code, message: translateKey(t, key, values) }, { status });
   const { method } = await params;
   const fn = Object.hasOwn(RPC, method) ? RPC[method] : undefined;
-  if (!fn) return NextResponse.json({ code: "NOT_FOUND", message: "Operação desconhecida." }, { status: 404 });
+  if (!fn) return fail(404, "NOT_FOUND", "errors.unknownOperation");
   // Mesma origem: protege contra requisições forjadas de outros sites (cookies SameSite=Lax + checagem de Origin).
   const origin = req.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(req.url).host) return NextResponse.json({ code: "FORBIDDEN", message: "Origem inválida." }, { status: 403 });
+  if (origin && new URL(origin).host !== new URL(req.url).host) return fail(403, "FORBIDDEN", "errors.badOrigin");
   try {
     const hint = req.headers.get("x-ddp-dog");
     const ctx = { ...(await requireUser()), dogHint: hint && /^[0-9a-f-]{36}$/i.test(hint) ? hint : null };
@@ -24,8 +32,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ method:
     const result = await fn(ctx, args);
     return NextResponse.json(result ?? null, { headers: { "cache-control": "private, no-store" } });
   } catch (e) {
-    if (e instanceof HttpError) return NextResponse.json({ code: e.code, message: e.message }, { status: e.status });
+    if (e instanceof HttpError) return fail(e.status, e.code, e.message, e.params);
     console.error(`rpc ${method}:`, e);
-    return NextResponse.json({ code: "SERVER", message: "Algo deu errado do nosso lado. Tente de novo." }, { status: 500 });
+    return fail(500, "SERVER", "errors.generic");
   }
 }

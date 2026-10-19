@@ -1,6 +1,8 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useErrorText } from "@/i18n/use-error";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { NameAsk } from "@/components/name-ask";
@@ -20,6 +22,9 @@ function Cartinha() {
   const [date, setDate] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("letterEdit");
+  const tf = useTranslations("family");
+  const errText = useErrorText();
   const key = useRef<string>("");
   const loaded = useRef(false);
 
@@ -34,11 +39,11 @@ function Cartinha() {
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
   const dog = snap.dog;
-  if (snap.role === "viewer") return (<><TopBar title="Cartinha" back="/diario" /><main className="main"><p className="page-note">Você está acompanhando o diário de {dog.name}. Para escrever cartinhas, peça para quem é responsável pelo diário mudar seu papel para “Pode adicionar momentos”.</p></main></>);
+  if (snap.role === "viewer") return (<><TopBar title={t("title")} back="/diario" emoji="💌" /><main className="main"><p className="page-note">{t("viewer", { dog: dog.name, role: tf("roles.editor") })}</p></main></>);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!body.trim()) return setError("Escreva alguma coisa para " + dog.name + ".");
+    if (!body.trim()) return setError(t("empty", { dog: dog.name }));
     setBusy(true);
     setError(null);
     try {
@@ -46,48 +51,48 @@ function Cartinha() {
       await reload();
       router.replace(`/diario#carta-${res.id}`);
     } catch (er) {
-      setError(er instanceof Error ? er.message : "Não deu para guardar a cartinha agora.");
+      setError(errText(er, "errors.letterSaveFailed"));
       setBusy(false);
     }
   }
 
   async function remove() {
-    if (!editing || !window.confirm("Apagar esta cartinha? Não dá para desfazer.")) return;
+    if (!editing || !window.confirm(t("confirmDelete"))) return;
     setBusy(true);
     try {
       await deleteLetter(editing.id);
       await reload();
       router.replace("/diario");
     } catch (er) {
-      setError(er instanceof Error ? er.message : "Não deu para apagar agora.");
+      setError(errText(er, "letterEdit.deleteFailed"));
       setBusy(false);
     }
   }
 
   return (
     <>
-      <TopBar title="Cartinha" back="/diario" />
+      <TopBar title={t("title")} back="/diario" emoji="💌" />
       <main className="main">
-        <NameAsk title="Antes, qual é o seu nome?" note="O seu, de humano 🙂 A cartinha sai assinada com ele." />
+        <NameAsk title={t("nameTitle")} note={t("nameNote")} />
         <form className="stack" onSubmit={save}>
           <div className="letter-card letter-card--edit">
-            <p className="letter-card__kicker">💌 {editing ? "Editar cartinha" : "Nova cartinha"}</p>
-            <p className="letter-card__hello">Oi, {dog.name}!</p>
-            <label htmlFor="carta" className="sr-only">Sua cartinha para {dog.name}</label>
+            <p className="letter-card__kicker">💌 {editing ? t("editKicker") : t("newKicker")}</p>
+            <p className="letter-card__hello">{t("hello", { dog: dog.name })}</p>
+            <label htmlFor="carta" className="sr-only">{t("label", { dog: dog.name })}</label>
             <textarea id="carta" className="letter-card__body letter-card__input" value={body} maxLength={MAX} rows={8} autoFocus={!editing}
-              placeholder={`Hoje você…`} onChange={(e) => setBody(e.target.value)} />
-            <p className="letter-card__sign">— {snap.me?.nameConfirmed ? snap.me.name : "seu nome"}</p>
+              placeholder={t("placeholder")} onChange={(e) => setBody(e.target.value)} />
+            <p className="letter-card__sign">— {snap.me?.nameConfirmed ? snap.me.name : t("yourName")}</p>
           </div>
           <div className="row-between" style={{ alignItems: "end", gap: 12 }}>
             <div className="field" style={{ margin: 0 }}>
-              <label htmlFor="data-carta">Data</label>
+              <label htmlFor="data-carta">{t("date")}</label>
               <input id="data-carta" type="date" className="input" value={date} max={snap.today} onChange={(e) => setDate(e.target.value)} />
             </div>
             <span className="caption">{body.length}/{MAX}</span>
           </div>
           {error ? <p className="field-error" role="alert">{error}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? "Guardando…" : editing ? "Salvar cartinha" : "Guardar cartinha"}</button>
-          {editing ? <button type="button" className="btn btn--secondary btn--block" onClick={remove} disabled={busy}>Apagar cartinha</button> : null}
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? t("saving") : editing ? t("saveEdit") : t("save")}</button>
+          {editing ? <button type="button" className="btn btn--secondary btn--block" onClick={remove} disabled={busy}>{t("delete")}</button> : null}
         </form>
       </main>
     </>

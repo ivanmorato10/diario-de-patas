@@ -9,19 +9,19 @@ import { stickerFromGreen } from "./studio";
 describe("presets do Estúdio (adendo §10)", () => {
   it("variantes ilustradas: datas, fantasias e formatos com foto, com o prompt antigo e os mesmos créditos", () => {
     const v = STUDIO_PRESETS.filter((p) => p.variantOf);
-    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "astronauta", "capa-album", "cartao", "chef", "detetive", "dia-das-maes-pet", "dia-dos-animais", "explorador", "festa-junina", "futebol", "halloween", "natal", "papel-de-parede", "pascoa", "realeza", "super-heroi", "surfista"]);
+    expect(v.map((p) => p.variantOf).sort()).toEqual(["aniversario", "ano-novo", "astronauta", "capa-album", "cartao", "chef", "detetive", "dia-das-maes-pet", "dia-dos-animais", "explorador", "festa-junina", "futebol", "halloween", "natal", "national-dog-day", "papel-de-parede", "pascoa", "realeza", "super-heroi", "surfista", "thanksgiving"]);
     for (const p of v) {
       expect(p.prompt).toMatch(/illustrat|style/);
       expect(presetById(p.variantOf!)!.prompt).toMatch(/not an illustration/);
       expect(p.credits).toBe(presetById(p.variantOf!)!.credits);
     }
   });
-  it("4 abas e 28 presets com ids únicos e campos completos", () => {
+  it("4 abas e 30 presets com ids únicos e campos completos (datas dos EUA: National Dog Day e Thanksgiving)", () => {
     expect(STUDIO_TABS.map((t) => t.id)).toEqual(["datas", "estilos", "fantasias", "formatos"]);
-    expect(STUDIO_PRESETS.filter((p) => !p.variantOf)).toHaveLength(28);
+    expect(STUDIO_PRESETS.filter((p) => !p.variantOf)).toHaveLength(30);
     expect(new Set(STUDIO_PRESETS.map((p) => p.id)).size).toBe(STUDIO_PRESETS.length);
     const per = Object.fromEntries(STUDIO_TABS.map((t) => [t.id, STUDIO_PRESETS.filter((p) => p.category === t.id && !p.variantOf).length]));
-    expect(per).toEqual({ datas: 8, estilos: 8, fantasias: 8, formatos: 4 });
+    expect(per).toEqual({ datas: 10, estilos: 8, fantasias: 8, formatos: 4 });
     for (const p of STUDIO_PRESETS) {
       expect(p.version).toBeGreaterThanOrEqual(1);
       expect(p.prompt.length).toBeGreaterThan(40);

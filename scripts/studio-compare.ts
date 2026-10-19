@@ -7,6 +7,7 @@
  *
  * Sem --yes só mostra o custo estimado. A chave vem do .env.local e nunca é impressa.
  */
+import { MESSAGES } from "@/i18n/messages";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, copyFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
@@ -14,6 +15,9 @@ import { STUDIO_BASE_PROMPT, STUDIO_FORMATS, STUDIO_MODELS, buildStudioPrompt, e
 import { geminiGenerator, ProviderError } from "@/server/art-generator";
 
 /** Prompts anteriores (v1), guardados aqui só para a comparação. */
+/** Nome do tema em português (os relatórios internos ficam em pt-BR). */
+const presetLabel = (id: string) => (MESSAGES["pt-BR"].studioCatalog.presets as Record<string, { label: string }>)[id.replace(/-ilustrado$/, "")]?.label ?? id;
+
 const OLD: Record<string, string> = {
   aniversario: "A joyful birthday illustration: the dog wearing a small soft party hat, sitting next to a dog-safe birthday cake with one candle, colorful balloons and confetti floating in a bright cheerful room. Warm soft lighting, festive pastel colors, charming editorial illustration style.",
   "natal": "A cozy Christmas scene: the dog resting on a soft knitted blanket beside a decorated Christmas tree with warm glowing fairy lights and wrapped presents. Gentle warm light, red, green and gold tones, storybook illustration style.",
@@ -40,7 +44,7 @@ const dirs = ["docs/abu-referencias", "docs/caes-teste"].map((d) => path.join(ro
 const only = args.includes("--fotos") ? args[args.indexOf("--fotos") + 1].split(",").map((f) => path.resolve(root, f)) : null;
 const photos = only ?? dirs.flatMap((d) => readdirSync(d).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)).sort().map((f) => path.join(d, f)));
 const cost = estimateCostUsd(preset, preset.aspect);
-console.log(`${preset.labelPt}: ${photos.length} fotos × 2 prompts = ${photos.length * 2} gerações · ~US$ ${(photos.length * 2 * (cost + 0.0002)).toFixed(2)}`);
+console.log(`${presetLabel(preset.id)}: ${photos.length} fotos × 2 prompts = ${photos.length * 2} gerações · ~US$ ${(photos.length * 2 * (cost + 0.0002)).toFixed(2)}`);
 if (!args.includes("--yes")) { console.log("Nada foi gerado. Repita com --yes."); process.exit(0); }
 const key = process.env.ART_GENERATOR_API_KEY || process.env.GEMINI_API_KEY;
 if (!key) { console.error("Falta ART_GENERATOR_API_KEY no .env.local."); process.exit(1); }
@@ -97,9 +101,9 @@ const rows: { photo: string; old: Shot; neu: Shot }[] = [];
   writeFileSync(path.join(outDir, "results.json"), JSON.stringify(rows, null, 2));
   const cap = (s: Shot) => s.file ? `${(s.ms / 1000).toFixed(1)} s · semelhança ${s.same ?? "?"}/5 · ${s.photo ? "parece foto" : "parece desenho"}` : `falhou: ${s.error}`;
   const fig = (src: string | null, c: string) => `<figure>${src ? `<img src="${src}" alt="">` : "<div class=x></div>"}<figcaption>${c}</figcaption></figure>`;
-  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparação ${preset.labelPt}</title>
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparação ${presetLabel(preset.id)}</title>
 <style>body{font-family:system-ui,sans-serif;background:#eaf6f3;color:#3d2d1e;margin:0;padding:16px}.row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;background:#fff;border-radius:16px;padding:10px;margin:10px 0}figure{margin:0}img{width:100%;border-radius:10px}figcaption{font-size:.8rem;color:#6b5a4a}h2{font-size:1rem;margin:0;grid-column:1/-1}.x{aspect-ratio:1;background:#eee;border-radius:10px}</style></head><body>
-<h1>${preset.labelPt}: prompt antigo × novo</h1><p>Modelo ${gen.modelFor(preset.premium)} · ${preset.aspect} · ${imageSizeFor(preset.aspect)} · mesma foto de entrada (1536 px, JPEG 90). Notas automáticas são só apoio — a decisão é visual.</p>
+<h1>${presetLabel(preset.id)}: prompt antigo × novo</h1><p>Modelo ${gen.modelFor(preset.premium)} · ${preset.aspect} · ${imageSizeFor(preset.aspect)} · mesma foto de entrada (1536 px, JPEG 90). Notas automáticas são só apoio — a decisão é visual.</p>
 ${rows.map((r, i) => `<div class="row"><h2>Foto ${i + 1}</h2>${fig(r.photo, "original")}${fig("exemplo.webp", "exemplo da vitrine")}${fig(r.old.file, "ANTIGO · " + cap(r.old))}${fig(r.neu.file, "NOVO · " + cap(r.neu))}</div>`).join("\n")}
 </body></html>`;
   writeFileSync(path.join(outDir, "index.html"), html);

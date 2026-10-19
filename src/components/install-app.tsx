@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Sheet } from "@/components/entry-actions";
 
 /**
@@ -68,6 +69,8 @@ function ShareIcon() {
 export function InstallAppLink({ variant = "default" }: { variant?: "default" | "splash" | "row" }) {
   const { show, ios, iosOtherBrowser, canPrompt } = useInstall();
   const [open, setOpen] = useState(false);
+  const t = useTranslations("install");
+  const strong = { strong: (c: React.ReactNode) => <strong>{c}</strong> };
   if (!show) return null;
 
   async function click() {
@@ -83,26 +86,26 @@ export function InstallAppLink({ variant = "default" }: { variant?: "default" | 
   return (
     <>
       {variant === "row" ? (
-        <button type="button" className="card row-between profile-row" onClick={click}><span className="profile-row__text"><span>📲 Instalar o aplicativo</span></span><span aria-hidden="true">›</span></button>
+        <button type="button" className="card row-between profile-row" onClick={click}><span className="profile-row__text"><span>{t("rowLabel")}</span></span><span aria-hidden="true">›</span></button>
       ) : (
       <button type="button" className={variant === "splash" ? "install-link install-link--splash" : "install-link"} onClick={click}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M11 18h2" /></svg>
-        Instalar aplicativo
+        {t("link")}
       </button>
       )}
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy="install-title">
-        <h2 id="install-title">Diário de Patas na Tela de Início</h2>
-        <p className="page-note">Fica com ícone próprio e abre em tela cheia, como um aplicativo. É grátis e não precisa da App Store.</p>
+        <h2 id="install-title">{t("title")}</h2>
+        <p className="page-note">{t("intro")}</p>
         {iosOtherBrowser ? (
-          <p className="notice notice--info small"><span>Se não aparecer a opção, abra <strong>diario-de-patas.vercel.app</strong> no <strong>Safari</strong> e repita os passos.</span></p>
+          <p className="notice notice--info small"><span>{t.rich("otherBrowser", strong)}</span></p>
         ) : null}
         <ol className="install-steps">
-          <li>Toque em <strong>Compartilhar</strong> <ShareIcon /> na barra do {iosOtherBrowser ? "navegador" : "Safari"} (embaixo ou em cima da tela).</li>
-          <li>Role a lista e toque em <strong>Adicionar à Tela de Início</strong>.</li>
-          <li>Confirme em <strong>Adicionar</strong>. O ícone do Abu aparece na sua tela.</li>
+          <li>{t.rich(iosOtherBrowser ? "step1Browser" : "step1Safari", { ...strong, icon: () => <ShareIcon /> })}</li>
+          <li>{t.rich("step2", strong)}</li>
+          <li>{t.rich("step3", strong)}</li>
         </ol>
-        <p className="caption">Abra sempre pelo ícone. Se você entrou pelo navegador, entre de novo no app: o login do app instalado é separado do Safari.</p>
-        <button type="button" className="btn btn--secondary btn--block" onClick={() => setOpen(false)}>Entendi</button>
+        <p className="caption">{t("openFromIcon")}</p>
+        <button type="button" className="btn btn--secondary btn--block" onClick={() => setOpen(false)}>{t("gotIt")}</button>
       </Sheet>
     </>
   );
@@ -111,6 +114,7 @@ export function InstallAppLink({ variant = "default" }: { variant?: "default" | 
 /** Faixa no topo quando a conexão cai: nada é dado como enviado sem internet. */
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
+  const t = useTranslations("shell");
   useEffect(() => {
     const update = () => setOffline(!navigator.onLine);
     update();
@@ -124,7 +128,7 @@ export function OfflineBanner() {
   if (!offline) return null;
   return (
     <div className="offline-banner" role="status">
-      Sem conexão. Fotos e mudanças só são salvas quando a internet voltar.
+      {t("offline")}
     </div>
   );
 }

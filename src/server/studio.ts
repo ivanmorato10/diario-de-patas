@@ -5,12 +5,12 @@
  */
 import { currentDog, requireEditor } from "./family";
 import "server-only";
-import { fullDiaryText, serverMaxEntries } from "@/config/business";
+import { fullDiaryParams, serverMaxEntries } from "@/config/business";
 import { z } from "zod";
 import sharp from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
-  STUDIO_COST_USD, STUDIO_DEFAULTS, STUDIO_PRESETS, buildStudioPrompt, estimateCostUsd, imageSizeFor, presetById, type StudioAspect, type StudioPreset,
+  STUDIO_ALBUM_TITLE, STUDIO_COST_USD, STUDIO_DEFAULTS, STUDIO_PRESETS, buildStudioPrompt, estimateCostUsd, imageSizeFor, presetById, type StudioAspect, type StudioPreset,
 } from "@/config/studio";
 import { civilDateInTz } from "@/domain/dates";
 import { adminClient, HttpError } from "./supabase";
@@ -18,10 +18,11 @@ import { notifyFamily } from "./notify";
 import { ProviderError, artGenerator, type PhotoAssessment } from "./art-generator";
 import { assessPhoto, type PhotoCheck } from "./photo-quality";
 import { XP_MONTH_GOAL } from "@/config/credits";
+import { localeOf, translator } from "./i18n";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Ctx = { user: User; supa: SupabaseClient };
-const bad = (code: string, message: string) => new HttpError(400, code, message);
+const bad = (code: string, message: string, params?: Record<string, string | number>) => new HttpError(400, code, message, params);
 const now = () => new Date().toISOString();
 const env = (k: string, d: number) => {
   const v = Number(process.env[k]);
@@ -33,7 +34,7 @@ async function q(p: PromiseLike<{ data: any; error: any }>): Promise<any> {
   const { data, error } = await p;
   if (error) {
     console.error("studio supabase:", error.code, error.message);
-    throw new HttpError(500, "SERVER", "Não conseguimos falar com o servidor. Tente de novo.");
+    throw new HttpError(500, "SERVER", "errors.serverUnreachable");
   }
   return data;
 }
@@ -99,17 +100,20 @@ async function capacityLeft(dogId: string) {
     admin.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dogId).is("deleted_at", null),
     admin.from("generation_jobs").select("id", { count: "exact", head: true }).eq("dog_id", dogId).in("state", ["queued", "processing"]),
   ]);
-  if (entries.error || active.error || entries.count === null || active.count === null) throw new HttpError(503, "SERVER", "Não conseguimos conferir o espaço do diário agora. Tente de novo.");
+  if (entries.error || active.error || entries.count === null || active.count === null) throw new HttpError(503, "SERVER", "errors.spaceCheckFailed");
   return serverMaxEntries() - entries.count - active.count;
 }
 
-/** Álbum "Artes do Estúdio" do cachorro: um só (system_key = studio), mesmo com artes simultâneas. */
+/**
+ * Álbum "Artes do Estúdio" do cachorro: um só (system_key = studio), mesmo com artes simultâneas.
+ * O título gravado é o original em português; a tela mostra o nome no idioma de quem vê (STUDIO_ALBUM_TITLE).
+ */
 async function studioAlbumId(dogId: string, ownerId: string): Promise<string> {
   const admin = adminClient();
   const find = async () => ((await admin.from("albums").select("id").eq("dog_id", dogId).eq("system_key", "studio").maybeSingle()).data as any)?.id as string | undefined;
   const found = await find();
   if (found) return found;
-  const { data, error } = await admin.from("albums").insert({ owner_id: ownerId, dog_id: dogId, title: "Artes do Estúdio", type: "custom", system_key: "studio" }).select("id").single();
+  const { data, error } = await admin.from("albums").insert({ owner_id: ownerId, dog_id: dogId, title: STUDIO_ALBUM_TITLE, type: "custom", system_key: "studio" }).select("id").single();
   if (!error) return (data as any).id;
   const again = await find(); // outra arte criou ao mesmo tempo
   if (again) return again;
@@ -184,16 +188,16 @@ const CheckPhoto = z.object({
 /** Valida a foto escolhida antes de gastar crédito (chamado ao escolher a foto e ao mudar o recorte). */
 export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCheck> {
   const a = CheckPhoto.safeParse(args);
-  if (!a.success) throw bad("INVALID", "Pedido inválido.");
+  if (!a.success) throw bad("INVALID", "errors.invalidRequest");
   const dog = (await currentDog(ctx))!;
   const entry = (await q(ctx.supa.from("diary_entries").select("id, source, media_asset_id").eq("id", a.data.entryId).eq("dog_id", dog.id).is("deleted_at", null).maybeSingle())) as any;
-  if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
-  if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
-  if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
+  if (!entry) throw bad("NOT_FOUND", "errors.photoNotFound");
+  if (entry.source === "studio") throw bad("INVALID", "errors.pickPhotoNotArt");
+  if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", "errors.fullDiaryNoCredit", fullDiaryParams(dog.name));
   try {
     const crop = a.data.crop ?? null;
     const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), artGenerator(), photoCheckCache(entry.media_asset_id, crop, ctx.user.id));
-    return { ...r, issues: r.issues.map((i) => ({ ...i, message: i.message.replaceAll("{dog}", dog.name) })) };
+    return r; // códigos; a tela mostra o texto no idioma da pessoa (studio.issues.<código>)
   } catch {
     return { verdict: "warn", issues: [], aiChecked: false }; // falha nossa: não bloqueia, mas não garante nada
   }
@@ -201,24 +205,24 @@ export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCh
 
 export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: () => Promise<void>) => void) {
   const a = CreateJob.safeParse(args);
-  if (!a.success) throw bad("INVALID", "Pedido inválido.");
+  if (!a.success) throw bad("INVALID", "errors.invalidRequest");
   const { entryId, presetId, idempotencyKey, crop, overlay } = a.data;
   const admin = adminClient();
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);
   const prior = (await q(admin.from("generation_jobs").select("*").eq("dog_id", dog.id).eq("idempotency_key", idempotencyKey).maybeSingle())) as any;
   if (prior) return toJob(prior); // duplo clique / retry: mesmo job, mesma cobrança
-  if (paused()) throw bad("PAUSED", "A criação de artes está pausada no momento. O resto do diário segue normal.");
+  if (paused()) throw bad("PAUSED", "errors.studioPaused");
   const gen = artGenerator();
-  if (!gen) throw bad("NOT_CONFIGURED", "O Estúdio ainda não está disponível.");
+  if (!gen) throw bad("NOT_CONFIGURED", "errors.studioNotConfigured");
   const preset = (await presetsWithFlags()).find((p) => p.id === presetId);
-  if (!preset || !preset.enabled) throw bad("PRESET_OFF", "Esse tema não está disponível agora.");
+  if (!preset || !preset.enabled) throw bad("PRESET_OFF", "errors.presetOff");
   const aspect: StudioAspect = a.data.aspect && preset.aspects.includes(a.data.aspect) ? a.data.aspect : preset.aspect;
   const entry = (await q(ctx.supa.from("diary_entries").select("id, dog_id, source, media_asset_id").eq("id", entryId).eq("dog_id", dog.id).is("deleted_at", null).maybeSingle())) as any;
-  if (!entry) throw bad("NOT_FOUND", "Foto não encontrada.");
-  if (entry.source === "studio") throw bad("INVALID", "Escolha uma foto, não uma arte.");
-  if ((await countToday(dog.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "Você chegou ao limite de artes de hoje. Amanhã tem mais.");
-  if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "O Estúdio atingiu o limite de artes de hoje. Tente amanhã.");
+  if (!entry) throw bad("NOT_FOUND", "errors.photoNotFound");
+  if (entry.source === "studio") throw bad("INVALID", "errors.pickPhotoNotArt");
+  if ((await countToday(dog.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "errors.dailyLimit");
+  if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "errors.globalLimit");
   // Reserva vaga no diário e orçamento do dia ANTES de qualquer chamada paga (no banco, com trava):
   // dois pedidos ao mesmo tempo não passam juntos. A arte em andamento ocupa a vaga.
   const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD) || null;
@@ -230,10 +234,10 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
     p_max_entries: serverMaxEntries(), p_budget_usd: budget,
   });
   if (created.error) {
-    if (/NO_SPACE/.test(created.error.message)) throw bad("NO_SPACE", `${fullDiaryText(dog.name)} Nenhum crédito foi usado.`);
-    if (/BUDGET/.test(created.error.message)) throw bad("GLOBAL_LIMIT", "O Estúdio fez uma pausa por hoje. Tente amanhã.");
+    if (/NO_SPACE/.test(created.error.message)) throw bad("NO_SPACE", "errors.fullDiaryNoCredit", fullDiaryParams(dog.name));
+    if (/BUDGET/.test(created.error.message)) throw bad("GLOBAL_LIMIT", "errors.globalPause");
     console.error("create_studio_job:", created.error.message);
-    throw new HttpError(500, "SERVER", "Não conseguimos começar a arte agora. Tente de novo.");
+    throw new HttpError(500, "SERVER", "errors.startArtFailed");
   }
   const job = (await q(admin.from("generation_jobs").select("*").eq("id", created.data).single())) as any;
   if (job.state !== "queued") return toJob(job); // toque duplo: o mesmo pedido
@@ -241,12 +245,12 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   const photoCheck = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop ?? null), gen, photoCheckCache(entry.media_asset_id, crop ?? null, ctx.user.id)).catch(() => null);
   if (photoCheck?.verdict === "bad") {
     await q(admin.from("generation_jobs").update({ state: "cancelled", failure_code: "PHOTO_UNSUITABLE", finished_at: now(), updated_at: now() }).eq("id", job.id));
-    throw bad("PHOTO_UNSUITABLE", photoCheck.issues.find((i) => i.level === "bad")!.message);
+    throw bad("PHOTO_UNSUITABLE", `studio.issues.${photoCheck.issues.find((i) => i.level === "bad")!.code}`, { dog: dog.name });
   }
   const reserved = await q(admin.rpc("reserve_credit_dog", { p_dog: dog.id, p_owner: dog.owner_id, p_job: job.id, p_cost: preset.credits }));
   if (!reserved) {
     await q(admin.from("generation_jobs").update({ state: "failed", failure_code: "NO_CREDITS", finished_at: now() }).eq("id", job.id));
-    throw bad("NO_CREDITS", "Os créditos deste diário acabaram.");
+    throw bad("NO_CREDITS", "errors.noCredits");
   }
   schedule(() => processJob(job.id));
   return toJob(job);
@@ -257,7 +261,7 @@ export async function studioJob(ctx: Ctx, args: unknown) {
   // Pelo pedido, não pelo diário aberto: trocar de cachorro durante a geração não perde o acompanhamento.
   // A regra do banco (jobs_read) só mostra pedidos de diários de que a pessoa participa.
   const found = (await q(ctx.supa.from("generation_jobs").select("dog_id").eq("id", id).maybeSingle())) as any;
-  if (!found) throw bad("NOT_FOUND", "Pedido não encontrado.");
+  if (!found) throw bad("NOT_FOUND", "errors.jobNotFound");
   await reconcileStuck(found.dog_id);
   return toJob(await q(ctx.supa.from("generation_jobs").select("*").eq("id", id).single()));
 }
@@ -351,7 +355,7 @@ export async function processJob(jobId: string) {
     const tz = profile?.timezone ?? "America/Sao_Paulo";
     // A lembrança é de quem pediu a arte (aparece "guardada por" e gera aviso para a família).
     const saved = await admin.from("diary_entries").upsert({
-      owner_id: job.owner_id, created_by: job.requested_by ?? null, dog_id: job.dog_id, media_asset_id: mediaId, caption: `Arte: ${preset.labelPt}`.slice(0, 280),
+      owner_id: job.owner_id, created_by: job.requested_by ?? null, dog_id: job.dog_id, media_asset_id: mediaId, caption: await artCaption(job.requested_by ?? job.owner_id, preset.variantOf ?? preset.id),
       occurred_date: civilDateInTz(new Date(), tz), timezone: tz, source: "studio", request_key: job.id,
     }, { onConflict: "owner_id,request_key" }).select("id").single();
     if (saved.error) {
@@ -368,7 +372,7 @@ export async function processJob(jobId: string) {
     // Aviso para a família só depois de a arte estar salva no diário.
     if (job.requested_by) {
       const dog = (await admin.from("dogs").select("name").eq("id", job.dog_id).maybeSingle()).data as any;
-      await notifyFamily({ user: { id: job.requested_by } as User }, { dogId: job.dog_id, dogName: dog?.name ?? "o cachorro", kind: "art", targetType: "entry", targetId: outEntry.id, detail: preset.labelPt, now: true });
+      await notifyFamily({ user: { id: job.requested_by } as User }, { dogId: job.dog_id, dogName: dog?.name ?? "", kind: "art", targetType: "entry", targetId: outEntry.id, detail: preset.variantOf ?? preset.id, now: true });
     }
   } catch (e) {
     const code = e instanceof ProviderError ? e.code : "TECHNICAL";
@@ -379,14 +383,10 @@ export async function processJob(jobId: string) {
   }
 }
 
-export const STUDIO_FAILURE_MESSAGES: Record<string, string> = {
-  PROVIDER_REFUSED: "Não consegui usar esta foto. Tente outra em que {dog} apareça sozinho. O crédito foi devolvido.",
-  QUALITY_REJECTED: "A arte não ficou boa o bastante ({dog} não apareceu direito). O crédito foi devolvido.",
-  PROVIDER_TIMEOUT: "A arte demorou demais e foi cancelada. O crédito foi devolvido.",
-  PROVIDER_UNAVAILABLE: "O serviço de artes está instável agora. O crédito foi devolvido — tente de novo mais tarde.",
-  NO_CREDITS: "Os créditos acabaram por enquanto. Dá para criar mais em Créditos, ou ganhar 1 crédito juntando patinhas no mês.",
-  INPUT_DELETED: "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
-  NOT_CONFIGURED: "O Estúdio ainda não está disponível. O crédito foi devolvido.",
-  NO_SPACE: "O diário de {dog} chegou ao limite de lembranças, e a arte não teria onde ficar. O crédito foi devolvido.",
-  TECHNICAL: "Algo deu errado do nosso lado. O crédito foi devolvido.",
-};
+/** Legenda da arte no idioma de quem pediu (vira uma legenda comum: a pessoa pode editar). */
+async function artCaption(userId: string, presetId: string) {
+  const t = translator(await localeOf(userId));
+  const key = `studioCatalog.presets.${presetId}.label`;
+  return t("studio.artCaption", { theme: t.has(key as never) ? t(key as never) : presetId }).slice(0, 280);
+}
+

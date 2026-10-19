@@ -8,7 +8,7 @@ import type { AlbumId, CustomAlbum, DiaryEntry, Dog, Profile } from "@/domain/ty
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 
-export const toProfile = (r: Row): Profile => ({ id: "me", timezone: r.timezone, locale: "pt-BR", createdAt: r.created_at, demoImportedAt: r.demo_imported_at ?? null });
+export const toProfile = (r: Row): Profile => ({ id: "me", timezone: r.timezone, createdAt: r.created_at, demoImportedAt: r.demo_imported_at ?? null });
 
 export const toDog = (r: Row): Dog => ({
   id: r.id, name: r.name, photoMediaId: r.photo_asset_id ?? null, birthDate: r.birth_date ?? null, nickname: r.nickname ?? null,
@@ -22,7 +22,7 @@ export const toEntry = (r: Row, missionId: string | null): DiaryEntry => ({
 
 /** Álbum no app: coleções usam o id da coleção; álbuns da pessoa, `custom-<uuid>`. */
 export const albumClientId = (r: Row): AlbumId => (r.type === "custom" ? `custom-${r.id}` : r.collection_id);
-export const toCustomAlbum = (r: Row): CustomAlbum => ({ id: `custom-${r.id}`, title: r.title, createdAt: r.created_at });
+export const toCustomAlbum = (r: Row): CustomAlbum => ({ id: `custom-${r.id}`, title: r.title, createdAt: r.created_at, ...(r.system_key ? { systemKey: r.system_key } : {}) });
 
 export const toHealthProfile = (r: Row): HealthProfile => ({
   dogId: r.dog_id, breed: r.breed, sex: r.sex, neutered: r.neutered, microchip: r.microchip, coat: r.coat, allergies: r.allergies, notes: r.notes, updatedAt: r.updated_at,

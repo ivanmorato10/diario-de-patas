@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useBlobUrl, useMediaBlob } from "@/data/store";
 import { Paw } from "./icons";
 import type { AvatarCrop } from "@/domain/types";
@@ -10,10 +11,11 @@ export function MediaImage({
 }: { id: string | null | undefined; variant?: "thumb" | "display"; alt: string; className?: string; style?: React.CSSProperties }) {
   const blob = useMediaBlob(id, variant);
   const url = useBlobUrl(blob);
+  const t = useTranslations("media");
   if (blob === undefined) return <div className={`skeleton ${className ?? ""}`} style={style} aria-hidden="true" />;
   if (!url) {
     return (
-      <div className={className} style={{ display: "grid", placeItems: "center", color: "var(--sage)", ...style }} role="img" aria-label={`${alt} (foto indisponível)`}>
+      <div className={className} style={{ display: "grid", placeItems: "center", color: "var(--sage)", ...style }} role="img" aria-label={t("unavailable", { alt })}>
         <Paw size={28} />
       </div>
     );
@@ -27,6 +29,7 @@ export const avatarImgStyle = (crop?: AvatarCrop | null): React.CSSProperties =>
   crop ? { objectPosition: `${crop.x}% ${crop.y}%`, transform: `scale(${crop.zoom})`, transformOrigin: `${crop.x}% ${crop.y}%` } : {};
 
 export function DogAvatar({ mediaId, name, size = "md", crop }: { mediaId: string | null; name: string; size?: "md" | "lg" | "xl"; crop?: AvatarCrop | null }) {
+  const t = useTranslations("media");
   const cls = `avatar${size === "lg" ? " avatar--lg" : size === "xl" ? " avatar--xl" : ""}`;
   if (!mediaId) {
     return (
@@ -37,7 +40,7 @@ export function DogAvatar({ mediaId, name, size = "md", crop }: { mediaId: strin
   }
   return (
     <span className={cls}>
-      <MediaImage id={mediaId} alt={`Foto de ${name}`} className="avatar__img" style={avatarImgStyle(crop)} />
+      <MediaImage id={mediaId} alt={t("photoOf", { name })} className="avatar__img" style={avatarImgStyle(crop)} />
     </span>
   );
 }

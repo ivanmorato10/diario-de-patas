@@ -1,3 +1,17 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#63B4AD"><title>Sem conexão · Diário de Patas</title>
 <style>html,body{margin:0;min-height:100%;background:#63B4AD}body{font-family:system-ui,-apple-system,sans-serif;color:#3D2D1E;display:grid;place-items:center;min-height:100vh;text-align:center;padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}main{background:#FFF8EC;border-radius:22px;padding:28px 22px;max-width:360px;box-shadow:0 10px 30px rgba(31,22,13,.2)}h1{margin:8px 0 6px;font-size:1.5rem}p{color:#4a3826;line-height:1.5;margin:0 0 14px}a{display:inline-block;background:#3D2D1E;color:#FFF8EC;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:999px}img{display:block;margin:0 auto}</style></head>
-<body><main><img src="/brand/abu-mascote.png" width="110" height="134" alt=""><h1>Sem conexão por aqui</h1><p>O Abu ficou esperando a internet voltar. Suas lembranças estão guardadas com segurança na sua conta.</p><p>Para abrir o diário e enviar fotos, conecte-se de novo.</p><a href="/">Tentar de novo</a></main></body></html>
+<body><main><img src="/brand/abu-mascote.png" width="110" height="134" alt=""><h1 id="t">Sem conexão por aqui</h1><p id="p1">O Abu ficou esperando a internet voltar. Suas lembranças estão guardadas com segurança na sua conta.</p><p id="p2">Para abrir o diário e enviar fotos, conecte-se de novo.</p><a id="a" href="/">Tentar de novo</a></main>
+<script>
+// Página guardada para quando não há internet: o idioma vem do cookie do app (ou do aparelho).
+(function () {
+  var m = document.cookie.match(/(?:^|; )ddp_locale=([^;]+)/);
+  var l = m ? m[1] : (navigator.language || "");
+  if (!/^en/i.test(l)) return;
+  document.documentElement.lang = "en";
+  document.title = "Offline · Diário de Patas";
+  document.getElementById("t").textContent = "No connection right now";
+  document.getElementById("p1").textContent = "Abu is waiting for the internet to come back. Your memories are safe in your account.";
+  document.getElementById("p2").textContent = "To open the diary and send photos, reconnect.";
+  document.getElementById("a").textContent = "Try again";
+})();
+</script></body></html>

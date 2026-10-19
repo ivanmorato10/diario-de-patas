@@ -34,8 +34,12 @@ export function adminClient(): SupabaseClient {
   return admin;
 }
 
+/**
+ * Erro de regra com status HTTP. `message` é uma CHAVE dos arquivos de idioma (ex.: "errors.albumNotFound"),
+ * com `params` para os valores; a rota traduz no idioma de quem pediu.
+ */
 export class HttpError extends Error {
-  constructor(readonly status: number, readonly code: string, message: string) {
+  constructor(readonly status: number, readonly code: string, message: string, readonly params?: Record<string, string | number>) {
     super(message);
   }
 }
@@ -44,6 +48,6 @@ export class HttpError extends Error {
 export async function requireUser() {
   const supa = await userClient();
   const { data, error } = await supa.auth.getUser();
-  if (error || !data.user) throw new HttpError(401, "UNAUTHENTICATED", "Entre na sua conta para continuar.");
+  if (error || !data.user) throw new HttpError(401, "UNAUTHENTICATED", "errors.unauthenticated");
   return { user: data.user, supa };
 }

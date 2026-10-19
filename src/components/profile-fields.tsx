@@ -1,20 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import type { DogPreferences } from "@/domain/types";
 
-const PREF_OPTIONS: { key: keyof DogPreferences; title: string; hint: string }[] = [
-  { key: "home", title: "Momentos em casa", hint: "Sonecas, brinquedos, refeições." },
-  { key: "outdoor", title: "Passeios ao ar livre", hint: "Parque, rua, jardim." },
-  { key: "people", title: "Fotos com pessoas", hint: "Você ou a família junto." },
-  { key: "socialDogs", title: "Encontros com outros cães", hint: "Só sugerimos se fizer sentido para vocês." },
-];
+/** Textos em prefs.<chave>.title / .hint. */
+const PREF_OPTIONS: (keyof DogPreferences)[] = ["home", "outdoor", "people", "socialDogs"];
 
 export function PreferencesFields({ value, onChange }: { value: DogPreferences; onChange: (v: DogPreferences) => void }) {
+  const t = useTranslations("prefs");
   return (
     <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
-      <legend className="label" style={{ fontWeight: 600, marginBottom: 8 }}>Que tipo de missão combina com vocês?</legend>
-      {PREF_OPTIONS.map((o) => (
+      <legend className="label" style={{ fontWeight: 600, marginBottom: 8 }}>{t("legend")}</legend>
+      {PREF_OPTIONS.map((key) => ({ key, title: t(`${key}.title`), hint: t(`${key}.hint`) })).map((o) => (
         <label key={o.key} className="check">
           <input type="checkbox" checked={value[o.key]} onChange={(e) => onChange({ ...value, [o.key]: e.target.checked })} />
           <span className="check__text">

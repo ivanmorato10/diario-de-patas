@@ -9,20 +9,21 @@ import sharp from "sharp";
 import type { ArtGenerator, PhotoAssessment } from "./art-generator";
 
 export type PhotoVerdict = "good" | "warn" | "bad";
-export interface PhotoIssue { code: string; level: "warn" | "bad"; message: string }
+/** Problema da foto por código; o texto fica em studio.issues.<código> (com {dog}) nos arquivos de idioma. */
+export interface PhotoIssue { code: string; level: "warn" | "bad" }
 /** `aiChecked` falso = a IA não conferiu (sem chave ou erro): nunca dizer "foto boa" nesse caso. */
 export interface PhotoCheck { verdict: PhotoVerdict; issues: PhotoIssue[]; aiChecked: boolean }
 
 export const PHOTO_ISSUES: Record<string, Omit<PhotoIssue, "code">> = {
-  NO_DOG: { level: "bad", message: "Não encontrei {dog} nesta foto. Escolha uma em que {dog} apareça bem." },
-  FACE_HIDDEN: { level: "bad", message: "O rostinho de {dog} não aparece bem (de costas, coberto ou cortado). Preciso ver o focinho e os olhos." },
-  LOW_RES: { level: "bad", message: "A foto é pequena demais para virar arte. Use uma foto com mais resolução." },
-  MANY_DOGS: { level: "warn", message: "Tem mais de um cachorro na foto: use o recorte para mostrar qual é {dog}." },
-  SMALL_DOG: { level: "warn", message: "{dog} aparece pequeno na foto. Use o recorte para aproximar." },
-  BLURRY: { level: "warn", message: "A foto parece tremida ou desfocada. A arte pode perder detalhes." },
-  DARK: { level: "warn", message: "A foto está escura. Fotos com boa luz dão artes mais bonitas." },
-  BRIGHT: { level: "warn", message: "A foto está muito clara (estourada). A arte pode perder as cores do pelo de {dog}." },
-  LOW_RES_WARN: { level: "warn", message: "A foto tem pouca resolução. A arte pode ficar menos detalhada." },
+  NO_DOG: { level: "bad" },
+  FACE_HIDDEN: { level: "bad" },
+  LOW_RES: { level: "bad" },
+  MANY_DOGS: { level: "warn" },
+  SMALL_DOG: { level: "warn" },
+  BLURRY: { level: "warn" },
+  DARK: { level: "warn" },
+  BRIGHT: { level: "warn" },
+  LOW_RES_WARN: { level: "warn" },
 };
 
 const issue = (code: keyof typeof PHOTO_ISSUES): PhotoIssue => ({ code, ...PHOTO_ISSUES[code] });

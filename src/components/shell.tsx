@@ -3,26 +3,28 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useStore } from "@/data/store";
-import { CONFIG_OK, UNAVAILABLE_TEXT } from "@/config/mode";
+import { CONFIG_OK } from "@/config/mode";
 import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun, IconUser } from "./icons";
 import { DogMenu } from "./dog-switcher";
 import { DogBell } from "./notifications";
 import { AbuFace, BrandLockup } from "./brand";
 
 const NAV = [
-  { href: "/hoje", label: "Hoje", Icon: IconSun },
-  { href: "/diario", label: "Diário", Icon: IconBook },
-  { href: "/albuns", label: "Álbuns", Icon: IconAlbum },
-  { href: "/cuidados", label: "Cuidados", Icon: IconHeart },
-  { href: "/estudio", label: "Estúdio", Icon: IconBrush },
-];
+  { href: "/hoje", label: "today", Icon: IconSun },
+  { href: "/diario", label: "diary", Icon: IconBook },
+  { href: "/albuns", label: "albums", Icon: IconAlbum },
+  { href: "/cuidados", label: "care", Icon: IconHeart },
+  { href: "/estudio", label: "studio", Icon: IconBrush },
+] as const;
 
 
 export function BottomNav() {
   const path = usePathname();
+  const t = useTranslations("shell");
   return (
-    <nav className="bottom-nav" aria-label="Navegação principal">
+    <nav className="bottom-nav" aria-label={t("mainNav")}>
       <ul>
         {NAV.map(({ href, label, Icon }) => {
           const active = path === href || path.startsWith(`${href}/`);
@@ -30,7 +32,7 @@ export function BottomNav() {
             <li key={href}>
               <Link href={href} aria-current={active ? "page" : undefined}>
                 <span className="nav-icon"><Icon /></span>
-                {label}
+                {t(`nav.${label}`)}
               </Link>
             </li>
           );
@@ -40,17 +42,10 @@ export function BottomNav() {
   );
 }
 
-/** Emoji ao lado do título de cada tela (identidade rápida das abas). */
-const TITLE_EMOJI: Record<string, string> = {
-  "Diário": "📖", "Álbuns": "🖼️", "Cuidados": "🩺", "Estúdio": "🎨", "Missões": "⭐", "Perfil e ajustes": "⚙️", "Créditos": "🪙",
-  "Achadinhos do Abu": "🛍️", "Sobre": "🐾", "Minha conta": "👤", "Novidades": "🔔", "Medicamentos": "💊", "Consultas e visitas": "🩺", "Vacinas e vermífugos": "💉",
-  "Contatos": "📞", "Documentos": "📄", "Peso": "⚖️", "Guardar momento": "📸", "Cartinha": "💌",
-};
-
-const emojiFor = (title: string) => TITLE_EMOJI[title] ?? (title.startsWith("Perfil de ") ? "🐶" : undefined);
-
-export function TopBar({ title, back }: { title?: string; back?: string }) {
+/** `emoji`: identidade rápida da tela, ao lado do título (cada tela passa o seu). */
+export function TopBar({ title, back, emoji }: { title?: string; back?: string; emoji?: string }) {
   const { snap } = useStore();
+  const t = useTranslations("shell");
   const dog = snap?.dog;
   const viewer = snap?.role === "viewer";
   // "Só ver": o CSS esconde os atalhos de guardar/editar (o servidor também recusa).
@@ -59,21 +54,21 @@ export function TopBar({ title, back }: { title?: string; back?: string }) {
   }, [snap?.role]);
   return (
     <>
-    {viewer && dog ? <div className="viewer-banner" role="note">👀 Você está acompanhando o diário de {dog.name}.</div> : null}
+    {viewer && dog ? <div className="viewer-banner" role="note">{t("viewerBanner", { dog: dog.name })}</div> : null}
     <header className="topbar">
       <div className="topbar__inner">
         <div className="row" style={{ gap: 8, minWidth: 0 }}>
           {back ? (
-            <Link href={back} className="icon-btn" aria-label="Voltar"><IconArrowLeft /></Link>
+            <Link href={back} className="icon-btn" aria-label={t("back")}><IconArrowLeft /></Link>
           ) : (
-            <Link href="/hoje" aria-label="Diário de Patas — início" style={{ display: "inline-flex" }}>{title ? <AbuFace size={38} className="brand-lockup__face" /> : <BrandLockup />}</Link>
+            <Link href="/hoje" aria-label={t("home")} style={{ display: "inline-flex" }}>{title ? <AbuFace size={38} className="brand-lockup__face" /> : <BrandLockup />}</Link>
           )}
-          {title ? <h1 className="topbar__title">{emojiFor(title) ? <span className="topbar__emoji" aria-hidden="true">{emojiFor(title)}</span> : null}<span className="topbar__text">{title}</span></h1> : null}
+          {title ? <h1 className="topbar__title">{emoji ? <span className="topbar__emoji" aria-hidden="true">{emoji}</span> : null}<span className="topbar__text">{title}</span></h1> : null}
         </div>
         {dog ? (
           <div className="topbar__actions">
             <DogBell />
-            <Link href="/conta" className="topbar__person" aria-label="Minha conta"><IconUser size={20} /></Link>
+            <Link href="/conta" className="topbar__person" aria-label={t("myAccount")}><IconUser size={20} /></Link>
             <DogMenu />
           </div>
         ) : null}
@@ -95,19 +90,21 @@ export function useRequireDiary() {
 
 /** Falha ao abrir o diário (sem internet, servidor fora ou configuração faltando). Nunca cria um diário local. */
 export function StorageUnavailable() {
+  const t = useTranslations("shell");
   return (
     <div className="card stack" role="alert">
-      <h2>Não conseguimos abrir o diário agora</h2>
-      <p className="muted">{CONFIG_OK ? "Confira a internet e tente de novo." : UNAVAILABLE_TEXT}</p>
-      <button type="button" className="btn btn--secondary" onClick={() => window.location.reload()}>Tentar de novo</button>
+      <h2>{t("unavailableTitle")}</h2>
+      <p className="muted">{CONFIG_OK ? t("checkInternet") : t("appUnavailable")}</p>
+      <button type="button" className="btn btn--secondary" onClick={() => window.location.reload()}>{t("retry")}</button>
     </div>
   );
 }
 
 export function PageLoading() {
+  const t = useTranslations("shell");
   return (
     <div className="stack" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Carregando…</span>
+      <span className="sr-only">{t("loading")}</span>
       <div className="skeleton" style={{ height: 120 }} />
       <div className="skeleton" style={{ height: 80 }} />
     </div>

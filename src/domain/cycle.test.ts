@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COLLECTION_ITEMS, DAILY_MISSIONS, DAILY_NO_REPEAT_DAYS, PERMANENT_SETS, SPECIAL_MISSIONS } from "@/config/cycle";
 import { civilDateInTz } from "./dates";
 import { addDays } from "./health";
-import { ALL_MISSIONS, activeSpecials, buildHistory, eligibleDaily, generatePlan, instanceKey, setProgress, swapInPlan, type DailyPlan } from "./cycle";
+import { ALL_MISSIONS, activeSpecials, buildHistory, eligibleDaily, generatePlan, instanceKey, setProgress, swapInPlan, thanksgivingDate, type DailyPlan } from "./cycle";
 import { levelFor, missionById } from "./missions";
 
 const all = { home: true, outdoor: true, socialDogs: true, people: true };
@@ -18,12 +18,13 @@ function simulate(days: number, prefs = all, start = "2026-10-01", dog = "dog-1"
 }
 
 describe("catálogo do ciclo (§7.4–7.6)", () => {
-  it("66 missões do dia (22 por espaço), 5 coleções de 6, 3 especiais; IDs e slugs únicos", () => {
+  it("66 missões do dia (22 por espaço), 5 coleções de 6, 5 especiais (2 dos EUA); IDs e slugs únicos", () => {
     expect(DAILY_MISSIONS).toHaveLength(66);
     for (const s of ["A", "B", "C"]) expect(DAILY_MISSIONS.filter((m) => m.slot === s)).toHaveLength(22);
     expect(PERMANENT_SETS).toHaveLength(5);
     expect(PERMANENT_SETS.every((s) => s.items.length === 6 && s.items.every((id) => missionById(id)))).toBe(true);
-    expect(SPECIAL_MISSIONS).toHaveLength(3);
+    expect(SPECIAL_MISSIONS).toHaveLength(5);
+    expect(SPECIAL_MISSIONS.filter((m) => m.region === "US").map((m) => m.id)).toEqual(["S04", "S05"]);
     expect(new Set(ALL_MISSIONS.map((m) => m.id)).size).toBe(ALL_MISSIONS.length);
     expect(new Set(ALL_MISSIONS.map((m) => m.slug)).size).toBe(ALL_MISSIONS.length);
   });
@@ -96,7 +97,7 @@ describe("sorteio das missões do dia (§7.1)", () => {
 });
 
 describe("especiais (§7.6)", () => {
-  const ids = (today: string, birth: string | null = null) => activeSpecials(today, birth, "Luna").map((w) => `${w.mission.id}:${w.occurrence}`);
+  const ids = (today: string, birth: string | null = null, region: "BR" | "US" = "BR") => activeSpecials(today, birth, region).map((w) => `${w.mission.id}:${w.occurrence}`);
   it("só aparecem dentro da janela", () => {
     expect(ids("2026-10-23")).toEqual([]);
     expect(ids("2026-10-24")).toEqual(["S03:2026"]);
@@ -112,7 +113,24 @@ describe("especiais (§7.6)", () => {
     expect(ids("2026-03-23", "2022-03-15")).toEqual([]);
     expect(ids("2027-01-03", "2020-12-30")).toEqual(["S01:2026"]); // janela atravessa o ano
     expect(ids("2027-02-28", "2024-02-29")).toEqual(["S01:2027"]); // 29/02 em ano não bissexto
-    expect(activeSpecials("2026-03-15", "2022-03-15", "Luna")[0].title).toBe("Aniversário de Luna");
+    expect(activeSpecials("2026-03-15", "2022-03-15")[0].mission.id).toBe("S01");
+  });
+  it("região do calendário: Brasil mantém as datas de sempre; EUA somam National Dog Day e Thanksgiving", () => {
+    expect(ids("2026-08-26")).toEqual([]);
+    expect(ids("2026-08-26", null, "US")).toEqual(["S04:2026"]);
+    expect(ids("2026-08-19", null, "US")).toEqual([]);
+    expect(ids("2026-10-31", null, "US")).toEqual(["S03:2026"]); // Halloween vale nas duas
+    expect(ids("2026-12-24", null, "US")).toEqual(["S02:2026"]);
+    // Thanksgiving: quarta quinta-feira de novembro, calculada por ano.
+    expect([2024, 2025, 2026, 2027, 2028].map(thanksgivingDate)).toEqual(["2024-11-28", "2025-11-27", "2026-11-26", "2027-11-25", "2028-11-23"]);
+    expect(ids("2026-11-26", null, "US")).toEqual(["S05:2026"]);
+    expect(ids("2026-11-23", null, "US")).toEqual(["S05:2026"]);
+    expect(ids("2026-11-30", null, "US")).toEqual([]);
+    expect(ids("2026-11-26", null, "BR")).toEqual([]);
+  });
+  it("trocar de região ou idioma não duplica a recompensa: a chave é por cachorro, missão e ano", () => {
+    const s04 = activeSpecials("2026-08-26", null, "US")[0];
+    expect(instanceKey("dog-1", s04.mission, "2026-08-26", s04.occurrence)).toBe(instanceKey("dog-1", s04.mission, "2026-08-27", s04.occurrence));
   });
 });
 
@@ -132,9 +150,9 @@ describe("coleções permanentes (§7.5)", () => {
 
 describe("níveis sem fim (§7.3)", () => {
   it("depois de “Sempre juntos”, II, III… a cada 250 XP", () => {
-    expect(levelFor(499).title).toBe("Melhores amigos");
-    expect(levelFor(500)).toMatchObject({ title: "Sempre juntos", nextTitle: "Sempre juntos II", nextAt: 750 });
-    expect(levelFor(760)).toMatchObject({ title: "Sempre juntos II", nextAt: 1000 });
-    expect(levelFor(1000).title).toBe("Sempre juntos III");
+    expect(levelFor(499)).toMatchObject({ level: 5, endless: 0 });
+    expect(levelFor(500)).toMatchObject({ level: 6, endless: 0, next: { level: 6, endless: 1 }, nextAt: 750 });
+    expect(levelFor(760)).toMatchObject({ level: 6, endless: 1, nextAt: 1000 });
+    expect(levelFor(1000)).toMatchObject({ level: 6, endless: 2 });
   });
 });

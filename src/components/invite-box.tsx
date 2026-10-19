@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ROLE_HELP, ROLE_PT, createInvite } from "@/data/family-client";
+import { useTranslations } from "next-intl";
+import { useErrorText } from "@/i18n/use-error";
+import { createInvite } from "@/data/family-client";
 import type { DiaryRole } from "@/domain/types";
 import { ShareActions } from "./share-actions";
 
@@ -14,25 +16,29 @@ export function InviteBox({ dogName }: { dogName: string }) {
   const [invite, setInvite] = useState<{ code: string; role: DiaryRole } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const t = useTranslations("inviteBox");
+  const tf = useTranslations("family");
+  const errText = useErrorText();
 
   async function generate() {
     setBusy(true);
     setMsg(null);
-    try { setInvite(await createInvite(role)); } catch (e) { setMsg(e instanceof Error ? e.message : "Não deu para gerar o convite."); } finally { setBusy(false); }
+    try { setInvite(await createInvite(role)); } catch (e) { setMsg(errText(e instanceof Error ? e.message : "inviteBox.failed")); } finally { setBusy(false); }
   }
 
   const site = typeof window !== "undefined" ? window.location.origin : "";
   const link = invite ? `${site}/convite?codigo=${invite.code}` : "";
-  const text = invite ? `Oi! Te convidei para o diário de ${dogName} no Diário de Patas (${ROLE_PT[invite.role].toLowerCase()}). Abra o link e entre com a sua conta: ${link}\nOu digite o código ${invite.code} em "Tenho um código de convite". Vale por 7 dias.` : "";
+  // Mensagem no idioma de quem convida (é ela quem envia); o link abre no idioma de quem recebe.
+  const text = invite ? t("message", { dog: dogName, role: tf(`roles.${invite.role}`).toLocaleLowerCase(), link, code: invite.code }) : "";
 
   if (invite) {
     return (
       <div className="invite-code">
-        <span className="invite-code__label">Convite · {ROLE_PT[invite.role]}</span>
+        <span className="invite-code__label">{t("label", { role: tf(`roles.${invite.role}`) })}</span>
         <strong className="invite-code__value">{invite.code}</strong>
-        <span className="caption">Vale por 7 dias e só pode ser usado uma vez.</span>
-        <ShareActions text={text} onCopyError={() => setMsg("Não deu para copiar automaticamente: toque e segure no código para copiar.")} />
-        <button type="button" className="sp-link" onClick={() => setInvite(null)}>Fazer outro convite</button>
+        <span className="caption">{t("valid")}</span>
+        <ShareActions text={text} onCopyError={() => setMsg(t("copyFailed"))} />
+        <button type="button" className="sp-link" onClick={() => setInvite(null)}>{t("another")}</button>
         {msg ? <p className="small" role="status">{msg}</p> : null}
       </div>
     );
@@ -41,11 +47,11 @@ export function InviteBox({ dogName }: { dogName: string }) {
   return (
     <div className="invite-box">
       <fieldset className="invite-box__roles">
-        <legend className="caption">A pessoa vai poder:</legend>
-        <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span className="check__text"><strong>Pode adicionar momentos</strong><span className="caption">{ROLE_HELP.editor}</span></span></label>
-        <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span className="check__text"><strong>Pode acompanhar</strong><span className="caption">{ROLE_HELP.viewer}</span></span></label>
+        <legend className="caption">{t("canDo")}</legend>
+        <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span className="check__text"><strong>{tf("roles.editor")}</strong><span className="caption">{tf("roleHelp.editor")}</span></span></label>
+        <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span className="check__text"><strong>{tf("roles.viewer")}</strong><span className="caption">{tf("roleHelp.viewer")}</span></span></label>
       </fieldset>
-      <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate}>{busy ? "Gerando…" : "Gerar convite"}</button>
+      <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate}>{busy ? t("generating") : t("generate")}</button>
       {msg ? <p className="small" role="status">{msg}</p> : null}
     </div>
   );

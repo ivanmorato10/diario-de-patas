@@ -22,12 +22,15 @@ export const VALIDATOR_SYSTEM_PROMPT =
   "Não inferir identidade, raça, saúde, emoção ou localização exata. Se a evidência visual não for suficiente, retorne uncertain. " +
   "Não humilhe o usuário. Retorne somente o JSON do schema.";
 
-/** Texto do usuário (critério) — a legenda NÃO é enviada ao modelo, reduzindo superfície de injeção. */
-export function buildValidatorUserPrompt(m: MissionTemplate): string {
+/**
+ * Texto do usuário (critério) — a legenda NÃO é enviada ao modelo, reduzindo superfície de injeção.
+ * `criterion`: catalog.missions.<id>.criterion com {dog} = "o cachorro" (nunca o nome da pessoa ou do cachorro).
+ */
+export function buildValidatorUserPrompt(m: MissionTemplate, criterion: string): string {
   const subjective = m.subjective
     ? " Este critério é subjetivo: verifique apenas o requisito objetivo mínimo (cachorro visível) e não reprove pelo aspecto subjetivo."
     : "";
-  return `Critério da missão: ${m.criterion}${subjective}`;
+  return `Critério da missão: ${criterion}${subjective}`;
 }
 
 export interface ValidatorInput {

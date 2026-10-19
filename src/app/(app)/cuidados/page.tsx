@@ -3,16 +3,19 @@
 import { CarePdfButton } from "@/components/care-pdf-button";
 import Link from "next/link";
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { useFormat } from "@/i18n/use-format";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { UpcomingCareCard } from "@/components/health-ui";
 import { IconChevron } from "@/components/icons";
-import { formatCivilDate } from "@/domain/dates";
 import { dueStatus, latestVaccines, medicationActive, upcomingCare } from "@/domain/health";
 import { expiryStatus } from "@/domain/documents";
 
 export default function Cuidados() {
   const { ready, snap, unavailable } = useRequireDiary();
   const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
+  const t = useTranslations("carePage");
+  const f = useFormat();
   if (unavailable) return <main className="main"><StorageUnavailable /></main>;
   if (!ready || !snap?.dog) return <main className="main"><PageLoading /></main>;
   const { health: h, today, dog } = snap;
@@ -25,22 +28,22 @@ export default function Cuidados() {
   const filled = p ? [p.breed, p.sex, p.neutered !== null ? "x" : "", p.microchip, p.coat, p.allergies, p.notes].filter(Boolean).length : 0;
 
   const areas = [
-    { href: "/cuidados/dados", title: `Dados de ${dog.name}`, sub: filled ? `${filled} de 7 informações preenchidas` : "Raça, sexo, microchip, alergias…" },
-    { href: "/cuidados/peso", title: "Peso", sub: lastWeight ? `${lastWeight.kg.toLocaleString("pt-BR")} kg em ${formatCivilDate(lastWeight.date)}` : "Nenhum registro ainda" },
-    { href: "/cuidados/vacinas", title: "Vacinas e vermífugos", sub: h.vaccines.length ? `${h.vaccines.length} ${h.vaccines.length === 1 ? "registro" : "registros"}${overdue ? ` · ${overdue} atrasada${overdue > 1 ? "s" : ""}` : ""}` : "Nenhum registro ainda" },
-    { href: "/cuidados/consultas", title: "Consultas e visitas", sub: h.visits[0] ? `Última: ${formatCivilDate(h.visits[0].date)}` : "Nenhuma consulta registrada" },
-    { href: "/cuidados/medicamentos", title: "Medicamentos", sub: activeMeds ? `${activeMeds} em uso` : h.medications.length ? "Nenhum em uso agora" : "Nenhum registro ainda" },
-    { href: "/cuidados/documentos", title: "Documentos", sub: h.documents.length ? `${h.documents.length} ${h.documents.length === 1 ? "documento" : "documentos"}${expiring ? ` · ${expiring} vencendo ou vencido${expiring > 1 ? "s" : ""}` : ""}` : "Carteira de vacinação, RG pet, exames…" },
-    { href: "/cuidados/contatos", title: "Contatos", sub: h.contacts.length ? `${h.contacts.length} ${h.contacts.length === 1 ? "contato" : "contatos"}` : "Veterinário, emergência 24h, pet sitter…" },
+    { href: "/cuidados/dados", title: t("profile", { dog: dog.name }), sub: filled ? t("profileFilled", { n: filled }) : t("profileEmpty") },
+    { href: "/cuidados/peso", title: t("weight"), sub: lastWeight ? t("weightLast", { weight: f.weight(lastWeight.kg), date: f.date(lastWeight.date) }) : t("noRecords") },
+    { href: "/cuidados/vacinas", title: t("vaccines"), sub: h.vaccines.length ? `${t("records", { count: h.vaccines.length })}${overdue ? ` · ${t("overdue", { count: overdue })}` : ""}` : t("noRecords") },
+    { href: "/cuidados/consultas", title: t("visits"), sub: h.visits[0] ? t("lastVisit", { date: f.date(h.visits[0].date) }) : t("noVisits") },
+    { href: "/cuidados/medicamentos", title: t("meds"), sub: activeMeds ? t("medsActive", { count: activeMeds }) : h.medications.length ? t("medsNone") : t("noRecords") },
+    { href: "/cuidados/documentos", title: t("docs"), sub: h.documents.length ? `${t("docsCount", { count: h.documents.length })}${expiring ? ` · ${t("docsExpiring", { count: expiring })}` : ""}` : t("docsEmpty") },
+    { href: "/cuidados/contatos", title: t("contacts"), sub: h.contacts.length ? t("contactsCount", { count: h.contacts.length }) : t("contactsEmpty") },
   ];
 
   return (
     <>
-      <TopBar title="Cuidados" />
+      <TopBar title={t("title")} emoji="🩺" />
       <main className="main">
         <CarePdfButton />
         <UpcomingCareCard items={care} today={today} />
-        <nav aria-label="Áreas de cuidados" className="stack">
+        <nav aria-label={t("areas")} className="stack">
           {areas.map((a) => (
             <Link key={a.href} href={a.href} className="card row-between" style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
               <span className="stack" style={{ gap: 2, minWidth: 0 }}>
@@ -52,7 +55,7 @@ export default function Cuidados() {
           ))}
         </nav>
         {/* Antes dizia "só neste aparelho" e "exportação" (errado com conta). Detalhes ficam em Sobre › Privacidade. */}
-        <p className="caption">Privado, só da família. As anotações não substituem o veterinário; em emergência, procure atendimento.</p>      </main>
+        <p className="caption">{t("privateNote")}</p>      </main>
     </>
   );
 }

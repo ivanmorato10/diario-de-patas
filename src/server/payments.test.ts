@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
 import { mapMpStatus, validMpSignature } from "./payments";
-import { CREDIT_PACKAGES, formatBRL } from "@/config/credits";
+import { CREDIT_MARKETS, CREDIT_PACKAGES, packageById } from "@/config/credits";
+import { formatMoney } from "@/i18n/format";
 
 describe("compra de créditos (Pix)", () => {
   it("pacotes aprovados: 1 por R$ 1,00, 5 por R$ 4,00, 10 por R$ 7,00", () => {
-    expect(CREDIT_PACKAGES.map((p) => [p.credits, formatBRL(p.priceCents)])).toEqual([[1, "R$ 1,00"], [5, "R$ 4,00"], [10, "R$ 7,00"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
+    expect(CREDIT_PACKAGES.map((p) => [p.credits, formatMoney(p.priceCents, "BRL", "pt-BR")])).toEqual([[1, "R$ 1,00"], [5, "R$ 4,00"], [10, "R$ 7,00"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
+    // Em inglês continua sendo cobrança em reais: valor igual, moeda explícita (nada de conversão para dólar).
+    expect(formatMoney(400, "BRL", "en")).toBe("R$4.00 (BRL)");
+    // Mercado dos EUA ainda sem checkout: nenhum pacote vendável (o servidor recusa).
+    expect(CREDIT_MARKETS.US.packages).toEqual([]);
+    expect(packageById("p5", "US")).toBeUndefined();
   });
   it("traduz o status do Mercado Pago", () => {
     expect(mapMpStatus("approved")).toBe("approved");
@@ -32,5 +38,8 @@ describe("email de pagamento confirmado", () => {
     expect(m.html).toContain("A1B2C3D4");
     expect(m.html).toContain("Pepe &lt;b&gt;");
     expect(m.html).not.toContain("Pepe <b>");
+    const en = purchaseConfirmedEmail({ dogName: "Pepe", credits: 1, amount: "R$1.00 (BRL)", paidAt: "October 18, 2026", balance: 1, reference: "a1b2c3d4-x" }, "en");
+    expect(en.subject).toBe("Payment confirmed: +1 credit for Pepe 🐾");
+    expect(en.html).toContain("R$1.00 (BRL)");
   });
 });

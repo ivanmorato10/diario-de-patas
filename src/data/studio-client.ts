@@ -71,28 +71,21 @@ export function untrackArt(id: string) {
   savePendingArts(pendingArts().filter((x) => x.id !== id));
 }
 
-export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad"; message: string }[]; aiChecked: boolean }
+/** Problemas da foto por código (texto em studio.issues.<código>, com {dog}). */
+export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: string; level: "warn" | "bad" }[]; aiChecked: boolean }
 export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y: number; w: number; h: number } | null }) => rpc<PhotoCheck>("studioCheckPhoto", input);
 
-export const FAILURE_PT: Record<string, string> = {
-  PROVIDER_REFUSED: "Não consegui usar esta foto. Tente outra em que {dog} apareça sozinho. O crédito foi devolvido.",
-  QUALITY_REJECTED: "A arte não ficou boa o bastante ({dog} não apareceu direito). O crédito foi devolvido.",
-  PROVIDER_TIMEOUT: "A arte demorou demais e foi cancelada. O crédito foi devolvido.",
-  PROVIDER_UNAVAILABLE: "O serviço de artes está instável agora. O crédito foi devolvido — tente mais tarde.",
-  NO_CREDITS: "Os créditos acabaram por enquanto. Dá para criar mais em Créditos, ou ganhar 1 crédito juntando patinhas no mês.",
-  INPUT_DELETED: "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
-  NOT_CONFIGURED: "O Estúdio ainda não está disponível. O crédito foi devolvido.",
-  NO_SPACE: "O diário de {dog} chegou ao limite de lembranças, e a arte não teria onde ficar. O crédito foi devolvido.",
-  TECHNICAL: "Algo deu errado do nosso lado. O crédito foi devolvido.",
-};
+/** Motivos de falha conhecidos (texto em studio.failures.<código>); outro código vira TECHNICAL. */
+export const FAILURE_CODES = ["PROVIDER_REFUSED", "QUALITY_REJECTED", "PROVIDER_TIMEOUT", "PROVIDER_UNAVAILABLE", "NO_CREDITS", "INPUT_DELETED", "NOT_CONFIGURED", "NO_SPACE", "TECHNICAL"] as const;
 
 // ---------- Compra de créditos (Pix) ----------
 export interface CreditPurchase {
-  id: string; packageId: string; credits: number; amountCents: number;
+  id: string; packageId: string; credits: number; amountCents: number; currency: string;
   status: "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
   pixQr: string | null; pixQrBase64: string | null; expiresAt: string | null; createdAt: string; test: boolean;
 }
-export interface CreditShop { enabled: boolean; test: boolean; packages: { id: string; credits: number; priceCents: number; badge?: string }[]; purchases: CreditPurchase[] }
+/** `currency`: moeda REAL da cobrança (hoje BRL), mostrada como está, sem conversão. */
+export interface CreditShop { enabled: boolean; test: boolean; market: string; currency: string; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[] }
 export const creditShop = () => rpc<CreditShop>("creditShop");
 export const createPurchase = (packageId: string, idempotencyKey: string) => rpc<CreditPurchase>("createPurchase", { packageId, idempotencyKey });
 export const purchaseStatus = (id: string) => rpc<CreditPurchase>("purchaseStatus", { id });

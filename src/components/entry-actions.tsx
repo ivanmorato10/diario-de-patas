@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useCatalog } from "@/i18n/catalog";
+import { useErrorText } from "@/i18n/use-error";
 import { MISSIONS, type MissionTemplate } from "@/config/catalog";
 import { AlbumChecklist } from "./album-picker";
 import { COLLECTION_ITEMS } from "@/config/cycle";
@@ -13,7 +16,6 @@ import { getMedia, DomainError } from "@/data/demo-repository";
 import { isCivilDate } from "@/domain/dates";
 import type { DiaryEntry } from "@/domain/types";
 import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
-import { collectionTitle } from "./mission-ui";
 
 /**
  * Janela de baixo (dialog). Com `onAttemptClose`, Esc e toque fora NÃO fecham direto: chamam essa
@@ -44,6 +46,8 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   const [albums, setAlbums] = useState<string[]>(albumIds);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const t = useTranslations("entry");
+  const errText = useErrorText();
 
   function openEdit() {
     setCaption(entry.caption);
@@ -55,14 +59,14 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
 
   async function saveEdit() {
     if (!repo) return;
-    if (!isCivilDate(date) || date > today) return setError("Escolha uma data até hoje.");
+    if (!isCivilDate(date) || date > today) return setError(errText("errors.dateUpToToday"));
     setBusy(true);
     try {
       await repo!.updateEntry(entry.id, { caption, occurredDate: date, albumIds: albums });
       await reload();
       setMode("none");
     } catch (e) {
-      setError(e instanceof DomainError ? e.message : "Não conseguimos salvar. Tente novamente.");
+      setError(errText(e instanceof DomainError ? e : null, "errors.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -97,35 +101,35 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   return (
     <>
       <div className="row" style={{ gap: 0 }}>
-        <button type="button" className="icon-btn edit-only" onClick={openEdit} aria-label={`Editar ${label}`}><IconPencil /></button>
-        <button type="button" className="icon-btn" onClick={download} aria-label={`Baixar ${label}`}><IconDownload /></button>
-        <button type="button" className="icon-btn edit-only" onClick={() => setMode("delete")} aria-label={`Excluir ${label}`} style={{ color: "var(--danger)" }}><IconTrash /></button>
+        <button type="button" className="icon-btn edit-only" onClick={openEdit} aria-label={t("editLabel", { label })}><IconPencil /></button>
+        <button type="button" className="icon-btn" onClick={download} aria-label={t("downloadLabel", { label })}><IconDownload /></button>
+        <button type="button" className="icon-btn edit-only" onClick={() => setMode("delete")} aria-label={t("deleteLabel", { label })} style={{ color: "var(--danger)" }}><IconTrash /></button>
       </div>
 
       <Sheet open={mode === "edit"} onClose={() => setMode("none")} labelledBy={editTitle}>
-        <h2 id={editTitle}>Editar lembrança</h2>
+        <h2 id={editTitle}>{t("editTitle")}</h2>
         <div className="field">
-          <label htmlFor={`cap-${entry.id}`}>Legenda</label>
+          <label htmlFor={`cap-${entry.id}`}>{t("caption")}</label>
           <textarea id={`cap-${entry.id}`} className="textarea" value={caption} maxLength={LIMITS.captionMaxChars} onChange={(e) => setCaption(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor={`date-${entry.id}`}>Quando aconteceu</label>
+          <label htmlFor={`date-${entry.id}`}>{t("when")}</label>
           <input id={`date-${entry.id}`} type="date" className="input" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
         </div>
-        <AlbumChecklist legend="Álbuns" value={albums} onChange={setAlbums} hint={false} />
+        <AlbumChecklist legend={t("albums")} value={albums} onChange={setAlbums} hint={false} />
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
-          <button type="button" className="btn btn--primary btn--block" onClick={saveEdit} disabled={busy}>Salvar</button>
-          <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>Cancelar</button>
+          <button type="button" className="btn btn--primary btn--block" onClick={saveEdit} disabled={busy}>{t("save")}</button>
+          <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>
         </div>
       </Sheet>
 
       <Sheet open={mode === "delete"} onClose={() => setMode("none")} labelledBy={delTitle}>
-        <h2 id={delTitle}>Excluir esta lembrança?</h2>
-        <p>A foto sai do diário e dos álbuns. {entry.missionId ? "A conquista e as patinhas da missão continuam." : ""} Não dá para desfazer.</p>
+        <h2 id={delTitle}>{t("deleteTitle")}</h2>
+        <p>{t("deleteText")} {entry.missionId ? t("deleteKeeps") : ""} {t("noUndo")}</p>
         <div className="stack">
-          <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy}>Excluir</button>
-          <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>Cancelar</button>
+          <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy}>{t("delete")}</button>
+          <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>
         </div>
       </Sheet>
     </>
@@ -138,10 +142,13 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
  */
 export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: CycleContext; label: string }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("entry");
+  const tm = useTranslations("mission");
+  const cat = useCatalog(useStore().snap?.dog?.name ?? "");
   if (entry.source !== "free" || entry.missionId) return null;
   // Do dia (sugestões de hoje), especiais ativas, itens de coleção e o catálogo de missões únicas.
   const today = ctx.plan ? Object.values(ctx.plan.slots).map((id) => missionById(id)!) : [];
-  const specials = activeSpecials(ctx.today, ctx.birthDate, ctx.dogName).map((w) => w.mission);
+  const specials = activeSpecials(ctx.today, ctx.birthDate, ctx.region).map((w) => w.mission);
   const pool: MissionTemplate[] = [...today, ...specials, ...COLLECTION_ITEMS, ...MISSIONS];
   const options = pool.map((m) => ({ m, state: missionStatus(m, ctx) }))
     .filter((o) => o.state === "available" || (o.state === "completed" && o.m.kind === "once"))
@@ -149,19 +156,19 @@ export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: Cy
   const title = `use-${entry.id}`;
   return (
     <>
-      <button type="button" className="btn btn--ghost btn--small" onClick={() => setOpen(true)} aria-label={`Usar ${label} numa missão`}>
-        <IconStar size={18} /> Usar numa missão
+      <button type="button" className="btn btn--ghost btn--small" onClick={() => setOpen(true)} aria-label={t("useLabel", { label })}>
+        <IconStar size={18} /> {t("use")}
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} labelledBy={title}>
-        <h2 id={title}>Usar esta foto numa missão</h2>
-        <p className="page-note">A foto continua a mesma — nada é enviado de novo. Depois você confirma se ela mostra o que a missão pede.</p>
+        <h2 id={title}>{t("useTitle")}</h2>
+        <p className="page-note">{t("useNote")}</p>
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: "55dvh", overflowY: "auto" }}>
           {options.map(({ m, state }) => (
             <li key={m.id}>
               <Link href={`/guardar?missao=${m.slug}&entrada=${entry.id}`} className="card mission-card" style={{ padding: 12 }}>
                 <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
-                  <strong>{m.title}</strong>
-                  <span className="caption">{m.kind === "daily" ? "Missão do dia" : m.kind === "special" ? "Especial" : m.kind === "collection_item" ? "Item de coleção" : collectionTitle(m.collectionId)}{state === "completed" ? " · já concluída, sem patinhas" : ""}</span>
+                  <strong>{cat.title(m)}</strong>
+                  <span className="caption">{m.kind === "once" ? cat.collection(m.collectionId).title : tm(`kind.${m.kind}`)}{state === "completed" ? ` · ${t("alreadyDone")}` : ""}</span>
                 </span>
                 {state === "available" ? <span className="chip chip--reward">+{m.xp} 🐾</span> : null}
                 <IconChevron size={18} className="muted" />
@@ -169,8 +176,8 @@ export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: Cy
             </li>
           ))}
         </ul>
-        {options.length === 0 ? <p className="small">Nenhuma missão disponível agora.</p> : null}
-        <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>Cancelar</button>
+        {options.length === 0 ? <p className="small">{t("noneAvailable")}</p> : null}
+        <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>{t("cancel")}</button>
       </Sheet>
     </>
   );

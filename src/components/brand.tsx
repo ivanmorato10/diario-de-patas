@@ -4,6 +4,9 @@
  * do desenho em si: trocar os PNGs troca a marca.
  */
 /* eslint-disable @next/next/no-img-element */
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 
 /** Rosto do Abu num quadradinho verde-água — cabeçalho e favicon. */
 export function AbuFace({ size = 52, className = "abu-face" }: { size?: number; className?: string }) {
@@ -26,20 +29,30 @@ export function LogoCard({ width = 240, className }: { width?: number; className
 
 /** Só a ilustração do cartão (Abu + livro), sem o texto — para telas que já mostram o nome. */
 export function AbuCard({ width = 220, className }: { width?: number; className?: string }) {
-  return <img src="/brand/abu-card.png" alt="Abu lendo o Diário de Patas" width={width} height={Math.round(width * (623 / 664))} className={className} style={{ display: "block", height: "auto" }} />;
+  const t = useTranslations("brand");
+  return <img src="/brand/abu-card.png" alt={t("abuReading")} width={width} height={Math.round(width * (623 / 664))} className={className} style={{ display: "block", height: "auto" }} />;
 }
 
-/** Assinatura do cabeçalho: rosto do Abu + nome com a fonte do logo. */
+/**
+ * Assinatura do cabeçalho: rosto do Abu + nome com a fonte do logo. A marca é a mesma nos dois idiomas
+ * ("Diário de Patas", "Sempre Juntos"); em inglês, "Paw Diary" aparece discreto embaixo, só aqui no cabeçalho.
+ */
 export function BrandLockup({ withTagline = false }: { withTagline?: boolean }) {
+  const locale = useLocale();
   return (
     <span className="brand-lockup">
       <span className="brand-lockup__face"><img src="/brand/favicon-64.png" alt="" /></span>
       <span>
         <span className="brand-lockup__name">Diário de Patas</span>
-        {withTagline ? <span className="brand-lockup__tag">Sempre Juntos</span> : null}
+        {withTagline ? <span className="brand-lockup__tag">Sempre Juntos</span> : locale === "en" ? <span className="brand-lockup__tag brand-lockup__tag--en" lang="en">Paw Diary</span> : null}
       </span>
     </span>
   );
+}
+
+/** Nome em inglês, discreto, para telas que mostram a marca grande (entrada e apresentação). */
+export function PawDiaryNote({ className = "brand-en" }: { className?: string }) {
+  return useLocale() === "en" ? <span className={className} lang="en">Paw Diary</span> : null;
 }
 
 /** Bilhete do Abu — uso moderado (§4). */

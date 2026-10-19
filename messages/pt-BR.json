@@ -1,0 +1,2651 @@
+{
+  "about": {
+    "title": "Sobre",
+    "abuAlt": "Abu, o cachorro que inspirou o Diário de Patas, segurando o livro",
+    "heading": "Sobre o Diário",
+    "sub": "Quem somos, como cuidamos dos seus dados e como o app funciona.",
+    "storyTitle": "Nossa história",
+    "story": {
+      "p1": "O Diário de Patas nasceu do amor que sentimos pelo Abu.",
+      "p2": "Amamos a companhia dele, suas manias e o jeito como transforma um dia comum em um dia mais feliz. Ele faz parte da nossa família — e de tantas lembranças que queremos guardar com carinho.",
+      "p3": "Criamos este espaço para reunir os passeios, as sonecas, as carinhas engraçadas e aqueles momentos que talvez só façam sentido para quem ama um cachorro como nós amamos o Abu.",
+      "p4": "É ele quem aparece no nosso logo e recebe você por aqui. Uma homenagem ao nosso companheiro e um convite para você contar a história do seu.",
+      "sign1": "Com amor, para o Abu.",
+      "sign2": "E para todos os cachorros que fazem parte da família."
+    },
+    "levelsTitle": "Patinhas, níveis e a arte do mês",
+    "levelsIntro": "Patinhas 🐾 são os pontos das missões (10 ou 20 por foto guardada). O app conta de dois jeitos:",
+    "pawsForever": "<strong>Patinhas de sempre:</strong> somam tudo, ficam guardadas para sempre e definem o nível do seu cachorro.",
+    "pawsMonth": "<strong>Patinhas do mês:</strong> a contagem recomeça no dia 1º, com uma nova aventura. Com {goal} patinhas no mês, você ganha 1 crédito para criar uma arte no Estúdio (uma vez por mês).",
+    "start": "início",
+    "endless": "{last} II, III…",
+    "each": "+250 🐾 cada",
+    "privacyTitle": "Privacidade",
+    "privacy": {
+      "who": "<strong>Quem vê o diário:</strong> você e as pessoas que você convidar, conforme o papel de cada uma (pode adicionar momentos ou pode acompanhar). Quem é responsável pelo diário pode tirar alguém a qualquer momento.",
+      "links": "<strong>Links compartilhados:</strong> quem tiver o link vê só as fotos que você escolheu, sem cuidados, documentos ou email. Você revoga em Perfil › Gerenciar diário; revogar não apaga cópias que alguém já tenha baixado.",
+      "where": "<strong>Onde ficam as fotos:</strong> num armazenamento privado ligado à sua conta. Ao guardar, removemos a localização e outros dados escondidos da foto.",
+      "studio": "<strong>Estúdio:</strong> para conferir a foto e criar a arte, ela é enviada à API paga do Google (Gemini). Pelos termos dessa API, o conteúdo não é usado para treinar produtos do Google; pode ficar um registro por tempo limitado, só para detectar abusos. A arte sai com uma marca d’água invisível do Google.",
+      "payments": "<strong>Pagamentos:</strong> o Pix é processado pelo Mercado Pago; o app não vê dados bancários.",
+      "push": "<strong>Avisos no celular:</strong> passam pelo serviço de notificações do seu aparelho (Apple ou Google). Você desliga em Minha conta › Notificações.",
+      "delete": "<strong>Excluir:</strong> em Minha conta › Excluir minha conta, ou só um diário em Perfil › Gerenciar diário."
+    },
+    "terms": "Os termos de uso e a política de privacidade completos serão publicados antes do lançamento público.",
+    "studioTitle": "Estúdio de artes",
+    "studioText": "Cada arte aparece no diário com o selo “🎨 Arte do Estúdio” e entra no limite de lembranças. Se o diário estiver cheio, a arte não é criada e nenhum crédito é usado.",
+    "supportTitle": "Suporte",
+    "noSupport": "Canal de suporte ainda não definido."
+  },
+  "account": {
+    "confirmWord": "EXCLUIR",
+    "tzSaved": "Fuso salvo.",
+    "deleteFailed": "Não deu para excluir agora.",
+    "title": "Minha conta",
+    "you": "Você",
+    "signsInWith": "entra com {via}",
+    "email": "email",
+    "settings": "Ajustes da conta",
+    "name": "Seu nome",
+    "nameSeen": "A família vê “{name}”",
+    "nameSub": "Como você aparece para a família",
+    "familyDiaries": "Diários da família",
+    "othersDiaries": "{count, plural, one {# diário de outra pessoa} other {# diários de outras pessoas}}",
+    "notifications": "Notificações",
+    "notificationsSub": "Avisos da família no celular",
+    "timezone": "Fuso horário",
+    "finds": "Achadinhos do Abu",
+    "about": "Sobre o Diário de Patas",
+    "signingOut": "Saindo…",
+    "signOut": "Sair da conta",
+    "delete": "Excluir minha conta",
+    "close": "Fechar",
+    "langNote": "O idioma é seu: cada pessoa da família pode usar o dela. Trocar não muda fotos, legendas nem cartinhas.",
+    "region": "Datas comemorativas",
+    "regions": {
+      "BR": "Brasil",
+      "US": "Estados Unidos"
+    },
+    "regionNote": "Escolhe as datas sugeridas nas missões especiais e no Estúdio. Trocar não apaga temas, artes nem histórico.",
+    "unit": "Unidade de peso",
+    "units": {
+      "kg": "Quilos (kg)",
+      "lb": "Libras (lb)"
+    },
+    "unitNote": "Só muda como o peso aparece; o registro continua o mesmo.",
+    "tzHint": "Organiza as datas das suas lembranças e lembretes.",
+    "tzSave": "Salvar fuso",
+    "deleteText": "Os diários que você criou são apagados com tudo o que está neles, inclusive para a família convidada. Diários de outras pessoas continuam com elas. Não dá para desfazer.",
+    "confirmLabel": "Para confirmar, digite <strong>{word}</strong>",
+    "deleting": "Excluindo…"
+  },
+  "add": {
+    "back": "Voltar",
+    "backSignOut": "Voltar para a tela de entrada (sai da conta)",
+    "nameTitle": "Primeiro, qual é o seu nome?",
+    "nameNote": "O seu, de humano 🙂 O do cachorro vem depois.",
+    "titleAnother": "Adicionar cachorro",
+    "titleFirst": "Qual é o seu caso?",
+    "noteAnother": "Mais um amigo na família? Crie um diário para ele ou entre no diário que alguém compartilhou com você.",
+    "noteFirst": "Você pode criar o diário do seu cachorro ou entrar no diário que alguém da família já criou.",
+    "registerTitle": "Cadastrar um cachorro",
+    "registerText": "Crio um diário novo e convido a família depois.",
+    "inviteTitle": "Tenho um código de convite",
+    "inviteText": "Alguém da família me convidou para o diário do cachorro dele.",
+    "inviteCode": "Código do convite",
+    "checking": "Conferindo…",
+    "seeInvite": "Ver convite",
+    "wrongAccount": "Entrou com a conta errada?",
+    "signOut": "Sair"
+  },
+  "album": {
+    "notFound": "Álbum não encontrado",
+    "seeAlbums": "Ver álbuns",
+    "shareDefault": "{album} de {dog}",
+    "achievements": "Conquistas",
+    "nOf": "{n} de {total}",
+    "earned": "Conquistada",
+    "studioNote": "Aqui ficam as artes criadas no <link>Estúdio</link>.",
+    "photos": "Fotos",
+    "photoCounts": "{mission} de missão · {free} livres",
+    "noPhotos": "Nenhuma foto neste álbum ainda.",
+    "saveMoment": "Guardar momento",
+    "albumPhoto": "Foto do álbum",
+    "missionPhoto": "Foto de missão",
+    "share": "Compartilhar álbum",
+    "shareTitle": "Compartilhar “{title}”",
+    "shareNote": "Todas as fotos já estão marcadas. Toque numa foto para tirar do link. Quem recebe vê só estas fotos, sem precisar de conta, e você pode cancelar o link quando quiser em Ajustes.",
+    "selectAll": "Marcar todas",
+    "selectNone": "Desmarcar todas",
+    "photoFrom": "{what} de {date}",
+    "photo": "Foto",
+    "inLink": "No link",
+    "pickOne": "Marque pelo menos uma foto.",
+    "close": "Fechar",
+    "addFromDiary": "Adicionar fotos do diário",
+    "rename": "Renomear",
+    "deleteAlbum": "Excluir álbum",
+    "customCount": "{count, plural, one {# foto} other {# fotos}}. Para tirar uma foto daqui, edite a lembrança no Diário.",
+    "empty": "Este álbum ainda está vazio.",
+    "pickFromDiary": "Escolher fotos do diário",
+    "photoOfDate": "Foto de {date}",
+    "addTo": "Adicionar a “{title}”",
+    "addNote": "Toque nas fotos que quer colocar neste álbum. Elas continuam no diário e nos outros álbuns.",
+    "picked": "Escolhida",
+    "addN": "{count, plural, one {Adicionar # foto} other {Adicionar # fotos}}",
+    "pickPhotos": "Escolha as fotos",
+    "cancel": "Cancelar",
+    "renameTitle": "Renomear álbum",
+    "name": "Nome do álbum",
+    "deleteTitle": "Excluir este álbum?",
+    "deleteText": "“{title}” deixa de existir. As fotos continuam no diário e nos outros álbuns."
+  },
+  "albums": {
+    "studioArt": "Artes do Estúdio",
+    "album": "Álbum",
+    "freeHint": "Fotos livres enfeitam o álbum, mas não contam como conquista."
+  },
+  "albumsPage": {
+    "createFailed": "Não conseguimos criar o álbum. Tente de novo.",
+    "title": "Álbuns",
+    "tabsLabel": "Álbuns e coleções",
+    "collectionsTab": "Coleções ({n}/{total})",
+    "intro": "Cada missão concluída vira uma conquista no álbum. Fotos livres também podem morar aqui — e você pode criar álbuns com o nome que quiser.",
+    "newAlbum": "Novo álbum",
+    "photos": "{count, plural, one {# foto} other {# fotos}}",
+    "achievements": "{done}/{total} conquistas",
+    "yours": "seu álbum",
+    "create": "Criar álbum",
+    "name": "Nome do álbum",
+    "namePlaceholder": "Ex.: Viagem à praia, Primeiro ano"
+  },
+  "auth": {
+    "headline": "Cada dia com ele vira uma história.",
+    "sub": "Fotos, missões, conquistas e cuidados do seu cachorro, guardados num diário só de vocês.",
+    "registerDog": "Cadastrar meu cachorro",
+    "haveAccount": "Já tenho conta",
+    "haveInvite": "🎟️ Tenho um código de convite",
+    "foot": "Grátis · privado até você convidar a família",
+    "back": "Voltar",
+    "chooseCreateTitle": "Vamos criar o diário!",
+    "chooseSignInTitle": "Que bom te ver de novo!",
+    "chooseCreateText": "Primeiro sua conta, depois você apresenta o seu cachorro: nome, foto e pronto.",
+    "chooseSignInText": "Entre do mesmo jeito que você criou a conta.",
+    "openingGoogle": "Abrindo o Google…",
+    "continueGoogle": "Continuar com Google",
+    "openingApple": "Abrindo a Apple…",
+    "continueApple": "Continuar com Apple",
+    "or": "ou",
+    "createWithEmail": "Criar com email",
+    "signInWithEmail": "Entrar com email",
+    "anyEmail": "Gmail, iCloud ou qualquer email, com senha ou com um código no email.",
+    "alreadyHave": "Já tem conta?",
+    "noAccountYet": "Ainda não tem conta?",
+    "signIn": "Entrar",
+    "createAccount": "Criar conta",
+    "inviteTitle": "Convite da família",
+    "inviteText": "Quem cuida do diário gerou um código para você. Você vai entrar com a sua própria conta (ou criar uma).",
+    "code": "Código",
+    "seeInvite": "Ver convite",
+    "emailCreateTitle": "Criar conta com email",
+    "yourEmail": "Seu email",
+    "emailPlaceholder": "voce@gmail.com",
+    "createPassword": "Crie uma senha",
+    "password": "Senha",
+    "passwordHint": "8 caracteres ou mais",
+    "hidePasswordLabel": "Esconder senha",
+    "showPasswordLabel": "Mostrar senha",
+    "hide": "Esconder",
+    "show": "Mostrar",
+    "creating": "Criando…",
+    "signingIn": "Entrando…",
+    "forgot": "Esqueci minha senha",
+    "confirmCodeNote": "Vamos mandar um código para confirmar o email.",
+    "preferCode": "Prefiro receber um código no email",
+    "otpTitle": "Entrar sem senha",
+    "otpText": "Mandamos um código e um link para o seu email. Se for a primeira vez, a conta é criada na hora.",
+    "sending": "Enviando…",
+    "getCode": "Receber código de entrada",
+    "sentRecoveryTitle": "Vamos criar uma senha nova",
+    "sentSignupTitle": "Confirme seu email",
+    "sentTitle": "Confira seu email",
+    "sentStandalone": "Enviamos para <strong>{email}</strong>. <strong>Digite aqui o código do email.</strong> No app instalado, o link do email abre no Safari, e não aqui.",
+    "sentBrowser": "Enviamos para <strong>{email}</strong>. Abra o email <strong>neste mesmo aparelho</strong> e toque no link, ou digite o código abaixo.",
+    "continue": "Continuar",
+    "confirmAndEnter": "Confirmar e entrar",
+    "enterWithCode": "Entrar com o código",
+    "notArrived": "Não chegou? Veja a caixa de spam. O código vale por 1 hora.",
+    "otherEmail": "Usar outro email",
+    "errors": {
+      "link": "Esse link não funcionou ou já foi usado. Tente entrar de novo.",
+      "oauth": "Não deu para entrar com essa conta agora. Tente de novo ou use o email.",
+      "providerOff": "Entrar com {provider} ainda está sendo configurado. Por enquanto, use o email.",
+      "checkEmail": "Confira o email.",
+      "tooMany": "Muitos pedidos seguidos. Espere um minuto e tente de novo.",
+      "sendFailed": "Não conseguimos enviar o email agora. Tente de novo.",
+      "passwordShort": "A senha precisa de pelo menos 8 caracteres.",
+      "emailExists": "Esse email já tem conta. Toque em Entrar.",
+      "weakPassword": "Escolha uma senha mais forte: 8 caracteres ou mais, misturando letras e números.",
+      "createFailed": "Não conseguimos criar a conta agora. Tente de novo.",
+      "emailExistsForgot": "Esse email já tem conta. Toque em Entrar (ou em “Esqueci minha senha”).",
+      "confirmFirst": "Falta confirmar o email: abra o email de boas-vindas que enviamos.",
+      "wrongPassword": "Email ou senha não conferem. Se você sempre entrou pelo Google, Apple ou código no email, use “Esqueci minha senha” para criar uma.",
+      "badCode": "Código inválido ou vencido. Peça um novo."
+    }
+  },
+  "avatarCrop": {
+    "title": "Ajustar foto de {dog}",
+    "note": "Arraste a foto para posicionar e use o zoom para aproximar o rostinho. O ajuste é salvo ao fechar.",
+    "preview": "Prévia da foto de perfil",
+    "save": "Salvar ajuste",
+    "done": "Pronto",
+    "zoom": "Zoom",
+    "x": "Esquerda ↔ direita",
+    "y": "Cima ↕ baixo",
+    "center": "Voltar ao centro"
+  },
+  "bones": {
+    "someone": "Alguém da família",
+    "you": "Você",
+    "one": "{who} deu um ossinho",
+    "youGave": "Você deu um ossinho",
+    "two": "{a} e {b} deram ossinho",
+    "many": "{a}, {b} e mais {n} deram ossinho",
+    "countLabel": "{count, plural, one {# ossinho} other {# ossinhos}}: {who}",
+    "remove": "Tirar ossinho",
+    "give": "Dar ossinho"
+  },
+  "brand": {
+    "abuReading": "Abu lendo o Diário de Patas",
+    "abuHolding": "Abu, o cachorro que inspirou o app, segurando um livro"
+  },
+  "calendar": {
+    "yourDog": "seu cachorro",
+    "visit": "Consulta",
+    "nextDose": "Próxima dose",
+    "nothing": "Nada para agendar.",
+    "file": "lembrete"
+  },
+  "care": {
+    "disclaimer": "Estas anotações não substituem o veterinário. Em emergência, procure atendimento.",
+    "vaccineKinds": {
+      "vaccine": "Vacina",
+      "dewormer": "Vermífugo",
+      "antiflea": "Antipulgas",
+      "other": "Outro"
+    },
+    "contactKinds": {
+      "vet": "Veterinário",
+      "clinic": "Clínica",
+      "emergency": "Emergência 24h",
+      "sitter": "Pet sitter",
+      "other": "Outro"
+    },
+    "repeat": {
+      "none": "Sem aviso",
+      "daily": "Todo dia",
+      "weekly": "Toda semana",
+      "monthly": "Todo mês",
+      "quarterly": "A cada 3 meses",
+      "yearly": "Todo ano"
+    },
+    "docCategories": {
+      "vaccination_card": "Carteira de vacinação",
+      "id_chip": "RG pet / microchip",
+      "pedigree": "Pedigree",
+      "exams": "Exames",
+      "prescriptions": "Receitas",
+      "insurance": "Seguro / plano",
+      "adoption": "Contrato de adoção ou compra",
+      "other": "Outros"
+    },
+    "due": {
+      "none": "Sem próxima dose",
+      "ok": "Em dia",
+      "soon": "Próxima em até 30 dias",
+      "overdue": "Atrasada"
+    },
+    "expiry": {
+      "none": "Sem validade",
+      "ok": "Válido",
+      "soon": "Vence em breve",
+      "overdue": "Vencido"
+    },
+    "dueIn": "{days, plural, =0 {hoje} =1 {amanhã} other {em # dias}}",
+    "dueAgo": "{days, plural, =1 {há 1 dia} other {há # dias}}"
+  },
+  "careItems": {
+    "medication": "Remédio: {name}",
+    "document": "Documento: {name}",
+    "nextVisit": "Próxima consulta",
+    "visit": "Consulta marcada",
+    "visitAt": "Consulta marcada às {time}",
+    "visitToday": "Consulta marcada hoje",
+    "visitTodayAt": "Consulta marcada hoje às {time}"
+  },
+  "carePage": {
+    "title": "Cuidados",
+    "profile": "Dados de {dog}",
+    "profileFilled": "{n} de 7 informações preenchidas",
+    "profileEmpty": "Raça, sexo, microchip, alergias…",
+    "weight": "Peso",
+    "weightLast": "{weight} em {date}",
+    "noRecords": "Nenhum registro ainda",
+    "vaccines": "Vacinas e vermífugos",
+    "records": "{count, plural, one {# registro} other {# registros}}",
+    "overdue": "{count, plural, one {# atrasada} other {# atrasadas}}",
+    "visits": "Consultas e visitas",
+    "lastVisit": "Última: {date}",
+    "noVisits": "Nenhuma consulta registrada",
+    "meds": "Medicamentos",
+    "medsActive": "{count} em uso",
+    "medsNone": "Nenhum em uso agora",
+    "docs": "Documentos",
+    "docsCount": "{count, plural, one {# documento} other {# documentos}}",
+    "docsExpiring": "{count, plural, one {# vencendo ou vencido} other {# vencendo ou vencidos}}",
+    "docsEmpty": "Carteira de vacinação, RG pet, exames…",
+    "contacts": "Contatos",
+    "contactsCount": "{count, plural, one {# contato} other {# contatos}}",
+    "contactsEmpty": "Veterinário, emergência 24h, pet sitter…",
+    "areas": "Áreas de cuidados",
+    "privateNote": "Privado, só da família. As anotações não substituem o veterinário; em emergência, procure atendimento."
+  },
+  "catalog": {
+    "missions": {
+      "M01": {
+        "title": "Olá, mundo",
+        "description": "A primeira página do diário: uma foto em que dê para ver bem {dog}.",
+        "criterion": "{dog} claramente visível."
+      },
+      "M02": {
+        "title": "Soneca de respeito",
+        "description": "Aquele momento de descanso que merece registro.",
+        "criterion": "{dog} deitado ou descansando. Se está dormindo de verdade pode ficar incerto — tudo bem."
+      },
+      "M03": {
+        "title": "Meu brinquedo",
+        "description": "O brinquedo favorito, o mais roído ou o do momento.",
+        "criterion": "{dog} e um brinquedo visíveis na foto."
+      },
+      "M04": {
+        "title": "Hora da refeição",
+        "description": "Na refeição de sempre — nada de comida extra para a foto.",
+        "criterion": "{dog} junto ao pote ou à comida habitual."
+      },
+      "M05": {
+        "title": "Meu cantinho",
+        "description": "Sofá, tapete, caminha ou aquele canto que só ele escolheu.",
+        "criterion": "{dog} em um local de descanso (não precisa ser cama comprada)."
+      },
+      "M06": {
+        "title": "Dupla inseparável",
+        "description": "Você e {dog} (ou alguém da família) na mesma foto.",
+        "criterion": "{dog} junto de uma pessoa. Ninguém é identificado."
+      },
+      "M07": {
+        "title": "Explorador do parque",
+        "description": "Um passeio com grama, árvores ou jardim por perto.",
+        "criterion": "{dog} em ambiente externo com cara de parque ou jardim.",
+        "homeAlternative": "Sem parque? Um vaso de plantas, o quintal ou a varanda também viram jardim."
+      },
+      "M08": {
+        "title": "Pé na rua",
+        "description": "Qualquer passeio vale — perto ou longe.",
+        "criterion": "{dog} em um passeio ao ar livre.",
+        "homeAlternative": "Sem passeio hoje? Uma volta pelo quintal, pela varanda ou pelo corredor também vale."
+      },
+      "M09": {
+        "title": "Amizade de patas",
+        "description": "Quando aparece mais alguém de quatro patas.",
+        "criterion": "Dois ou mais cachorros enquadrados. Não precisam estar encostados."
+      },
+      "M10": {
+        "title": "Momento engraçado",
+        "description": "Você decide o que é engraçado. A gente só guarda.",
+        "criterion": "{dog} na foto. O humor é seu — não é avaliado."
+      },
+      "M11": {
+        "title": "Companhia tranquila",
+        "description": "Um descanso lado a lado.",
+        "criterion": "{dog} descansando perto de uma pessoa."
+      },
+      "M12": {
+        "title": "Cara de capa",
+        "description": "Um retrato digno da capa do álbum.",
+        "criterion": "Retrato com {dog} claramente visível."
+      },
+      "M13": {
+        "title": "Primeiro dia em casa",
+        "description": "Uma foto do começo de vocês. Vale foto antiga — quanto mais antiga, melhor.",
+        "criterion": "Uma foto do começo de vocês dois (pode ser antiga)."
+      },
+      "M14": {
+        "title": "Patinha de perto",
+        "description": "Um close daquela patinha.",
+        "criterion": "A patinha em close."
+      },
+      "M15": {
+        "title": "Meu nome",
+        "description": "A coleira ou a plaquinha com o nome.",
+        "criterion": "A coleira ou a plaquinha com o nome aparecendo."
+      },
+      "M16": {
+        "title": "Bocejo flagrado",
+        "description": "Pegou no flagra aquele bocejo enorme?",
+        "criterion": "{dog} bocejando."
+      },
+      "M17": {
+        "title": "Posição estranha de dormir",
+        "description": "Aquela pose impossível na hora de dormir.",
+        "criterion": "{dog} dormindo numa posição curiosa."
+      },
+      "M18": {
+        "title": "Esperando na porta",
+        "description": "De olho na porta, esperando alguém chegar.",
+        "criterion": "{dog} perto da porta, esperando."
+      },
+      "M19": {
+        "title": "Hora do banho",
+        "description": "Durante ou logo depois do banho — pelo molhado vale.",
+        "criterion": "{dog} no banho ou logo depois."
+      },
+      "M20": {
+        "title": "Cheiroso",
+        "description": "Depois do banho ou da tosa, todo arrumado.",
+        "criterion": "{dog} depois do banho ou da tosa."
+      },
+      "M21": {
+        "title": "Dia de chuva",
+        "description": "Olhando a chuva pela janela ou secando no tapete.",
+        "criterion": "{dog} num dia de chuva, dentro de casa."
+      },
+      "M22": {
+        "title": "Esconderijo favorito",
+        "description": "Aquele lugar secreto preferido.",
+        "criterion": "{dog} no seu esconderijo preferido."
+      },
+      "M23": {
+        "title": "Dono do sofá",
+        "description": "Ocupando o sofá ou a cama como se fosse o dono. E é.",
+        "criterion": "{dog} deitado no sofá ou na cama."
+      },
+      "M24": {
+        "title": "Selfie juntos",
+        "description": "Você e {dog} numa selfie.",
+        "criterion": "Você e {dog} na mesma selfie. Ninguém é identificado."
+      },
+      "M25": {
+        "title": "Patinha na mão",
+        "description": "A patinha na sua mão.",
+        "criterion": "A patinha de {dog} na mão de uma pessoa."
+      },
+      "M26": {
+        "title": "Colo bom",
+        "description": "No colo de alguém, do jeitinho que gosta.",
+        "criterion": "{dog} no colo de uma pessoa."
+      },
+      "M27": {
+        "title": "Família reunida",
+        "description": "{dog} junto com a família.",
+        "criterion": "{dog} com duas ou mais pessoas da família."
+      },
+      "M28": {
+        "title": "Bom dia",
+        "description": "A primeira foto do dia.",
+        "criterion": "{dog} logo pela manhã."
+      },
+      "M29": {
+        "title": "Boa noite",
+        "description": "Pronto para dormir.",
+        "criterion": "{dog} na hora de dormir."
+      },
+      "M30": {
+        "title": "Cabeça inclinada",
+        "description": "A famosa cabecinha de lado.",
+        "criterion": "{dog} com a cabeça inclinada."
+      },
+      "M31": {
+        "title": "Língua de fora",
+        "description": "A linguinha aparecendo.",
+        "criterion": "{dog} com a língua de fora."
+      },
+      "M32": {
+        "title": "Orelhas em ação",
+        "description": "Orelhas em pé, viradas ou voando.",
+        "criterion": "As orelhas de {dog} em destaque."
+      },
+      "M33": {
+        "title": "Cara de culpado",
+        "description": "Aquela cara depois de aprontar.",
+        "criterion": "{dog} com cara de quem aprontou. A cara é você quem julga."
+      },
+      "M34": {
+        "title": "Truque favorito",
+        "description": "Fazendo um truque que já sabe — sem forçar nada.",
+        "criterion": "{dog} fazendo um truque que já conhece."
+      },
+      "M35": {
+        "title": "Brinquedo sobrevivente",
+        "description": "O brinquedo mais destruído de todos, e ainda amado.",
+        "criterion": "{dog} com um brinquedo bem gasto."
+      },
+      "M36": {
+        "title": "Correria!",
+        "description": "Correndo — foto tremida vale.",
+        "criterion": "{dog} correndo (pode estar tremida)."
+      },
+      "M37": {
+        "title": "Novo caminho",
+        "description": "Um passeio por um lugar novo.",
+        "criterion": "{dog} passeando num lugar novo.",
+        "homeAlternative": "Sem passeio? Um cantinho da casa pouco explorado também é um lugar novo."
+      },
+      "M38": {
+        "title": "Pôr do sol",
+        "description": "Um passeio no fim da tarde.",
+        "criterion": "{dog} num passeio no fim da tarde.",
+        "homeAlternative": "Sem passeio? A luz do fim da tarde entrando pela janela também vale."
+      },
+      "M39": {
+        "title": "Pegadas",
+        "description": "Pegadas na areia, na terra ou na neve.",
+        "criterion": "Pegadas de {dog} na areia, terra ou neve.",
+        "homeAlternative": "Sem passeio? Pegadas no tapete depois do banho também contam."
+      },
+      "M40": {
+        "title": "Lugar pet friendly",
+        "description": "Num café, loja ou parque que recebe pets.",
+        "criterion": "{dog} num lugar que aceita pets.",
+        "homeAlternative": "Sem sair? A casa de alguém que recebe vocês dois também é pet friendly."
+      },
+      "M41": {
+        "title": "Na estrada",
+        "description": "Passeio de carro com segurança: cinto pet ou caixa de transporte.",
+        "criterion": "{dog} no carro, com cinto pet ou na caixa de transporte.",
+        "homeAlternative": "Sem carro? A caixa de transporte arrumada para um passeio também vale."
+      },
+      "M42": {
+        "title": "Dia de praia",
+        "description": "Na praia ou na beira d’água. Opcional — só se fizer parte da vida de vocês.",
+        "criterion": "{dog} na praia ou perto da água.",
+        "homeAlternative": "Sem praia? Uma brincadeira com água em casa, se {dog} gostar, também vale."
+      },
+      "M43": {
+        "title": "Dia de frio",
+        "description": "De roupinha confortável ou enrolado na manta.",
+        "criterion": "{dog} aquecido num dia frio."
+      },
+      "M44": {
+        "title": "Dia de calor",
+        "description": "Na sombra, com água fresca por perto.",
+        "criterion": "{dog} na sombra ou perto da água fresca."
+      },
+      "M45": {
+        "title": "Feliz aniversário",
+        "description": "Comemorando o aniversário. Opcional — se vocês comemoram.",
+        "criterion": "{dog} numa comemoração de aniversário."
+      },
+      "M46": {
+        "title": "Natal juntos",
+        "description": "Clima de Natal em casa. Opcional.",
+        "criterion": "{dog} com enfeites ou clima de Natal por perto."
+      },
+      "M47": {
+        "title": "Visita ao veterinário",
+        "description": "Na consulta ou na sala de espera.",
+        "criterion": "{dog} numa clínica veterinária."
+      },
+      "M48": {
+        "title": "Unhas e tosa",
+        "description": "Dia de cuidar das unhas ou dos pelos.",
+        "criterion": "{dog} num dia de cuidado com unhas ou pelos."
+      },
+      "D01": {
+        "title": "Meu cantinho favorito",
+        "description": "O lugar da casa que foi o escolhido de hoje.",
+        "criterion": "{dog} no cantinho preferido."
+      },
+      "D02": {
+        "title": "Soneca da tarde",
+        "description": "Aquele cochilo depois do almoço.",
+        "criterion": "{dog} cochilando."
+      },
+      "D03": {
+        "title": "Esperando o petisco de sempre",
+        "description": "A espera pelo petisco de todo dia — nada extra para a foto.",
+        "criterion": "{dog} esperando o petisco habitual."
+      },
+      "D04": {
+        "title": "Na janela",
+        "description": "De olho no movimento lá fora.",
+        "criterion": "{dog} olhando pela janela."
+      },
+      "D05": {
+        "title": "Depois da aventura, descanso",
+        "description": "Recarregando as energias.",
+        "criterion": "{dog} descansando depois de brincar ou passear."
+      },
+      "D06": {
+        "title": "Espreguiçada",
+        "description": "Aquela esticada caprichada.",
+        "criterion": "{dog} se espreguiçando."
+      },
+      "D07": {
+        "title": "No tapete",
+        "description": "Esparramado no tapete de casa.",
+        "criterion": "{dog} no tapete."
+      },
+      "D08": {
+        "title": "Hora da refeição de sempre",
+        "description": "A refeição de todo dia, sem nada extra para a foto.",
+        "criterion": "{dog} junto ao pote da refeição habitual."
+      },
+      "D09": {
+        "title": "Bagunça do dia",
+        "description": "A arte de hoje — sem bronca, só registro.",
+        "criterion": "{dog} perto de uma bagunça."
+      },
+      "D10": {
+        "title": "Cochilo no sol",
+        "description": "Aquela faixa de sol no chão.",
+        "criterion": "{dog} deitado no sol."
+      },
+      "D11": {
+        "title": "Olhar de “já acabou?”",
+        "description": "Aquela cara de quem queria mais um pouco.",
+        "criterion": "{dog} olhando para a câmera."
+      },
+      "D12": {
+        "title": "Foto do dia em casa",
+        "description": "Qualquer momento de hoje em casa vale.",
+        "criterion": "{dog} em casa."
+      },
+      "D37": {
+        "title": "Patinhas cruzadas",
+        "description": "Aquela pose chique, de patas cruzadas.",
+        "criterion": "{dog} com as patas da frente cruzadas."
+      },
+      "D38": {
+        "title": "Arrumando a cama",
+        "description": "As voltinhas e cavucadas antes de deitar.",
+        "criterion": "{dog} na cama ou caminha dele."
+      },
+      "D39": {
+        "title": "De guarda",
+        "description": "No posto de vigia preferido da casa.",
+        "criterion": "{dog} atento dentro de casa."
+      },
+      "D40": {
+        "title": "Pezinho de fora",
+        "description": "Uma patinha escapando enquanto ele descansa.",
+        "criterion": "{dog} deitado com uma pata aparecendo."
+      },
+      "D41": {
+        "title": "Fiscal da cozinha",
+        "description": "De olho em tudo enquanto alguém cozinha — sem comida de gente.",
+        "criterion": "{dog} na cozinha."
+      },
+      "D42": {
+        "title": "Hora da água",
+        "description": "Matando a sede no pote de sempre.",
+        "criterion": "{dog} perto do pote de água."
+      },
+      "D43": {
+        "title": "Debaixo da manta",
+        "description": "Enroladinho na manta — só se ele gostar.",
+        "criterion": "{dog} com uma manta, coberta ou almofada."
+      },
+      "D44": {
+        "title": "Sombra oficial",
+        "description": "Aquele que segue você por todos os cômodos.",
+        "criterion": "{dog} andando ou parado dentro de casa."
+      },
+      "D45": {
+        "title": "Sonhando acordado",
+        "description": "Olhar perdido, pensamento longe.",
+        "criterion": "{dog} deitado de olhos abertos."
+      },
+      "D46": {
+        "title": "Colega de trabalho",
+        "description": "Do lado enquanto alguém lê, estuda ou trabalha.",
+        "criterion": "{dog} perto de alguém lendo ou no computador."
+      },
+      "D13": {
+        "title": "Brinquedo inseparável",
+        "description": "O brinquedo que vai para todo canto.",
+        "criterion": "{dog} com um brinquedo."
+      },
+      "D14": {
+        "title": "Companhia no sofá",
+        "description": "Dividindo o sofá com alguém.",
+        "criterion": "{dog} no sofá junto de uma pessoa."
+      },
+      "D15": {
+        "title": "Foto com meu humano",
+        "description": "Você e {dog}, do jeito que der.",
+        "criterion": "{dog} com uma pessoa."
+      },
+      "D16": {
+        "title": "Cabo de guerra",
+        "description": "Uma rodada de puxa-puxa.",
+        "criterion": "{dog} puxando um brinquedo."
+      },
+      "D17": {
+        "title": "Buscando a bolinha",
+        "description": "Vai, pega, traz — de novo.",
+        "criterion": "{dog} com uma bolinha."
+      },
+      "D18": {
+        "title": "Carinho na barriga",
+        "description": "A barriga para cima pedindo carinho.",
+        "criterion": "Uma pessoa fazendo carinho em {dog}."
+      },
+      "D19": {
+        "title": "Treino de um truque",
+        "description": "Um treino rápido, no ritmo de {dog}.",
+        "criterion": "{dog} treinando um truque."
+      },
+      "D20": {
+        "title": "Brincando com alguém da família",
+        "description": "Uma brincadeira em família.",
+        "criterion": "{dog} brincando com uma pessoa."
+      },
+      "D21": {
+        "title": "Juntinhos",
+        "description": "Bem pertinho de alguém.",
+        "criterion": "{dog} encostado em uma pessoa."
+      },
+      "D22": {
+        "title": "Recebendo alguém em casa",
+        "description": "A festa de quando alguém chega.",
+        "criterion": "{dog} recebendo uma pessoa."
+      },
+      "D23": {
+        "title": "Momento de carinho",
+        "description": "Um carinho qualquer, do jeito de vocês.",
+        "criterion": "Uma pessoa fazendo carinho em {dog}."
+      },
+      "D24": {
+        "title": "Brincadeira inventada",
+        "description": "Aquela brincadeira que só vocês conhecem.",
+        "criterion": "{dog} brincando."
+      },
+      "D47": {
+        "title": "Esconde-esconde",
+        "description": "Achou! Uma rodada de procurar alguém ou um brinquedo.",
+        "criterion": "{dog} procurando ou encontrando alguém ou um brinquedo."
+      },
+      "D48": {
+        "title": "Brinquedo redescoberto",
+        "description": "Aquele que estava sumido debaixo do sofá.",
+        "criterion": "{dog} com um brinquedo."
+      },
+      "D49": {
+        "title": "Pega-pega",
+        "description": "Correndo atrás de alguém — ou fugindo.",
+        "criterion": "{dog} correndo perto de uma pessoa."
+      },
+      "D50": {
+        "title": "Mordedor da vez",
+        "description": "O mordedor preferido de hoje.",
+        "criterion": "{dog} mordiscando um brinquedo ou mordedor."
+      },
+      "D51": {
+        "title": "Abraço apertado",
+        "description": "Um abraço, só se ele curtir.",
+        "criterion": "Uma pessoa abraçando {dog}."
+      },
+      "D52": {
+        "title": "Caça ao petisco",
+        "description": "Os petiscos de sempre escondidos para ele farejar.",
+        "criterion": "{dog} farejando dentro de casa."
+      },
+      "D53": {
+        "title": "Atenção total",
+        "description": "Sentadinho, esperando o próximo pedido.",
+        "criterion": "{dog} sentado olhando para alguém."
+      },
+      "D54": {
+        "title": "Dupla no chão",
+        "description": "Alguém sentado no chão, na altura dele.",
+        "criterion": "Uma pessoa sentada no chão com {dog}."
+      },
+      "D55": {
+        "title": "Vem pegar!",
+        "description": "Brinquedo na boca e olhar de desafio.",
+        "criterion": "{dog} com um brinquedo na boca olhando para a câmera."
+      },
+      "D56": {
+        "title": "Escovinha",
+        "description": "Um momento de escovar o pelo, no ritmo dele.",
+        "criterion": "Uma pessoa escovando {dog}."
+      },
+      "D25": {
+        "title": "Passeio do dia",
+        "description": "O passeio de hoje, curto ou longo.",
+        "criterion": "{dog} passeando."
+      },
+      "D26": {
+        "title": "Explorando um cheiro",
+        "description": "Aquela farejada que não tem pressa.",
+        "criterion": "{dog} farejando lá fora."
+      },
+      "D27": {
+        "title": "Retrato de pertinho",
+        "description": "Um retrato bem de perto.",
+        "criterion": "Retrato próximo de {dog}."
+      },
+      "D28": {
+        "title": "Perfil elegante",
+        "description": "De lado, pose de quadro.",
+        "criterion": "{dog} de perfil."
+      },
+      "D29": {
+        "title": "Olhando para a câmera",
+        "description": "Olho no olho.",
+        "criterion": "{dog} olhando para a câmera."
+      },
+      "D30": {
+        "title": "Grama ou terra",
+        "description": "Patas na grama ou na terra.",
+        "criterion": "{dog} na grama ou na terra."
+      },
+      "D31": {
+        "title": "Encontro na rua",
+        "description": "Um encontro tranquilo com outro cachorro.",
+        "criterion": "{dog} perto de outro cachorro."
+      },
+      "D32": {
+        "title": "Uma pose engraçada",
+        "description": "Você decide o que é engraçado.",
+        "criterion": "{dog} na foto. O humor é seu."
+      },
+      "D33": {
+        "title": "Céu de hoje no passeio",
+        "description": "O céu de hoje aparecendo na foto.",
+        "criterion": "{dog} lá fora com o céu aparecendo."
+      },
+      "D34": {
+        "title": "De volta para casa",
+        "description": "A chegada depois do passeio.",
+        "criterion": "{dog} voltando para casa."
+      },
+      "D35": {
+        "title": "Retrato com luz bonita",
+        "description": "Aproveite uma luz bonita de hoje.",
+        "criterion": "Retrato de {dog}."
+      },
+      "D36": {
+        "title": "Close no focinho",
+        "description": "O focinho em primeiro plano.",
+        "criterion": "Close do focinho de {dog}."
+      },
+      "D57": {
+        "title": "A guia apareceu!",
+        "description": "A animação de quando a guia sai da gaveta.",
+        "criterion": "{dog} com coleira, peitoral ou guia."
+      },
+      "D58": {
+        "title": "Verde no caminho",
+        "description": "Folhas, flores ou galhos no passeio de hoje.",
+        "criterion": "{dog} lá fora com plantas aparecendo."
+      },
+      "D59": {
+        "title": "Pausa na sombra",
+        "description": "Um descanso fresquinho no meio do passeio.",
+        "criterion": "{dog} na sombra, ao ar livre."
+      },
+      "D60": {
+        "title": "Pelo ao vento",
+        "description": "O vento bagunçando o pelo ou as orelhas.",
+        "criterion": "{dog} ao ar livre, com o vento no pelo ou nas orelhas."
+      },
+      "D61": {
+        "title": "Olhos nos olhos",
+        "description": "Os olhos em primeiro plano.",
+        "criterion": "Close dos olhos de {dog}."
+      },
+      "D62": {
+        "title": "Silhueta",
+        "description": "Contra a luz, só o contorno.",
+        "criterion": "{dog} contra a luz."
+      },
+      "D63": {
+        "title": "Olhando para cima",
+        "description": "Foto de cima, com ele olhando para você.",
+        "criterion": "{dog} olhando para cima."
+      },
+      "D64": {
+        "title": "Na altura dele",
+        "description": "O mundo visto da altura de {dog}.",
+        "criterion": "Foto tirada na altura de {dog}."
+      },
+      "D65": {
+        "title": "Banquinho da praça",
+        "description": "Uma parada num banco ou mureta do passeio.",
+        "criterion": "{dog} perto de um banco ou mureta lá fora."
+      },
+      "D66": {
+        "title": "Corpo inteiro",
+        "description": "Da ponta do focinho à ponta do rabo.",
+        "criterion": "{dog} inteiro na foto."
+      },
+      "C01": {
+        "title": "Enroladinho",
+        "description": "Dormindo enrolado como uma rosquinha.",
+        "criterion": "{dog} dormindo enrolado."
+      },
+      "C02": {
+        "title": "Barriga pra cima",
+        "description": "Dormindo de barriga para cima.",
+        "criterion": "{dog} deitado de barriga para cima."
+      },
+      "C03": {
+        "title": "Esparramado",
+        "description": "Ocupando todo o espaço possível.",
+        "criterion": "{dog} deitado esparramado."
+      },
+      "C04": {
+        "title": "Focinho na patinha",
+        "description": "O focinho apoiado na patinha.",
+        "criterion": "{dog} com o focinho sobre a pata."
+      },
+      "C05": {
+        "title": "Dormindo com o brinquedo",
+        "description": "Abraçado ao brinquedo na hora de dormir.",
+        "criterion": "{dog} dormindo perto de um brinquedo."
+      },
+      "C06": {
+        "title": "Olhar pidão",
+        "description": "Aquele olhar que pede tudo.",
+        "criterion": "{dog} olhando para a câmera."
+      },
+      "C07": {
+        "title": "Manhã",
+        "description": "Um passeio de manhã.",
+        "criterion": "{dog} lá fora de manhã.",
+        "homeAlternative": "Sem passeio? A manhã no quintal, na varanda ou na janela também vale."
+      },
+      "C08": {
+        "title": "Grama verdinha",
+        "description": "Patas na grama.",
+        "criterion": "{dog} na grama.",
+        "homeAlternative": "Sem passeio? Um vaso de plantas, o quintal ou a varanda também valem."
+      },
+      "C09": {
+        "title": "Voltando cansado",
+        "description": "O descanso depois do passeio.",
+        "criterion": "{dog} descansando depois de passear ou brincar."
+      },
+      "C10": {
+        "title": "Sofá juntos",
+        "description": "Você e {dog} no sofá.",
+        "criterion": "{dog} no sofá com uma pessoa."
+      },
+      "C11": {
+        "title": "A mesma pose",
+        "description": "Vocês dois fazendo a mesma pose.",
+        "criterion": "{dog} e uma pessoa na mesma pose."
+      },
+      "C12": {
+        "title": "Bolinha",
+        "description": "A bolinha preferida.",
+        "criterion": "{dog} com uma bolinha."
+      },
+      "C13": {
+        "title": "Cabo de guerra",
+        "description": "Puxa daqui, puxa de lá.",
+        "criterion": "{dog} puxando um brinquedo."
+      },
+      "C14": {
+        "title": "Esconderijo de brinquedos",
+        "description": "Onde os brinquedos vão parar.",
+        "criterion": "Brinquedos de {dog} escondidos ou guardados num canto."
+      },
+      "C15": {
+        "title": "Aquela mania única",
+        "description": "A mania que ninguém mais tem.",
+        "criterion": "{dog} na foto. A mania é você quem escolhe."
+      },
+      "S01": {
+        "title": "Aniversário de {dog}",
+        "description": "A semana do aniversário chegou. Uma foto para lembrar deste ano.",
+        "criterion": "{dog} no clima do aniversário."
+      },
+      "S02": {
+        "title": "Natal juntos",
+        "description": "Clima de Natal em casa.",
+        "criterion": "{dog} com enfeites ou clima de Natal por perto."
+      },
+      "S03": {
+        "title": "Halloween divertido",
+        "description": "Fantasia só se ficar confortável. Foto com abóbora ou decoração também vale.",
+        "criterion": "{dog} com abóbora, decoração ou fantasia confortável."
+      },
+      "S04": {
+        "title": "Dia Nacional do Cachorro",
+        "description": "Nos Estados Unidos, 26 de agosto é o dia deles. Uma foto para celebrar {dog}.",
+        "criterion": "{dog} curtindo o dia dele."
+      },
+      "S05": {
+        "title": "Ação de Graças",
+        "description": "Gratidão por {dog}. Uma foto aconchegante na semana de Ação de Graças — comida da festa só para as pessoas.",
+        "criterion": "{dog} num cantinho aconchegante com clima de outono."
+      }
+    },
+    "collections": {
+      "primeiras-lembrancas": {
+        "title": "Primeiras lembranças",
+        "description": "O começo do diário."
+      },
+      "vida-em-casa": {
+        "title": "Vida em casa",
+        "description": "Sonecas, brinquedos e cantinhos."
+      },
+      "nosso-vinculo": {
+        "title": "Nosso vínculo",
+        "description": "Momentos de companhia."
+      },
+      "pequenas-aventuras": {
+        "title": "Pequenas aventuras",
+        "description": "Passeios e descobertas lá fora."
+      },
+      "manias-e-expressoes": {
+        "title": "Manias e expressões",
+        "description": "Caras, jeitos e retratos."
+      },
+      "estacoes-e-datas": {
+        "title": "Estações e datas",
+        "description": "Chuva, frio, calor e datas que vocês comemoram."
+      },
+      "cuidados": {
+        "title": "Cuidados",
+        "description": "Banho, tosa, veterinário e outros cuidados."
+      },
+      "datas-especiais": {
+        "title": "Datas especiais",
+        "description": "Artes comemorativas do estúdio."
+      }
+    },
+    "sets": {
+      "poses-de-dormir": {
+        "title": "As poses de dormir"
+      },
+      "caras-e-expressoes": {
+        "title": "Caras e expressões"
+      },
+      "nossos-passeios": {
+        "title": "Nossos passeios",
+        "note": "Sem passeio? Quintal, varanda ou janela também valem."
+      },
+      "nos-dois": {
+        "title": "Nós dois"
+      },
+      "brinquedos-e-manias": {
+        "title": "Brinquedos e manias"
+      }
+    },
+    "slots": {
+      "A": "Casa e descanso",
+      "B": "Companhia e brincadeira",
+      "C": "Passeio ou retrato"
+    },
+    "levels": {
+      "l0": "Novo companheiro",
+      "l1": "Colecionador de momentos",
+      "l2": "Explorador",
+      "l3": "Guardião de lembranças",
+      "l4": "Contador de histórias",
+      "l5": "Melhores amigos",
+      "l6": "Sempre juntos"
+    }
+  },
+  "collections": {
+    "intro": "Cada coleção tem 6 desafios, sem prazo. Completar uma coleção vale uma medalha, uma capa especial e +50 patinhas 🐾.",
+    "next": "Próxima sugestão: <strong>{title}</strong> ({n} de 6).",
+    "of6": "{n} de 6",
+    "medal": "Medalha conquistada",
+    "slots": "Espaços de {title}",
+    "slotDone": "{title}: concluído",
+    "slotTodo": "{title}: ainda não",
+    "coverSubtitle": "Coleção completa · {dog}",
+    "coverAlt": "Capa especial da coleção {title}, com as 6 fotos",
+    "coverFile": "capa",
+    "downloadCover": "Baixar capa"
+  },
+  "contactsPage": {
+    "title": "Contatos",
+    "add": "Adicionar contato",
+    "vetSearch": "veterinário",
+    "nearMe": "perto de mim",
+    "findVet": "📍 Achar veterinário perto de mim",
+    "empty": "Guarde aqui o veterinário, uma emergência 24h, o pet sitter… para achar rápido quando precisar.",
+    "rowLabel": "contato {name}",
+    "callLabel": "Ligar para {name}",
+    "call": "Ligar",
+    "mapLabel": "Abrir endereço de {name} no mapa",
+    "map": "Abrir no mapa",
+    "editTitle": "Editar contato",
+    "newTitle": "Novo contato",
+    "type": "Tipo",
+    "name": "Nome",
+    "phone": "Telefone",
+    "address": "Endereço",
+    "notes": "Observações",
+    "deleteTitle": "Excluir este contato?"
+  },
+  "credits": {
+    "expiresIn": "Vence em {time}",
+    "pixExpired": "Esse Pix venceu",
+    "notCompleted": "Pagamento não concluído",
+    "notCharged": "Nenhum valor foi cobrado. É só gerar um novo Pix.",
+    "newPix": "Gerar outro Pix",
+    "creditsN": "{count, plural, one {# crédito} other {# créditos}}",
+    "qrAlt": "QR code do Pix",
+    "qrTest": "QR de teste",
+    "qr": "QR code",
+    "step1": "Abra o app do seu banco e escolha <strong>Pix › Ler QR code</strong> ou <strong>Pix copia e cola</strong>.",
+    "step2": "Confira o valor de <strong>{amount}</strong> e confirme.",
+    "step3": "Os créditos entram aqui sozinhos, em segundos.",
+    "copyPaste": "Pix copia e cola",
+    "copied": "✓ Copiado!",
+    "copyCode": "Copiar código Pix",
+    "waiting": "Aguardando o pagamento…",
+    "simulate": "Simular pagamento (só no teste)",
+    "loadFailed": "Não conseguimos carregar a loja.",
+    "pixFailed": "Não conseguimos gerar o Pix. Tente de novo.",
+    "title": "Créditos",
+    "heading": "Mais artes para {dog}",
+    "note": "Cada crédito vira uma arte (as premium usam 2). Os créditos ficam no diário de {dog}, para toda a família usar, e não vencem.",
+    "balance": "Você tem <strong>{count}</strong> {count, plural, one {crédito} other {créditos}}",
+    "paid": "Pagamento confirmado. Bora criar arte?",
+    "createArt": "Criar uma arte",
+    "buyMore": "Comprar mais",
+    "soon": "<strong>Em breve:</strong> compra de créditos por Pix. Por enquanto, use seus créditos de teste.",
+    "testMode": "<strong>Modo de teste:</strong> nenhum dinheiro é cobrado.",
+    "currencyNote": "Os preços estão em reais ({currency}) e o pagamento é por Pix.",
+    "packsLabel": "Pacotes de créditos",
+    "packLabel": "{count, plural, one {# crédito} other {# créditos}} por {price}",
+    "badges": {
+      "best": "Melhor preço"
+    },
+    "unit": "{count, plural, one {crédito} other {créditos}}",
+    "perArt": "{price} por arte",
+    "generating": "Gerando Pix…",
+    "pay": "Pagar com Pix · {price}",
+    "pickPack": "Escolha um pacote",
+    "oneTime": "Pagamento único pelo Mercado Pago. Sem assinatura, sem cobrança automática.",
+    "history": "Suas compras",
+    "test": "(teste)",
+    "status": {
+      "pending": "Aguardando pagamento",
+      "approved": "Pago",
+      "rejected": "Recusado",
+      "expired": "Vencido",
+      "cancelled": "Cancelado",
+      "refunded": "Estornado"
+    }
+  },
+  "diary": {
+    "title": "Diário",
+    "filters": {
+      "all": "Tudo",
+      "letters": "💌 Cartinhas",
+      "mission": "Missões",
+      "free": "Livres"
+    },
+    "emptyAbu": "Uma soneca também é uma grande conquista. Que tal guardar o primeiro momento?",
+    "emptyTitle": "O diário de {dog} está em branco",
+    "emptyText": "Toque em “Guardar momento” e escolha uma foto — pode ser antiga.",
+    "saveMoment": "Guardar momento",
+    "search": "Buscar nas legendas",
+    "filterLabel": "Filtrar lembranças",
+    "nothing": "Nada encontrado com esse filtro.",
+    "labelCaption": "lembrança “{caption}”",
+    "labelDate": "lembrança de {date}",
+    "photoCaption": "Foto: {caption}",
+    "photoOf": "Foto de {dog}",
+    "studioArt": "🎨 Arte do Estúdio",
+    "savedBy": "guardada por {name}",
+    "writeLetter": "Escrever cartinha"
+  },
+  "docs": {
+    "viewLabel": "Ver {title}",
+    "view": "Ver",
+    "downloadLabel": "Baixar {title}",
+    "download": "Baixar",
+    "fileFallback": "documento",
+    "openFailed": "Não conseguimos abrir esse arquivo.",
+    "optional": "(opcional)",
+    "preparing": "Preparando…",
+    "change": "Trocar arquivo",
+    "choose": "Escolher arquivo",
+    "which": "Que arquivos posso usar?",
+    "whichText": "PDF, JPEG, PNG ou WebP até 10 MB. Fotos têm a localização removida."
+  },
+  "docsPage": {
+    "pickFile": "Escolha o arquivo do documento.",
+    "title": "Documentos",
+    "note": "Carteira de vacinação, exames, receitas…",
+    "add": "Adicionar documento",
+    "full": "Chegou ao limite de {max} documentos desta versão de teste. Exclua algum para guardar outro.",
+    "left": "{count, plural, one {Cabe só mais # documento nesta versão de teste.} other {Cabem só mais # documentos nesta versão de teste.}}",
+    "empty": "Nenhum documento ainda.",
+    "date": "Data: {date}",
+    "rowLabel": "documento {title}",
+    "expires": "Validade: {date}",
+    "editTitle": "Editar documento",
+    "newTitle": "Novo documento",
+    "file": "Arquivo",
+    "titleField": "Título",
+    "category": "Categoria",
+    "docDate": "Data do documento",
+    "expiry": "Validade",
+    "expiryHint": "Avisamos quando faltar 30 dias ou menos.",
+    "notes": "Observações",
+    "deleteTitle": "Excluir este documento?",
+    "deleteText": "“{title}” e o arquivo serão apagados."
+  },
+  "dogInfo": {
+    "title": "Dados de {dog}",
+    "breed": "Raça",
+    "breedPlaceholder": "Ex.: SRD, Poodle…",
+    "sex": "Sexo",
+    "optional": "(opcional)",
+    "female": "Fêmea",
+    "male": "Macho",
+    "notSay": "Não informar",
+    "neutered": "Castrado",
+    "yes": "Sim",
+    "no": "Não",
+    "microchip": "Número do microchip",
+    "coat": "Cor / pelagem",
+    "allergies": "Alergias e restrições",
+    "notes": "Observações",
+    "saved": "Dados salvos.",
+    "saving": "Salvando…",
+    "save": "Salvar dados"
+  },
+  "dogs": {
+    "switchFailed": "Não deu para trocar agora. Tente de novo.",
+    "editProfile": "Editar o perfil de {dog}",
+    "add": "+ Adicionar cachorro",
+    "menuLabel": "{dog}: trocar de cachorro ou ver o perfil",
+    "title": "Seus cachorros",
+    "close": "Fechar"
+  },
+  "emails": {
+    "signature": "Com carinho,\nAbu e a equipe do Diário de Patas",
+    "signatureWag": "Com carinho e um abano de rabo,\nAbu e a equipe do Diário de Patas",
+    "footerHelp": "Dúvidas? Escreva para {email}",
+    "footerWhy": "Você recebeu este email porque ele foi usado no {app}.",
+    "yourCode": "Seu código",
+    "yourDog": "seu cachorro",
+    "auth": {
+      "confirmation": {
+        "subject": "Bem-vindo ao Diário de Patas! Confirme seu email 🐾",
+        "preheader": "Falta só um passo para começar o diário do seu cachorro.",
+        "title": "Que bom ter você aqui!",
+        "p1": "Sua conta no <strong>Diário de Patas</strong> está quase pronta. Confirme o email para começar a guardar as histórias do seu melhor amigo.",
+        "p2": "Digite o código no app ou toque no botão, <strong>neste mesmo aparelho</strong>:",
+        "cta": "Criar minha conta",
+        "note": "O código vale por 1 hora. Se não foi você que pediu, pode ignorar este email — nada muda na sua conta."
+      },
+      "magic_link": {
+        "subject": "Seu código para entrar no Diário de Patas",
+        "preheader": "Use o código ou o botão para entrar — sem senha.",
+        "title": "Vamos entrar?",
+        "p1": "O diário está esperando por vocês. Digite o código no app ou toque no botão, <strong>neste mesmo aparelho</strong>:",
+        "cta": "Entrar no Diário de Patas",
+        "note": "O código vale por 1 hora e só funciona uma vez. Se não foi você que pediu, pode ignorar este email — nada muda na sua conta."
+      },
+      "recovery": {
+        "subject": "Recuperar o acesso ao Diário de Patas",
+        "preheader": "Esqueceu como entrar? A gente te ajuda.",
+        "title": "Esqueceu a senha? Tudo bem.",
+        "p1": "No Diário de Patas você não precisa decorar senha: use o código abaixo ou toque no botão para entrar de novo na sua conta, <strong>neste mesmo aparelho</strong>.",
+        "p2": "Todas as fotos, álbuns e conquistas continuam lá, do jeitinho que você deixou.",
+        "cta": "Entrar de novo",
+        "note": "O código vale por 1 hora. Se não foi você que pediu, pode ignorar este email — nada muda na sua conta."
+      },
+      "email_change": {
+        "subject": "Confirme seu novo email no Diário de Patas",
+        "preheader": "Confirme a troca de email da sua conta.",
+        "title": "Trocar o email da conta",
+        "p1": "Recebemos um pedido para trocar o email da sua conta de <strong>{email}</strong> para <strong>{newEmail}</strong>.",
+        "p2": "Para confirmar, use o código ou toque no botão:",
+        "cta": "Confirmar novo email",
+        "note": "Se você não pediu essa troca, ignore este email e o email antigo continua valendo."
+      },
+      "invite": {
+        "subject": "Você foi convidado para o Diário de Patas 🐾",
+        "preheader": "Um convite para guardar as histórias de um cachorro especial.",
+        "title": "Você recebeu um convite!",
+        "p1": "Alguém quer que você faça parte do <strong>Diário de Patas</strong> — o álbum das pequenas coisas que fazem a vida com um cachorro valer a pena.",
+        "p2": "Toque no botão para aceitar:",
+        "cta": "Aceitar o convite",
+        "note": "Se você não esperava este convite, pode ignorar este email."
+      },
+      "reauthentication": {
+        "subject": "Seu código de confirmação do Diário de Patas",
+        "preheader": "Confirme que é você para continuar.",
+        "title": "Confirme que é você",
+        "p1": "Para continuar uma ação importante na sua conta, digite este código no app:",
+        "note": "O código vale por pouco tempo. Se não foi você que pediu, pode ignorar este email — nada muda na sua conta."
+      },
+      "email_changed": {
+        "subject": "O email da sua conta foi alterado",
+        "preheader": "Aviso de segurança da sua conta.",
+        "title": "Email alterado",
+        "p1": "O email da sua conta no Diário de Patas mudou de <strong>{oldEmail}</strong> para <strong>{email}</strong>.",
+        "note": "Se não foi você, responda a este email o quanto antes."
+      },
+      "identity_linked": {
+        "subject": "Nova forma de entrar na sua conta",
+        "preheader": "Aviso de segurança da sua conta.",
+        "title": "Nova forma de entrar",
+        "p1": "Sua conta no Diário de Patas agora também pode ser acessada com <strong>{provider}</strong>.",
+        "note": "Se não foi você, responda a este email o quanto antes."
+      },
+      "identity_unlinked": {
+        "subject": "Uma forma de entrar foi removida da sua conta",
+        "preheader": "Aviso de segurança da sua conta.",
+        "title": "Forma de entrar removida",
+        "p1": "<strong>{provider}</strong> não entra mais na sua conta do Diário de Patas.",
+        "note": "Se não foi você, responda a este email o quanto antes."
+      }
+    },
+    "deleted": {
+      "subject": "Sua conta no Diário de Patas foi excluída",
+      "preheader": "Tudo foi apagado, como você pediu.",
+      "title": "Até logo 🐾",
+      "thanksDog": "Obrigado por guardar as histórias de <strong>{dog}</strong> com a gente. Cada foto, cada soneca e cada aventura fizeram o diário mais feliz.",
+      "thanks": "Obrigado por ter guardado suas histórias com a gente. Foi muito bom ter vocês por aqui.",
+      "p2": "Como você pediu, a conta foi excluída: as fotos, os álbuns, as conquistas, os cuidados e os documentos foram apagados, e os links compartilhados pararam de funcionar.",
+      "p3": "Desejamos muitos passeios, sonecas e petiscos pela frente. Se um dia quiser voltar, as portas (e as patas) estão abertas.",
+      "cta": "Visitar o Diário de Patas",
+      "note": "Se você não pediu a exclusão, responda a este email.",
+      "text": "Obrigado por guardar suas histórias com a gente.\n\nSua conta no Diário de Patas foi excluída, como você pediu. Perfil, fotos, álbuns, conquistas, cuidados e documentos foram apagados, e os links compartilhados pararam de funcionar.\n\nSe você não pediu a exclusão, responda a este email.\n\nCom carinho, Abu e a equipe do Diário de Patas"
+    },
+    "receipt": {
+      "credits": "{count, plural, one {# crédito} other {# créditos}}",
+      "rowPack": "Pacote",
+      "rowPaid": "Valor pago",
+      "rowMethod": "Pagamento",
+      "rowDate": "Data",
+      "rowDiary": "Diário",
+      "rowBalance": "Saldo agora",
+      "rowRef": "Código da compra",
+      "subject": "Pagamento confirmado: +{count, plural, one {# crédito} other {# créditos}} para {dog} 🐾",
+      "preheader": "Seus créditos já estão no diário de {dog}. Bora criar arte?",
+      "title": "Oba! Chegou presente para {dog} 🎨",
+      "p1": "Recebemos seu Pix, obrigado! Os créditos já estão no diário de <strong>{dog}</strong>, para toda a família usar, e não vencem.",
+      "p2": "Dá para fazer {count, plural, one {uma arte nova} other {até # artes novas}} no Estúdio: aniversário, figurinha, cartão… {dog} vai virar obra de arte.",
+      "cta": "Criar uma arte agora",
+      "note": "Pagamento único, sem assinatura e sem cobrança automática. Guarde este email como comprovante da compra. Algum problema? É só responder.",
+      "text": "Pagamento confirmado!\n\n+{count, plural, one {# crédito} other {# créditos}} no diário de {dog}.\nValor pago: {amount} (Pix · Mercado Pago)\nData: {date}\nSaldo agora: {balance}\nCódigo da compra: {ref}\n\nCrie uma arte: {url}\n\nPagamento único, sem assinatura. Guarde este email como comprovante.\n\nCom carinho, Abu e a equipe do Diário de Patas"
+    }
+  },
+  "entry": {
+    "editLabel": "Editar {label}",
+    "downloadLabel": "Baixar {label}",
+    "deleteLabel": "Excluir {label}",
+    "editTitle": "Editar lembrança",
+    "caption": "Legenda",
+    "when": "Quando aconteceu",
+    "albums": "Álbuns",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "deleteTitle": "Excluir esta lembrança?",
+    "deleteText": "A foto sai do diário e dos álbuns.",
+    "deleteKeeps": "A conquista e as patinhas da missão continuam.",
+    "noUndo": "Não dá para desfazer.",
+    "delete": "Excluir",
+    "useLabel": "Usar {label} numa missão",
+    "use": "Usar numa missão",
+    "useTitle": "Usar esta foto numa missão",
+    "useNote": "A foto continua a mesma — nada é enviado de novo. Depois você confirma se ela mostra o que a missão pede.",
+    "alreadyDone": "já concluída, sem patinhas",
+    "noneAvailable": "Nenhuma missão disponível agora."
+  },
+  "errors": {
+    "unauthenticated": "Entre na sua conta para continuar.",
+    "saveFailed": "Não conseguimos salvar agora. Tente de novo.",
+    "locked": "Essa missão abre depois de concluir a anterior.",
+    "notToday": "Essa missão do dia não está nas sugestões de hoje. A foto continua no diário.",
+    "outOfWindow": "Essa missão especial não está disponível agora. A foto continua no diário.",
+    "photoAlreadyUsedMission": "Essa foto já rendeu pontos em outra missão. Escolha outra foto.",
+    "artNotAllowed": "Artes do Estúdio não concluem missões — escolha uma foto.",
+    "memoryNotFound": "Não encontramos essa lembrança.",
+    "unknownMission": "Missão não encontrada.",
+    "docQuota": "Cabem até {max} documentos nesta versão de teste. Exclua algum para guardar outro.",
+    "foreignMedia": "Foto inválida.",
+    "photoNotFoundResend": "Foto não encontrada. Envie de novo.",
+    "dogNameRequired": "Conte para a gente o nome do seu cachorro.",
+    "nameEmpty": "O nome não pode ficar vazio.",
+    "dateUpToToday": "Escolha uma data até hoje.",
+    "fullDiary": "O diário de {dog} chegou ao limite de {max} lembranças desta versão. Todas continuam guardadas, e dá para ver e baixar cada uma no Diário. Para guardar mais, fale com a gente: {email}.",
+    "fullDiaryNoCredit": "O diário de {dog} chegou ao limite de {max} lembranças desta versão. Todas continuam guardadas, e dá para ver e baixar cada uma no Diário. Para guardar mais, fale com a gente: {email}. Nenhum crédito foi usado.",
+    "photoAlreadyUsed": "Essa foto já foi usada. Envie de novo.",
+    "savePhotoFailed": "Não conseguimos guardar a foto agora. Tente de novo.",
+    "memoryNotFoundShort": "Lembrança não encontrada.",
+    "albumNameRequired": "Dê um nome ao álbum.",
+    "albumNotFound": "Álbum não encontrado.",
+    "albumQuota": "Cabem até {max} álbuns nesta versão de teste.",
+    "recordNotFound": "Registro não encontrado.",
+    "documentNotFound": "Documento não encontrado.",
+    "fileTooLarge": "O arquivo passa de {mb} MB.",
+    "notAPhoto": "Esse arquivo não parece uma foto JPEG, PNG ou WebP.",
+    "notPdfOrImage": "Esse arquivo não parece um PDF ou uma imagem JPEG, PNG ou WebP.",
+    "uploadNotFound": "Envio não encontrado.",
+    "fileMissing": "O arquivo não chegou. Tente enviar de novo.",
+    "notPdf": "Esse arquivo não parece um PDF.",
+    "notImage": "Esse arquivo não parece uma imagem JPEG, PNG ou WebP.",
+    "badThumb": "Miniatura inválida.",
+    "adminOnlyDelete": "Só quem é responsável pelo diário pode apagá-lo.",
+    "confirmName": "Digite o nome {dog} para confirmar.",
+    "deleteAccountFailed": "Não conseguimos excluir a conta agora. Tente de novo.",
+    "photosNotFound": "Não encontramos essas fotos.",
+    "shareQuota": "Cabem até 20 links ativos. Revogue algum para criar outro.",
+    "linkNotFound": "Link não encontrado.",
+    "unknownOperation": "Operação desconhecida.",
+    "badOrigin": "Origem inválida.",
+    "generic": "Algo deu errado do nosso lado. Tente de novo.",
+    "genericShort": "Algo deu errado.",
+    "tooManyAttempts": "Muitas tentativas. Espere alguns minutos.",
+    "myNameRequired": "Conte como a família te chama.",
+    "myNameSaveFailed": "Não deu para salvar o nome agora.",
+    "letterEmpty": "Escreva alguma coisa na cartinha.",
+    "letterTooLong": "A cartinha pode ter até {max} caracteres.",
+    "letterSaveFailed": "Não deu para guardar a cartinha agora.",
+    "letterNotFound": "Cartinha não encontrada.",
+    "notAuthor": "Só quem escreveu a cartinha pode mudar.",
+    "notFoundShort": "Não encontrada.",
+    "ownBone": "O ossinho é para as lembranças de outras pessoas da família.",
+    "paymentMismatch": "Pagamento não confere.",
+    "refundFailed": "Não conseguimos aplicar o estorno agora.",
+    "creditsSoon": "Pagamento confirmado. Os créditos entram em instantes.",
+    "invalidRequest": "Pedido inválido.",
+    "paymentsOff": "A compra de créditos ainda não está disponível.",
+    "packageNotFound": "Pacote não encontrado.",
+    "tooManyPix": "Você tem vários Pix em aberto. Pague um deles ou espere vencer.",
+    "purchaseNotFound": "Compra não encontrada.",
+    "unavailable": "Indisponível.",
+    "serverUnreachable": "Não conseguimos falar com o servidor. Tente de novo.",
+    "spaceCheckFailed": "Não conseguimos conferir o espaço do diário agora. Tente de novo.",
+    "photoNotFound": "Foto não encontrada.",
+    "pickPhotoNotArt": "Escolha uma foto, não uma arte.",
+    "studioPaused": "A criação de artes está pausada no momento. O resto do diário segue normal.",
+    "studioNotConfigured": "O Estúdio ainda não está disponível.",
+    "presetOff": "Esse tema não está disponível agora.",
+    "dailyLimit": "Você chegou ao limite de artes de hoje. Amanhã tem mais.",
+    "globalLimit": "O Estúdio atingiu o limite de artes de hoje. Tente amanhã.",
+    "globalPause": "O Estúdio fez uma pausa por hoje. Tente amanhã.",
+    "startArtFailed": "Não conseguimos começar a arte agora. Tente de novo.",
+    "noCredits": "Os créditos deste diário acabaram.",
+    "jobNotFound": "Pedido não encontrado.",
+    "noDog": "Crie o diário antes.",
+    "diaryGone": "Você não tem mais acesso a este diário.",
+    "viewOnly": "Você está acompanhando este diário. Para adicionar momentos, peça para quem é responsável mudar seu papel.",
+    "adminOnly": "Só quem é responsável pelo diário pode fazer isso.",
+    "diaryNotFound": "Diário não encontrado.",
+    "inviteFailed": "Não conseguimos criar o convite agora.",
+    "checkCode": "Confira o código.",
+    "inviteInvalid": "Convite inválido, vencido ou já usado. Peça um novo para quem convidou.",
+    "acceptFailed": "Não deu para aceitar o convite agora. Tente de novo.",
+    "lastAdmin": "O diário precisa de pelo menos uma pessoa responsável.",
+    "ownerCantBeRemoved": "Quem criou o diário não pode ser removido. Para encerrar, exclua o diário.",
+    "lastAdminLeave": "Você é a única pessoa responsável. Passe esse papel para alguém antes de sair.",
+    "ownerLeave": "Você criou este diário. Para encerrar, apague o diário no perfil do cachorro.",
+    "pickOnePhoto": "Escolha pelo menos uma foto.",
+    "invalidDate": "Data inválida.",
+    "invalidTimezone": "Fuso horário inválido.",
+    "uploadFailed": "Não conseguimos enviar o arquivo. Tente de novo.",
+    "imagePrepare": "Não conseguimos preparar a foto.",
+    "imageTooLarge": "A foto passa de {mb} MB. Escolha uma versão menor.",
+    "imageHeic": "Fotos HEIC do iPhone ainda não são aceitas aqui. No iPhone, use Ajustes › Câmera › Formatos › Mais Compatível, ou envie a foto pelo navegador da galeria em JPEG.",
+    "imageTooManyPixels": "A foto tem resolução grande demais para esta versão. Tente uma versão reduzida.",
+    "imageCorrupt": "Não conseguimos abrir essa foto. Ela pode estar corrompida — tente outra.",
+    "imageRotate": "Não conseguimos girar a foto.",
+    "imageOpen": "Não conseguimos abrir essa foto. Tente outra.",
+    "nameSaveFailed": "Não deu para salvar agora.",
+    "createDiaryFailed": "Não conseguimos criar o diário. Tente novamente.",
+    "docTooLarge": "O arquivo passa de {mb} MB. Escolha uma versão menor.",
+    "pixRefused": "O Mercado Pago recusou o Pix. Tente de novo em instantes.",
+    "pixUncertain": "Não conseguimos confirmar o Pix agora. Tente de novo em instantes."
+  },
+  "family": {
+    "roles": {
+      "admin": "Responsável pelo diário",
+      "editor": "Pode adicionar momentos",
+      "viewer": "Pode acompanhar"
+    },
+    "roleHelp": {
+      "admin": "Cuida do diário: convida pessoas, muda papéis e pode apagar o diário.",
+      "editor": "Guarda fotos, escreve cartinhas, faz missões e anota os cuidados junto com você.",
+      "viewer": "Vê todas as fotos e cartinhas e pode dar ossinho 🦴, mas não guarda fotos nem muda nada."
+    },
+    "errors": {
+      "typeCode": "Digite o código que você recebeu.",
+      "incomplete": "Esse código não está completo. Ele tem este formato: PATA-XXXX-XXXX.",
+      "invalid": "Convite inválido."
+    }
+  },
+  "familyDiaries": {
+    "confirmLeave": "Sair do diário de {dog}? Você deixa de ver as fotos e cartinhas. Para voltar, precisa de um novo convite.",
+    "left": "Você saiu do diário de {dog}.",
+    "leaveFailed": "Não deu para sair agora.",
+    "title": "Diários da família que você participa",
+    "leaving": "Saindo…",
+    "leave": "Sair"
+  },
+  "familyNudge": {
+    "label": "Convidar a família",
+    "text": "Quem também faz parte das aventuras de {dog}? Convide alguém para guardar momentos com você.",
+    "invite": "Convidar alguém",
+    "notNow": "Agora não",
+    "sheetTitle": "Convidar para o diário de {dog}",
+    "sheetText": "A pessoa entra com a própria conta e vê o mesmo diário.",
+    "close": "Fechar"
+  },
+  "familySection": {
+    "failed": "Não deu agora. Tente de novo.",
+    "confirmLeave": "Sair do diário de {dog}? Você deixa de ver as fotos. Para voltar, precisa de um novo convite.",
+    "title": "Família de {dog}",
+    "intro": "Cada pessoa entra com a própria conta e vê o mesmo diário.",
+    "inviteWho": "Convide quem cuida junto.",
+    "yourRole": "Seu papel aqui: {role}.",
+    "you": "(você)",
+    "roleOf": "Papel de {name}",
+    "roleUpdated": "Papel atualizado.",
+    "confirmRemove": "Remover {name} do diário de {dog}?",
+    "removed": "{name} saiu do diário.",
+    "remove": "Remover",
+    "leave": "Sair deste diário"
+  },
+  "finds": {
+    "title": "Achadinhos do Abu",
+    "cardSub": "O que eu uso e aprovo · {count, plural, one {# item} other {# itens}}",
+    "intro": "As coisas que eu uso, roo e aprovo. Escolhidas com carinho, sem patrocínio de marca.",
+    "categories": {
+      "todos": "Todos",
+      "brincar": "Brincar",
+      "passeio": "Passeio",
+      "soneca": "Soneca",
+      "banho": "Banho e cuidados",
+      "comer": "Petiscos e comida"
+    },
+    "seeAt": "Ver na {store} (EUA)",
+    "disclosure": "Como associado da Amazon, ganhamos com compras qualificadas, sem mudar o seu preço.",
+    "backToApp": "Para voltar ao app, toque em “OK” no canto da tela.",
+    "items": {
+      "chuckit-launcher": {
+        "name": "Lançador de bolinha Chuckit! Sport",
+        "abuSays": "Joga mais longe e você nem precisa pegar a bolinha babada. Eu aprovo! 🐾"
+      },
+      "lancador-automatico": {
+        "name": "Lançador automático de bolinha ALL FOR PAWS",
+        "abuSays": "Para os dias em que meu humano está ocupado: eu mesmo coloco a bolinha e ele lança."
+      },
+      "petisco-wings": {
+        "name": "Petisco de longa duração Good 'n' Fun Wings",
+        "abuSays": "Rende uma tarde inteira de roer. Petisco é agrado, não refeição!"
+      },
+      "honest-kitchen": {
+        "name": "Comida natural The Honest Kitchen (cordeiro)",
+        "abuSays": "Cheirinho de comida de verdade. Troca de alimentação, sempre com o veterinário, viu?"
+      }
+    },
+    "categoriesLabel": "Categorias"
+  },
+  "forms": {
+    "saving": "Salvando…",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "noUndo": "Não dá para desfazer.",
+    "delete": "Excluir",
+    "editLabel": "Editar {label}",
+    "deleteLabel": "Excluir {label}",
+    "optional": "(opcional)"
+  },
+  "importDemo": {
+    "doneTitle": "Diário trazido para a sua conta",
+    "title": "O diário de {dog} está neste aparelho",
+    "offer": "Encontramos {count, plural, one {# lembrança} other {# lembranças}} do modo demonstração neste navegador. Quer trazer para a sua conta? Assim ele fica guardado e aparece em qualquer aparelho.",
+    "bring": "Trazer para a conta",
+    "notNow": "Agora não",
+    "what": "Vêm as fotos, legendas, álbuns, conquistas das missões, cuidados e documentos.",
+    "notDaily": "O histórico das missões do dia (de dias que já passaram) não vem.",
+    "once": "É uma vez só. Se algo falhar no meio, dá para repetir sem duplicar.",
+    "confirm": "Confirmar e trazer",
+    "back": "Voltar",
+    "sending": "Enviando… {n} de {total}",
+    "progress": "Progresso da importação",
+    "keepOpen": "Mantenha esta tela aberta até terminar.",
+    "report": "{entries, plural, one {# lembrança} other {# lembranças}}, {missions, plural, one {# conquista} other {# conquistas}} e {documents, plural, one {# documento} other {# documentos}} agora estão na sua conta.",
+    "failedItems": "{count, plural, one {# item não pôde ser trazido.} other {# itens não puderam ser trazidos.}}",
+    "copyStays": "A cópia deste aparelho continua aqui, intacta.",
+    "open": "Abrir o diário",
+    "stopped": "A importação parou no meio. Tente de novo — o que já foi não se repete.",
+    "retry": "Tentar de novo"
+  },
+  "install": {
+    "rowLabel": "📲 Instalar o aplicativo",
+    "link": "Instalar aplicativo",
+    "title": "Diário de Patas na Tela de Início",
+    "intro": "Fica com ícone próprio e abre em tela cheia, como um aplicativo. É grátis e não precisa da App Store.",
+    "otherBrowser": "Se não aparecer a opção, abra <strong>diario-de-patas.vercel.app</strong> no <strong>Safari</strong> e repita os passos.",
+    "step1Safari": "Toque em <strong>Compartilhar</strong> <icon></icon> na barra do Safari (embaixo ou em cima da tela).",
+    "step1Browser": "Toque em <strong>Compartilhar</strong> <icon></icon> na barra do navegador (embaixo ou em cima da tela).",
+    "step2": "Role a lista e toque em <strong>Adicionar à Tela de Início</strong>.",
+    "step3": "Confirme em <strong>Adicionar</strong>. O ícone do Abu aparece na sua tela.",
+    "openFromIcon": "Abra sempre pelo ícone. Se você entrou pelo navegador, entre de novo no app: o login do app instalado é separado do Safari.",
+    "gotIt": "Entendi"
+  },
+  "intro": {
+    "skip": "Pular",
+    "back": "Voltar",
+    "continue": "Continuar",
+    "introduceDog": "Apresentar meu cachorro",
+    "stepOf": "Passo {n} de {total}",
+    "ourAlbum": "Nosso álbum",
+    "moments": {
+      "nap": "Soneca no sol",
+      "walk": "Passeio",
+      "pose": "Fazendo pose"
+    },
+    "steps": {
+      "s0": {
+        "title": "Oi, eu sou o Abu!",
+        "cta": "Vamos nessa, Abu!",
+        "text": "Minha vida tem passeios, sonecas e umas travessuras que merecem ser lembradas.\nAposto que a do seu cachorro também.\nVamos guardar essas histórias juntos?"
+      },
+      "s1": {
+        "title": "Pra você, uma foto.\nPra mim, um dia com você.",
+        "cta": "Cada momento conta",
+        "text": "O passeio de sempre, a soneca no sofá, aquela pose por um petisco… Nosso álbum está nessas pequenas coisas.\nVamos guardar as favoritas?"
+      },
+      "s2": {
+        "title": "Um álbum todinho dele.\nCheio de vocês.",
+        "cta": "Vamos começar",
+        "text": "A primeira aventura, o brinquedo favorito, as mil posições de dormir. Junte as fotos e veja a história do seu cachorro ganhar um lugar só dela."
+      },
+      "s3": {
+        "title": "Tem muita aventura pela frente!",
+        "text": "Uma soneca engraçada, um passeio diferente, uma pose com o brinquedo favorito. As missões dão ideias para fotografar esses momentos e deixar o diário com a carinha do seu cachorro."
+      },
+      "s4": {
+        "title": "Um diário de família.",
+        "text": "Chame quem também ama o seu cachorro. Cada pessoa entra com a própria conta e guarda fotos, escreve cartinhas e dá ossinho. Os avós podem só acompanhar."
+      },
+      "s5": {
+        "title": "Já me conheceu.\nAgora, quem é o seu melhor amigo?",
+        "text": "Me conta o nome dele e escolhe uma foto. Temos muitas aventuras pela frente!"
+      }
+    }
+  },
+  "invite": {
+    "back": "Voltar",
+    "title": "Convite para um diário",
+    "text": "Digite o código que a família mandou para você. Você entra com a sua própria conta.",
+    "code": "Código do convite",
+    "checking": "Conferindo…",
+    "see": "Ver convite",
+    "invitedYou": "{person} convidou você para o diário de {dog}",
+    "yourRole": "Seu papel: <strong>{role}</strong>",
+    "yourName": "Seu nome",
+    "yourNameHint": "(o seu, não o do cachorro)",
+    "entering": "Entrando…",
+    "accept": "Aceitar e abrir o diário de {dog}",
+    "signInToAccept": "Para aceitar, entre com a sua conta. Se ainda não tem, crie uma: é rápido e não precisa cadastrar cachorro.",
+    "createMine": "Criar minha conta",
+    "haveAccount": "Já tenho conta"
+  },
+  "inviteBox": {
+    "failed": "Não deu para gerar o convite.",
+    "message": "Oi! Te convidei para o diário de {dog} no Diário de Patas ({role}). Abra o link e entre com a sua conta: {link}\nOu digite o código {code} em \"Tenho um código de convite\". Vale por 7 dias.",
+    "label": "Convite · {role}",
+    "valid": "Vale por 7 dias e só pode ser usado uma vez.",
+    "copyFailed": "Não deu para copiar automaticamente: toque e segure no código para copiar.",
+    "another": "Fazer outro convite",
+    "canDo": "A pessoa vai poder:",
+    "generating": "Gerando…",
+    "generate": "Gerar convite"
+  },
+  "letter": {
+    "someone": "Alguém da família",
+    "kickerMine": "💌 Cartinha sua",
+    "kickerFrom": "💌 Cartinha de {author}",
+    "hello": "Oi, {dog}!",
+    "you": "Você",
+    "edit": "Editar"
+  },
+  "letterEdit": {
+    "title": "Cartinha",
+    "viewer": "Você está acompanhando o diário de {dog}. Para escrever cartinhas, peça para quem é responsável pelo diário mudar seu papel para “{role}”.",
+    "empty": "Escreva alguma coisa para {dog}.",
+    "confirmDelete": "Apagar esta cartinha? Não dá para desfazer.",
+    "deleteFailed": "Não deu para apagar agora.",
+    "nameTitle": "Antes, qual é o seu nome?",
+    "nameNote": "O seu, de humano 🙂 A cartinha sai assinada com ele.",
+    "editKicker": "Editar cartinha",
+    "newKicker": "Nova cartinha",
+    "hello": "Oi, {dog}!",
+    "label": "Sua cartinha para {dog}",
+    "placeholder": "Hoje você…",
+    "yourName": "seu nome",
+    "date": "Data",
+    "saving": "Guardando…",
+    "saveEdit": "Salvar cartinha",
+    "save": "Guardar cartinha",
+    "delete": "Apagar cartinha"
+  },
+  "medAlert": {
+    "title": "💊 Hora do remédio de {dog}",
+    "asVetSaid": "Conforme a orientação do veterinário",
+    "lateSince": "Atrasada desde {date}",
+    "today": "Dose de hoje",
+    "saving": "Salvando…",
+    "given": "Já dei",
+    "later": "Lembrar mais tarde"
+  },
+  "media": {
+    "unavailable": "{alt} (foto indisponível)",
+    "photoOf": "Foto de {name}"
+  },
+  "medsPage": {
+    "rowLabel": "medicamento {name}",
+    "inUse": "Em uso",
+    "startsOn": "Começa em {date}",
+    "since": "Desde {date}",
+    "ended": "terminou {date}",
+    "until": "até {date}",
+    "noEnd": "sem data de fim",
+    "nextDose": "próxima dose: <strong>{date}</strong>",
+    "late": "(atrasada)",
+    "today": "(hoje)",
+    "finished": "tratamento encerrado",
+    "last": "última: {date}",
+    "givenToday": "Já dei hoje",
+    "reminder": "📅 Lembrete no celular",
+    "title": "Medicamentos",
+    "add": "Adicionar medicamento",
+    "note": "Anote como o veterinário orientou.",
+    "empty": "Nenhum medicamento registrado.",
+    "others": "Encerrados ou ainda não iniciados",
+    "editTitle": "Editar medicamento",
+    "newTitle": "Novo medicamento",
+    "name": "Nome",
+    "dose": "Dose",
+    "dosePlaceholder": "Como está na receita",
+    "repeat": "Repetir e avisar",
+    "repeatHint": "O app avisa no dia da dose.",
+    "how": "Horário / como dar",
+    "howPlaceholder": "Ex.: de manhã, com comida",
+    "start": "Início",
+    "end": "Fim",
+    "endHint": "Sem fim, o medicamento aparece como em uso.",
+    "notes": "Observações",
+    "deleteTitle": "Excluir este medicamento?"
+  },
+  "memory": {
+    "label": "Lembrança de {dog}: {what}",
+    "altCaption": "Lembrança: {caption}",
+    "alt": "Lembrança de {dog}",
+    "latest": "Última lembrança",
+    "one": "Lembrança"
+  },
+  "meta": {
+    "description": "Um diário com missões, fotos e lembranças do seu melhor amigo.",
+    "tagline": "Pequenas aventuras. Memórias para sempre."
+  },
+  "mission": {
+    "notFound": "Missão não encontrada",
+    "seeMissions": "Ver missões",
+    "kind": {
+      "daily": "Missão do dia",
+      "collection_item": "Item de coleção",
+      "special": "Especial"
+    },
+    "optional": "Opcional",
+    "criterionLabel": "O que a foto precisa mostrar",
+    "criterionTitle": "📸 O que precisa aparecer na foto",
+    "doneToday": "Feita hoje!",
+    "doneThisYear": "Feita neste ano!",
+    "done": "Missão concluída!",
+    "opensAfter": "Abre depois de “{title}”.",
+    "notToday": "Não está nas ideias de hoje. Pode aparecer em outro dia.",
+    "outOfWindow": "Aparece só na época da data.",
+    "outOfWindowBirthday": "Aparece só na época da data (precisa da data de nascimento no perfil).",
+    "moreDetails": "Mais detalhes",
+    "valid": "Vale",
+    "validDaily": "No dia em que for sorteada",
+    "validUntil": "Até {date}",
+    "validYearly": "Uma vez por ano",
+    "validOnce": "Uma única vez",
+    "album": "Álbum",
+    "collection": "Coleção",
+    "alsoAdvances": "Também avança",
+    "oldPhoto": "Foto antiga",
+    "oldPhotoOk": "Vale",
+    "before": "Antes",
+    "sendPhoto": "Enviar foto",
+    "openAlbum": "Abrir álbum",
+    "otherMissions": "Ver outras missões",
+    "backToday": "Voltar para Hoje"
+  },
+  "missions": {
+    "title": "Missões",
+    "note": "Sem pressa e sem ordem. Fotos antigas valem.",
+    "filterLabel": "Filtrar missões",
+    "filters": {
+      "open": "Disponíveis",
+      "done": "Concluídas"
+    },
+    "doneLabel": "Missões concluídas",
+    "missionPhoto": "Foto da missão",
+    "mission": "Missão",
+    "noneDone": "Nenhuma missão concluída ainda. A primeira é “{first}”.",
+    "allDone": "Todas as missões foram concluídas. O diário continua aberto para qualquer momento.",
+    "state": {
+      "completed": "Concluída",
+      "available": "Disponível",
+      "locked": "Abre depois de “Olá, mundo”"
+    }
+  },
+  "nameAsk": {
+    "title": "Qual é o seu nome?",
+    "note": "O seu, de humano 🙂 A família vê nas fotos e cartinhas.",
+    "required": "Escreva o seu nome.",
+    "placeholder": "Ex.: Ana",
+    "saving": "Salvando…",
+    "save": "Salvar",
+    "saved": "Nome salvo.",
+    "yourName": "Seu nome",
+    "yourNameHint": "(a família vê nas fotos e cartinhas)"
+  },
+  "news": {
+    "title": "Novidades",
+    "getPush": "🔔 Receber avisos no celular",
+    "needsInstall": "Instale o app na Tela de Início para ligar",
+    "whenSaved": "Quando alguém da família guardar algo",
+    "loadFailed": "Não conseguimos carregar as novidades.",
+    "retry": "Tentar novamente",
+    "empty": "Quando alguém da família guardar uma foto, escrever uma cartinha ou der um ossinho, aparece aqui.",
+    "adjust": "Ajustar avisos",
+    "settingsTitle": "Avisos da família",
+    "close": "Fechar",
+    "when": {
+      "now": "agora",
+      "minutes": "há {n} min",
+      "hours": "há {n} h",
+      "days": "{n, plural, =1 {ontem} other {há # dias}}"
+    }
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "text": "Essa página não existe ou mudou de lugar.",
+    "back": "Voltar ao diário"
+  },
+  "notices": {
+    "photo": "{count, plural, one {{actor} guardou uma aventura de {dog} 📸} other {{actor} guardou # momentos de {dog} 📸}}",
+    "letter": "{actor} escreveu uma cartinha para {dog} 💌",
+    "art": "{actor} criou uma arte de {dog} 🎨",
+    "bonePhoto": "{actor} deu um ossinho na sua foto de {dog} 🦴",
+    "boneLetter": "{actor} deu um ossinho na sua cartinha para {dog} 🦴",
+    "someone": "Alguém da família",
+    "theDog": "o cachorro"
+  },
+  "notify": {
+    "bellNew": "{count, plural, one {Novidades da família: # nova} other {Novidades da família: # novas}}",
+    "bell": "Novidades da família",
+    "failed": "Não deu agora. Tente de novo.",
+    "notConfigured": "Os avisos ainda não estão configurados no servidor.",
+    "notRegistered": "Este aparelho não está registrado. Toque em “Ligar avisos” de novo.",
+    "refused": "O serviço de avisos recusou o envio. Desligue e ligue os avisos de novo.",
+    "sent": "Enviado para o serviço de avisos. Se não aparecer em alguns segundos, confira as notificações do app nos ajustes do celular.",
+    "testFailed": "Não deu para mandar o teste agora. Tente de novo.",
+    "saveFailed": "Não deu para salvar agora.",
+    "title": "Avisos no celular",
+    "state": {
+      "on": "Ligados neste aparelho.",
+      "off": "Desligados neste aparelho.",
+      "denied": "Bloqueados nos ajustes do celular. Para ligar, permita as notificações do Diário de Patas nos ajustes do aparelho.",
+      "needs-install": "No iPhone, os avisos só chegam com o app instalado na Tela de Início.",
+      "unsupported": "Este navegador não recebe avisos."
+    },
+    "turnOff": "Desligar",
+    "turnOn": "🔔 Ligar avisos",
+    "test": "Mandar um teste",
+    "legend": "Me avise quando alguém da família:",
+    "photo": "📸 guardar uma foto",
+    "letter": "💌 escrever uma cartinha",
+    "bone": "🦴 der ossinho no que você guardou"
+  },
+  "open": {
+    "noAccess": "Você não tem mais acesso a este diário.",
+    "openFailed": "Não conseguimos abrir este diário agora. Tente de novo.",
+    "photoDeleted": "Essa foto foi apagada.",
+    "letterDeleted": "Essa cartinha foi apagada.",
+    "title": "Novidades",
+    "loadFailed": "Não conseguimos carregar agora.",
+    "retry": "Tentar de novo",
+    "back": "Voltar para Novidades"
+  },
+  "pdf": {
+    "docTitle": "Ficha de cuidados - {dog}",
+    "header": "Ficha de cuidados · {dog}",
+    "footer": "Gerado em {date} · página {page} · Informações anotadas pelo tutor; não substituem a avaliação do veterinário.",
+    "careSheet": "Ficha de cuidados",
+    "female": "fêmea",
+    "male": "macho",
+    "bornOn": "nasceu em {date}",
+    "neutered": "castrado(a)",
+    "notNeutered": "não castrado(a)",
+    "microchip": "Microchip: {v}",
+    "coat": "Pelagem: {v}",
+    "allergies": "Alergias: {v}",
+    "notes": "Observações: {v}",
+    "sections": {
+      "health": "Saúde e identificação",
+      "weight": "Peso",
+      "vaccines": "Vacinas, vermífugos e antipulgas",
+      "meds": "Medicamentos",
+      "visits": "Consultas",
+      "docs": "Documentos guardados no app",
+      "contacts": "Contatos"
+    },
+    "latest": "(mais recente)",
+    "noWeight": "Nenhum peso registrado.",
+    "noRecords": "Nenhum registro.",
+    "appliedOn": "Aplicada em {date}",
+    "nextDose": "próxima dose: {date}",
+    "inUse": "(em uso)",
+    "dose": "Dose: {v}",
+    "start": "início {date}",
+    "end": "fim {date}",
+    "nextDoseShort": "próxima dose {date}",
+    "noMeds": "Nenhum medicamento registrado.",
+    "scheduled": "(agendada)",
+    "visitDefault": "Consulta",
+    "noVisits": "Nenhuma consulta registrada.",
+    "expires": "vence {date}",
+    "noContacts": "Nenhum contato registrado.",
+    "shareTitle": "Ficha de cuidados de {dog}",
+    "fileName": "ficha-de-cuidados",
+    "button": "PDF para o veterinário",
+    "generating": "Gerando PDF…",
+    "downloaded": "PDF baixado.",
+    "failed": "Não conseguimos gerar o PDF. Tente de novo."
+  },
+  "photoPicker": {
+    "preparing": "Preparando a foto…",
+    "preparingMany": "Preparando {n} de {total} fotos…",
+    "photoN": "Foto {n}",
+    "takePhoto": "Tirar foto",
+    "now": "agora",
+    "fromGallery": "Da galeria",
+    "oneOrMany": "uma ou várias",
+    "evenOld": "até antigas",
+    "pickManyFromGallery": "Escolher da galeria (uma ou várias)",
+    "pickFromGallery": "Escolher da galeria"
+  },
+  "prefs": {
+    "legend": "Que tipo de missão combina com vocês?",
+    "home": {
+      "title": "Momentos em casa",
+      "hint": "Sonecas, brinquedos, refeições."
+    },
+    "outdoor": {
+      "title": "Passeios ao ar livre",
+      "hint": "Parque, rua, jardim."
+    },
+    "people": {
+      "title": "Fotos com pessoas",
+      "hint": "Você ou a família junto."
+    },
+    "socialDogs": {
+      "title": "Encontros com outros cães",
+      "hint": "Só sugerimos se fizer sentido para vocês."
+    }
+  },
+  "profile": {
+    "saved": "Perfil salvo.",
+    "askSave": "Salvar as alterações?",
+    "save": "Salvar",
+    "discard": "Descartar",
+    "keepEditing": "Continuar editando",
+    "deleteFailed": "Não deu para apagar agora.",
+    "title": "Perfil de {dog}",
+    "photoAdjusted": "Foto ajustada.",
+    "adjustLabel": "Ajustar zoom e posição da foto de {dog}",
+    "adjust": "Ajustar",
+    "paws": "{count, plural, one {# patinha} other {# patinhas}}",
+    "options": "Opções do perfil",
+    "edit": "Editar perfil",
+    "editSub": "Foto, nome, apelido e aniversário",
+    "family": "Família de {dog}",
+    "people": "{count, plural, one {# pessoa} other {# pessoas}}",
+    "prefs": "Preferências das missões",
+    "prefsSub": "Que tipo de missão combina com vocês",
+    "manage": "Gerenciar diário",
+    "manageSub": "Espaço, links compartilhados e apagar",
+    "photoUpdated": "Foto atualizada.",
+    "photoRemoved": "Foto removida.",
+    "removePhoto": "Remover foto",
+    "name": "Nome",
+    "nick": "Apelido carinhoso",
+    "optional": "(opcional)",
+    "nickPlaceholder": "Ex.: Pepezinho, Bolinha, Meu Bebê",
+    "birthday": "Aniversário",
+    "space": "Espaço: <strong>{n} de {max}</strong> lembranças nesta versão.",
+    "links": "Links compartilhados",
+    "deleteDiary": "Apagar o diário de {dog}",
+    "deleteText": "Apaga tudo de {dog} para <strong>toda a família</strong>: fotos, cartinhas, álbuns, cuidados e créditos. Sua conta e seus outros cachorros continuam. Não dá para desfazer.",
+    "confirmLabel": "Para confirmar, digite o nome: <strong>{dog}</strong>",
+    "deleting": "Apagando…",
+    "saveChanges": "Salvar alterações",
+    "close": "Fechar"
+  },
+  "push": {
+    "photoTitle": "{count, plural, one {Uma nova aventura de {dog} 🐾} other {Novas aventuras de {dog} 🐾}}",
+    "photoBody": "{count, plural, one {{actor} guardou um momento no diário. Vem ver!} other {{actor} guardou # momentos no diário. Vem ver!}}",
+    "letterTitle": "Uma cartinha para {dog} 💌",
+    "letterBody": "{actor} escreveu com carinho. Vamos ler?",
+    "artTitle": "{dog} ganhou uma nova arte 🎨",
+    "artBody": "{actor} criou uma arte nova. Vem ver como ficou!",
+    "artBodyTheme": "{actor} criou uma arte “{theme}”. Vem ver como ficou!",
+    "boneTitle": "{actor} deixou um ossinho 🦴",
+    "bonePhotoBody": "Uma foto de {dog} ganhou carinho. Vamos ver qual?",
+    "boneLetterBody": "Uma cartinha para {dog} ganhou carinho. Vamos ver qual?",
+    "test": "Prontinho! Os avisos da família vão chegar assim 🐾"
+  },
+  "resetPassword": {
+    "tooShort": "A senha precisa de pelo menos 8 caracteres.",
+    "mismatch": "As duas senhas não estão iguais.",
+    "expired": "O link venceu. Peça “Esqueci minha senha” de novo.",
+    "weak": "Escolha uma senha mais forte (ou diferente da anterior).",
+    "failed": "Não deu para salvar agora. Tente de novo.",
+    "title": "Nova senha",
+    "newPassword": "Senha nova",
+    "hint": "8 caracteres ou mais",
+    "hideLabel": "Esconder senha",
+    "showLabel": "Mostrar senha",
+    "hide": "Esconder",
+    "show": "Mostrar",
+    "repeat": "Repita a senha",
+    "saving": "Salvando…",
+    "save": "Salvar senha e entrar"
+  },
+  "save": {
+    "title": "Guardar momento",
+    "entry": {
+      "notFound": "Não encontramos essa lembrança no diário.",
+      "usedElsewhere": "Essa foto já foi usada em outra missão.",
+      "locked": "Essa missão abre depois de concluir “{first}”.",
+      "notToday": "Essa missão do dia não está nas sugestões de hoje.",
+      "outOfWindow": "Essa missão especial não está disponível agora."
+    },
+    "viewer": "Você está acompanhando o diário de {dog}. Para guardar fotos, peça para quem é responsável pelo diário mudar seu papel para “{role}”.",
+    "skipped": "{count, plural, one {# foto ficou} other {# fotos ficaram}} de fora: o diário só tem espaço para mais {room} nesta versão de teste.",
+    "batchPartial": "{saved} de {total} fotos guardadas. Confira as marcadas e toque em “Guardar todas” de novo — as que já foram não se repetem.",
+    "confirmFailed": "Não conseguimos registrar agora. A foto já está no diário — tente de novo.",
+    "optional": "(opcional)",
+    "pickTitleMission": "Escolha a foto",
+    "pickTitle": "Qual momento de {dog} vamos guardar?",
+    "needsToShow": "O que precisa aparecer",
+    "roomLeft": "{count, plural, one {Cabe só mais # lembrança nesta versão de teste.} other {Cabem só mais # lembranças nesta versão de teste.}}",
+    "recent": "Últimas lembranças",
+    "whichPhotos": "Que fotos posso usar?",
+    "whichPhotosText": "JPEG, PNG ou WebP até {mb} MB. A localização da foto é removida ao guardar.",
+    "editTitle": "Ajuste e guarde",
+    "previewAlt": "Pré-visualização da foto escolhida",
+    "rotate": "Girar",
+    "changePhoto": "Trocar foto",
+    "dupe": "Essa mesma foto já está no diário ({date}). Você pode guardar de novo se quiser.",
+    "caption": "Legenda",
+    "captionPlaceholder": "Uma frase curta, se quiser",
+    "when": "Quando aconteceu",
+    "dateFromPhoto": "Data lida da própria foto. Ajuste se quiser.",
+    "putInAlbums": "Colocar em álbuns",
+    "saving": "Guardando…",
+    "saveAndContinue": "Guardar e continuar",
+    "savePhoto": "Guardar foto",
+    "cancel": "Cancelar",
+    "batchTitle": "{count} fotos para guardar",
+    "batchNote": "Legenda e data são opcionais. A data vem da própria foto quando ela tiver; senão, fica a de hoje.",
+    "chosen": "Fotos escolhidas",
+    "putAllInAlbums": "Colocar todas em álbuns",
+    "savingN": "Guardando {n} de {total}…",
+    "saveAll": "Guardar todas",
+    "batchDone": "{count, plural, one {# lembrança guardada} other {# lembranças guardadas}}",
+    "batchDoneText": "Todas já estão no diário de {dog}. Se alguma combinar com uma missão, use “Usar numa missão” no Diário.",
+    "seeInDiary": "Ver no diário",
+    "backToday": "Voltar para Hoje",
+    "confirmTitle": "A foto mostra isso?",
+    "confirmAlt": "Foto escolhida para a missão",
+    "criterion": "Critério",
+    "alreadyDone": "Essa missão já foi concluída. A foto entra no álbum, mas as patinhas não somam de novo.",
+    "youConfirm": "Quem confirma é você. A foto já está guardada no diário.",
+    "finishing": "Concluindo…",
+    "yes": "Sim, mostra",
+    "notSure": "Não tenho certeza",
+    "photoN": "Foto {n}",
+    "photoNAlt": "Foto {n} escolhida",
+    "captionN": "Legenda da foto {n}",
+    "dateN": "Data da foto {n}",
+    "saved": "Guardada",
+    "removeN": "Tirar a foto {n} do lote",
+    "memoryOf": "Lembrança de {dog}",
+    "plusPaws": "+{count} patinhas 🐾",
+    "alreadyCounted": "Pontos já contados",
+    "achievement": "Conquista: {title}",
+    "alreadyCompleted": "Essa missão já estava concluída — a foto foi guardada e as patinhas não somam de novo.",
+    "savedInAlbum": "Guardada no álbum {album}.",
+    "confirmedByYou": "Confirmada por você",
+    "medal": "<strong>Coleção completa: {title}!</strong> Medalha e +50 patinhas. A capa especial está em Álbuns › Coleções.",
+    "advanced": "Também avançou “{title}” na coleção.",
+    "dailyAllDone": "<strong>Aventuras de hoje concluídas!</strong> Amanhã tem mais.",
+    "makeArt": "Transformar em arte de {theme}?",
+    "abuFirst": "Essa merece um lugar no álbum!",
+    "openAlbum": "Abrir álbum",
+    "nextAdventure": "Próxima aventura",
+    "savedInDiary": "Guardada no diário",
+    "unsureText": "Tudo bem não ter certeza. A foto ficou no diário, sem patinhas, e você pode tentar outra quando quiser.",
+    "tryAnother": "Tentar outra foto",
+    "oneMore": "Mais uma lembrança de {dog}."
+  },
+  "share": {
+    "created": "<strong>Link criado.</strong> Guarde agora — por segurança ele não é mostrado de novo.",
+    "linkLabel": "Link do álbum compartilhado",
+    "copyLink": "Copiar link",
+    "done": "Concluir",
+    "whoCanSee": "Quem tiver o link pode ver e copiar estas fotos. Você pode revogar em Perfil e ajustes; revogar não apaga cópias já baixadas.",
+    "createFailed": "Não conseguimos criar o link. Tente de novo.",
+    "titleLabel": "Título do link",
+    "consent": "Se houver outras pessoas nas fotos, garanta que elas concordam antes de compartilhar.",
+    "creating": "Criando…",
+    "create": "{count, plural, one {Criar link com # foto} other {Criar link com # fotos}}",
+    "loadFailed": "Não conseguimos carregar os links.",
+    "loading": "Carregando…",
+    "none": "Nenhum link ativo. Para criar, selecione fotos em um <link>álbum</link>.",
+    "linkMeta": "{count, plural, one {# foto} other {# fotos}} · criado em {date}",
+    "revokeLabel": "Revogar o link {title}",
+    "revoke": "Revogar"
+  },
+  "shareActions": {
+    "whatsapp": "Enviar pelo WhatsApp",
+    "copied": "✓ Copiado!",
+    "copyInvite": "Copiar convite"
+  },
+  "shareApp": {
+    "myDog": "meu cachorro",
+    "failed": "Não deu para preparar o seu link agora. Tente de novo.",
+    "message": "Oi! Estou guardando os momentos de {dog} no Diário de Patas 🐾 É grátis e privado. Cria o diário do seu cachorro também: {link}",
+    "row": "💌 Indicar o Diário de Patas",
+    "rowSub": "20 patinhas por amigo que entrar",
+    "title": "Indicar o Diário de Patas",
+    "intro": "Conhece alguém que ama um cachorro? Mande o seu link. Quando a pessoa criar o diário e guardar a primeira foto, {dog} ganha {paws} patinhas!",
+    "linkLabel": "Seu link de indicação",
+    "copyFailed": "Não deu para copiar automaticamente: toque e segure no link para copiar.",
+    "nobody": "Ninguém entrou pelo seu link ainda.",
+    "joined": "{count, plural, one {# pessoa entrou} other {# pessoas entraram}} pelo seu link · {paws} patinhas ganhas.",
+    "cap": "Vale para até {cap} amigos por mês.",
+    "preparing": "Preparando o seu link…",
+    "close": "Fechar"
+  },
+  "shared": {
+    "metaTitle": "Álbum compartilhado",
+    "brandLabel": "Diário de Patas — criar meu diário",
+    "createMine": "Criar meu diário",
+    "inviteTitle": "Seu cachorro também merece um diário",
+    "inviteText": "Guarde as fotos, cumpra missões divertidas, acompanhe vacinas e transforme momentos em arte. Tudo privado, só seu, até você decidir compartilhar.",
+    "createFree": "Criar meu diário grátis",
+    "inviteNote": "Sem senha · entre com Google, Apple ou email",
+    "unavailableTitle": "Este álbum não está disponível",
+    "unavailableText": "O link pode ter sido desativado por quem compartilhou ou não existir mais.",
+    "range": "{from} a {to}",
+    "profilePhoto": "Foto de perfil",
+    "kicker": "Álbum compartilhado com você",
+    "memories": "{count, plural, one {# lembrança} other {# lembranças}}",
+    "photos": "Fotos do álbum",
+    "openPhoto": "Abrir foto em tamanho grande",
+    "openPhotoCaption": "Abrir foto: {caption} em tamanho grande",
+    "photoCaption": "Foto: {caption}",
+    "albumPhoto": "Foto do álbum",
+    "foot": "Feito com carinho no <link>Diário de Patas</link> · Este álbum é privado e só pode ser visto por quem tem o link.",
+    "defaultTitle": "Lembranças"
+  },
+  "shell": {
+    "mainNav": "Navegação principal",
+    "nav": {
+      "today": "Hoje",
+      "diary": "Diário",
+      "albums": "Álbuns",
+      "care": "Cuidados",
+      "studio": "Estúdio"
+    },
+    "viewerBanner": "👀 Você está acompanhando o diário de {dog}.",
+    "back": "Voltar",
+    "home": "Diário de Patas — início",
+    "myAccount": "Minha conta",
+    "unavailableTitle": "Não conseguimos abrir o diário agora",
+    "checkInternet": "Confira a internet e tente de novo.",
+    "appUnavailable": "O app está temporariamente indisponível. Tente de novo em alguns minutos.",
+    "retry": "Tentar de novo",
+    "loading": "Carregando…",
+    "offline": "Sem conexão. Fotos e mudanças só são salvas quando a internet voltar."
+  },
+  "start": {
+    "back": "Voltar",
+    "titleAnother": "Mais um cachorro na família!",
+    "title": "Vamos criar o diário",
+    "abuAnother": "Que legal, mais um amigo! Ele ganha um diário só dele, com missões e créditos próprios.",
+    "abu": "Me conta: como se chama o seu melhor amigo?",
+    "onlyName": "Só o nome é obrigatório. O resto você ajusta quando quiser.",
+    "dogName": "Nome do cachorro",
+    "photo": "Foto de perfil",
+    "optional": "(opcional)",
+    "photoAlt": "Foto de perfil escolhida",
+    "removePhoto": "Remover foto",
+    "birth": "Data de nascimento",
+    "adjustLater": "Ajustar depois: rotina e fuso horário",
+    "timezone": "Fuso horário",
+    "timezoneHint": "Detectamos este fuso pelo aparelho. Ele organiza as datas do diário.",
+    "private": "O diário é privado. Nada é compartilhado até você escolher.",
+    "creating": "Criando…",
+    "create": "Criar meu diário"
+  },
+  "studio": {
+    "exampleAbu": "exemplo com o Abu",
+    "exampleStyle": "exemplo de estilo",
+    "cropAlt": "Foto escolhida para recortar",
+    "cropSize": "Tamanho do recorte",
+    "cropDrag": "Arraste o quadro até {dog}.",
+    "original": "Foto original",
+    "photoDeleted": "foto excluída",
+    "artCaption": "Arte: {theme}",
+    "loadFailed": "Não conseguimos carregar o Estúdio.",
+    "tips": {
+      "link": "🐾 Dicas do Abu",
+      "title": "Dicas do Abu para a foto",
+      "face": "<strong>Rostinho de frente:</strong> dá para ver os olhos e o focinho de {dog}.",
+      "light": "<strong>Boa luz:</strong> perto da janela ou ao ar livre, sem contraluz.",
+      "big": "<strong>{dog} bem grande:</strong> ocupando boa parte da foto. Se estiver longe, use o recorte.",
+      "sharp": "<strong>Foto nítida:</strong> sem tremido nem desfoque.",
+      "one": "<strong>Um só cachorro:</strong> se tiver mais de um, o recorte ajuda a escolher {dog}.",
+      "check": "Eu confiro a foto antes de usar qualquer crédito.",
+      "gotIt": "Entendi"
+    },
+    "credits": {
+      "label": "Seus créditos",
+      "out": "Os créditos acabaram por enquanto. Quer criar mais artes de {dog}?",
+      "see": "Ver créditos",
+      "orEarn": "Ou junte {goal} patinhas no mês e ganhe 1 crédito.",
+      "have": "Você tem <strong>{count, plural, one {# crédito} other {# créditos}}</strong> para criar artes de {dog}",
+      "buy": "Comprar mais",
+      "count": "{count, plural, one {# crédito} other {# créditos}}",
+      "dayFull": "Por hoje já foram {count} artes. Amanhã tem mais!"
+    },
+    "making": {
+      "l0": "Olhando cada detalhe de {dog}…",
+      "l1": "Escolhendo as cores do pelo…",
+      "l2": "Caprichando nos bigodes…",
+      "l3": "Colocando as orelhas no lugar certinho…",
+      "l4": "Dando os últimos retoques…",
+      "l5": "Quase pronta! Segura a ansiedade…",
+      "title": "Preparando “{theme}” de {dog}",
+      "progress": "Progresso estimado",
+      "meta": "{secs} s · costuma levar uns {expected} segundos",
+      "leave": "Pode sair desta tela se quiser: eu continuo caprichando e a arte aparece aqui e no Diário."
+    },
+    "result": {
+      "original": "Foto original",
+      "alt": "Arte {theme} do Estúdio",
+      "chip": "🎨 Arte do Estúdio",
+      "unique": "Cada arte é única: alguns detalhes podem ficar um pouquinho diferentes da foto.",
+      "sticker": "Para usar no WhatsApp: baixe a figurinha (WebP 512×512 transparente) e adicione com um app de figurinhas, como o Sticker.ly. O Diário de Patas não acessa o seu WhatsApp.",
+      "downloadSticker": "Baixar figurinha",
+      "download": "Baixar arte",
+      "again": "Fazer outra versão (usa crédito)",
+      "seeAlbum": "Ver em Artes do Estúdio"
+    },
+    "check": {
+      "checking": "Conferindo se a foto vai dar uma arte bonita…",
+      "good": "Foto ótima de {dog}! Vai ficar linda. 🐾",
+      "unchecked": "Não conseguimos conferir a foto agora. Confira se {dog} aparece bem, de frente e com boa luz.",
+      "badTitle": "Essa foto não vai dar uma boa arte",
+      "warnTitle": "A arte pode não ficar tão boa",
+      "generic": "A foto pode não dar uma boa arte.",
+      "badNext": "Escolha outra foto ou use o recorte. Nenhum crédito foi usado.",
+      "warnNext": "Você pode seguir assim ou escolher outra foto.",
+      "notConfirmed": "Não deu para confirmar se {dog} está na foto."
+    },
+    "issues": {
+      "NO_DOG": "Não encontrei {dog} nesta foto. Escolha uma em que {dog} apareça bem.",
+      "FACE_HIDDEN": "O rostinho de {dog} não aparece bem (de costas, coberto ou cortado). Preciso ver o focinho e os olhos.",
+      "LOW_RES": "A foto é pequena demais para virar arte. Use uma foto com mais resolução.",
+      "MANY_DOGS": "Tem mais de um cachorro na foto: use o recorte para mostrar qual é {dog}.",
+      "SMALL_DOG": "{dog} aparece pequeno na foto. Use o recorte para aproximar.",
+      "BLURRY": "A foto parece tremida ou desfocada. A arte pode perder detalhes.",
+      "DARK": "A foto está escura. Fotos com boa luz dão artes mais bonitas.",
+      "BRIGHT": "A foto está muito clara (estourada). A arte pode perder as cores do pelo de {dog}.",
+      "LOW_RES_WARN": "A foto tem pouca resolução. A arte pode ficar menos detalhada."
+    },
+    "failures": {
+      "PROVIDER_REFUSED": "Não consegui usar esta foto. Tente outra em que {dog} apareça sozinho. O crédito foi devolvido.",
+      "QUALITY_REJECTED": "A arte não ficou boa o bastante ({dog} não apareceu direito). O crédito foi devolvido.",
+      "PROVIDER_TIMEOUT": "A arte demorou demais e foi cancelada. O crédito foi devolvido.",
+      "PROVIDER_UNAVAILABLE": "O serviço de artes está instável agora. O crédito foi devolvido — tente mais tarde.",
+      "NO_CREDITS": "Os créditos acabaram por enquanto. Dá para criar mais em Créditos, ou ganhar 1 crédito juntando patinhas no mês.",
+      "INPUT_DELETED": "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
+      "NOT_CONFIGURED": "O Estúdio ainda não está disponível. O crédito foi devolvido.",
+      "NO_SPACE": "O diário de {dog} chegou ao limite de lembranças, e a arte não teria onde ficar. O crédito foi devolvido.",
+      "TECHNICAL": "Algo deu errado do nosso lado. O crédito foi devolvido."
+    },
+    "title": "Estúdio",
+    "heading": "Artes de {dog}",
+    "note": "Uma foto de {dog}, uma arte especial.",
+    "almostReady": "<strong>O Estúdio está quase pronto.</strong> Volte daqui a pouquinho!",
+    "paused": "O Estúdio está dando uma pausa rapidinho. O resto do diário segue normal.",
+    "retry": "Tentar de novo",
+    "pickPhoto": "Selecione a foto",
+    "saveFirst": "Guardar uma foto de {dog} primeiro",
+    "photos": "Fotos do diário",
+    "photoCaption": "Foto: {caption}",
+    "photoDate": "Foto de {date}",
+    "crop": "Recortar a foto (aproximar {dog} ou escolher só ele)",
+    "pickTheme": "Selecione o tema",
+    "types": "Tipos de arte",
+    "finish": "Acabamento",
+    "realistic": "Realista",
+    "illustration": "Ilustração",
+    "regionTag": {
+      "BR": "Brasil",
+      "US": "EUA"
+    },
+    "soon": "em breve",
+    "creditsN": "{count, plural, one {# crédito} other {# créditos}}",
+    "details": "Detalhes de {theme}",
+    "aspect": "Proporção",
+    "message": "Mensagem",
+    "messageHint": "(eu escrevo caprichado por cima da arte)",
+    "name": "Nome",
+    "frame": "Moldura",
+    "create": "Criar arte",
+    "youHave": "você tem {n}",
+    "refund": "Se não der certo, o crédito volta.",
+    "starting": "Começando…",
+    "createWith": "{count, plural, one {Criar arte (# crédito)} other {Criar arte (# créditos)}}",
+    "outOfCredits": "Os créditos acabaram por enquanto.",
+    "seeCredits": "Ver créditos",
+    "history": "Histórico",
+    "openArt": "Abrir arte {theme}"
+  },
+  "studioCatalog": {
+    "tabs": {
+      "datas": "Datas",
+      "estilos": "Estilos",
+      "fantasias": "Fantasias",
+      "formatos": "Formatos"
+    },
+    "formats": {
+      "1:1": "Quadrado",
+      "4:5": "Retrato",
+      "9:16": "Papel de parede"
+    },
+    "frames": {
+      "simples": "Moldura simples",
+      "patinhas": "Moldura de patinhas",
+      "festa": "Moldura de festa"
+    },
+    "presets": {
+      "aniversario": {
+        "label": "Aniversário",
+        "hint": "Feliz aniversário!"
+      },
+      "natal": {
+        "label": "Natal acolhedor",
+        "hint": "Feliz Natal!"
+      },
+      "halloween": {
+        "label": "Halloween divertido",
+        "hint": "Feliz Halloween!"
+      },
+      "dia-dos-animais": {
+        "label": "Dia dos Animais (4/10)",
+        "hint": "Feliz Dia dos Animais!"
+      },
+      "festa-junina": {
+        "label": "Festa Junina",
+        "hint": "Arraiá!"
+      },
+      "pascoa": {
+        "label": "Páscoa",
+        "hint": "Feliz Páscoa!"
+      },
+      "ano-novo": {
+        "label": "Ano Novo",
+        "hint": "Feliz Ano Novo!"
+      },
+      "national-dog-day": {
+        "label": "Dia do Cachorro dos EUA (26/8)",
+        "hint": "Feliz Dia do Cachorro!"
+      },
+      "thanksgiving": {
+        "label": "Ação de Graças",
+        "hint": "Feliz Ação de Graças!"
+      },
+      "dia-das-maes-pet": {
+        "label": "Romântico",
+        "hint": "Amor da minha vida"
+      },
+      "estilo-diario": {
+        "label": "Estilo Diário de Patas"
+      },
+      "aquarela": {
+        "label": "Aquarela"
+      },
+      "lapis": {
+        "label": "Desenho a lápis"
+      },
+      "oleo-classico": {
+        "label": "Retrato clássico"
+      },
+      "pop-art": {
+        "label": "Pop art"
+      },
+      "3d-fofo": {
+        "label": "Animação 3D"
+      },
+      "pixel": {
+        "label": "Pixel art"
+      },
+      "vitral": {
+        "label": "Vitral"
+      },
+      "astronauta": {
+        "label": "Astronauta"
+      },
+      "super-heroi": {
+        "label": "Super-herói"
+      },
+      "realeza": {
+        "label": "Realeza"
+      },
+      "chef": {
+        "label": "Chef"
+      },
+      "explorador": {
+        "label": "Explorador"
+      },
+      "detetive": {
+        "label": "Detetive"
+      },
+      "surfista": {
+        "label": "Surfista"
+      },
+      "futebol": {
+        "label": "Craque do futebol"
+      },
+      "figurinha": {
+        "label": "Figurinha para WhatsApp"
+      },
+      "papel-de-parede": {
+        "label": "Papel de parede"
+      },
+      "cartao": {
+        "label": "Cartão com mensagem"
+      },
+      "capa-album": {
+        "label": "Capa do álbum"
+      }
+    }
+  },
+  "today": {
+    "swapFailed": "Não conseguimos trocar agora. Tente de novo.",
+    "title": "Diário de {dog}",
+    "paws": "{count, plural, one {# patinha} other {# patinhas}}",
+    "lastMemory": "Última lembrança",
+    "saveMoment": "Guardar momento",
+    "full": "O diário chegou ao limite desta versão. Veja em Perfil › Gerenciar diário.",
+    "spaceLeft": "{count, plural, one {Cabe só mais # lembrança nesta versão.} other {Cabem só mais # lembranças nesta versão.}}",
+    "emptyText": "O diário de {dog} está esperando a primeira página. Pode ser qualquer momento, até uma soneca.",
+    "saveFirst": "Guardar o primeiro momento",
+    "firstMissionText": "Uma foto em que dê para ver bem {dog}. Depois dela, chegam ideias novas todo dia.",
+    "seeMission": "Ver missão",
+    "ideas": "Ideias para hoje",
+    "ideasHelpLabel": "O que são as ideias para hoje",
+    "doneOf": "{n} de {total}",
+    "ideasHelp": "São as missões do dia: sugestões de fotos de {dog}. Sem pressa: o que não der para fazer hoje não tira nada.",
+    "specialUntil": "Especial · até {date}",
+    "seeSpecial": "Ver especial",
+    "allDone": "Momentos guardados! Até a próxima aventura 🐾",
+    "seeCollections": "Ver coleções",
+    "saveAnother": "Guardar mais um momento",
+    "savedToday": "Guardada hoje",
+    "swapLabel": "Outra ideia no lugar de “{title}”",
+    "swapTitle": "Outra ideia",
+    "allMissions": "Ver todas as missões"
+  },
+  "upcomingCare": {
+    "title": "Próximos cuidados",
+    "open": "Abrir Cuidados",
+    "nothing": "Nada marcado para os próximos 30 dias.",
+    "expired": "Vencido",
+    "overdue": "Atrasada",
+    "expiresSoon": "Vence em breve",
+    "soon": "Em breve",
+    "more": "E mais {count} em Cuidados."
+  },
+  "vaccinesPage": {
+    "appliedUpToToday": "A data aplicada deve ser até hoje.",
+    "labelDocTitle": "Etiqueta: {name}",
+    "title": "Vacinas e vermífugos",
+    "add": "Adicionar registro",
+    "empty": "Nenhum registro ainda. Anote vacinas, vermífugos e antipulgas com a data aplicada e, se souber, a próxima dose.",
+    "appliedOn": "Aplicada em {date}",
+    "next": "Próxima: {date}",
+    "superseded": "Substituída por uma dose mais nova",
+    "reminder": "📅 Lembrete no celular",
+    "noNext": "Sem próxima dose anotada.",
+    "editTitle": "Editar registro",
+    "newTitle": "Novo registro",
+    "type": "Tipo",
+    "name": "Nome",
+    "namePlaceholder": "Ex.: V10, antirrábica",
+    "applied": "Data aplicada",
+    "nextDose": "Próxima dose",
+    "nextHint": "Usada para avisar quando estiver chegando.",
+    "clinic": "Veterinário ou clínica",
+    "labelPhoto": "Foto da etiqueta ou da carteirinha",
+    "hasDoc": "Já tem um documento ligado. Escolher outro arquivo cria um documento novo.",
+    "deleteTitle": "Excluir este registro?",
+    "deleteText": "{kind} {name}, aplicada em {date}."
+  },
+  "validation": {
+    "invalidDate": "Data inválida.",
+    "maxChars": "Use até {max} caracteres.",
+    "weightPositive": "Informe um peso maior que zero.",
+    "weightCheck": "Confira o peso informado.",
+    "nameRequired": "Informe o nome.",
+    "nextDoseAfter": "A próxima dose deve ser depois da aplicação.",
+    "checkTime": "Confira o horário.",
+    "nextVisitAfter": "A próxima consulta deve ser depois desta.",
+    "endAfterStart": "O fim deve ser depois do início.",
+    "checkPhone": "Confira o telefone.",
+    "checkData": "Confira os dados.",
+    "docTitleRequired": "Dê um título ao documento.",
+    "expiryAfterDoc": "A validade deve ser depois da data do documento."
+  },
+  "visitsPage": {
+    "attachTitle": "Consulta {date}: {name}",
+    "title": "Consultas e visitas",
+    "add": "Registrar ou agendar consulta",
+    "empty": "Nenhuma consulta registrada. Anote data, clínica, motivo e as orientações que recebeu.",
+    "at": "às {time}",
+    "scheduled": "Agendada",
+    "visit": "Consulta",
+    "rowLabel": "consulta de {date}",
+    "map": "ver no mapa",
+    "calendar": "📅 Pôr no calendário do celular",
+    "next": "Próxima consulta: {date}",
+    "overdue": "Atrasada",
+    "soon": "Em breve",
+    "set": "Marcada",
+    "attachments": "Anexos",
+    "savePhoto": "Guardar uma foto desta visita",
+    "editTitle": "Editar consulta",
+    "newTitle": "Nova consulta",
+    "date": "Data (pode ser uma consulta marcada no futuro)",
+    "time": "Horário",
+    "useContact": "Usar um contato salvo",
+    "pickContact": "Escolher dos Contatos…",
+    "contactTip": "Dica: salve o veterinário em <link>Contatos</link> para escolher aqui depois.",
+    "clinic": "Clínica",
+    "vet": "Veterinário",
+    "reason": "Motivo",
+    "reasonPlaceholder": "Ex.: consulta de rotina",
+    "notes": "O que foi feito / orientações",
+    "nextVisit": "Próxima consulta",
+    "attachLabel": "Anexos (receitas, exames…)",
+    "deleteTitle": "Excluir esta consulta?",
+    "deleteText": "Consulta de {date}."
+  },
+  "weightChart": {
+    "caption": "Peso de {from} ({fromWeight}) a {to} ({toWeight}), {count} registros. A lista abaixo traz todos os valores.",
+    "label": "Gráfico do peso: de {from} para {to}"
+  },
+  "weightPage": {
+    "title": "Peso",
+    "invalid": "Informe o peso em {unit}, por exemplo {example}.",
+    "history": "Histórico",
+    "oneMore": "Com mais um registro aparece o gráfico.",
+    "none": "Nenhum peso registrado ainda.",
+    "tableCaption": "Registros de peso",
+    "date": "Data",
+    "weight": "Peso",
+    "actions": "Ações",
+    "rowLabel": "peso de {date}",
+    "new": "Novo registro",
+    "weightIn": "Peso ({unit})",
+    "unitLabel": "Unidade",
+    "add": "Adicionar peso",
+    "deleteTitle": "Excluir este peso?",
+    "deleteText": "{weight} em {date}."
+  },
+  "welcomeFamily": {
+    "title": "O diário de {dog} está pronto! 🐾",
+    "text": "Quem mais ama {dog}? Chame a família: cada pessoa entra com a própria conta e guarda fotos, escreve cartinhas e dá ossinho com você.",
+    "notNow": "Agora não",
+    "later": "Dá para convidar depois em Perfil › Família."
+  },
+  "xpReward": {
+    "label": "Arte do mês",
+    "earned": "Você ganhou 1 crédito!",
+    "createArt": "Criar arte →",
+    "progress": "Arte do mês · {n}/{goal} 🐾",
+    "howLabel": "Como funciona a arte do mês",
+    "pawsLabel": "Patinhas do mês",
+    "help": "Cada missão vale patinhas 🐾. Juntando {goal} no mês, você ganha 1 crédito para criar uma arte de {dog} no Estúdio. A contagem recomeça todo mês."
+  }
+}
