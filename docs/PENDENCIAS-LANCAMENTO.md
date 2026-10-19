@@ -6,7 +6,7 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - **Encarregado (DPO)** ou canal equivalente para pedidos de titulares.
 - **Dados tratados**: email e nome da pessoa; fotos, cartinhas, cuidados e documentos do cachorro; dados de pagamento (no Mercado Pago); avisos (inscrição de push).
 - **Finalidades e bases legais** (execução do serviço, consentimento para avisos e indicações).
-- **Operadores/terceiros**: Supabase (banco e arquivos, região ca-central-1), Vercel (hospedagem), Google Gemini (API paga, Estúdio), Mercado Pago (Pix), Gmail SMTP (emails), serviços de push da Apple/Google, Amazon (links de associado em Achadinhos).
+- **Operadores/terceiros**: Supabase (banco e arquivos, região ca-central-1), Vercel (hospedagem), Google Gemini (API paga, Estúdio), Mercado Pago (Pix), Gmail SMTP (emails), serviços de push da Apple/Google, Amazon e Mercado Livre (links de afiliado em Achadinhos).
 - **Transferência internacional** (servidores fora do Brasil).
 - **Retenção**: o que fica depois de excluir conta/diário (fila de limpeza dos arquivos; registros de abuso do Google por tempo limitado; dados fiscais de pagamento).
 - **Direitos do titular** e como exercer (acesso, correção, exclusão, portabilidade).
@@ -27,6 +27,7 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - Google Cloud: publicar o app do login com Google ("Publish app").
 - Trocar a senha de app do Gmail e o token do GitHub que apareceram no chat.
 - Amazon (Achadinhos): elegibilidade da conta de associado para fotos dos produtos.
+- Mercado Livre (Achadinhos): hoje só texto; fotos e títulos pela API exigem um app registrado na conta de serviços (Client ID/Secret só no .env.local e na Vercel).
 
 ## Inglês (desde 18/10/2026)
 - Aprovar os textos em inglês do Abu (apresentação `intro.steps` e carta "Our story" `about.story`).

@@ -1569,7 +1569,7 @@
       "banho": "Banho e cuidados",
       "comer": "Petiscos e comida"
     },
-    "seeAt": "Ver na {store}",
+    "seeAt": "Ver {store, select, Amazon {na Amazon} other {no {store}}}",
     "disclosure": "Como associado da Amazon, ganhamos com compras qualificadas, sem mudar o seu preço.",
     "backToApp": "Para voltar ao app, toque em “OK” no canto da tela.",
     "items": {
@@ -1588,10 +1588,27 @@
       "honest-kitchen": {
         "name": "Comida natural The Honest Kitchen (cordeiro)",
         "abuSays": "Cheirinho de comida de verdade. Troca de alimentação, sempre com o veterinário, viu?"
+      },
+      "ml-chuckit": {
+        "name": "Lançador de bola Chuckit! Sport médio (azul)",
+        "abuSays": "Joga mais longe e você nem precisa pegar a bolinha babada. Eu aprovo! 🐾"
+      },
+      "ml-bola-voz": {
+        "name": "Bola de brinquedo com som para pets (11 cm)",
+        "abuSays": "Ela faz barulhinho quando eu pego. Impossível ignorar!"
+      },
+      "ml-pedigree-umida": {
+        "name": "Ração úmida Pedigree em sachê (adultos de raças pequenas, carne)",
+        "abuSays": "Sachê é festa no pote. Troca de alimentação, sempre com o veterinário, viu?"
+      },
+      "ml-nd-tropical": {
+        "name": "Ração N&D Tropical Selection para adultos mini (suíno, 2 kg + 500 g)",
+        "abuSays": "Croquete pequenininho, do tamanho da minha boca. Troca de alimentação, sempre com o veterinário!"
       }
     },
     "categoriesLabel": "Categorias",
-    "soon": "Em breve, os achadinhos do Abu na sua região. 🐾"
+    "soon": "Em breve, os achadinhos do Abu na sua região. 🐾",
+    "disclosureMl": "Como afiliados do Mercado Livre, podemos ganhar uma comissão pelas compras, sem mudar o seu preço."
   },
   "forms": {
     "saving": "Salvando…",

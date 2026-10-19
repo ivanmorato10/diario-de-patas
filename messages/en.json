@@ -1588,10 +1588,27 @@
       "honest-kitchen": {
         "name": "The Honest Kitchen whole food (lamb)",
         "abuSays": "Smells like real food. Switching food? Always check with your vet first, okay?"
+      },
+      "ml-chuckit": {
+        "name": "Chuckit! Sport ball launcher, medium (blue)",
+        "abuSays": "It throws farther, and you never have to touch the slobbery ball. Abu-approved! 🐾"
+      },
+      "ml-bola-voz": {
+        "name": "Talking toy ball for pets (11 cm)",
+        "abuSays": "It makes funny sounds when I grab it. Impossible to ignore!"
+      },
+      "ml-pedigree-umida": {
+        "name": "Pedigree wet food pouches (small-breed adults, beef)",
+        "abuSays": "A pouch turns my bowl into a party. Always talk to your vet before switching food, okay?"
+      },
+      "ml-nd-tropical": {
+        "name": "N&D Tropical Selection dry food, adult mini (pork, 2 kg + 500 g)",
+        "abuSays": "Tiny kibble, just right for my mouth. Always talk to your vet before switching food!"
       }
     },
     "categoriesLabel": "Categories",
-    "soon": "Abu's finds for your region are coming soon. 🐾"
+    "soon": "Abu's finds for your region are coming soon. 🐾",
+    "disclosureMl": "As a Mercado Livre affiliate, we may earn a commission on purchases, at no extra cost to you."
   },
   "forms": {
     "saving": "Saving…",

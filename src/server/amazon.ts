@@ -35,7 +35,7 @@ export async function achadinhosInfo(): Promise<{ status: string; items: Record<
   const items: Record<string, AmazonItemInfo> = {};
   let status = "ok";
   try {
-    const asins = ACHADINHOS.map((a) => a.asin);
+    const asins = ACHADINHOS.flatMap((a) => (a.asin ? [a.asin] : []));
     for (let i = 0; i < asins.length; i += 10) {
       const res = await fetch("https://creatorsapi.amazon/catalog/v1/getItems", {
         method: "POST",

@@ -1,5 +1,5 @@
 /**
- * Achadinhos do Abu: produtos escolhidos pelo proprietário (links de afiliado da Amazon).
+ * Achadinhos do Abu: produtos escolhidos pelo proprietário (links de afiliado da Amazon e do Mercado Livre).
  * Regras: sem preço fixo (a Amazon proíbe preço copiado), sem imagem copiada da Amazon (só ilustração
  * ou foto própria do Abu em `photo`), aviso de associado visível, links rel="sponsored".
  * Nada de remédio; comida e petisco sem promessa de saúde.
@@ -11,15 +11,17 @@ export const AMAZON_TAG = "biancaassunca-20";
 
 /**
  * Nome e comentário do Abu (sem promessas de saúde): finds.items.<id>.name / .abuSays nos arquivos de idioma.
- * Cada item é de uma REGIÃO DO APP: EUA → Amazon (amazon.com); Brasil → Mercado Livre (links ainda não enviados).
+ * Cada item é de uma REGIÃO DO APP: EUA → Amazon (amazon.com); Brasil → Mercado Livre (só texto, sem imagem por enquanto).
  */
 export interface Achadinho {
   id: string;
   region: "BR" | "US";
   category: AchadinhoCategory;
   /** Código do produto na Amazon: gera o link direto e a imagem oficial. */
-  asin: string;
-  store: string;
+  asin?: string;
+  /** Link de afiliado completo (Mercado Livre), exatamente como enviado pelo proprietário. */
+  url?: string;
+  store: "Amazon" | "Mercado Livre";
   /** Foto própria (public/achadinhos/…), opcional. Sem ela, mostra a ilustração da categoria. */
   photo?: string;
 }
@@ -38,7 +40,10 @@ export const ACHADINHOS: Achadinho[] = [
   { id: "lancador-automatico", region: "US", category: "brincar", asin: "B07PYPGL27", store: "Amazon" },
   { id: "petisco-wings", region: "US", category: "comer", asin: "B01HXYUUXC", store: "Amazon" },
   { id: "honest-kitchen", region: "US", category: "comer", asin: "B0HFX1WMVF", store: "Amazon" },
-  // Brasil (Mercado Livre): aguardando os produtos e links de afiliado do proprietário.
+  { id: "ml-chuckit", region: "BR", category: "brincar", store: "Mercado Livre", url: "https://produto.mercadolivre.com.br/MLB-7400620626-lancador-de-bola-chuckit-sport-medio-para-ces-azul-_JM?matt_tool=38524122&ua=A0ZVV6vYYeouibhDjh50BjENeLBmmw-CNj_PUzon0-5UVQ" },
+  { id: "ml-bola-voz", region: "BR", category: "brincar", store: "Mercado Livre", url: "https://www.mercadolivre.com.br/up/MLBU3822020892?matt_tool=38524122&pdp_filters=item_id:MLB6321874146&ua=beDo79Pp43YhRuQm70HMAxYSzDTJ_HDLQRyV4QeGRGPTrQ" },
+  { id: "ml-pedigree-umida", region: "BR", category: "comer", store: "Mercado Livre", url: "https://www.mercadolivre.com.br/p/MLB50787472?matt_tool=38524122&pdp_filters=item_id:MLB7446467982&ua=7jKjxz0p-3KaPgIdEkCir8sSdtv5aSwyW5G3vl1Bc3I8gQ" },
+  { id: "ml-nd-tropical", region: "BR", category: "comer", store: "Mercado Livre", url: "https://www.mercadolivre.com.br/up/MLBU1919966734?matt_tool=38524122&pdp_filters=item_id:MLB3868025111&ua=jKMfghIyWHlN_0OldL7cnwdGC9l5ZRvwI5heRWkLTNDAsg" },
 ];
 
 /** Itens da região do app da pessoa (a outra região não aparece). */
@@ -47,3 +52,5 @@ export const achadinhosFor = (region: "BR" | "US") => ACHADINHOS.filter((a) => a
 /** Link direto do produto com o ID de associado (sem os redirecionamentos do link curto, que travam no app instalado). */
 export const amazonUrl = (a: Achadinho) => `https://www.amazon.com/dp/${a.asin}?tag=${AMAZON_TAG}`;
 
+/** Link do botão: o do Mercado Livre como veio; o da Amazon montado pelo ASIN. */
+export const achadinhoUrl = (a: Achadinho) => a.url ?? amazonUrl(a);
