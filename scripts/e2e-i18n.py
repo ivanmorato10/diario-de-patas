@@ -106,12 +106,14 @@ try:
         check("navegador em inglês: entrada em inglês já na primeira resposta", e.evaluate("document.documentElement.lang") == "en" and e.get_by_role("button", name="Sign up my dog").is_visible())
         check("'Paw Diary' discreto abaixo da marca", e.get_by_text("Paw Diary").first.is_visible())
         e.evaluate("window.__sameDoc = 1")
-        e.get_by_role("radio", name="Português").click()
+        e.get_by_role("radio", name="Português").tap()  # toque de verdade (tela de toque), um só
         check("seletor antes do login: troca para português", eventually(lambda t: expect(e.get_by_role("button", name="Cadastrar meu cachorro")).to_be_visible(timeout=t)))
         check("troca de idioma não recarrega a página", e.evaluate("window.__sameDoc") == 1)
         check("escolha salva em cookie antes do login", "ddp_locale=pt-BR" in e.evaluate("document.cookie"))
-        e.get_by_role("radio", name="English").click()
-        expect(e.get_by_role("button", name="Sign up my dog")).to_be_visible()
+        e.get_by_role("radio", name="English").tap()
+        check("um toque só basta (seletor de idioma)", eventually(lambda t: expect(e.get_by_role("button", name="Sign up my dog")).to_be_visible(timeout=t), 5000))
+        check("toque vira clique na hora (touch-action: manipulation)", e.evaluate("getComputedStyle(document.querySelector('button')).touchAction") == "manipulation")
+        check("sem efeito de hover preso na tela de toque", not e.evaluate("matchMedia('(hover: hover) and (pointer: fine)').matches"))
         text_checks(e, "entrada (en)", True); no_overflow(e, "entrada 375px")
         e.screenshot(path=f"{OUT}/01-entrar-en.png", full_page=True)
 
@@ -145,6 +147,17 @@ try:
         user = admin("GET", f"users/{ids['E']}")
         check("idioma também nos metadados do login (emails do Supabase em inglês)", (user.get("user_metadata") or {}).get("locale") == "en")
         text_checks(e, "Hoje (en)", True); no_overflow(e, "Hoje 375px")
+        # Versão nova publicada enquanto o app está aberto: ao voltar para o app NÃO recarrega no meio do uso
+        # (isso engolia o toque); recarrega na próxima troca de tela.
+        e.evaluate("window.__sameDoc2 = 1")
+        e.route("**/api/versao", lambda r: r.fulfill(status=200, content_type="application/json", body='{"id":"versao-nova-teste"}'))
+        e.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+        e.wait_for_timeout(2500)
+        check("versão nova ao voltar para o app: não recarrega no meio do uso", e.evaluate("window.__sameDoc2") == 1)
+        e.get_by_role("link", name=re.compile("Diary")).first.tap()
+        check("versão nova: recarrega na próxima troca de tela", eventually(lambda t: e.wait_for_function("() => window.__sameDoc2 === undefined", timeout=t) or True, 15000) and e.evaluate("window.__sameDoc2") is None)
+        e.unroute("**/api/versao")
+        e.goto(BASE + "/hoje"); expect(e.get_by_role("heading", name="Luna's Diary")).to_be_visible(timeout=15000)
         e.screenshot(path=f"{OUT}/03-hoje-en.png", full_page=True)
 
         # ---------- Missão e envio de foto ----------
