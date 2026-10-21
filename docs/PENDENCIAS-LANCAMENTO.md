@@ -22,15 +22,15 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - Sugestão: lançar com 100, acompanhar o uso real (Supabase › Storage) e decidir o plano quando passar de ~60% do 1 GB.
 
 ## Configuração
-- Mercado Pago: em produção desde 18/10/2026 (pacotes 1/R$ 1, 5/R$ 4, 10/R$ 7; email de comprovante). Trocar as credenciais que apareceram no chat.
+- Mercado Pago: em produção desde 18/10/2026 (pacotes 1/R$ 1, 5/R$ 4, 10/R$ 7; email de comprovante). Credenciais trocadas pelo proprietário em 21/10/2026.
 - Estúdio: teto diário com o Gemini de US$ 5 (`STUDIO_DAILY_BUDGET_USD`, desde 18/10/2026). Subir conforme o uso.
-- Google Cloud: publicar o app do login com Google ("Publish app").
-- Trocar a senha de app do Gmail e o token do GitHub que apareceram no chat.
+- Google Cloud (projeto "Diario de Patas", conta diariodepatas.app): "Publish app" depende da página Branding: home page,
+  link da política de privacidade e dos termos, e o domínio diario-de-patas.vercel.app autorizado. Fazer depois de
+  publicar as páginas de Termos/Privacidade (rascunho em revisão pelo proprietário, 21/10/2026).
 - Amazon (Achadinhos): elegibilidade da conta de associado para fotos dos produtos.
 - Mercado Livre (Achadinhos): hoje só texto; fotos e títulos pela API exigem um app registrado na conta de serviços (Client ID/Secret só no .env.local e na Vercel).
 
 ## Inglês (desde 18/10/2026)
-- Aprovar os textos em inglês do Abu (apresentação `intro.steps` e carta "Our story" `about.story`).
 - Conferir um email de login em inglês de verdade (assunto com a condição de idioma; ver docs/IDIOMAS.md).
 - Termos de uso, política de privacidade e reembolso também em inglês.
 - Pagamento em dólar (Stripe): pronto e testado em modo de teste; falta colocar as chaves na Vercel, criar o webhook,
