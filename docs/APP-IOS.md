@@ -26,7 +26,8 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
    Bundle ID **`com.diariodepatas.app`** (explícito). Em Capabilities, deixar **In-App Purchase** marcado.
 2. **Criar o app**: appstoreconnect.apple.com › Apps › "+" › New App: iOS, nome "Diário de Patas", idioma
    principal Português (Brasil), Bundle ID o de cima, SKU `diario-de-patas`. Anotar o **Apple ID** numérico do
-   app (App Information).
+   app (App Information). Depois, em App Information › Localizable Information, acrescentar **English (U.S.)**
+   com o nome **"Paw Diary: Dog Journal"** (aprovado em 21/10/2026; o ícone é o mesmo nos dois idiomas).
 3. **Contratos**: Business › aceitar **Paid Apps Agreement**, preencher **dados bancários e fiscais**.
 4. **Small Business Program** (comissão de 15% em vez de 30%): developer.apple.com/app-store/small-business-program.
 5. **Produtos** (o app › Monetization › In-App Purchases › "+", tipo **Consumable**):
@@ -63,7 +64,8 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
 ### 4. Testar e enviar
 1. TestFlight no iPhone: login (email, Google, Apple), fotos, Estúdio e compra de créditos com uma conta
    **Sandbox** (Users and Access › Sandbox › Test Accounts).
-2. Ficha da App Store: capturas de tela (iPhone 6,9" e 6,5"), descrição PT/EN, link da política de privacidade,
+2. Ficha da App Store — nomes aprovados: **Português "Diário de Patas"**, **English (U.S.) "Paw Diary: Dog
+   Journal"**. Capturas de tela (iPhone 6,9" e 6,5"), descrição PT/EN, link da política de privacidade,
    "App Privacy" (dados coletados: email, nome, fotos, compras; sem rastreamento), classificação etária.
 3. Enviar para revisão.
 
