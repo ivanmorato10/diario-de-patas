@@ -1,33 +1,52 @@
-# Pagamentos nos Estados Unidos — proposta (não implementada)
+# Pagamentos nos Estados Unidos (Stripe)
 
-Situação hoje (18/10/2026): o mercado da compra segue a **região do app** da pessoa (Minha conta › Idioma /
-Language), nunca o idioma. Região Brasil: **Pix em reais (BRL)** pelo Mercado Pago — em inglês, os valores
-aparecem com a moeda explícita ("R$4.00 (BRL)"). Região EUA: a loja aparece como "em breve" (sem checkout em
-dólar). Nada é convertido.
+Situação (20/10/2026): **implementado e testado em modo de teste**. Em produção a loja da região EUA continua
+"em breve" até as chaves do Stripe irem para a Vercel (passo a passo abaixo).
 
-## O que já está pronto no código
+## Como funciona
+- O mercado da compra segue a **região do app** (Minha conta › Idioma / Language e região), nunca o idioma.
+  - Região Brasil: **Pix em reais** pelo Mercado Pago (em inglês, "R$4.00 (BRL)").
+  - Região EUA: **cartão em dólar** pelo **Stripe Checkout** (cartão, Apple Pay, Google Pay).
+- Pacotes em dólar (preços fixos aprovados em 20/10/2026, sem conversão do real): 1 crédito **US$ 0,99** ·
+  5 por **US$ 3,99** · 10 por **US$ 6,99** (`src/config/credits.ts` → `CREDIT_MARKETS.US`).
+- O navegador só escolhe o **id** do pacote; valor e moeda vêm do servidor. A pessoa paga na página do Stripe e
+  volta para `/estudio/creditos?compra=<id>`; o app consulta o Stripe e confere **referência, valor e moeda**
+  antes de entregar os créditos (`syncPurchase`). Créditos entregues uma vez só (`grant_purchase_credits`).
+- Desistiu na página do Stripe: nada cobrado; a compra fica pendente com "Continuar pagamento" até a página vencer
+  (31 min) e depois vira "vencida".
+- Estorno ou contestação no Stripe: retira os créditos que sobraram (`revoke_purchase_credits`), uma vez.
+- Comprovante por email no idioma de quem comprou, com o valor em US$.
+- Avisos do Stripe (webhook) em `/api/pagamentos/stripe`, só aceitos com assinatura válida e de até 5 min; a
+  rotina diária também confere compras pendentes. Sem o webhook a compra funciona (a tela consulta ao voltar).
 
-- `src/config/credits.ts` → `CREDIT_MARKETS`: preços **fixos por mercado** (`BR` em BRL com Mercado Pago;
-  `US` em USD **sem pacotes e sem provedor**); `marketForRegion` liga a região do app ao mercado.
-- O servidor (`src/server/payments.ts`) só aceita o **id** do pacote vindo do navegador; valor e moeda
-  vêm do mercado no servidor e são gravados em `credit_purchases.currency`. A confirmação do Mercado Pago
-  confere valor **e** moeda.
-- Mercado sem pacotes = loja desligada (`creditShop.enabled = false`), sem risco de cobrança errada.
+## Variáveis (só no `.env.local` e na Vercel, nunca no código ou no chat)
+| Nome | O que é |
+|---|---|
+| `STRIPE_SECRET_KEY` | chave secreta (`sk_test_…` no teste, `sk_live_…` de verdade) |
+| `STRIPE_WEBHOOK_SECRET` | segredo do webhook (`whsec_…`) |
+| `STRIPE_ENABLED` | `true` liga a loja da região EUA |
 
-## Proposta para vender em dólar
+## Passo a passo para ligar em produção
+1. **Vercel › Settings › Environment Variables** (Production): `STRIPE_SECRET_KEY` (a de teste, por enquanto)
+   e `STRIPE_ENABLED=true`. Redeploy. A loja dos EUA aparece com o aviso "Modo de teste".
+2. **Stripe › Developers › Webhooks › Add endpoint**:
+   - URL: `https://diario-de-patas.vercel.app/api/pagamentos/stripe`
+   - Eventos: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+     `checkout.session.expired`, `charge.refunded`, `charge.dispute.created`
+   - Copiar o "Signing secret" (`whsec_…`) para `STRIPE_WEBHOOK_SECRET` na Vercel.
+3. Compra de teste no iPhone (região EUA) com o cartão `4242 4242 4242 4242`, validade futura, CVC qualquer.
+4. **Ativar a conta Stripe** (dados, conta bancária) e publicar **termos de uso e política de reembolso em inglês**.
+5. Trocar para as chaves **reais** (`sk_live_…` e o `whsec_…` do webhook do modo real). Primeira cobrança real só
+   com o OK do proprietário.
 
-1. **Provedor**: Stripe Checkout (cartão, Apple Pay, Google Pay) — o mais simples para um PWA, sem
-   precisar de app nas lojas. Alternativa: Lemon Squeezy/Paddle se quisermos que eles cuidem de impostos
-   (merchant of record), com taxa maior.
-2. **Preços** (a definir por você, fixos, não convertidos): por exemplo 1 crédito US$ 0,99 · 5 por US$ 3,99 ·
-   10 por US$ 6,99. Precisam cobrir a taxa do cartão (≈ 2,9% + US$ 0,30 por compra no Stripe), por isso
-   pacotes maiores fazem mais sentido em dólar.
-3. **Quem cai em qual mercado**: a região do app (já é assim). Quem está na região EUA mas paga com Pix pode
-   mudar a região para Brasil.
-4. **Implementação**: `CREDIT_MARKETS.US = { currency: "USD", provider: "stripe", packages: [...] }`,
-   rota de webhook do Stripe (assinatura verificada), mesma função idempotente `grant_purchase_credits`,
-   comprovante pelo mesmo email (já sai no idioma de quem compra e com a moeda real).
-5. **Pendências externas**: conta Stripe na conta de serviços do app (diariodepatas.app@gmail.com), dados
-   fiscais, termos de uso e política de reembolso em inglês, e decisão sobre impostos estaduais (sales tax).
+## Testes
+- `npx vitest run` (assinatura do webhook, status da sessão, preços).
+- `python3 scripts/e2e-stripe.py` (só com chave `sk_test_`): loja em dólar, desistir, cartão recusado, cartão
+  aprovado (+5 uma vez), valor conferido no Stripe, região Brasil continua no Pix.
+- `python3 scripts/e2e-pix.py` (Pix com Mercado Pago simulado).
 
-Nada disso foi ligado: depende da sua decisão sobre provedor, preços e conta.
+## Observações
+- Conta Stripe do Brasil cobrando em dólar: o Stripe converte e deposita em reais (taxa de conversão do Stripe).
+- Taxa por compra ≈ 3–4% + US$ 0,30 (pesa mais no pacote de US$ 0,99).
+- Impostos estaduais dos EUA (sales tax): só viram obrigação acima de limites de faturamento por estado; rever
+  se as vendas crescerem (ou usar o Stripe Tax).

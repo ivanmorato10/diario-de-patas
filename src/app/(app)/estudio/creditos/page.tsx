@@ -97,6 +97,63 @@ function PixPanel({ purchase, test, onPaid, onRestart }: { purchase: CreditPurch
   );
 }
 
+/**
+ * Cartão (Stripe, região EUA): a pessoa paga na página do Stripe e volta para cá (?compra=<id>). Aqui só
+ * acompanha o status (o servidor confere com o Stripe) e oferece continuar o pagamento enquanto a página vale.
+ */
+function CheckoutPanel({ purchase, returning, onPaid, onRestart }: { purchase: CreditPurchase; returning: "ok" | "cancelado" | null; onPaid: (p: CreditPurchase) => void; onRestart: () => void }) {
+  const [p, setP] = useState(purchase);
+  const [slow, setSlow] = useState(false);
+  const t = useTranslations("credits");
+  const f = useFormat();
+  useEffect(() => {
+    if (p.status !== "pending") return;
+    const started = Date.now();
+    const check = async () => {
+      try {
+        const n = await purchaseStatus(p.id);
+        setP(n);
+        if (n.status === "approved") onPaid(n);
+      } catch { /* tenta de novo */ }
+      if (Date.now() - started > 45_000) setSlow(true);
+    };
+    void check();
+    const timer = setInterval(check, returning === "ok" ? 2500 : 5000);
+    return () => clearInterval(timer);
+  }, [p.id, p.status, returning, onPaid]);
+
+  if (p.status !== "pending") {
+    return (
+      <section className="pix-card stack" role="alert">
+        <h2>{t("notCompleted")}</h2>
+        <p className="muted">{t("checkoutNotCharged")}</p>
+        <button type="button" className="btn btn--primary btn--block" onClick={onRestart}>{t("chooseAnother")}</button>
+      </section>
+    );
+  }
+  return (
+    <section className="pix-card stack" aria-live="polite">
+      <div className="pix-card__head">
+        <span className="pix-card__amount">{f.money(p.amountCents, p.currency)}</span>
+        <span className="pix-card__credits"><Paw size={16} /> {t("creditsN", { count: p.credits })}</span>
+      </div>
+      {returning === "ok" ? (
+        <>
+          <div className="pix-wait"><span className="sp-spinner" aria-hidden="true" /> {t("checkoutConfirming")}</div>
+          {slow ? <p className="caption">{t("checkoutSlow")}</p> : null}
+        </>
+      ) : (
+        <>
+          <h2>{returning === "cancelado" ? t("notCompleted") : t("checkoutTitle")}</h2>
+          <p className="muted">{returning === "cancelado" ? t("checkoutNotCharged") : t("checkoutText")}</p>
+          {p.checkoutUrl ? <a className="btn btn--primary btn--block" href={p.checkoutUrl}>{t("checkoutContinue")}</a> : null}
+          <button type="button" className="btn btn--secondary btn--block" onClick={onRestart}>{t("chooseAnother")}</button>
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function Creditos() {
   const { ready, snap, unavailable } = useRequireDiary();
   const [shop, setShop] = useState<CreditShop | null>(null);
@@ -106,6 +163,8 @@ export default function Creditos() {
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<CreditPurchase | null>(null);
   const [paid, setPaid] = useState<CreditPurchase | null>(null);
+  /** Volta da página do Stripe: ?compra=<id>&pagamento=ok|cancelado. */
+  const [returning, setReturning] = useState<{ id: string; result: "ok" | "cancelado" | null } | null>(null);
   const idem = useRef("");
   const t = useTranslations("credits");
   const f = useFormat();
@@ -117,6 +176,17 @@ export default function Creditos() {
       const [s, st] = await Promise.all([creditShop(), studioState()]);
       setShop(s);
       setBalance(st.balance);
+      const back = new URLSearchParams(window.location.search);
+      const backId = back.get("compra");
+      const fromCheckout = backId ? s.purchases.find((x) => x.id === backId) : undefined;
+      if (fromCheckout) {
+        const r = back.get("pagamento");
+        setReturning({ id: fromCheckout.id, result: r === "ok" || r === "cancelado" ? r : null });
+        if (fromCheckout.status === "approved") setPaid(fromCheckout);
+        else setCurrent((c) => c ?? fromCheckout);
+        window.history.replaceState(null, "", window.location.pathname); // recarregar não repete a volta
+        return;
+      }
       const open = s.purchases.find((x) => x.status === "pending" && x.expiresAt && Date.parse(x.expiresAt) > Date.now());
       if (open) setCurrent((c) => c ?? open);
     } catch (e) {
@@ -142,10 +212,13 @@ export default function Creditos() {
     setBusy(true);
     setError(null);
     try {
-      setCurrent(await createPurchase(pick, idem.current));
+      const p = await createPurchase(pick, idem.current);
+      // Cartão: segue para a página de pagamento do Stripe (volta para cá ao terminar ou desistir).
+      if (p.checkoutUrl) { window.location.assign(p.checkoutUrl); return; }
+      setCurrent(p);
+      setBusy(false);
     } catch (e) {
-      setError(errText(e instanceof DomainError ? e : null, "credits.pixFailed"));
-    } finally {
+      setError(errText(e instanceof DomainError ? e : null, shop?.provider === "stripe" ? "errors.checkoutUncertain" : "credits.pixFailed"));
       setBusy(false);
     }
   }
@@ -170,6 +243,9 @@ export default function Creditos() {
             <Link href="/estudio" className="btn btn--primary btn--block">{t("createArt")}</Link>
             <button type="button" className="btn btn--ghost" onClick={() => setPaid(null)}>{t("buyMore")}</button>
           </section>
+        ) : current && current.provider === "stripe" ? (
+          <CheckoutPanel purchase={current} returning={returning?.id === current.id ? returning.result : null} onPaid={onPaid}
+            onRestart={() => { setCurrent(null); setReturning(null); idem.current = crypto.randomUUID(); }} />
         ) : current ? (
           <PixPanel purchase={current} test={!!shop?.test} onPaid={onPaid} onRestart={() => { setCurrent(null); idem.current = crypto.randomUUID(); }} />
         ) : shop && !shop.enabled ? (
@@ -192,9 +268,9 @@ export default function Creditos() {
             </div>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <button type="button" className="btn btn--primary btn--block" onClick={buy} disabled={busy || !pkg}>
-              {busy ? t("generating") : pkg ? t("pay", { price: money(pkg.priceCents) }) : t("pickPack")}
+              {busy ? (shop.provider === "stripe" ? t("opening") : t("generating")) : pkg ? t(shop.provider === "stripe" ? "payCard" : "pay", { price: money(pkg.priceCents) }) : t("pickPack")}
             </button>
-            <p className="caption" style={{ textAlign: "center" }}>{t("oneTime")}</p>
+            <p className="caption" style={{ textAlign: "center" }}>{shop.provider === "stripe" ? t("oneTimeCard") : t("oneTime")}</p>
           </section>
         ) : error ? <p className="field-error" role="alert">{error}</p> : <PageLoading />}
 

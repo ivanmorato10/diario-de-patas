@@ -200,7 +200,7 @@ describe("região do app", () => {
     const { marketForRegion, CREDIT_MARKETS } = await import("@/config/credits");
     const { achadinhosFor } = await import("@/config/achadinhos");
     expect(CREDIT_MARKETS[marketForRegion("BR")].currency).toBe("BRL");
-    expect(CREDIT_MARKETS[marketForRegion("US")]).toMatchObject({ currency: "USD", packages: [] });
+    expect(CREDIT_MARKETS[marketForRegion("US")]).toMatchObject({ currency: "USD", provider: "stripe" });
     expect(achadinhosFor("US").every((a) => a.store === "Amazon")).toBe(true);
     expect(achadinhosFor("BR").some((a) => a.region === "US")).toBe(false);
     const { achadinhoUrl } = await import("@/config/achadinhos");

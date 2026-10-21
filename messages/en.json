@@ -1178,7 +1178,17 @@
       "cancelled": "Canceled",
       "refunded": "Refunded"
     },
-    "soonUsd": "<strong>Coming soon:</strong> buying credits in US dollars for the US region. To pay in Brazilian reais with Pix, switch the app region to Brazil in My account."
+    "soonUsd": "<strong>Coming soon:</strong> buying credits in US dollars for the US region. To pay in Brazilian reais with Pix, switch the app region to Brazil in My account.",
+    "payCard": "Pay by card · {price}",
+    "opening": "Opening checkout…",
+    "oneTimeCard": "One-time, secure payment through Stripe: card, Apple Pay, or Google Pay. No subscription, no automatic charges.",
+    "checkoutTitle": "Payment in progress",
+    "checkoutText": "The payment page stays open for a few minutes.",
+    "checkoutContinue": "Continue to payment",
+    "checkoutConfirming": "Confirming your payment…",
+    "checkoutSlow": "We haven't received the confirmation yet. If you paid, your credits will arrive in a moment; you can close this screen.",
+    "checkoutNotCharged": "You weren't charged. Pick a package to try again.",
+    "chooseAnother": "Choose another package"
   },
   "diary": {
     "title": "Diary",
@@ -1506,7 +1516,9 @@
     "createDiaryFailed": "We couldn't create the diary. Please try again.",
     "docTooLarge": "The file is larger than {mb} MB. Pick a smaller version.",
     "pixRefused": "Mercado Pago declined the Pix. Please try again in a moment.",
-    "pixUncertain": "We couldn't confirm the Pix right now. Please try again in a moment."
+    "pixUncertain": "We couldn't confirm the Pix right now. Please try again in a moment.",
+    "checkoutRefused": "The card payment page was declined. Please try again in a moment.",
+    "checkoutUncertain": "We couldn't open the payment page right now. Please try again in a moment."
   },
   "family": {
     "roles": {

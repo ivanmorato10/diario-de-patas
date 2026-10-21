@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
-import { mapMpStatus, validMpSignature } from "./payments";
+import { mapMpStatus, mapStripeSession, validMpSignature, validStripeSignature } from "./payments";
 import { CREDIT_MARKETS, CREDIT_PACKAGES, packageById } from "@/config/credits";
 import { formatMoney } from "@/i18n/format";
 
@@ -9,9 +9,30 @@ describe("compra de créditos (Pix)", () => {
     expect(CREDIT_PACKAGES.map((p) => [p.credits, formatMoney(p.priceCents, "BRL", "pt-BR")])).toEqual([[1, "R$ 1,00"], [5, "R$ 4,00"], [10, "R$ 7,00"]].map(([c, v]) => [c, String(v).replace(" ", " ")]));
     // Em inglês continua sendo cobrança em reais: valor igual, moeda explícita (nada de conversão para dólar).
     expect(formatMoney(400, "BRL", "en")).toBe("R$4.00 (BRL)");
-    // Mercado dos EUA ainda sem checkout: nenhum pacote vendável (o servidor recusa).
-    expect(CREDIT_MARKETS.US.packages).toEqual([]);
-    expect(packageById("p5", "US")).toBeUndefined();
+    // Mercado dos EUA: dólar pelo Stripe, preços fixos aprovados (nada de conversão do real).
+    expect(CREDIT_MARKETS.US).toMatchObject({ currency: "USD", provider: "stripe" });
+    expect(CREDIT_MARKETS.US.packages.map((p) => [p.credits, formatMoney(p.priceCents, "USD", "en")])).toEqual([[1, "$0.99"], [5, "$3.99"], [10, "$6.99"]]);
+    expect(packageById("p5", "US")?.priceCents).toBe(399);
+    expect(packageById("p5", "BR")?.priceCents).toBe(400);
+    expect(packageById("p99", "US")).toBeUndefined();
+  });
+  it("traduz a sessão do Stripe (pago, vencido, estornado, contestado)", () => {
+    expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: { latest_charge: { amount_refunded: 0 } } })).toBe("approved");
+    expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: "pi_123" })).toBe("approved");
+    expect(mapStripeSession({ status: "open", payment_status: "unpaid" })).toBe("pending");
+    expect(mapStripeSession({ status: "expired", payment_status: "unpaid" })).toBe("expired");
+    expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: { latest_charge: { amount_refunded: 399, refunded: true } } })).toBe("refunded");
+    expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: { latest_charge: { amount_refunded: 0, disputed: true } } })).toBe("refunded");
+  });
+  it("valida a assinatura do aviso do Stripe e recusa a falsa ou velha", () => {
+    const secret = "whsec_teste", body = '{"id":"evt_1"}', now = 1_800_000_000, t = String(now - 10);
+    const v1 = createHmac("sha256", secret).update(`${t}.${body}`).digest("hex");
+    expect(validStripeSignature(secret, `t=${t},v1=${v1}`, body, now)).toBe(true);
+    expect(validStripeSignature(secret, `t=${t},v1=${"0".repeat(64)},v1=${v1}`, body, now)).toBe(true); // várias assinaturas: vale uma
+    expect(validStripeSignature(secret, `t=${t},v1=${v1}`, body + " ", now)).toBe(false); // corpo alterado
+    expect(validStripeSignature(secret, `t=${t},v1=${v1}`, body, now + 600)).toBe(false); // aviso de mais de 5 min
+    expect(validStripeSignature("whsec_outro", `t=${t},v1=${v1}`, body, now)).toBe(false);
+    expect(validStripeSignature(secret, null, body, now)).toBe(false);
   });
   it("traduz o status do Mercado Pago", () => {
     expect(mapMpStatus("approved")).toBe("approved");

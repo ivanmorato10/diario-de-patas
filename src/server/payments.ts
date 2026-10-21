@@ -1,20 +1,22 @@
 /**
- * Compra de créditos com Pix (Mercado Pago). Regras:
+ * Compra de créditos: Pix (Mercado Pago, região Brasil) e cartão em dólar (Stripe Checkout, região EUA). Regras:
  * - O preço e os créditos vêm SEMPRE do servidor (src/config/credits.ts), nunca do navegador.
- * - O status vem SEMPRE da API do Mercado Pago (webhook só avisa; a consulta confirma).
+ * - O status vem SEMPRE da API do provedor (webhook só avisa; a consulta confirma valor, moeda e referência).
  * - Créditos são concedidos uma única vez por compra (grant_purchase_credits é idempotente).
- * - Desligado sem PAYMENTS_ENABLED=true. PAYMENTS_FAKE=1 (só local, nunca na Vercel) simula o Pix para testes.
+ * - Pix desligado sem PAYMENTS_ENABLED=true; Stripe desligado sem STRIPE_ENABLED=true (loja dos EUA "em breve").
+ *   PAYMENTS_FAKE=1 (só local, nunca na Vercel) simula o pagamento para testes.
  */
 import { currentDog, requireEditor } from "./family";
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { CREDIT_MARKETS, PIX_EXPIRES_MINUTES, marketForRegion, packageById } from "@/config/credits";
+import { headers } from "next/headers";
+import { CHECKOUT_EXPIRES_MINUTES, CREDIT_MARKETS, PIX_EXPIRES_MINUTES, marketForRegion, packageById } from "@/config/credits";
 import { formatInstant, formatMoney } from "@/i18n/format";
 import { adminClient, HttpError } from "./supabase";
 import { sendPurchaseConfirmed } from "./mailer";
-import { localeOf, regionOf, translator } from "./i18n";
+import { localeOf, regionOf, requestLocale, translator } from "./i18n";
 
 type Ctx = { supa: SupabaseClient; user: User };
 type Status = "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
@@ -26,6 +28,10 @@ const now = () => new Date().toISOString();
 
 export const paymentsFake = () => process.env.PAYMENTS_FAKE === "1" && !process.env.VERCEL;
 export const paymentsEnabled = () => process.env.PAYMENTS_ENABLED === "true" && (!!process.env.MP_ACCESS_TOKEN || paymentsFake());
+export const stripeEnabled = () => process.env.STRIPE_ENABLED === "true" && (!!process.env.STRIPE_SECRET_KEY || paymentsFake());
+const stripeTest = () => (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_test_");
+/** O provedor do mercado está ligado? (Mercado sem provedor = loja "em breve".) */
+const providerEnabled = (provider: string | null) => (provider === "mercadopago" ? paymentsEnabled() : provider === "stripe" ? stripeEnabled() : false);
 
 interface PixCharge { providerPaymentId: string; status: Status; qr: string | null; qrBase64: string | null; expiresAt: string }
 
@@ -71,6 +77,102 @@ async function mp(path: string, init: RequestInit & { idempotencyKey?: string } 
     throw new MpError(res.status >= 400 && res.status < 500);
   }
   return json as any;
+}
+
+// ---------- Stripe (região EUA) ----------
+
+/** Falha do Stripe, com a mesma regra do Mercado Pago: `certain` = ele respondeu recusando (não houve cobrança). */
+class StripeError extends HttpError {
+  constructor(readonly certain: boolean) {
+    super(502, "PAYMENT_PROVIDER", certain ? "errors.checkoutRefused" : "errors.checkoutUncertain");
+  }
+}
+
+/** API REST do Stripe (formulário na ida, JSON na volta). A chave secreta só existe no servidor. */
+async function stripe(path: string, init: { method?: "GET" | "POST"; form?: Record<string, string>; idempotencyKey?: string } = {}) {
+  let res: Response;
+  try {
+    res = await fetch(`https://api.stripe.com/v1/${path}`, {
+      method: init.method ?? "GET",
+      headers: {
+        authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+        ...(init.form ? { "content-type": "application/x-www-form-urlencoded" } : {}),
+        ...(init.idempotencyKey ? { "idempotency-key": init.idempotencyKey } : {}),
+      },
+      body: init.form ? new URLSearchParams(init.form).toString() : undefined,
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch {
+    throw new StripeError(false);
+  }
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    console.error("stripe", res.status, json?.error?.type, json?.error?.code, String(json?.error?.message ?? "").slice(0, 200));
+    throw new StripeError(res.status >= 400 && res.status < 500 && res.status !== 409 && res.status !== 429);
+  }
+  return json as any;
+}
+
+/** Endereço do app para a volta do pagamento (o mesmo de onde a pessoa saiu). */
+async function siteUrl() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return process.env.NEXT_PUBLIC_SITE_URL || "https://diario-de-patas.vercel.app";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+interface CheckoutCharge { providerPaymentId: string; url: string; expiresAt: string }
+
+/** Cria a página de pagamento do Stripe para a compra (repetir com o mesmo id devolve a mesma página). */
+async function createCheckout(row: any, description: string, email: string): Promise<CheckoutCharge> {
+  const expiresAt = new Date(Date.now() + CHECKOUT_EXPIRES_MINUTES * 60_000);
+  const site = await siteUrl();
+  const back = `${site}/estudio/creditos?compra=${row.id}`;
+  const locale = await requestLocale();
+  const session = await stripe("checkout/sessions", {
+    method: "POST",
+    idempotencyKey: `checkout-${row.id}`,
+    form: {
+      mode: "payment",
+      "line_items[0][quantity]": "1",
+      "line_items[0][price_data][currency]": String(row.currency).toLowerCase(),
+      "line_items[0][price_data][unit_amount]": String(row.amount_cents),
+      "line_items[0][price_data][product_data][name]": description,
+      client_reference_id: row.id,
+      "metadata[purchase_id]": row.id,
+      "payment_intent_data[metadata][purchase_id]": row.id,
+      "payment_intent_data[description]": description,
+      ...(email ? { customer_email: email } : {}),
+      locale: locale === "en" ? "en" : "pt-BR",
+      expires_at: String(Math.floor(expiresAt.getTime() / 1000)),
+      success_url: `${back}&pagamento=ok`,
+      cancel_url: `${back}&pagamento=cancelado`,
+    },
+  });
+  return { providerPaymentId: String(session.id), url: String(session.url), expiresAt: expiresAt.toISOString() };
+}
+
+/** Sessão do Stripe → nosso status. Pago e depois estornado ou contestado = estornado. */
+export function mapStripeSession(s: { status?: string; payment_status?: string; payment_intent?: any }): Status {
+  if (s.payment_status === "paid") {
+    const charge = s.payment_intent && typeof s.payment_intent === "object" ? s.payment_intent.latest_charge : null;
+    if (charge && typeof charge === "object" && (charge.amount_refunded > 0 || charge.refunded || charge.disputed)) return "refunded";
+    return "approved";
+  }
+  if (s.status === "expired") return "expired";
+  return "pending";
+}
+
+/** Assinatura do Stripe: cabeçalho "t=…,v1=…" sobre "<t>.<corpo>", HMAC-SHA256; recusa avisos com mais de 5 min. */
+export function validStripeSignature(secret: string, header: string | null, body: string, nowSec = Math.floor(Date.now() / 1000)) {
+  if (!header) return false;
+  const items = header.split(",").map((kv) => kv.trim().split("=", 2) as [string, string]);
+  const t = items.find(([k]) => k === "t")?.[1];
+  const sigs = items.filter(([k]) => k === "v1").map(([, v]) => v);
+  if (!t || !sigs.length || !/^\d+$/.test(t) || Math.abs(nowSec - Number(t)) > 300) return false;
+  const expected = Buffer.from(createHmac("sha256", secret).update(`${t}.${body}`).digest("hex"));
+  return sigs.some((v) => { const b = Buffer.from(v); return b.length === expected.length && timingSafeEqual(b, expected); });
 }
 
 async function createPix(purchaseId: string, amountCents: number, description: string, email: string): Promise<PixCharge> {
@@ -138,6 +240,22 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
     status = mapMpStatus(json.status);
     // Pix ainda pendente e passado do prazo (confirmado pelo provedor): vencido.
     if (status === "pending" && p.expires_at && Date.parse(p.expires_at) < Date.now() - 60_000) status = "expired";
+  } else if (p.provider === "stripe" && p.provider_payment_id && ["pending", "expired", "approved"].includes(p.status)) {
+    let s: any;
+    try {
+      s = await stripe(`checkout/sessions/${encodeURIComponent(p.provider_payment_id)}?expand[]=payment_intent.latest_charge`);
+    } catch {
+      return p.status; // incerto: tenta de novo depois
+    }
+    if (String(s.client_reference_id) !== p.id) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
+    if (Number(s.amount_total) !== p.amount_cents || String(s.currency).toUpperCase() !== (p.currency || "BRL")) {
+      console.error("pagamento com valor/moeda diferente", p.id, s.amount_total, s.currency);
+      throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
+    }
+    status = mapStripeSession(s);
+  } else if (p.provider === "stripe" && !p.provider_payment_id && p.status === "pending") {
+    // A página de pagamento não chegou a ser entregue (resposta perdida): sem página, não há como pagar.
+    if (Date.parse(p.created_at) < Date.now() - (CHECKOUT_EXPIRES_MINUTES + 10) * 60_000) status = "expired";
   } else if (p.status === "pending" && p.expires_at && Date.parse(p.expires_at) < Date.now() - 60_000) {
     status = "expired"; // Pix de teste (sem provedor real)
   }
@@ -227,10 +345,11 @@ async function deliverApproved() {
 
 export async function reconcileRecentPurchases() {
   const delivered = await deliverApproved().catch((e) => ({ error: e instanceof Error ? e.message : "erro" }));
-  if (!process.env.MP_ACCESS_TOKEN) return { checked: 0, delivered };
+  const providers = [process.env.MP_ACCESS_TOKEN ? "mercadopago" : null, process.env.STRIPE_SECRET_KEY ? "stripe" : null].filter(Boolean) as string[];
+  if (!providers.length) return { checked: 0, delivered };
   const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
   const admin = adminClient();
-  const recent = ((await admin.from("credit_purchases").select("id, status").eq("provider", "mercadopago").in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
+  const recent = ((await admin.from("credit_purchases").select("id, status").in("provider", providers).in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
   // Estornos ainda não aplicados (de qualquer data: chargeback pode chegar semanas depois).
   const refunds = ((await admin.from("credit_purchases").select("id, status").eq("status", "refunded").is("refund_applied_at", null).limit(200)).data ?? []) as any[];
   const rows = [...recent, ...refunds];
@@ -246,7 +365,8 @@ export async function reconcileRecentPurchases() {
 const toPurchase = (p: any) => ({
   id: p.id as string, packageId: p.package_id as string, credits: p.credits as number, amountCents: p.amount_cents as number, currency: (p.currency as string) || "BRL",
   status: p.status as Status, pixQr: p.pix_qr as string | null, pixQrBase64: p.pix_qr_base64 as string | null,
-  expiresAt: p.expires_at as string | null, createdAt: p.created_at as string, test: p.provider === "teste",
+  expiresAt: p.expires_at as string | null, createdAt: p.created_at as string, test: p.provider === "teste" || (p.provider === "stripe" && stripeTest()),
+  provider: p.provider as string, checkoutUrl: p.status === "pending" ? ((p.checkout_url as string | null) ?? null) : null,
 });
 
 // ---------- RPC ----------
@@ -256,7 +376,8 @@ export async function creditShop(ctx: Ctx) {
   const recent = (await ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10)).data ?? [];
   const code = await marketOf(ctx);
   const market = CREDIT_MARKETS[code];
-  return { enabled: paymentsEnabled() && market.packages.length > 0, test: paymentsFake() || (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"), market: code, currency: market.currency, packages: market.packages, purchases: recent.map(toPurchase) };
+  const test = paymentsFake() || (market.provider === "stripe" ? stripeTest() : (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"));
+  return { enabled: providerEnabled(market.provider) && market.packages.length > 0, test, market: code, currency: market.currency, provider: market.provider, packages: market.packages, purchases: recent.map(toPurchase) };
 }
 
 /** Mercado da compra pela região do app de quem compra (perfil; sem escolha, a sugestão do idioma). */
@@ -270,12 +391,12 @@ const Create = z.object({ packageId: z.string(), idempotencyKey: z.string().uuid
 export async function createPurchase(ctx: Ctx, args: unknown) {
   const a = Create.safeParse(args);
   if (!a.success) throw bad("INVALID", "errors.invalidRequest");
-  if (!paymentsEnabled()) throw bad("PAYMENTS_OFF", "errors.paymentsOff");
   // Valor e moeda vêm do mercado no servidor; o navegador só escolhe o id do pacote.
   const code = await marketOf(ctx);
   const market = CREDIT_MARKETS[code];
+  if (!providerEnabled(market.provider)) throw bad("PAYMENTS_OFF", "errors.paymentsOff");
   const pkg = packageById(a.data.packageId, code);
-  if (!pkg || market.provider !== "mercadopago") throw bad("INVALID", "errors.packageNotFound");
+  if (!pkg || !market.provider) throw bad("INVALID", "errors.packageNotFound");
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);
   const admin = adminClient();
@@ -284,15 +405,34 @@ export async function createPurchase(ctx: Ctx, args: unknown) {
     // Duplo toque ou nova tentativa: o mesmo Pix. Se a cobrança ficou incerta, tenta anexar de novo
     // (o Mercado Pago devolve a MESMA cobrança para a mesma chave de idempotência).
     if (prior.status === "pending" && !prior.provider_payment_id && prior.provider === "mercadopago") return attachPix(prior, dog.name, ctx.user.email ?? "");
+    if (prior.status === "pending" && !prior.provider_payment_id && prior.provider === "stripe") return attachCheckout(prior, dog.name, ctx.user.email ?? "");
     return toPurchase(prior);
   }
   const pending = (await admin.from("credit_purchases").select("id").eq("owner_id", ctx.user.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 3600_000).toISOString())).data ?? [];
   if (pending.length >= 5) throw bad("TOO_MANY", "errors.tooManyPix");
   const row = (await admin.from("credit_purchases").insert({
     owner_id: ctx.user.id, dog_id: dog.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: market.currency,
-    provider: paymentsFake() ? "teste" : "mercadopago", idempotency_key: `${ctx.user.id}:${a.data.idempotencyKey}`,
+    provider: paymentsFake() ? "teste" : market.provider, idempotency_key: `${ctx.user.id}:${a.data.idempotencyKey}`,
   }).select("*").single()).data as any;
-  return attachPix(row, dog.name, ctx.user.email ?? "");
+  return row.provider === "stripe" ? attachCheckout(row, dog.name, ctx.user.email ?? "") : attachPix(row, dog.name, ctx.user.email ?? "");
+}
+
+/**
+ * Cria (ou recupera) a página de pagamento do Stripe da compra. Mesma regra do Pix: só uma recusa CLARA do
+ * Stripe cancela; resultado incerto deixa pendente para nova tentativa (a mesma página, pela chave de idempotência).
+ */
+async function attachCheckout(row: any, dogName: string, email: string) {
+  const admin = adminClient();
+  try {
+    const c = await createCheckout(row, `Diário de Patas — ${row.credits} credit${row.credits === 1 ? "" : "s"} (${dogName})`, email);
+    const upd = (await admin.from("credit_purchases").update({
+      provider_payment_id: c.providerPaymentId, checkout_url: c.url, expires_at: c.expiresAt, updated_at: now(),
+    }).eq("id", row.id).select("*").single()).data;
+    return toPurchase(upd);
+  } catch (e) {
+    if (e instanceof StripeError && e.certain) await admin.from("credit_purchases").update({ status: "cancelled", updated_at: now() }).eq("id", row.id).eq("status", "pending");
+    throw e;
+  }
 }
 
 /**
@@ -359,6 +499,30 @@ export async function handleMpWebhook(req: Request) {
   const admin = adminClient();
   const p = (await admin.from("credit_purchases").select("id, provider_payment_id").eq("id", ref).maybeSingle()).data as any;
   if (!p || p.provider_payment_id !== String(json.id)) return 200;
+  await syncPurchase(p.id);
+  return 200;
+}
+
+/**
+ * Avisos do Stripe (pagamento concluído, página vencida, estorno, contestação). Só aceita aviso assinado;
+ * o aviso só diz "olhe a compra X": quem decide é a consulta à API (syncPurchase).
+ */
+export async function handleStripeWebhook(req: Request) {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret || !process.env.STRIPE_SECRET_KEY) return 400;
+  const body = await req.text();
+  if (!validStripeSignature(secret, req.headers.get("stripe-signature"), body)) return 400;
+  const event = JSON.parse(body) as { type?: string; data?: { object?: any } };
+  const obj = event.data?.object ?? {};
+  let sessionId: string | null = null;
+  if (obj.object === "checkout.session") sessionId = String(obj.id);
+  else if ((obj.object === "charge" || obj.object === "dispute") && typeof obj.payment_intent === "string") {
+    const list = await stripe(`checkout/sessions?payment_intent=${encodeURIComponent(obj.payment_intent)}&limit=1`);
+    sessionId = list?.data?.[0]?.id ?? null;
+  }
+  if (!sessionId) return 200;
+  const p = (await adminClient().from("credit_purchases").select("id").eq("provider", "stripe").eq("provider_payment_id", sessionId).maybeSingle()).data as any;
+  if (!p) return 200;
   await syncPurchase(p.id);
   return 200;
 }

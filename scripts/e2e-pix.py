@@ -56,14 +56,15 @@ def check(name, cond):
 email = f"e2e-pix-{uuid.uuid4().hex[:6]}@diariodepatas.test"; u = adm("POST", "users", {"email": email, "email_confirm": True})
 try:
     with sync_playwright() as p:
-        b = p.chromium.launch(channel=os.environ.get("E2E_CHANNEL") or None); pg = b.new_page()
+        b = p.chromium.launch(channel=os.environ.get("E2E_CHANNEL") or None); pg = b.new_context(locale="pt-BR").new_page()
         rpc = lambda m, a: pg.evaluate("async ([m, a]) => { const r = await fetch('/api/rpc/' + m, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(a)}); return [r.status, await r.json().catch(() => null)]; }", [m, a])
-        pg.goto(BASE + "/entrar?modo=entrar"); pg.get_by_role("button", name="Entrar com email").click()
+        pg.goto(BASE + "/entrar"); pg.get_by_role("button", name="Já tenho conta").click(); pg.get_by_role("button", name="Entrar com email").click()
         pg.get_by_role("button", name="Prefiro receber um código no email").click(); pg.get_by_label("Seu email").fill(email)
         pg.route("**/auth/v1/otp*", lambda r: r.fulfill(status=200, content_type="application/json", body="{}"))
         pg.get_by_role("button", name="Receber código de entrada").click()
         pg.get_by_label("Código").fill(adm("POST", "generate_link", {"type": "magiclink", "email": email})["email_otp"]); pg.get_by_role("button", name="Entrar com o código").click()
         pg.wait_for_url("**/adicionar", timeout=30000)
+        rpc("setPreferences", {"region": "BR"})  # Pix é o mercado da região Brasil
         rpc("createDiary", {"timezone": "America/Sao_Paulo", "name": "Pepe", "birthDate": None, "preferences": {"home": True, "outdoor": True, "people": True, "socialDogs": False}})
         bal = lambda: rpc("studioState", {})[1]["balance"]
         start = bal()

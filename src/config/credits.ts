@@ -10,10 +10,11 @@ export interface CreditPackage {
 /**
  * Preços FIXOS por mercado (nunca conversão de moeda). O mercado da cobrança é decidido no servidor pela região do
  * app (não pelo idioma): em inglês, quem está na região Brasil continua vendo reais (com "BRL" explícito).
- * Estados Unidos: sem checkout em dólar por enquanto — sem pacotes, sem venda (proposta em docs/PAGAMENTOS-EUA.md).
+ * Estados Unidos: dólar pelo Stripe Checkout (cartão, Apple Pay, Google Pay), preços aprovados pelo proprietário em
+ * 20/10/2026 (docs/PAGAMENTOS-EUA.md).
  */
 export type Market = "BR" | "US";
-export interface CreditMarket { currency: "BRL" | "USD"; provider: "mercadopago" | null; packages: CreditPackage[] }
+export interface CreditMarket { currency: "BRL" | "USD"; provider: "mercadopago" | "stripe" | null; packages: CreditPackage[] }
 export const CREDIT_MARKETS: Record<Market, CreditMarket> = {
   BR: {
     currency: "BRL", provider: "mercadopago",
@@ -23,11 +24,18 @@ export const CREDIT_MARKETS: Record<Market, CreditMarket> = {
       { id: "p10", credits: 10, priceCents: 700, badge: "best" },
     ],
   },
-  US: { currency: "USD", provider: null, packages: [] },
+  US: {
+    currency: "USD", provider: "stripe",
+    packages: [
+      { id: "p1", credits: 1, priceCents: 99 },
+      { id: "p5", credits: 5, priceCents: 399 },
+      { id: "p10", credits: 10, priceCents: 699, badge: "best" },
+    ],
+  },
 };
 /**
- * O mercado da compra segue a REGIÃO DO APP da pessoa (Brasil → reais por Pix; EUA → dólar), nunca o idioma.
- * EUA ainda sem checkout: a loja aparece como "em breve" para quem está nessa região.
+ * O mercado da compra segue a REGIÃO DO APP da pessoa (Brasil → reais por Pix; EUA → dólar por cartão), nunca o idioma.
+ * Com o Stripe desligado (STRIPE_ENABLED), a loja da região EUA aparece como "em breve".
  */
 export const marketForRegion = (region: "BR" | "US"): Market => region;
 
@@ -38,6 +46,8 @@ export const packageById = (id: string, market: Market = "BR") => CREDIT_MARKETS
 
 /** Validade do Pix gerado (minutos). */
 export const PIX_EXPIRES_MINUTES = 30;
+/** Validade da página de pagamento do Stripe (minutos; o Stripe exige no mínimo 30). */
+export const CHECKOUT_EXPIRES_MINUTES = 31;
 
 /** Arte do mês: ao somar XP_MONTH_GOAL de XP no mês (fuso XP_TIMEZONE), 1 crédito — no máximo 1 por mês. */
 export const XP_MONTH_GOAL = 200;

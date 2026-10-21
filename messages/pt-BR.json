@@ -1178,7 +1178,17 @@
       "cancelled": "Cancelado",
       "refunded": "Estornado"
     },
-    "soonUsd": "<strong>Em breve:</strong> compra de créditos em dólar para a região EUA. Para pagar em reais por Pix, mude a região do app para Brasil em Minha conta."
+    "soonUsd": "<strong>Em breve:</strong> compra de créditos em dólar para a região EUA. Para pagar em reais por Pix, mude a região do app para Brasil em Minha conta.",
+    "payCard": "Pagar com cartão · {price}",
+    "opening": "Abrindo o pagamento…",
+    "oneTimeCard": "Pagamento único e seguro pelo Stripe: cartão, Apple Pay ou Google Pay. Sem assinatura, sem cobrança automática.",
+    "checkoutTitle": "Pagamento em andamento",
+    "checkoutText": "A página de pagamento continua aberta por alguns minutos.",
+    "checkoutContinue": "Continuar pagamento",
+    "checkoutConfirming": "Confirmando o pagamento…",
+    "checkoutSlow": "Ainda não recebemos a confirmação. Se você pagou, os créditos chegam em instantes; pode fechar esta tela.",
+    "checkoutNotCharged": "Nenhum valor foi cobrado. Escolha um pacote para tentar de novo.",
+    "chooseAnother": "Escolher outro pacote"
   },
   "diary": {
     "title": "Diário",
@@ -1506,7 +1516,9 @@
     "createDiaryFailed": "Não conseguimos criar o diário. Tente novamente.",
     "docTooLarge": "O arquivo passa de {mb} MB. Escolha uma versão menor.",
     "pixRefused": "O Mercado Pago recusou o Pix. Tente de novo em instantes.",
-    "pixUncertain": "Não conseguimos confirmar o Pix agora. Tente de novo em instantes."
+    "pixUncertain": "Não conseguimos confirmar o Pix agora. Tente de novo em instantes.",
+    "checkoutRefused": "O pagamento por cartão foi recusado ao abrir. Tente de novo em instantes.",
+    "checkoutUncertain": "Não conseguimos abrir o pagamento agora. Tente de novo em instantes."
   },
   "family": {
     "roles": {

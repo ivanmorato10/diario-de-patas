@@ -78,14 +78,16 @@ export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y:
 /** Motivos de falha conhecidos (texto em studio.failures.<código>); outro código vira TECHNICAL. */
 export const FAILURE_CODES = ["PROVIDER_REFUSED", "QUALITY_REJECTED", "PROVIDER_TIMEOUT", "PROVIDER_UNAVAILABLE", "NO_CREDITS", "INPUT_DELETED", "NOT_CONFIGURED", "NO_SPACE", "TECHNICAL"] as const;
 
-// ---------- Compra de créditos (Pix) ----------
+// ---------- Compra de créditos (Pix no Brasil, cartão pelo Stripe nos EUA) ----------
 export interface CreditPurchase {
   id: string; packageId: string; credits: number; amountCents: number; currency: string;
   status: "pending" | "approved" | "rejected" | "expired" | "cancelled" | "refunded";
   pixQr: string | null; pixQrBase64: string | null; expiresAt: string | null; createdAt: string; test: boolean;
+  /** "stripe": pagamento na página do Stripe (checkoutUrl, enquanto pendente). */
+  provider?: string; checkoutUrl?: string | null;
 }
-/** `currency`: moeda REAL da cobrança (hoje BRL), mostrada como está, sem conversão. */
-export interface CreditShop { enabled: boolean; test: boolean; market: "BR" | "US"; currency: string; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[] }
+/** `currency`: moeda REAL da cobrança (BRL no Brasil, USD nos EUA), mostrada como está, sem conversão. */
+export interface CreditShop { enabled: boolean; test: boolean; market: "BR" | "US"; currency: string; provider?: "mercadopago" | "stripe" | null; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[] }
 export const creditShop = () => rpc<CreditShop>("creditShop");
 export const createPurchase = (packageId: string, idempotencyKey: string) => rpc<CreditPurchase>("createPurchase", { packageId, idempotencyKey });
 export const purchaseStatus = (id: string) => rpc<CreditPurchase>("purchaseStatus", { id });

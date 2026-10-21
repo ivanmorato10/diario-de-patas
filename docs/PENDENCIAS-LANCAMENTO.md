@@ -6,7 +6,7 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - **Encarregado (DPO)** ou canal equivalente para pedidos de titulares.
 - **Dados tratados**: email e nome da pessoa; fotos, cartinhas, cuidados e documentos do cachorro; dados de pagamento (no Mercado Pago); avisos (inscrição de push).
 - **Finalidades e bases legais** (execução do serviço, consentimento para avisos e indicações).
-- **Operadores/terceiros**: Supabase (banco e arquivos, região ca-central-1), Vercel (hospedagem), Google Gemini (API paga, Estúdio), Mercado Pago (Pix), Gmail SMTP (emails), serviços de push da Apple/Google, Amazon e Mercado Livre (links de afiliado em Achadinhos).
+- **Operadores/terceiros**: Supabase (banco e arquivos, região ca-central-1), Vercel (hospedagem), Google Gemini (API paga, Estúdio), Mercado Pago (Pix), Stripe (cartão em dólar), Gmail SMTP (emails), serviços de push da Apple/Google, Amazon e Mercado Livre (links de afiliado em Achadinhos).
 - **Transferência internacional** (servidores fora do Brasil).
 - **Retenção**: o que fica depois de excluir conta/diário (fila de limpeza dos arquivos; registros de abuso do Google por tempo limitado; dados fiscais de pagamento).
 - **Direitos do titular** e como exercer (acesso, correção, exclusão, portabilidade).
@@ -33,4 +33,5 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - Aprovar os textos em inglês do Abu (apresentação `intro.steps` e carta "Our story" `about.story`).
 - Conferir um email de login em inglês de verdade (assunto com a condição de idioma; ver docs/IDIOMAS.md).
 - Termos de uso, política de privacidade e reembolso também em inglês.
-- Pagamento em dólar: decidir provedor e preços (docs/PAGAMENTOS-EUA.md).
+- Pagamento em dólar (Stripe): pronto e testado em modo de teste; falta colocar as chaves na Vercel, criar o webhook,
+  ativar a conta e publicar termos/reembolso em inglês (passo a passo em docs/PAGAMENTOS-EUA.md).
