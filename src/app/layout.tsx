@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { StoreProvider } from "@/data/store";
 import { ServiceWorker } from "@/components/service-worker";
+import { NativeBridge } from "@/components/native-bridge";
 import { OfflineBanner } from "@/components/install-app";
 import { LocaleSync } from "@/components/locale-sync";
 import "./globals.css";
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </StoreProvider>
           <OfflineBanner />
           <ServiceWorker />
+          <NativeBridge />
         </NextIntlClientProvider>
       </body>
     </html>

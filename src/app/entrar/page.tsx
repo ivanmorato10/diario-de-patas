@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { CONFIG_OK, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
 import { browserClient } from "@/data/supabase-browser";
+import { isNativeApp, NATIVE_AUTH_CALLBACK, openNativeAuth } from "@/lib/native";
 import { AbuMascot, PawDiaryNote } from "@/components/brand";
 import { LanguageSwitch } from "@/components/language-switch";
 import { useErrorText } from "@/i18n/use-error";
@@ -137,7 +138,17 @@ function Entrar() {
     setError(null);
     if (enabled && !enabled[p]) return setError(`auth.errors.providerOff?provider=${PROVIDER_NAME[p]}`);
     setBusy(p);
-    const { error: err } = await browserClient().auth.signInWithOAuth({ provider: p, options: { redirectTo: redirectTo() } });
+    // App do iPhone: o Google não deixa entrar dentro do app; abre no navegador do sistema e volta pelo app.
+    const native = isNativeApp();
+    if (native) redirectTo(); // guarda o destino (cookie) antes de sair
+    const { data, error: err } = await browserClient().auth.signInWithOAuth({
+      provider: p, options: native ? { redirectTo: NATIVE_AUTH_CALLBACK, skipBrowserRedirect: true } : { redirectTo: redirectTo() },
+    });
+    if (!err && native && data?.url) {
+      await openNativeAuth(data.url).catch(() => setError(ERRORS.oauth));
+      setBusy(null);
+      return;
+    }
     if (err) {
       setBusy(null);
       setError(ERRORS.oauth);

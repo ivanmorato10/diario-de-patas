@@ -10,6 +10,9 @@ import { createPurchase, creditShop, fakePayPurchase, purchaseStatus, studioStat
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { IconInfo, Paw } from "@/components/icons";
 import { PawBurst } from "@/components/celebrate";
+import { isNativeApp } from "@/lib/native";
+import { appleProducts, buyWithApple, type AppleProduct, type AppleStore } from "@/lib/apple-iap";
+import { rpc } from "@/data/real-repository";
 
 
 function Countdown({ until }: { until: string | null }) {
@@ -154,6 +157,73 @@ function CheckoutPanel({ purchase, returning, onPaid, onRestart }: { purchase: C
   );
 }
 
+/**
+ * App do iPhone: créditos pela compra da própria Apple (regra da App Store), com o preço que a Apple mostra no país
+ * da pessoa. Pix e cartão não aparecem aqui dentro.
+ */
+function AppleShop({ onPaid }: { onPaid: (p: CreditPurchase) => void }) {
+  const [store, setStore] = useState<AppleStore | null>(null);
+  const [products, setProducts] = useState<AppleProduct[] | null>(null);
+  const [pick, setPick] = useState("p5");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("credits");
+  const errText = useErrorText();
+  useEffect(() => {
+    void (async () => {
+      try {
+        const s = await rpc<AppleStore>("appleStore");
+        setStore(s);
+        setProducts(s.enabled ? await appleProducts(s) : []);
+      } catch (e) {
+        setError(errText(e instanceof DomainError ? e : null, "credits.loadFailed"));
+        setProducts([]);
+      }
+    })();
+  }, [errText]);
+
+  async function buy() {
+    const p = products?.find((x) => x.packageId === pick);
+    if (!store || !p || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const done = await buyWithApple(store, p.productId);
+      if (done?.status === "approved") onPaid(done);
+    } catch (e) {
+      setError(errText(e instanceof DomainError ? e : null, "errors.appleUncertain"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (products === null) return <PageLoading />;
+  if (!products.length) return error ? <p className="field-error" role="alert">{error}</p> : <div className="notice notice--info"><IconInfo /><span>{t("appleSoon")}</span></div>;
+  const chosen = products.find((x) => x.packageId === pick);
+  return (
+    <section className="stack">
+      <div className="shop-packs" role="radiogroup" aria-label={t("packsLabel")}>
+        {products.map((p) => {
+          const credits = Number(p.packageId.slice(1));
+          return (
+            <button key={p.packageId} type="button" role="radio" aria-checked={pick === p.packageId} aria-label={t("packLabel", { count: credits, price: p.priceString })} className={`shop-pack${pick === p.packageId ? " is-selected" : ""}`} onClick={() => setPick(p.packageId)}>
+              {p.packageId === "p10" ? <span className="shop-pack__badge">{t("badges.best")}</span> : null}
+              <span className="shop-pack__credits">{credits}</span>
+              <span className="shop-pack__unit">{t("unit", { count: credits })}</span>
+              <span className="shop-pack__price">{p.priceString}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error ? <p className="field-error" role="alert">{error}</p> : null}
+      <button type="button" className="btn btn--primary btn--block" onClick={buy} disabled={busy || !chosen}>
+        {busy ? t("opening") : chosen ? t("payApple", { price: chosen.priceString }) : t("pickPack")}
+      </button>
+      <p className="caption" style={{ textAlign: "center" }}>{t("oneTimeApple")}</p>
+    </section>
+  );
+}
+
 export default function Creditos() {
   const { ready, snap, unavailable } = useRequireDiary();
   const [shop, setShop] = useState<CreditShop | null>(null);
@@ -170,6 +240,8 @@ export default function Creditos() {
   const f = useFormat();
   const errText = useErrorText();
   const money = (cents: number) => f.money(cents, shop?.currency ?? "BRL");
+  const [native, setNative] = useState(false);
+  useEffect(() => setNative(isNativeApp()), []);
 
   const load = useCallback(async () => {
     try {
@@ -243,6 +315,8 @@ export default function Creditos() {
             <Link href="/estudio" className="btn btn--primary btn--block">{t("createArt")}</Link>
             <button type="button" className="btn btn--ghost" onClick={() => setPaid(null)}>{t("buyMore")}</button>
           </section>
+        ) : native ? (
+          <AppleShop onPaid={onPaid} />
         ) : current && current.provider === "stripe" ? (
           <CheckoutPanel purchase={current} returning={returning?.id === current.id ? returning.result : null} onPaid={onPaid}
             onRestart={() => { setCurrent(null); setReturning(null); idem.current = crypto.randomUUID(); }} />

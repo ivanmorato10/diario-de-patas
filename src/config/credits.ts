@@ -44,6 +44,21 @@ export const CREDIT_PACKAGES: CreditPackage[] = CREDIT_MARKETS.BR.packages;
 /** Pacote válido NO mercado da cobrança (o servidor nunca aceita preço ou moeda vindos do navegador). */
 export const packageById = (id: string, market: Market = "BR") => CREDIT_MARKETS[market].packages.find((p) => p.id === id);
 
+/**
+ * App da App Store (iPhone): os créditos são comprados pela própria Apple (compra dentro do app), com os mesmos
+ * pacotes. O preço de cada país é o da faixa escolhida no App Store Connect (a Apple mostra e cobra), não o daqui.
+ */
+export const APPLE_PRODUCTS: Record<string, string> = {
+  p1: "diariodepatas.credits.1",
+  p5: "diariodepatas.credits.5",
+  p10: "diariodepatas.credits.10",
+};
+/** Pacote de um produto da Apple (o servidor só aceita estes). */
+export const packageForAppleProduct = (productId: string) => {
+  const id = Object.keys(APPLE_PRODUCTS).find((k) => APPLE_PRODUCTS[k] === productId);
+  return id ? CREDIT_MARKETS.US.packages.find((p) => p.id === id) : undefined;
+};
+
 /** Validade do Pix gerado (minutos). */
 export const PIX_EXPIRES_MINUTES = 30;
 /** Validade da página de pagamento do Stripe (minutos; o Stripe exige no mínimo 30). */

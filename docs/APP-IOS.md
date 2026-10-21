@@ -1,0 +1,76 @@
+# App do iPhone (App Store) — Capacitor + Codemagic
+
+Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à Apple. Falta a parte de contas
+(App Store Connect e Codemagic), que só o proprietário pode fazer — passo a passo abaixo.
+
+## Como funciona
+- O app do iPhone é o mesmo app publicado na Vercel, aberto dentro do **Capacitor** (`capacitor.config.ts`,
+  projeto em `ios/`). As telas vêm do site: toda publicação na Vercel já vale no iPhone, sem novo envio à Apple.
+  Novo envio só quando mudar algo nativo (ícone, permissões, plugins).
+- Diferenças dentro do app (`src/lib/native.ts`):
+  - **Créditos pela compra da Apple** (exigência da App Store): pacotes 1, 5 e 10 créditos como produtos
+    "consumíveis"; preço de cada país é o da faixa escolhida no App Store Connect. Pix e cartão não aparecem.
+  - **Login com Google/Apple** abre no navegador do sistema (o Google bloqueia login dentro de apps) e volta por
+    `diariodepatas://auth/callback` (já liberado no Supabase).
+- Servidor (`src/server/apple.ts`): o app só informa o número da transação; o servidor busca a transação **na
+  Apple** (App Store Server API), confere a assinatura com o certificado raiz da Apple, o app, o produto, a pessoa
+  (`appAccountToken`) e se não foi estornada; entrega os créditos uma vez (`grant_purchase_credits`). A transação só
+  é finalizada no iPhone depois da confirmação; se o app fechar no meio, confirma na próxima abertura.
+- Estorno/revogação: avisos da Apple em `/api/pagamentos/apple` (assinados) retiram os créditos que sobraram.
+- Compras de teste (TestFlight/sandbox) ficam marcadas como teste (`credit_purchases.sandbox`).
+
+## Passo a passo (proprietário)
+
+### 1. Apple Developer / App Store Connect (conta de desenvolvedor)
+1. **Identificador do app**: developer.apple.com › Certificates, IDs & Profiles › Identifiers › "+" › App IDs ›
+   Bundle ID **`com.diariodepatas.app`** (explícito). Em Capabilities, deixar **In-App Purchase** marcado.
+2. **Criar o app**: appstoreconnect.apple.com › Apps › "+" › New App: iOS, nome "Diário de Patas", idioma
+   principal Português (Brasil), Bundle ID o de cima, SKU `diario-de-patas`. Anotar o **Apple ID** numérico do
+   app (App Information).
+3. **Contratos**: Business › aceitar **Paid Apps Agreement**, preencher **dados bancários e fiscais**.
+4. **Small Business Program** (comissão de 15% em vez de 30%): developer.apple.com/app-store/small-business-program.
+5. **Produtos** (o app › Monetization › In-App Purchases › "+", tipo **Consumable**):
+
+   | Product ID | Nome | Preço sugerido (EUA) |
+   |---|---|---|
+   | `diariodepatas.credits.1` | 1 crédito | US$ 0,99 |
+   | `diariodepatas.credits.5` | 5 créditos | US$ 2,99 |
+   | `diariodepatas.credits.10` | 10 créditos | US$ 4,99 |
+
+   Em cada um: nome e descrição em português e inglês e uma captura de tela (pode ser da loja de créditos).
+6. **Chave da compra (servidor)**: Users and Access › Integrations › **In-App Purchase** › gerar chave. Anotar
+   **Key ID** e **Issuer ID** e baixar o `.p8` (fica FORA do repositório, ex.: `~/Documents/diario-de-patas/`).
+7. **Chave do Codemagic**: Users and Access › Integrations › **App Store Connect API** › Team Keys › "+", acesso
+   **App Manager**. Anotar Key ID e Issuer ID e baixar o `.p8` (também fora do repositório).
+8. **Avisos de estorno**: o app › App Information › App Store Server Notifications › **Version 2**, Production e
+   Sandbox: `https://diario-de-patas.vercel.app/api/pagamentos/apple`.
+
+### 2. Variáveis do servidor (`.env.local` e Vercel, nunca no código ou no chat)
+| Nome | Valor |
+|---|---|
+| `APPLE_IAP_KEY_ID` | Key ID da chave de In-App Purchase (passo 6) |
+| `APPLE_IAP_ISSUER_ID` | Issuer ID (passo 6) |
+| `APPLE_IAP_PRIVATE_KEY` | conteúdo do `.p8` do passo 6 (com as quebras de linha como `\n`) |
+| `APPLE_APP_ID` | Apple ID numérico do app (passo 2) |
+
+### 3. Codemagic (compila sem Mac)
+1. codemagic.io › entrar com o GitHub › adicionar o repositório `diario-de-patas` (ele lê o `codemagic.yaml`).
+2. Team settings › Integrations › **Developer Portal / App Store Connect** › adicionar a chave do passo 7 com o
+   nome **`Diario de Patas`** (o mesmo do `codemagic.yaml`).
+3. No `codemagic.yaml`, trocar `APP_STORE_APPLE_ID: "0000000000"` pelo Apple ID do app (passo 2).
+4. Start new build › workflow **iPhone → TestFlight**. Ele cria certificado e perfil, compila e envia ao TestFlight.
+
+### 4. Testar e enviar
+1. TestFlight no iPhone: login (email, Google, Apple), fotos, Estúdio e compra de créditos com uma conta
+   **Sandbox** (Users and Access › Sandbox › Test Accounts).
+2. Ficha da App Store: capturas de tela (iPhone 6,9" e 6,5"), descrição PT/EN, link da política de privacidade,
+   "App Privacy" (dados coletados: email, nome, fotos, compras; sem rastreamento), classificação etária.
+3. Enviar para revisão.
+
+## Pontos de atenção na revisão da Apple
+- **4.2 (app muito parecido com site)**: o app tem compra nativa, login pelo sistema, câmera e fotos; se a Apple
+  pedir mais, próximos passos: avisos nativos (push) e salvar artes na galeria pelo app.
+- **1.2 (conteúdo de outras pessoas)**: o diário é privado, só com convidados; links compartilhados são só de
+  leitura. Se pedirem, acrescentar "denunciar" e "bloquear".
+- **3.1.1**: dentro do app só a compra da Apple (já é assim).
+- Avisos no celular (push) ainda não funcionam dentro do app do iPhone (só no app instalado pelo Safari).

@@ -1,0 +1,38 @@
+# App do iPhone (App Store) compilado no Codemagic, sem Mac. Passo a passo em docs/APP-IOS.md.
+# As chaves NÃO ficam aqui: a chave da App Store Connect API fica na integração do Codemagic.
+workflows:
+  ios-testflight:
+    name: iPhone → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Diario de Patas # nome da chave cadastrada em Codemagic › Team integrations
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.diariodepatas.app
+      vars:
+        APP_STORE_APPLE_ID: "0000000000" # id numérico do app no App Store Connect (App Information › Apple ID)
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Instalar dependências
+        script: npm ci
+      - name: Capacitor → projeto iOS
+        script: npx cap sync ios
+      - name: Assinatura (certificado e perfil da App Store)
+        script: xcode-project use-profiles
+      - name: Número do build (um a mais que o último no TestFlight)
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          cd ios/App && agvtool new-version -all $((LATEST + 1))
+      - name: Compilar o .ipa
+        script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

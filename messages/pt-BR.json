@@ -1188,7 +1188,10 @@
     "checkoutConfirming": "Confirmando o pagamento…",
     "checkoutSlow": "Ainda não recebemos a confirmação. Se você pagou, os créditos chegam em instantes; pode fechar esta tela.",
     "checkoutNotCharged": "Nenhum valor foi cobrado. Escolha um pacote para tentar de novo.",
-    "chooseAnother": "Escolher outro pacote"
+    "chooseAnother": "Escolher outro pacote",
+    "payApple": "Comprar · {price}",
+    "oneTimeApple": "Pagamento único pela App Store, com a sua conta Apple. Sem assinatura.",
+    "appleSoon": "Em breve, compra de créditos aqui no app."
   },
   "diary": {
     "title": "Diário",
@@ -1518,7 +1521,9 @@
     "pixRefused": "O Mercado Pago recusou o Pix. Tente de novo em instantes.",
     "pixUncertain": "Não conseguimos confirmar o Pix agora. Tente de novo em instantes.",
     "checkoutRefused": "O pagamento por cartão foi recusado ao abrir. Tente de novo em instantes.",
-    "checkoutUncertain": "Não conseguimos abrir o pagamento agora. Tente de novo em instantes."
+    "checkoutUncertain": "Não conseguimos abrir o pagamento agora. Tente de novo em instantes.",
+    "appleUncertain": "Não conseguimos confirmar a compra com a Apple agora. Ela fica guardada no iPhone e confirmamos na próxima vez que você abrir o app.",
+    "appleInvalid": "A Apple não encontrou essa compra."
   },
   "family": {
     "roles": {

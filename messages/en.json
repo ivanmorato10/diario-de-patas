@@ -1188,7 +1188,10 @@
     "checkoutConfirming": "Confirming your payment…",
     "checkoutSlow": "We haven't received the confirmation yet. If you paid, your credits will arrive in a moment; you can close this screen.",
     "checkoutNotCharged": "You weren't charged. Pick a package to try again.",
-    "chooseAnother": "Choose another package"
+    "chooseAnother": "Choose another package",
+    "payApple": "Buy · {price}",
+    "oneTimeApple": "One-time payment through the App Store, with your Apple Account. No subscription.",
+    "appleSoon": "Buying credits in the app is coming soon."
   },
   "diary": {
     "title": "Diary",
@@ -1518,7 +1521,9 @@
     "pixRefused": "Mercado Pago declined the Pix. Please try again in a moment.",
     "pixUncertain": "We couldn't confirm the Pix right now. Please try again in a moment.",
     "checkoutRefused": "The card payment page was declined. Please try again in a moment.",
-    "checkoutUncertain": "We couldn't open the payment page right now. Please try again in a moment."
+    "checkoutUncertain": "We couldn't open the payment page right now. Please try again in a moment.",
+    "appleUncertain": "We couldn't confirm the purchase with Apple right now. It stays saved on your iPhone, and we'll confirm it the next time you open the app.",
+    "appleInvalid": "Apple couldn't find this purchase."
   },
   "family": {
     "roles": {

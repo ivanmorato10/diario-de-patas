@@ -35,3 +35,9 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - Termos de uso, política de privacidade e reembolso também em inglês.
 - Pagamento em dólar (Stripe): pronto e testado em modo de teste; falta colocar as chaves na Vercel, criar o webhook,
   ativar a conta e publicar termos/reembolso em inglês (passo a passo em docs/PAGAMENTOS-EUA.md).
+
+## App do iPhone (App Store, desde 21/10/2026)
+- Código pronto (Capacitor + compra da Apple + Codemagic). Falta: identificador do app, criar o app no App Store
+  Connect, contrato Paid Apps, produtos de créditos, chaves (servidor e Codemagic) e o primeiro build no Codemagic.
+  Passo a passo em docs/APP-IOS.md.
+

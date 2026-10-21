@@ -29,6 +29,7 @@ import { attachReferral, confirmReferral, referralInfo } from "./referrals";
 import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
 import { checkPushSubscription, unreadCount, listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, setNotifyPrefs, testPush } from "./notify";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
+import { appleConfirm, appleStore } from "./apple";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
 import { STUDIO_DEFAULTS } from "@/config/studio";
 import { achadinhosInfo } from "./amazon";
@@ -806,7 +807,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   createUpload, confirmUpload, exportMetadata: (c) => exportMetadata(c), deleteAccount: (c) => deleteAccount(c),
   createShare, listShares: (c) => listShares(c), revokeShare,
   studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
-  creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase,
+  creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase, appleStore: (c) => appleStore(c), appleConfirm,
   achadinhosInfo: () => achadinhosInfo(),
   setPreferences,
   switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead, checkPushSubscription, unreadCount: (c) => unreadCount(c), savePushSubscription, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,

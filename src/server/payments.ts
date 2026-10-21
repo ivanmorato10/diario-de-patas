@@ -279,7 +279,7 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
 }
 
 /** Entrega os créditos de uma compra aprovada (idempotente). Erro do banco não é engolido. */
-async function grantCredits(purchaseId: string) {
+export async function grantCredits(purchaseId: string) {
   const { error } = await adminClient().rpc("grant_purchase_credits", { p_purchase: purchaseId });
   if (error) {
     console.error("créditos da compra não entregues (vai tentar de novo)", purchaseId, error.message);
@@ -292,7 +292,7 @@ async function grantCredits(purchaseId: string) {
  * Reserva com prazo (receipt_claimed_at) ≠ enviado (receipt_sent_at): se o envio falhar, a reserva é desfeita
  * e a rotina tenta de novo.
  */
-async function sendReceipt(purchaseId: string) {
+export async function sendReceipt(purchaseId: string) {
   const admin = adminClient();
   const stale = new Date(Date.now() - 10 * 60_000).toISOString();
   const { data: claimed } = await admin.from("credit_purchases").update({ receipt_claimed_at: now() })
@@ -362,10 +362,11 @@ export async function reconcileRecentPurchases() {
   return { checked: rows.length, changed, delivered };
 }
 
-const toPurchase = (p: any) => ({
+export const toPurchase = (p: any) => ({
   id: p.id as string, packageId: p.package_id as string, credits: p.credits as number, amountCents: p.amount_cents as number, currency: (p.currency as string) || "BRL",
   status: p.status as Status, pixQr: p.pix_qr as string | null, pixQrBase64: p.pix_qr_base64 as string | null,
-  expiresAt: p.expires_at as string | null, createdAt: p.created_at as string, test: p.provider === "teste" || (p.provider === "stripe" && stripeTest()),
+  expiresAt: p.expires_at as string | null, createdAt: p.created_at as string,
+  test: p.provider === "teste" || (p.provider === "stripe" && stripeTest()) || (p.provider === "apple" && !!p.sandbox),
   provider: p.provider as string, checkoutUrl: p.status === "pending" ? ((p.checkout_url as string | null) ?? null) : null,
 });
 
