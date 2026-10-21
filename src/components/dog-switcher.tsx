@@ -62,6 +62,7 @@ export function DogList({ onDone }: { onDone?: () => void }) {
 /** Foto do cachorro no topo: abre "Seus cachorros" (trocar), o perfil dele e "+ Adicionar cachorro". */
 export function DogMenu() {
   const { snap } = useStore();
+  const router = useRouter(); // o perfil começa a carregar quando o menu abre (antes do toque no lápis)
   const [open, setOpen] = useState(false);
   const t = useTranslations("dogs");
   const dog = snap?.dog;
@@ -69,7 +70,7 @@ export function DogMenu() {
   const count = snap?.diaries?.length ?? 0;
   return (
     <>
-      <button type="button" className="dog-switch" onClick={() => setOpen(true)} aria-label={t("menuLabel", { dog: dog.name })} aria-haspopup="dialog">
+      <button type="button" className="dog-switch" onClick={() => { setOpen(true); router.prefetch("/perfil"); }} aria-label={t("menuLabel", { dog: dog.name })} aria-haspopup="dialog">
         <DogAvatar mediaId={dog.photoMediaId} name={dog.name} crop={dog.avatarCrop} />
         {count > 1 ? <span className="dog-switch__count" aria-hidden="true">{count}</span> : null}
       </button>
