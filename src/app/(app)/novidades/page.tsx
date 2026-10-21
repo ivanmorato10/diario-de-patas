@@ -71,7 +71,13 @@ export default function Novidades() {
             <span className="profile-row__text"><span>{t("getPush")}</span><span className="caption">{push === "needs-install" ? t("needsInstall") : t("whenSaved")}</span></span>
             <span aria-hidden="true">›</span>
           </button>
-        ) : null}
+        ) : (
+          // No topo: com muitos avisos, a pessoa não precisa descer a lista inteira para ajustar.
+          <button type="button" className="card row-between profile-row" onClick={() => setSettings(true)}>
+            <span className="profile-row__text"><span>⚙️ {t("adjust")}</span></span>
+            <span aria-hidden="true">›</span>
+          </button>
+        )}
 
         {failed ? (
           <div className="notice notice--warn stack" role="alert">
@@ -93,7 +99,6 @@ export default function Novidades() {
           </ul>
         )}
 
-        <button type="button" className="btn btn--secondary btn--block" onClick={() => setSettings(true)}>{t("adjust")}</button>
         <Sheet open={settings} onClose={() => { setSettings(false); void pushState().then(setPush); }} labelledBy="avisos-title">
           <h2 id="avisos-title">{t("settingsTitle")}</h2>
           <NotificationSettings />

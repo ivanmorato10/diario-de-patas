@@ -5,5 +5,8 @@ import { userClient } from "@/server/supabase";
 export async function POST(req: Request) {
   const supa = await userClient();
   await supa.auth.signOut();
-  return NextResponse.redirect(new URL("/entrar", req.url), { status: 303 });
+  const res = NextResponse.redirect(new URL("/entrar", req.url), { status: 303 });
+  // Fotos e documentos ficam guardados no navegador para abrir rápido; ao sair, apaga (aparelho compartilhado).
+  res.headers.set("Clear-Site-Data", '"cache"');
+  return res;
 }

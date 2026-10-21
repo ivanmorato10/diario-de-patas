@@ -30,7 +30,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ method:
     const ctx = { ...(await requireUser()), dogHint: hint && /^[0-9a-f-]{36}$/i.test(hint) ? hint : null };
     const args = await req.json().catch(() => ({}));
     const result = await fn(ctx, args);
-    return NextResponse.json(result ?? null, { headers: { "cache-control": "private, no-store" } });
+    // Conta excluída: apaga também as fotos guardadas no navegador (ficam em cache para abrir rápido).
+    const headers: Record<string, string> = { "cache-control": "private, no-store" };
+    if (method === "deleteAccount") headers["clear-site-data"] = '"cache"';
+    return NextResponse.json(result ?? null, { headers });
   } catch (e) {
     if (e instanceof HttpError) return fail(e.status, e.code, e.message, e.params);
     console.error(`rpc ${method}:`, e);

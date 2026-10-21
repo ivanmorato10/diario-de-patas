@@ -318,6 +318,12 @@ try:
         e.goto(BASE + "/novidades")
         check("aviso para quem usa inglês sai em inglês (idioma de quem recebe)", eventually(lambda t: expect(e.get_by_text(re.compile("Paula saved an adventure of Luna"))).to_be_visible(timeout=t), 20000))
         text_checks(e, "Novidades (en)", True); no_overflow(e, "Novidades 375px")
+        # Ajustar avisos no topo, antes da lista (com muitos avisos não precisa descer).
+        top = e.locator("main > .profile-row").first.bounding_box(); first_item = e.locator(".notice-item").first.bounding_box()
+        check("ajustar avisos fica no topo, acima da lista", top is not None and first_item is not None and top["y"] < first_item["y"])
+        e.locator("main > .profile-row").first.tap()
+        check("o botão do topo abre os ajustes de avisos", eventually(lambda t: expect(e.locator("dialog[open] #avisos-title")).to_be_visible(timeout=t)))
+        e.locator("dialog[open]").get_by_role("button", name="Close").last.click()
         # Ossinho de E (inglês) na foto de P (português): o aviso de P sai em português.
         entry = next(x for x in rpc(e, "snapshot", {})[1]["entries"] if x.get("createdByName") == "Paula")
         rpc(e, "toggleBone", {"targetType": "entry", "targetId": entry["id"]})
