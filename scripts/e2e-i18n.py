@@ -279,7 +279,7 @@ try:
         e.wait_for_function("() => !document.querySelector('main [aria-busy=true]') && /Credits|credits/.test(document.querySelector('main').innerText) && !/Loading/.test(document.querySelector('main').innerText)", timeout=20000)
         body = e.inner_text("main")
         # Região EUA: dólar pelo Stripe (preço fixo, sem conversão) ou "em breve" quando o Stripe está desligado.
-        check("Créditos na região EUA: dólar (Stripe) ou 'em breve', nunca reais", ("$3.99" in body and "R$" not in body) or "Coming soon" in body)
+        check("Créditos na região EUA: dólar (Stripe) ou 'em breve', nunca reais", ("$2.99" in body and "R$" not in body) or "Coming soon" in body)
         text_checks(e, "Créditos (en)", True); no_overflow(e, "Créditos 375px")
 
         # ---------- Minha conta: idioma, região e unidade da pessoa ----------

@@ -11,8 +11,8 @@ describe("compra de créditos (Pix)", () => {
     expect(formatMoney(400, "BRL", "en")).toBe("R$4.00 (BRL)");
     // Mercado dos EUA: dólar pelo Stripe, preços fixos aprovados (nada de conversão do real).
     expect(CREDIT_MARKETS.US).toMatchObject({ currency: "USD", provider: "stripe" });
-    expect(CREDIT_MARKETS.US.packages.map((p) => [p.credits, formatMoney(p.priceCents, "USD", "en")])).toEqual([[1, "$0.99"], [5, "$3.99"], [10, "$6.99"]]);
-    expect(packageById("p5", "US")?.priceCents).toBe(399);
+    expect(CREDIT_MARKETS.US.packages.map((p) => [p.credits, formatMoney(p.priceCents, "USD", "en")])).toEqual([[1, "$0.99"], [5, "$2.99"], [10, "$4.99"]]);
+    expect(packageById("p5", "US")?.priceCents).toBe(299);
     expect(packageById("p5", "BR")?.priceCents).toBe(400);
     expect(packageById("p99", "US")).toBeUndefined();
   });
@@ -21,7 +21,7 @@ describe("compra de créditos (Pix)", () => {
     expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: "pi_123" })).toBe("approved");
     expect(mapStripeSession({ status: "open", payment_status: "unpaid" })).toBe("pending");
     expect(mapStripeSession({ status: "expired", payment_status: "unpaid" })).toBe("expired");
-    expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: { latest_charge: { amount_refunded: 399, refunded: true } } })).toBe("refunded");
+    expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: { latest_charge: { amount_refunded: 299, refunded: true } } })).toBe("refunded");
     expect(mapStripeSession({ status: "complete", payment_status: "paid", payment_intent: { latest_charge: { amount_refunded: 0, disputed: true } } })).toBe("refunded");
   });
   it("valida a assinatura do aviso do Stripe e recusa a falsa ou velha", () => {

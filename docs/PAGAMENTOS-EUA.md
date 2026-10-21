@@ -1,14 +1,15 @@
 # Pagamentos nos Estados Unidos (Stripe)
 
-Situação (20/10/2026): **implementado e testado em modo de teste**. Em produção a loja da região EUA continua
-"em breve" até as chaves do Stripe irem para a Vercel (passo a passo abaixo).
+Situação (21/10/2026): **no ar em modo de teste** (chave de teste, webhook e `STRIPE_ENABLED` na Vercel; compra de
+teste completa conferida no app publicado). Ninguém é cobrado de verdade até a conta Stripe ser ativada e a chave
+real entrar (passos 4 e 5 abaixo).
 
 ## Como funciona
 - O mercado da compra segue a **região do app** (Minha conta › Idioma / Language e região), nunca o idioma.
   - Região Brasil: **Pix em reais** pelo Mercado Pago (em inglês, "R$4.00 (BRL)").
   - Região EUA: **cartão em dólar** pelo **Stripe Checkout** (cartão, Apple Pay, Google Pay).
-- Pacotes em dólar (preços fixos aprovados em 20/10/2026, sem conversão do real): 1 crédito **US$ 0,99** ·
-  5 por **US$ 3,99** · 10 por **US$ 6,99** (`src/config/credits.ts` → `CREDIT_MARKETS.US`).
+- Pacotes em dólar (preços fixos aprovados em 21/10/2026, sem conversão do real): 1 crédito **US$ 0,99** ·
+  5 por **US$ 2,99** · 10 por **US$ 4,99** (`src/config/credits.ts` → `CREDIT_MARKETS.US`).
 - O navegador só escolhe o **id** do pacote; valor e moeda vêm do servidor. A pessoa paga na página do Stripe e
   volta para `/estudio/creditos?compra=<id>`; o app consulta o Stripe e confere **referência, valor e moeda**
   antes de entregar os créditos (`syncPurchase`). Créditos entregues uma vez só (`grant_purchase_credits`).
@@ -42,7 +43,7 @@ Situação (20/10/2026): **implementado e testado em modo de teste**. Em produç
 ## Testes
 - `npx vitest run` (assinatura do webhook, status da sessão, preços).
 - `python3 scripts/e2e-stripe.py` (só com chave `sk_test_`): loja em dólar, desistir, cartão recusado, cartão
-  aprovado (+5 uma vez), valor conferido no Stripe, região Brasil continua no Pix.
+  aprovado (+5 uma vez, US$ 2,99), valor conferido no Stripe, região Brasil continua no Pix.
 - `python3 scripts/e2e-pix.py` (Pix com Mercado Pago simulado).
 
 ## Observações

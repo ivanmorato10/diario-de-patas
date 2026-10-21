@@ -11,7 +11,7 @@ export interface CreditPackage {
  * Preços FIXOS por mercado (nunca conversão de moeda). O mercado da cobrança é decidido no servidor pela região do
  * app (não pelo idioma): em inglês, quem está na região Brasil continua vendo reais (com "BRL" explícito).
  * Estados Unidos: dólar pelo Stripe Checkout (cartão, Apple Pay, Google Pay), preços aprovados pelo proprietário em
- * 20/10/2026 (docs/PAGAMENTOS-EUA.md).
+ * 21/10/2026: 1 por US$ 0,99, 5 por US$ 2,99, 10 por US$ 4,99 (docs/PAGAMENTOS-EUA.md).
  */
 export type Market = "BR" | "US";
 export interface CreditMarket { currency: "BRL" | "USD"; provider: "mercadopago" | "stripe" | null; packages: CreditPackage[] }
@@ -28,8 +28,8 @@ export const CREDIT_MARKETS: Record<Market, CreditMarket> = {
     currency: "USD", provider: "stripe",
     packages: [
       { id: "p1", credits: 1, priceCents: 99 },
-      { id: "p5", credits: 5, priceCents: 399 },
-      { id: "p10", credits: 10, priceCents: 699, badge: "best" },
+      { id: "p5", credits: 5, priceCents: 299 },
+      { id: "p10", credits: 10, priceCents: 499, badge: "best" },
     ],
   },
 };

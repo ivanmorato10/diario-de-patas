@@ -75,9 +75,9 @@ try:
 
         # ---------- Loja em dólar ----------
         pg.goto(BASE + "/estudio/creditos")
-        check("região EUA: pacotes em dólar", eventually(lambda t: expect(pg.get_by_role("radio", name=re.compile(r"5 credits.*\$3\.99"))).to_be_visible(timeout=t)))
+        check("região EUA: pacotes em dólar", eventually(lambda t: expect(pg.get_by_role("radio", name=re.compile(r"5 credits.*\$2\.99"))).to_be_visible(timeout=t)))
         body = pg.inner_text("main")
-        check("preços aprovados ($0.99 · $3.99 · $6.99), sem reais", all(x in body for x in ("$0.99", "$3.99", "$6.99")) and "R$" not in body and "BRL" not in body)
+        check("preços aprovados ($0.99 · $2.99 · $4.99), sem reais", all(x in body for x in ("$0.99", "$2.99", "$4.99")) and "R$" not in body and "BRL" not in body)
         check("aviso de modo de teste visível", "Test mode" in body)
         pg.screenshot(path=f"{OUT}/01-loja-usd.png", full_page=True)
         st, err = rpc(api, "createPurchase", {"packageId": "p99", "idempotencyKey": str(uuid.uuid4())})
@@ -110,7 +110,7 @@ try:
         pg.get_by_role("button", name="Choose another package").tap()
 
         # ---------- Cartão recusado ----------
-        pg.get_by_role("radio", name=re.compile(r"5 credits.*\$3\.99")).tap()
+        pg.get_by_role("radio", name=re.compile(r"5 credits.*\$2\.99")).tap()
         pg.get_by_role("button", name=re.compile(r"Pay by card")).tap()
         fill_card(pg, "4000 0000 0000 0002")
         check("cartão recusado: o Stripe avisa e não sai da página", eventually(lambda t: expect(pg.get_by_text(re.compile("declined", re.I)).first).to_be_visible(timeout=t), 30000) and "checkout.stripe.com" in pg.url)
@@ -128,13 +128,13 @@ try:
         paid = next(x for x in shop["purchases"] if x["status"] == "approved")
         for _ in range(3): rpc(api, "purchaseStatus", {"id": paid["id"]})
         check("consultar de novo não duplica os créditos", rpc(api, "studioState", {})[1]["balance"] == bal1)
-        check("compra gravada em USD, 399 centavos", paid["currency"] == "USD" and paid["amountCents"] == 399 and paid["credits"] == 5)
-        check("histórico mostra $3.99 pago", eventually(lambda t: expect(pg.get_by_text(re.compile(r"5 credits · \$3\.99"))).to_be_visible(timeout=t)))
+        check("compra gravada em USD, 299 centavos", paid["currency"] == "USD" and paid["amountCents"] == 299 and paid["credits"] == 5)
+        check("histórico mostra $2.99 pago", eventually(lambda t: expect(pg.get_by_text(re.compile(r"5 credits · \$2\.99"))).to_be_visible(timeout=t)))
 
         # ---------- O valor cobrado no Stripe é o do servidor ----------
         sessions = stripe_get("checkout/sessions?limit=10")["data"]
         mine = [s for s in sessions if s.get("client_reference_id") == paid["id"]]
-        check("Stripe confirma: $3.99 em USD, pago, com a referência da compra", len(mine) == 1 and mine[0]["amount_total"] == 399 and mine[0]["currency"] == "usd" and mine[0]["payment_status"] == "paid")
+        check("Stripe confirma: $2.99 em USD, pago, com a referência da compra", len(mine) == 1 and mine[0]["amount_total"] == 299 and mine[0]["currency"] == "usd" and mine[0]["payment_status"] == "paid")
 
         # ---------- Região Brasil continua no Pix (em reais) ----------
         rpc(api, "setPreferences", {"region": "BR"})
