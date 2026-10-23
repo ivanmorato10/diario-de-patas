@@ -1,8 +1,10 @@
 # Pagamentos nos Estados Unidos (Stripe)
 
-Situação (21/10/2026): **no ar em modo de teste** (chave de teste, webhook e `STRIPE_ENABLED` na Vercel; compra de
-teste completa conferida no app publicado). Ninguém é cobrado de verdade até a conta Stripe ser ativada e a chave
-real entrar (passos 4 e 5 abaixo).
+Situação (23/10/2026): **cobrança REAL ligada** na região EUA. Conta Stripe ativada (recebe pagamentos e repasses;
+descritor na fatura "DIARIO DE PATAS APP"); na Vercel estão a chave real (restrita, `rk_live_…`) e o segredo do
+webhook do modo real (`/api/pagamentos/stripe`, assinatura conferida no app publicado). No `.env.local`,
+`STRIPE_SECRET_KEY` continua a de TESTE (o `scripts/e2e-stripe.py` só roda com ela); a real fica em
+`STRIPE_LIVE_SECRET_KEY` / `STRIPE_LIVE_WEBHOOK_SECRET`, só para referência.
 
 ## Como funciona
 - O mercado da compra segue a **região do app** (Minha conta › Idioma / Language e região), nunca o idioma.
