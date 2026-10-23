@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useStore } from "@/data/store";
 import { Sheet } from "@/components/entry-actions";
+import { upsertCare } from "@/components/care-forms";
 import { useFormat } from "@/i18n/use-format";
 import { medsDue, type Medication } from "@/domain/health";
 
@@ -11,7 +12,7 @@ const key = (today: string) => `ddp-med-alert:${today}`;
 
 /** Janela "Hora do remédio" ao abrir o app no dia da dose (uma vez por dia; "Lembrar mais tarde" adia para amanhã). */
 export function MedAlert({ meds, today, dogName }: { meds: Medication[]; today: string; dogName: string }) {
-  const { repo, reload } = useStore();
+  const { repo, reload, patchSnap } = useStore();
   const due = medsDue(meds, today);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -32,8 +33,9 @@ export function MedAlert({ meds, today, dogName }: { meds: Medication[]; today: 
   async function given(m: Medication) {
     setBusy(m.id);
     try {
-      await repo!.saveMedication({ ...m, lastGiven: today }, m.id);
-      await reload();
+      const saved = await repo!.saveMedication({ ...m, lastGiven: today }, m.id);
+      patchSnap((s) => upsertCare("medications")(s, saved));
+      void reload().catch(() => undefined);
     } finally {
       setBusy(null);
     }

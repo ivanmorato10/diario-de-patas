@@ -215,6 +215,17 @@ try:
         # ---------- Cuidados: peso em lb por padrão (inglês), banco em kg ----------
         e.goto(BASE + "/cuidados"); text_checks(e, "Cuidados (en)", True); no_overflow(e, "Cuidados 375px")
         e.goto(BASE + "/cuidados/peso")
+        # Gravou, mas a atualização da tela falha: o peso novo aparece mesmo assim (vem da resposta do servidor).
+        expect(e.get_by_label("Weight (lb)")).to_be_visible(timeout=20000)  # tela carregada antes de simular a falha
+        e.route("**/api/rpc/snapshot", lambda r: r.abort())
+        e.get_by_label("Weight (lb)").fill("31.4"); e.get_by_role("button", name="Add weight").click()
+        check("peso salvo aparece mesmo com a atualização da tela falhando", eventually(lambda t: expect(e.get_by_role("cell", name="31.39 lb")).to_be_visible(timeout=t)))
+        alerts = [x for x in e.locator("main").get_by_role("alert").all_inner_texts() if x.strip()]
+        check(f"sem 'não salvou' quando só a atualização falhou {alerts}", not alerts)
+        e.unroute("**/api/rpc/snapshot")
+        w = rpc(e, "snapshot", {})[1]["health"]["weights"]
+        rpc(e, "deleteCare", {"store": "weights", "id": next(x["id"] for x in w if abs(float(x["kg"]) - 14.24) < 0.01)})
+        e.goto(BASE + "/cuidados/peso"); expect(e.get_by_label("Weight (lb)")).to_be_visible(timeout=20000)
         e.get_by_label("Weight (lb)").fill("27.6"); e.get_by_role("button", name="Add weight").click()
         check("peso digitado em libras aparece em libras", eventually(lambda t: expect(e.get_by_role("cell", name="27.6 lb")).to_be_visible(timeout=t)))
         kg = rpc(e, "snapshot", {})[1]["health"]["weights"][0]["kg"]
@@ -349,6 +360,21 @@ try:
         check("ajustar avisos fica no topo, acima da lista", top is not None and first_item is not None and top["y"] < first_item["y"])
         e.locator("main > .profile-row").first.tap()
         check("o botão do topo abre os ajustes de avisos", eventually(lambda t: expect(e.locator("dialog[open] #avisos-title")).to_be_visible(timeout=t)))
+        # Preferência: desligar → ligar → desligar, com a PRIMEIRA gravação falhando. Servidor e tela terminam iguais.
+        held, calls = [], [0]
+        def hold_first(route):
+            calls[0] += 1
+            held.append(route) if calls[0] == 1 else route.continue_()
+        e.route("**/api/rpc/setNotifyPrefs", hold_first)
+        box = e.locator("dialog[open]").get_by_label("📸 saves a photo")
+        box.click(); box.click(); box.click()  # desliga, liga, desliga (a 1ª gravação ainda não respondeu)
+        e.wait_for_timeout(300)
+        held[0].abort()  # e então a 1ª gravação falha
+        e.wait_for_timeout(2500)
+        e.unroute("**/api/rpc/setNotifyPrefs")
+        server_photo = rpc(e, "snapshot", {})[1]["me"]["notify"]["photo"]
+        check(f"preferência com falha no meio: tela ({box.is_checked()}) = servidor ({server_photo}) = última escolha (desligado)", server_photo is False and not box.is_checked())
+        box.click(); e.wait_for_timeout(1500)  # volta a ligar para o resto do teste
         e.locator("dialog[open]").get_by_role("button", name="Close").last.click()
         # Ossinho de E (inglês) na foto de P (português): o aviso de P sai em português.
         entry = next(x for x in rpc(e, "snapshot", {})[1]["entries"] if x.get("createdByName") == "Paula")

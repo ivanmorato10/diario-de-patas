@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { HealthDisclaimer } from "@/components/health-ui";
-import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
+import { DeleteSheet, Field, FormSheet, RowActions, removeCare, upsertCare, useCareMutation } from "@/components/care-forms";
 import { IconPhone, IconPin, IconPlus } from "@/components/icons";
 import { CONTACT_KINDS, type Contact, type ContactKind } from "@/domain/health";
 
@@ -33,7 +33,7 @@ export default function Contatos() {
   const openNew = () => { setError(null); setEditing({ form: { kind: "vet", name: "", phone: "", address: "", notes: "" } }); };
   const openEdit = (c: Contact) => { setError(null); setEditing({ id: c.id, form: { kind: c.kind, name: c.name, phone: c.phone, address: c.address, notes: c.notes } }); };
   const set = (patch: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...patch } } : e));
-  const submit = async () => { if (editing && (await run(() => repo!.saveContact(editing.form, editing.id)))) setEditing(null); };
+  const submit = async () => { if (editing && (await run(() => repo!.saveContact(editing.form, editing.id), upsertCare("contacts")))) setEditing(null); };
 
   return (
     <>
@@ -84,7 +84,7 @@ export default function Contatos() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("contacts", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("contacts", toDelete.id), removeCare("contacts", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

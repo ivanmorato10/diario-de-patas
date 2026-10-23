@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { Field, useCareMutation } from "@/components/care-forms";
+import type { Snapshot } from "@/data/demo-repository";
 import { useStore } from "@/data/store";
 import type { HealthProfileData } from "@/domain/health";
 
@@ -34,7 +35,7 @@ export default function DadosDoCachorro() {
       <TopBar title={t("title", { dog: snap.dog.name })} back="/cuidados" />
       <main className="main">
         
-        <form className="stack-lg" onSubmit={async (e) => { e.preventDefault(); setSaved(await run(() => repo!.saveHealthProfile(form))); }} noValidate>
+        <form className="stack-lg" onSubmit={async (e) => { e.preventDefault(); setSaved(await run(() => repo!.saveHealthProfile(form), (s, p) => (p && typeof p === "object" ? { ...s, health: { ...s.health, profile: p as Snapshot["health"]["profile"] } } : s))); }} noValidate>
           <Field id="breed" label={t("breed")} optional value={form.breed} onChange={(v) => set({ breed: v })} maxLength={60} placeholder={t("breedPlaceholder")} />
           <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
             <legend style={{ fontWeight: 600, marginBottom: 8 }}>{t("sex")} <span className="muted">{t("optional")}</span></legend>

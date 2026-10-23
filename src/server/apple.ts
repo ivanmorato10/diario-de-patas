@@ -8,12 +8,12 @@
  * Desligado sem as chaves (APPLE_IAP_*): o app do iPhone mostra a loja como indisponível.
  */
 import "server-only";
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { AppStoreServerAPIClient, APIException, Environment, SignedDataVerifier, type JWSTransactionDecodedPayload } from "@apple/app-store-server-library";
 import { APPLE_PRODUCTS, packageForAppleProduct } from "@/config/credits";
 import { APPLE_ROOT_CA_G3 } from "./apple-root-ca";
+import { uuidV5 } from "./ids";
 import { currentDog, requireEditor } from "./family";
 import { adminClient, HttpError } from "./supabase";
 import { grantCredits, sendReceipt, syncPurchase, toPurchase } from "./payments";
@@ -23,17 +23,6 @@ type Ctx = { supa: SupabaseClient; user: User };
 export const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "com.diariodepatas.app";
 const appAppleId = () => (process.env.APPLE_APP_ID ? Number(process.env.APPLE_APP_ID) : undefined);
 export const appleEnabled = () => !!(process.env.APPLE_IAP_KEY_ID && process.env.APPLE_IAP_ISSUER_ID && process.env.APPLE_IAP_PRIVATE_KEY);
-
-/** UUID versão 5 (RFC 4122): o mesmo nome no mesmo espaço dá sempre o mesmo UUID. */
-export function uuidV5(name: string, namespace: string): string {
-  const ns = Buffer.from(namespace.replace(/-/g, ""), "hex");
-  const hash = createHash("sha1").update(Buffer.concat([ns, Buffer.from(name, "utf8")])).digest();
-  const b = Buffer.from(hash.subarray(0, 16));
-  b[6] = (b[6] & 0x0f) | 0x50; // versão 5
-  b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
-  const h = b.toString("hex");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
 
 /** Identificador da pessoa na Apple (UUID v5 do id da conta): liga a transação a quem comprou, sem expor email. */
 const NAMESPACE = "8f0c5b6e-3d2a-4c1b-9e7f-5a6d4c3b2a10";
@@ -85,22 +74,27 @@ export async function appleStore(ctx: Ctx) {
   return { enabled: appleEnabled(), products: APPLE_PRODUCTS, appAccountToken: appAccountTokenFor(ctx.user.id) };
 }
 
+/**
+ * Único jeito de responder "compra registrada": confere o dono e, se aprovada, garante a entrega dos créditos (idempotente)
+ * e o comprovante. Usado na repetição, na corrida entre duas confirmações e na primeira gravação. Se a entrega falhar,
+ * lança: o app não finaliza a transação na Apple e tenta de novo na próxima abertura.
+ */
+async function settleApplePurchase(ctx: Ctx, row: any) {
+  if (row.owner_id !== ctx.user.id) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
+  if (row.status === "approved") {
+    await grantCredits(row.id);
+    if (!row.receipt_sent_at) await sendReceipt(row.id);
+  }
+  return toPurchase((await adminClient().from("credit_purchases").select("*").eq("id", row.id).single()).data);
+}
+
 /** Depois da compra no iPhone: confere na Apple e entrega os créditos ao diário atual (uma vez por transação). */
 export async function appleConfirm(ctx: Ctx, args: unknown) {
   if (!appleEnabled()) throw new HttpError(400, "PAYMENTS_OFF", "errors.paymentsOff");
   const { transactionId } = z.object({ transactionId: z.string().regex(/^\d{1,30}$/) }).parse(args);
   const admin = adminClient();
   const prior = (await admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle()).data as any;
-  if (prior) {
-    if (prior.owner_id !== ctx.user.id) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
-    // Repetição (ou o app reabriu antes de finalizar na Apple): garante a entrega antes de dizer "aprovada".
-    // A concessão é idempotente; se falhar, lança e o app não finaliza a transação (tenta na próxima abertura).
-    if (prior.status === "approved") {
-      await grantCredits(prior.id);
-      if (!prior.receipt_sent_at) await sendReceipt(prior.id);
-    }
-    return toPurchase(prior);
-  }
+  if (prior) return settleApplePurchase(ctx, prior); // repetição, ou o app reabriu antes de finalizar na Apple
   const { tx, env } = await fetchTransaction(transactionId);
   const checked = checkAppleTransaction(tx, { bundleId: APPLE_BUNDLE_ID, token: appAccountTokenFor(ctx.user.id) });
   if ("error" in checked) {
@@ -118,12 +112,10 @@ export async function appleConfirm(ctx: Ctx, args: unknown) {
   if (error) {
     // Duas confirmações ao mesmo tempo: a outra gravou primeiro; vale a dela.
     const again = (await admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle()).data;
-    if (again) return toPurchase(again);
+    if (again) return settleApplePurchase(ctx, again);
     throw new HttpError(500, "SERVER", "errors.generic");
   }
-  await grantCredits(row.id);
-  await sendReceipt(row.id);
-  return toPurchase((await admin.from("credit_purchases").select("*").eq("id", row.id).single()).data);
+  return settleApplePurchase(ctx, row);
 }
 
 // ---------- Avisos da Apple ----------

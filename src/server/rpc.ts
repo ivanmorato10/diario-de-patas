@@ -4,6 +4,7 @@
  * cliente do usuário (RLS vale); escritas privilegiadas pelo admin com owner_id da sessão.
  * Mensagens de erro iguais às do modo demonstração.
  */
+import { repeatRowId } from "./ids";
 import "server-only";
 import { z } from "zod";
 import sharp from "sharp";
@@ -259,10 +260,18 @@ const civil = z.string().refine(isCivilDate, "errors.invalidDate");
 
 async function ensureProfile(ctx: Ctx, timezone?: string) {
   const tz = timezone && isValidTimezone(timezone) ? timezone : "America/Sao_Paulo";
-  const p = await profileOf(ctx);
-  if (!p) await q(ctx.supa.from("profiles").insert({ user_id: ctx.user.id, timezone: tz, display_name: nameFromUser(ctx.user) }));
-  else if (!p.display_name) await q(ctx.supa.from("profiles").update({ display_name: nameFromUser(ctx.user) }).eq("user_id", ctx.user.id));
-  else if (timezone && p.timezone !== tz) await q(ctx.supa.from("profiles").update({ timezone: tz }).eq("user_id", ctx.user.id));
+  let p = await profileOf(ctx);
+  if (!p) {
+    // Conta nova: outra operação da abertura (ex.: gravar o idioma) pode criar o perfil ao mesmo tempo. Quem chegar
+    // depois usa o que já existe, sem erro (antes, "chave duplicada" fazia o primeiro diário não ser criado).
+    await q(ctx.supa.from("profiles").upsert({ user_id: ctx.user.id, timezone: tz, display_name: nameFromUser(ctx.user) }, { onConflict: "user_id", ignoreDuplicates: true }));
+    p = await profileOf(ctx);
+  }
+  if (!p) return;
+  const patch: Record<string, string> = {};
+  if (!p.display_name) patch.display_name = nameFromUser(ctx.user);
+  if (timezone && p.timezone !== tz) patch.timezone = tz;
+  if (Object.keys(patch).length) await q(ctx.supa.from("profiles").update(patch).eq("user_id", ctx.user.id));
 }
 
 /** A mídia precisa ser do próprio dono e estar pronta (bytes já inspecionados). */
@@ -431,7 +440,7 @@ export async function createAlbum(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ title: z.string(), key: RepeatKey }), args);
   const dog = await editableDog(ctx);
   if (a.key) {
-    const already = (await ctx.supa.from("albums").select("*").eq("id", a.key).eq("dog_id", dog.id).maybeSingle()).data;
+    const already = (await ctx.supa.from("albums").select("*").eq("id", repeatRowId(dog.id, "albums", a.key)).eq("dog_id", dog.id).maybeSingle()).data;
     if (already) return toCustomAlbum(already); // repetição: o álbum já foi criado
   }
   const { count } = await ctx.supa.from("albums").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("type", "custom");
@@ -542,11 +551,12 @@ const RepeatKey = z.string().uuid().optional();
  * tentativa gravou, mas a resposta se perdeu), devolve o mesmo em vez de criar outro. Sem `key`, cria normalmente.
  */
 async function insertOnce(ctx: Ctx, table: string, row: Record<string, unknown>, key: string | undefined, dogId: string) {
-  const existing = async () => (key ? ((await ctx.supa.from(table).select("*").eq("id", key).eq("dog_id", dogId).maybeSingle()).data as any) : null);
+  const id = key ? repeatRowId(dogId, table, key) : undefined; // a chave só vale dentro deste cachorro e tabela
+  const existing = async () => (id ? ((await ctx.supa.from(table).select("*").eq("id", id).eq("dog_id", dogId).maybeSingle()).data as any) : null);
   const before = await existing();
   if (before) return before;
-  const { data, error } = await ctx.supa.from(table).insert(key ? { ...row, id: key } : row).select("*").single();
-  if (error?.code === "23505" && key) {
+  const { data, error } = await ctx.supa.from(table).insert(id ? { ...row, id } : row).select("*").single();
+  if (error?.code === "23505" && id) {
     const again = await existing(); // duas tentativas ao mesmo tempo: vale a que gravou
     if (again) return again;
   }
@@ -576,8 +586,10 @@ export async function saveCare(ctx: Ctx, args: unknown) {
     for (const id of ids) await ownDocument(ctx, id);
     await q(ctx.supa.from("visit_documents").delete().eq("visit_id", saved.id));
     if (ids.length) await q(ctx.supa.from("visit_documents").insert(ids.map((document_id) => ({ visit_id: saved.id, document_id }))));
+    return toVisit(saved, ids);
   }
-  return saved;
+  // No formato da tela: o app já coloca o registro salvo na lista, sem esperar recarregar tudo.
+  return a.store === "vaccines" ? toVaccine(saved) : a.store === "medications" ? toMedication(saved) : toContact(saved);
 }
 
 export async function deleteCare(ctx: Ctx, args: unknown) {

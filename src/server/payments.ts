@@ -129,13 +129,19 @@ interface CheckoutCharge { providerPaymentId: string; url: string; expiresAt: st
  * duplo toque) manda exatamente os mesmos, com a mesma chave de idempotência: o provedor devolve a MESMA cobrança.
  * (Recalcular o vencimento a cada tentativa fazia o Stripe recusar a repetição.)
  */
-async function frozenRequest<T>(row: any, build: () => Promise<T>): Promise<T> {
+async function frozenRequest<T>(row: any, build: () => Promise<T>, uncertainKey: string): Promise<T> {
   if (row.provider_request) return row.provider_request as T;
   const req = await build();
   const admin = adminClient();
-  await admin.from("credit_purchases").update({ provider_request: req }).eq("id", row.id).is("provider_request", null);
-  const saved = (await admin.from("credit_purchases").select("provider_request").eq("id", row.id).single()).data as any;
-  row.provider_request = saved?.provider_request ?? req; // duas tentativas ao mesmo tempo: vale a que gravou primeiro
+  // Só chama o provedor com os parâmetros que ESTÃO gravados (lidos de volta): se o banco falhar, nada é enviado e a
+  // pessoa pode tentar de novo (sem isso, duas tentativas podiam mandar vencimentos diferentes com a mesma chave).
+  const upd = await admin.from("credit_purchases").update({ provider_request: req }).eq("id", row.id).is("provider_request", null);
+  const saved = await admin.from("credit_purchases").select("provider_request").eq("id", row.id).single();
+  if (upd.error || saved.error || !(saved.data as any)?.provider_request) {
+    console.error("parâmetros da cobrança não gravados", row.id, upd.error?.message ?? saved.error?.message ?? "vazio");
+    throw new HttpError(503, "PAYMENT_PROVIDER", uncertainKey);
+  }
+  row.provider_request = (saved.data as any).provider_request; // duas tentativas ao mesmo tempo: vale a que gravou primeiro
   return row.provider_request as T;
 }
 
@@ -161,7 +167,7 @@ async function createCheckout(row: any, description: string, email: string): Pro
       success_url: `${back}&pagamento=ok`,
       cancel_url: `${back}&pagamento=cancelado`,
     };
-  });
+  }, "errors.checkoutUncertain");
   const session = await stripe("checkout/sessions", { method: "POST", idempotencyKey: `checkout-${row.id}`, form });
   return { providerPaymentId: String(session.id), url: String(session.url), expiresAt: new Date(Number(form.expires_at) * 1000).toISOString() };
 }
@@ -198,7 +204,7 @@ async function createPix(row: any, description: string, email: string): Promise<
     notification_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://diario-de-patas.vercel.app"}/api/pagamentos/webhook`,
     date_of_expiration: new Date(Date.now() + PIX_EXPIRES_MINUTES * 60_000).toISOString(),
     payer: { email },
-  }));
+  }), "errors.pixUncertain");
   const expiresAt = body.date_of_expiration;
   if (paymentsFake()) return { providerPaymentId: `teste-${purchaseId}`, status: "pending", qr: `00020126PIXDETESTE-${purchaseId}`, qrBase64: null, expiresAt };
   const json = await mp("payments", { method: "POST", idempotencyKey: purchaseId, body: JSON.stringify(body) });

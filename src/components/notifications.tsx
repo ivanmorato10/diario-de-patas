@@ -50,6 +50,8 @@ export function DogBell() {
 /** Ligar/desligar o push neste aparelho e escolher quais avisos receber. */
 /** Gravações das preferências de aviso em fila: chegam ao servidor na ordem dos toques. */
 let prefQueue: Promise<unknown> = Promise.resolve();
+/** Versão da escolha de cada campo (desfazer uma falha nunca passa por cima de um toque mais novo). */
+const prefVersion = { photo: 0, letter: 0, bone: 0 };
 
 export function NotificationSettings() {
   const { snap, patchSnap } = useStore();
@@ -94,9 +96,14 @@ export function NotificationSettings() {
    */
   function pref(k: "photo" | "letter" | "bone", v: boolean) {
     const set = (val: boolean) => patchSnap((s) => (s.me ? { ...s, me: { ...s.me, notify: { ...(s.me.notify ?? { photo: true, letter: true, bone: true }), [k]: val } } } : s));
+    const version = ++prefVersion[k]; // a escolha mais nova deste campo
     set(v);
     setMsg(null);
-    prefQueue = prefQueue.then(() => setNotifyPrefs({ [k]: v })).catch(() => { set(!v); setMsg(t("saveFailed")); });
+    prefQueue = prefQueue.then(() => setNotifyPrefs({ [k]: v })).catch(() => {
+      // Só desfaz se esta ainda é a escolha mais recente do campo; se a pessoa tocou de novo depois, vale o toque novo.
+      if (prefVersion[k] === version) set(!v);
+      setMsg(t("saveFailed"));
+    });
   }
 
   return (

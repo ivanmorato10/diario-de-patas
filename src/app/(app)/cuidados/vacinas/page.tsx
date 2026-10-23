@@ -9,7 +9,7 @@ import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/compo
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { DueBadge } from "@/components/health-ui";
-import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
+import { DeleteSheet, Field, FormSheet, RowActions, removeCare, upsertCare, useCareMutation } from "@/components/care-forms";
 import { IconPlus } from "@/components/icons";
 import { VACCINE_KINDS, dueStatus, isSuperseded, type Vaccine, type VaccineKind } from "@/domain/health";
 
@@ -45,8 +45,8 @@ export default function Vacinas() {
     const ok = await run(async () => {
       // A foto da etiqueta/carteirinha vira um Documento (§4.2, §5).
       const doc = label[0] ? await repo!.addDocument({ title: t("labelDocTitle", { name: f.name || kind(f.kind) }).slice(0, 80), category: "vaccination_card", docDate: f.appliedDate }, label[0].doc) : null;
-      await repo!.saveVaccine({ ...f, nextDate: f.nextDate || null, documentId: doc?.id ?? prev?.documentId ?? null }, editing.id);
-    });
+      return repo!.saveVaccine({ ...f, nextDate: f.nextDate || null, documentId: doc?.id ?? prev?.documentId ?? null }, editing.id);
+    }, upsertCare("vaccines"));
     if (ok) setEditing(null);
   }
 
@@ -103,7 +103,7 @@ export default function Vacinas() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { kind: kind(toDelete.kind), name: toDelete.name, date: fmt.date(toDelete.appliedDate) }) : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("vaccines", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("vaccines", toDelete.id), removeCare("vaccines", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

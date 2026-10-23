@@ -5,12 +5,30 @@ import { useTranslations } from "next-intl";
 import { useErrorText } from "@/i18n/use-error";
 import { DomainError } from "@/data/demo-repository";
 import { useStore } from "@/data/store";
+import type { Snapshot } from "@/data/demo-repository";
 import { Sheet } from "./entry-actions";
 import { IconPencil, IconTrash } from "./icons";
 
 /** Salvar/excluir um registro da ficha com estado de erro e recarga do snapshot. */
+
+type CareList = "weights" | "vaccines" | "visits" | "medications" | "contacts" | "documents";
+
+/** Põe (ou troca) na lista de cuidados o registro que o servidor devolveu. */
+export const upsertCare = (store: CareList) => (s: Snapshot, rec: unknown): Snapshot => {
+  if (!rec || typeof rec !== "object" || !("id" in rec)) return s;
+  const r = rec as { id: string };
+  const list = s.health[store] as { id: string }[];
+  let next = list.some((x) => x.id === r.id) ? list.map((x) => (x.id === r.id ? r : x)) : store === "weights" ? [...list, r] : [r, ...list];
+  if (store === "weights") next = [...next].sort((a, b) => String((a as { date?: string }).date).localeCompare(String((b as { date?: string }).date)));
+  return { ...s, health: { ...s.health, [store]: next } };
+};
+
+/** Tira da lista de cuidados o registro excluído. */
+export const removeCare = (store: CareList, id: string) => (s: Snapshot): Snapshot =>
+  ({ ...s, health: { ...s.health, [store]: (s.health[store] as { id: string }[]).filter((x) => x.id !== id) } });
+
 export function useCareMutation() {
-  const { reload } = useStore();
+  const { reload, patchSnap } = useStore();
   const [busy, setBusy] = useState(false);
   const [errorRaw, setError] = useState<string | null>(null);
   const errText = useErrorText();
@@ -21,21 +39,24 @@ export function useCareMutation() {
    * duplica (chave de repetição em real-repository).
    */
   const run = useCallback(
-    async (fn: () => Promise<unknown>): Promise<boolean> => {
+    async <T,>(fn: () => Promise<T>, apply?: (s: Snapshot, saved: T) => Snapshot): Promise<boolean> => {
       setBusy(true);
       setError(null);
+      let saved: T;
       try {
-        await fn();
+        saved = await fn();
       } catch (e) {
         setError(e instanceof DomainError ? e.message : "errors.saveFailed");
         setBusy(false);
         return false;
       }
+      // O que o servidor devolveu entra na tela já; o recarregamento depois só confere.
+      if (apply) patchSnap((s) => apply(s, saved));
       setBusy(false);
       void reload().catch(() => undefined);
       return true;
     },
-    [reload],
+    [reload, patchSnap],
   );
   return { busy, error, setError, run };
 }

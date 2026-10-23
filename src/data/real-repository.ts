@@ -26,7 +26,7 @@ export const getActiveDog = () => activeDog;
  */
 const VISIT = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random());
 async function repeatKey(kind: string, input: unknown): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${VISIT}|${kind}|${JSON.stringify(input)}`));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${VISIT}|${activeDog ?? ""}|${kind}|${JSON.stringify(input)}`));
   const b = new Uint8Array(digest).slice(0, 16);
   b[6] = (b[6] & 0x0f) | 0x40;
   b[8] = (b[8] & 0x3f) | 0x80;

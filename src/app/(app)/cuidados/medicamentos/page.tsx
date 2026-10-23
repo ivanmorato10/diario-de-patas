@@ -6,7 +6,7 @@ import { useFormat } from "@/i18n/use-format";
 
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
-import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
+import { DeleteSheet, Field, FormSheet, RowActions, removeCare, upsertCare, useCareMutation } from "@/components/care-forms";
 import { IconCheck, IconPlus } from "@/components/icons";
 import { MED_REPEAT, medNextDue, medicationActive, type MedRepeat, type Medication } from "@/domain/health";
 
@@ -36,9 +36,9 @@ export default function Medicamentos() {
   const submit = async () => {
     if (!editing) return;
     const prev = editing.id ? meds.find((m) => m.id === editing.id) : null;
-    if (await run(() => repo!.saveMedication({ ...editing.form, endDate: editing.form.endDate || null, lastGiven: prev?.lastGiven ?? null }, editing.id))) setEditing(null);
+    if (await run(() => repo!.saveMedication({ ...editing.form, endDate: editing.form.endDate || null, lastGiven: prev?.lastGiven ?? null }, editing.id), upsertCare("medications"))) setEditing(null);
   };
-  const markGiven = (m: Medication) => run(() => repo!.saveMedication({ ...m, lastGiven: today }, m.id));
+  const markGiven = (m: Medication) => run(() => repo!.saveMedication({ ...m, lastGiven: today }, m.id), upsertCare("medications"));
 
   const row = (m: Medication) => {
     const on = medicationActive(m, today);
@@ -114,7 +114,7 @@ export default function Medicamentos() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("medications", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("medications", toDelete.id), removeCare("medications", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

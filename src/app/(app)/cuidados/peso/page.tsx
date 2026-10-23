@@ -10,7 +10,7 @@ import type { WeightUnit } from "@/i18n/locale";
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { WeightChart } from "@/components/health-ui";
-import { DeleteSheet, Field, RowActions, useCareMutation } from "@/components/care-forms";
+import { DeleteSheet, Field, RowActions, removeCare, upsertCare, useCareMutation } from "@/components/care-forms";
 import type { WeightRecord } from "@/domain/health";
 
 export default function Peso() {
@@ -65,7 +65,7 @@ export default function Peso() {
     if (switching.current || unitSaver.busy) return;
     const value = parse(kg);
     if (!kg.trim() || Number.isNaN(value)) return setError(`weightPage.invalid?unit=${unit}&example=${encodeURIComponent(example)}`);
-    if (await run(() => repo!.addWeight({ date: date || snap!.today, kg: f.toKg(value) }))) setKg("");
+    if (await run(() => repo!.addWeight({ date: date || snap!.today, kg: f.toKg(value) }), upsertCare("weights"))) setKg("");
   }
 
   return (
@@ -111,7 +111,7 @@ export default function Peso() {
         </form>
       </main>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { weight: f.weight(toDelete.kg, 2), date: f.date(toDelete.date) }) : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("weights", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("weights", toDelete.id), removeCare("weights", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

@@ -9,7 +9,7 @@ import { useStore } from "@/data/store";
 import { LIMITS } from "@/config/business";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { DueBadge } from "@/components/health-ui";
-import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
+import { DeleteSheet, Field, FormSheet, RowActions, removeCare, upsertCare, useCareMutation } from "@/components/care-forms";
 import { DocumentButtons, DocumentFileInput, DocumentThumb, type PickedDocument } from "@/components/document-ui";
 import { IconPlus } from "@/components/icons";
 import { DOCUMENT_CATEGORIES, expiryStatus, type DocumentCategory, type HealthDocument } from "@/domain/documents";
@@ -42,7 +42,7 @@ export default function Documentos() {
     if (!editing) return;
     const meta = { ...editing.form, docDate: editing.form.docDate || null, expiresOn: editing.form.expiresOn || null };
     if (!editing.id && !file[0]) return setError("docsPage.pickFile");
-    const ok = await run(() => (editing.id ? repo!.updateDocument(editing.id, meta) : repo!.addDocument(meta, file[0].doc)));
+    const ok = await run(() => (editing.id ? repo!.updateDocument(editing.id, meta) : repo!.addDocument(meta, file[0].doc)), upsertCare("documents"));
     if (ok) setEditing(null);
   }
 
@@ -101,7 +101,7 @@ export default function Documentos() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { title: toDelete.title }) : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteDocument(toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteDocument(toDelete.id), removeCare("documents", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }

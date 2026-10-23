@@ -11,7 +11,7 @@ import { DocumentButtons, DocumentFileInput, type PickedDocument } from "@/compo
 import { useStore } from "@/data/store";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { DueBadge, HealthDisclaimer } from "@/components/health-ui";
-import { DeleteSheet, Field, FormSheet, RowActions, useCareMutation } from "@/components/care-forms";
+import { DeleteSheet, Field, FormSheet, RowActions, removeCare, upsertCare, useCareMutation } from "@/components/care-forms";
 import { IconCamera, IconPlus } from "@/components/icons";
 import { dueStatus, type Visit } from "@/domain/health";
 
@@ -48,8 +48,8 @@ export default function Consultas() {
       // Anexos viram Documentos (§4.3, §5) ligados à consulta.
       const ids = [...(prev?.documentIds ?? [])];
       for (const a of attach) ids.push((await repo!.addDocument({ title: t("attachTitle", { date: fmt.date(f.date, "numeric"), name: a.name }).slice(0, 80), category: "exams", docDate: f.date }, a.doc)).id);
-      await repo!.saveVisit({ ...f, nextDate: f.nextDate || null, documentIds: ids }, editing.id);
-    });
+      return repo!.saveVisit({ ...f, nextDate: f.nextDate || null, documentIds: ids }, editing.id);
+    }, upsertCare("visits"));
     if (ok) setEditing(null);
   }
 
@@ -120,7 +120,7 @@ export default function Consultas() {
         ) : null}
       </FormSheet>
       <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { date: fmt.date(toDelete.date) }) : ""} busy={busy}
-        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("visits", toDelete.id)))) setToDelete(null); }} />
+        onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("visits", toDelete.id), removeCare("visits", toDelete.id)))) setToDelete(null); }} />
     </>
   );
 }
