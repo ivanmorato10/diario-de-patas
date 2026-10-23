@@ -14,6 +14,10 @@ const config: CapacitorConfig = {
     cleartext: false,
     errorPath: "index.html",
   },
+  plugins: {
+    // Aviso que chega com o app aberto também aparece (como no navegador).
+    PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },
+  },
   ios: {
     contentInset: "never",
     limitsNavigationsToAppBoundDomains: false,

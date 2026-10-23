@@ -123,6 +123,16 @@ try:
             check(f"{path} sem login, em inglês, completo", e.get_by_role("heading", name=title).count() > 0 and word in body and "[" not in body and "/entrar" not in e.url)
             text_checks(e, f"{path} (en)", True); no_overflow(e, f"{path} 375px")
         e.screenshot(path=f"{OUT}/01c-reembolso-en.png", full_page=True)
+        # "Voltar" das páginas legais: aberta direto, vai para Sobre; vinda de outra tela do app, volta para ela.
+        e.get_by_role("link", name="Back").first.click()
+        check("voltar de /reembolso aberto direto vai para Sobre", eventually(lambda t: e.wait_for_url("**/sobre", timeout=t) or True))
+        e.goto(BASE + "/entrar")
+        e.get_by_role("link", name="Privacy Policy").click(); e.wait_for_url("**/privacidade")
+        e.get_by_role("link", name="Refund Policy").click(); e.wait_for_url("**/reembolso")
+        e.get_by_role("link", name="Back").first.click()
+        check("voltar volta uma página (Reembolso → Privacidade)", eventually(lambda t: e.wait_for_url("**/privacidade", timeout=t) or True))
+        e.get_by_role("link", name="Back").first.click()
+        check("e de novo (Privacidade → entrada)", eventually(lambda t: e.wait_for_url("**/entrar", timeout=t) or True))
         e.goto(BASE + "/entrar")
         e.screenshot(path=f"{OUT}/01-entrar-en.png", full_page=True)
 
@@ -282,7 +292,9 @@ try:
         check("mensagem editada pela pessoa continua igual ao trocar o idioma", e.get_by_label(re.compile("^Message")).input_value() == "Parabéns, Luna!")
         text_checks(e, "Estúdio (en)", True); no_overflow(e, "Estúdio 375px")
         e.screenshot(path=f"{OUT}/04-estudio-en.png", full_page=True)
-        balance_before = rpc(e, "studioState", {})[1]["balance"]
+        st_resp = rpc(e, "studioState", {})
+        if "balance" not in (st_resp[1] or {}): print("studioState:", st_resp)
+        balance_before = st_resp[1]["balance"]
 
         e.goto(BASE + "/estudio/creditos")
         e.wait_for_function("() => !document.querySelector('main [aria-busy=true]') && /Credits|credits/.test(document.querySelector('main').innerText) && !/Loading/.test(document.querySelector('main').innerText)", timeout=20000)

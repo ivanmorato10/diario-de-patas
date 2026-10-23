@@ -39,7 +39,7 @@ export async function LegalPage({ doc }: { doc: LegalDoc }) {
   const { title, body } = all[doc];
   return (
     <div className="shell">
-      <TopBar title={title} back="/" emoji="📄" />
+      <TopBar title={title} back="/sobre" backHistory emoji="📄" />
       <main className="main">
         <article className="card legal" lang={locale}>
           {body.split(/\n\s*\n/).map((b) => <Block key={b.slice(0, 40)} src={b.trim()} />)}

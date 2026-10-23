@@ -1,5 +1,9 @@
-/** Avisos no celular (Web Push). No iPhone só funciona com o app instalado na Tela de Início (iOS 16.4+). */
+/**
+ * Avisos no celular. Navegador e app instalado pela Tela de Início: Web Push (no iPhone, iOS 16.4+).
+ * App do iPhone da App Store: avisos da Apple (APNs), pelo plugin nativo; o aparelho fica guardado como "apns:<token>".
+ */
 import { rpc } from "./real-repository";
+import { isNativeApp } from "@/lib/native";
 
 export type PushState = "unsupported" | "needs-install" | "denied" | "off" | "on";
 
@@ -12,8 +16,58 @@ function keyBytes(base64: string) {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
+// ---------- App do iPhone (APNs) ----------
+const NATIVE_TOKEN = "ddp_apns_token";
+const nativePlugin = async () => (await import("@capacitor/push-notifications")).PushNotifications;
+const savedToken = () => { try { return localStorage.getItem(NATIVE_TOKEN); } catch { return null; } };
+
+/** Pede o token do aparelho à Apple (o plugin devolve pelo evento "registration"). */
+async function nativeToken(): Promise<string> {
+  const np = await nativePlugin();
+  return new Promise((resolve, reject) => {
+    let ok: { remove: () => void } | undefined, bad: { remove: () => void } | undefined;
+    const end = () => { ok?.remove(); bad?.remove(); };
+    void np.addListener("registration", (t) => { end(); resolve(t.value); }).then((h) => { ok = h; });
+    void np.addListener("registrationError", (e) => { end(); reject(new Error(e.error)); }).then((h) => { bad = h; });
+    void np.register();
+    setTimeout(() => { end(); reject(new Error("timeout")); }, 20_000);
+  });
+}
+
+async function nativeState(): Promise<PushState> {
+  const np = await nativePlugin();
+  const perm = await np.checkPermissions();
+  if (perm.receive === "denied") return "denied";
+  const token = savedToken();
+  if (perm.receive !== "granted" || !token) return "off";
+  try {
+    const r = await rpc<{ registered: boolean }>("checkPushSubscription", { endpoint: `apns:${token}` });
+    return r.registered ? "on" : "off";
+  } catch {
+    return "off";
+  }
+}
+
+async function nativeEnable(): Promise<PushState> {
+  const np = await nativePlugin();
+  const perm = await np.requestPermissions();
+  if (perm.receive !== "granted") return perm.receive === "denied" ? "denied" : "off";
+  const token = (await nativeToken()).toLowerCase();
+  await rpc("saveNativePush", { token });
+  try { localStorage.setItem(NATIVE_TOKEN, token); } catch { /* sem armazenamento: liga de novo na próxima vez */ }
+  return "on";
+}
+
+async function nativeDisable(): Promise<PushState> {
+  const token = savedToken();
+  if (token) await rpc("removePushSubscription", { endpoint: `apns:${token}` }).catch(() => undefined);
+  try { localStorage.removeItem(NATIVE_TOKEN); } catch { /* nada */ }
+  return "off";
+}
+
 export async function pushState(): Promise<PushState> {
   if (typeof window === "undefined") return "unsupported";
+  if (isNativeApp()) return nativeState();
   if (isIos() && !standalone()) return "needs-install";
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return "unsupported";
   if (Notification.permission === "denied") return "denied";
@@ -31,6 +85,7 @@ export async function pushState(): Promise<PushState> {
 
 /** Pede permissão, registra este aparelho e salva no servidor. */
 export async function enablePush(): Promise<PushState> {
+  if (isNativeApp()) return nativeEnable();
   const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!key) return "unsupported";
   const perm = await Notification.requestPermission();
@@ -43,6 +98,7 @@ export async function enablePush(): Promise<PushState> {
 }
 
 export async function disablePush(): Promise<PushState> {
+  if (isNativeApp()) return nativeDisable();
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   if (sub) {
@@ -58,6 +114,7 @@ export const testPush = () => rpc<PushTest>("testPush");
 /** Ao sair da conta: desliga os avisos SÓ deste aparelho (os outros aparelhos da pessoa continuam). */
 export async function signOutThisDevice() {
   try {
+    if (isNativeApp()) { await nativeDisable(); return; }
     if (!("serviceWorker" in navigator)) return;
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = await reg?.pushManager.getSubscription();
@@ -77,7 +134,13 @@ export const markNotificationsRead = (ids: string[]) => rpc("markNotificationsRe
  */
 export async function syncDeviceOwner() {
   try {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (typeof window === "undefined") return;
+    if (isNativeApp()) {
+      const token = savedToken();
+      if (token) await rpc("checkPushSubscription", { endpoint: `apns:${token}` });
+      return;
+    }
+    if (!("serviceWorker" in navigator)) return;
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = await reg?.pushManager.getSubscription();
     if (sub) await rpc("checkPushSubscription", { endpoint: sub.endpoint });

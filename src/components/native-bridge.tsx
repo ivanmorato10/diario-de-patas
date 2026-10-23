@@ -6,7 +6,8 @@ import { resumeApplePurchases } from "@/lib/apple-iap";
 
 /**
  * Só no app do iPhone: recebe a volta do login do Google/Apple (diariodepatas://auth/callback?code=…) e
- * termina o login dentro do app; e confirma compras da Apple que ficaram abertas (app fechado no meio).
+ * termina o login dentro do app; abre a tela certa ao tocar num aviso; e confirma compras da Apple que ficaram
+ * abertas (app fechado no meio).
  */
 export function NativeBridge() {
   useEffect(() => {
@@ -21,7 +22,13 @@ export function NativeBridge() {
         // A troca do código pela sessão acontece no próprio app (os cookies do login estão aqui).
         window.location.assign(`/auth/callback${url.slice(NATIVE_AUTH_CALLBACK.length)}`);
       });
-      remove = () => void handle.remove();
+      // Toque num aviso: abre o que ele mostra (só caminhos internos).
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const tap = await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
+        const to = (notification.data as { url?: string } | undefined)?.url;
+        if (to && to.startsWith("/") && !to.startsWith("//")) window.location.assign(to);
+      });
+      remove = () => { void handle.remove(); void tap.remove(); };
     })();
     const t = setTimeout(() => void resumeApplePurchases().catch(() => undefined), 4000);
     return () => { remove?.(); clearTimeout(t); };

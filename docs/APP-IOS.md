@@ -18,12 +18,16 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
   é finalizada no iPhone depois da confirmação; se o app fechar no meio, confirma na próxima abertura.
 - Estorno/revogação: avisos da Apple em `/api/pagamentos/apple` (assinados) retiram os créditos que sobraram.
 - Compras de teste (TestFlight/sandbox) ficam marcadas como teste (`credit_purchases.sandbox`).
+- **Avisos no celular**: dentro do app, pelo serviço da Apple (APNs), direto do servidor (`src/server/apns.ts`,
+  sem Firebase). Ligar em Avisos › "Receber avisos no celular" pede a permissão do iPhone e guarda o aparelho
+  (`push_subscriptions`, tipo `apns`); tocar no aviso abre a tela certa. No navegador continua o Web Push.
 
 ## Passo a passo (proprietário)
 
 ### 1. Apple Developer / App Store Connect (conta de desenvolvedor)
 1. **Identificador do app**: developer.apple.com › Certificates, IDs & Profiles › Identifiers › "+" › App IDs ›
-   Bundle ID **`com.diariodepatas.app`** (explícito). Em Capabilities, deixar **In-App Purchase** marcado.
+   Bundle ID **`com.diariodepatas.app`** (explícito). Em Capabilities, marcar **In-App Purchase** e
+   **Push Notifications**.
 2. **Criar o app**: appstoreconnect.apple.com › Apps › "+" › New App: iOS, nome "Diário de Patas", idioma
    principal Português (Brasil), Bundle ID o de cima, SKU `diario-de-patas`. Anotar o **Apple ID** numérico do
    app (App Information). Depois, em App Information › Localizable Information, acrescentar **English (U.S.)**
@@ -43,7 +47,10 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
    **Key ID** e **Issuer ID** e baixar o `.p8` (fica FORA do repositório, ex.: `~/Documents/diario-de-patas/`).
 7. **Chave do Codemagic**: Users and Access › Integrations › **App Store Connect API** › Team Keys › "+", acesso
    **App Manager**. Anotar Key ID e Issuer ID e baixar o `.p8` (também fora do repositório).
-8. **Avisos de estorno**: o app › App Information › App Store Server Notifications › **Version 2**, Production e
+8. **Chave dos avisos no celular**: developer.apple.com › Certificates, IDs & Profiles › **Keys** › "+" › marcar
+   **Apple Push Notifications service (APNs)** › baixar o `.p8` (fora do repositório). Anotar o **Key ID** e o
+   **Team ID** (canto de cima da página da conta).
+9. **Avisos de estorno**: o app › App Information › App Store Server Notifications › **Version 2**, Production e
    Sandbox: `https://diario-de-patas.vercel.app/api/pagamentos/apple`.
 
 ### 2. Variáveis do servidor (`.env.local` e Vercel, nunca no código ou no chat)
@@ -53,6 +60,9 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
 | `APPLE_IAP_ISSUER_ID` | Issuer ID (passo 6) |
 | `APPLE_IAP_PRIVATE_KEY` | conteúdo do `.p8` do passo 6 (com as quebras de linha como `\n`) |
 | `APPLE_APP_ID` | Apple ID numérico do app (passo 2) |
+| `APNS_KEY_ID` | Key ID da chave de avisos (passo 8) |
+| `APNS_TEAM_ID` | Team ID da conta de desenvolvedor |
+| `APNS_PRIVATE_KEY` | conteúdo do `.p8` do passo 8 (com as quebras de linha como `\n`) |
 
 ### 3. Codemagic (compila sem Mac)
 1. codemagic.io › entrar com o GitHub › adicionar o repositório `diario-de-patas` (ele lê o `codemagic.yaml`).
@@ -70,9 +80,8 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
 3. Enviar para revisão.
 
 ## Pontos de atenção na revisão da Apple
-- **4.2 (app muito parecido com site)**: o app tem compra nativa, login pelo sistema, câmera e fotos; se a Apple
-  pedir mais, próximos passos: avisos nativos (push) e salvar artes na galeria pelo app.
+- **4.2 (app muito parecido com site)**: o app tem compra nativa, avisos nativos, login pelo sistema, câmera e
+  fotos; se a Apple pedir mais: salvar artes na galeria pelo app.
 - **1.2 (conteúdo de outras pessoas)**: o diário é privado, só com convidados; links compartilhados são só de
   leitura. Se pedirem, acrescentar "denunciar" e "bloquear".
 - **3.1.1**: dentro do app só a compra da Apple (já é assim).
-- Avisos no celular (push) ainda não funcionam dentro do app do iPhone (só no app instalado pelo Safari).

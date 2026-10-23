@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
+/** Houve troca de tela dentro do app nesta aba (sessionStorage). */
+export const IN_APP_NAV = "ddp_in_app_nav";
+
 /**
  * Registra o service worker só em produção (§15: cache apenas de assets estáticos).
  * Atualizações: o sw.js é buscado sem cache e conferido ao voltar para o app. Quando há versão nova, a página
@@ -15,8 +18,10 @@ export function ServiceWorker() {
   const first = useRef(true);
 
   // Versão nova esperando: a próxima troca de tela já abre a versão nova (é uma navegação de qualquer jeito).
+  // Também marca que houve navegação dentro do app nesta aba ("voltar" de Termos/Privacidade volta uma página).
   useEffect(() => {
     if (first.current) { first.current = false; return; }
+    try { sessionStorage.setItem(IN_APP_NAV, "1"); } catch { /* sem armazenamento: "voltar" usa o destino padrão */ }
     if (pending.current) window.location.reload();
   }, [pathname]);
 

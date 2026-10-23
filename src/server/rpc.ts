@@ -27,7 +27,7 @@ import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./stu
 import { sendAccountDeleted } from "./mailer";
 import { attachReferral, confirmReferral, referralInfo } from "./referrals";
 import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
-import { checkPushSubscription, unreadCount, listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, setNotifyPrefs, testPush } from "./notify";
+import { checkPushSubscription, unreadCount, listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, saveNativePush, setNotifyPrefs, testPush } from "./notify";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { appleConfirm, appleStore } from "./apple";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
@@ -810,7 +810,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase, appleStore: (c) => appleStore(c), appleConfirm,
   achadinhosInfo: () => achadinhosInfo(),
   setPreferences,
-  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead, checkPushSubscription, unreadCount: (c) => unreadCount(c), savePushSubscription, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,
+  switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead, checkPushSubscription, unreadCount: (c) => unreadCount(c), savePushSubscription, saveNativePush, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

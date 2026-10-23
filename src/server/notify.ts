@@ -9,6 +9,7 @@
 import "server-only";
 import { after } from "next/server";
 import webpush from "web-push";
+import { apnsReady, sendApns } from "./apns";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { adminClient } from "./supabase";
@@ -66,12 +67,22 @@ async function displayName(userId: string, fallback?: User) {
 /** Envia para os aparelhos da pessoa. Devolve quantos o serviço de push ACEITOU (não é confirmação de entrega). */
 async function sendPush(userId: string, payload: { title: string; body: string; url: string; tag: string; renotify?: boolean }) {
   const res = { devices: 0, accepted: 0 };
-  if (!pushReady()) return res;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:diariodepatas.app@gmail.com", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  if (!pushReady() && !apnsReady()) return res;
+  if (pushReady()) webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:diariodepatas.app@gmail.com", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
   const admin = adminClient();
-  const subs = ((await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("user_id", userId)).data ?? []) as any[];
+  const subs = ((await admin.from("push_subscriptions").select("id, kind, endpoint, p256dh, auth").eq("user_id", userId)).data ?? []) as any[];
   res.devices = subs.length;
   await Promise.all(subs.map(async (s) => {
+    // App do iPhone: pela Apple (APNs).
+    if (s.kind === "apns") {
+      if (!apnsReady()) return;
+      const r = await sendApns(String(s.endpoint).slice("apns:".length), payload);
+      if (r.ok) res.accepted++;
+      else if (r.gone) await admin.from("push_subscriptions").delete().eq("id", s.id);
+      else console.error("apns", r.status, r.reason ?? "");
+      return;
+    }
+    if (!pushReady()) return;
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { TTL: 24 * 3600 });
       res.accepted++;
@@ -180,9 +191,16 @@ export async function setNotifyPrefs(ctx: Ctx, args: unknown) {
   return {};
 }
 
+/** App do iPhone: liga os avisos deste aparelho (token da Apple) à conta que está usando agora. */
+export async function saveNativePush(ctx: Ctx, args: unknown) {
+  const { token } = z.object({ token: z.string().regex(/^[0-9a-fA-F]{32,200}$/) }).parse(args);
+  await adminClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, kind: "apns", endpoint: `apns:${token.toLowerCase()}`, p256dh: null, auth: null, user_agent: "ios-app" }, { onConflict: "endpoint" });
+  return {};
+}
+
 /** Teste: manda um aviso só para você. Diz a verdade: sem configuração ou sem aparelho, não "enviou". */
 export async function testPush(ctx: Ctx) {
-  if (!pushReady()) return { configured: false, devices: 0, accepted: 0 };
+  if (!pushReady() && !apnsReady()) return { configured: false, devices: 0, accepted: 0 };
   const t = translator((await localesOf([ctx.user.id])).get(ctx.user.id) ?? DEFAULT_LOCALE);
   const r = await sendPush(ctx.user.id, { title: "Diário de Patas", body: t("push.test"), url: "/novidades", tag: "teste", renotify: true });
   return { configured: true, ...r };

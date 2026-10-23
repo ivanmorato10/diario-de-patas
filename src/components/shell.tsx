@@ -10,6 +10,7 @@ import { IconAlbum, IconArrowLeft, IconBook, IconBrush, IconHeart, IconSun, Icon
 import { DogMenu } from "./dog-switcher";
 import { DogBell } from "./notifications";
 import { AbuFace, BrandLockup } from "./brand";
+import { IN_APP_NAV } from "./service-worker";
 
 const NAV = [
   { href: "/hoje", label: "today", Icon: IconSun },
@@ -43,7 +44,11 @@ export function BottomNav() {
 }
 
 /** `emoji`: identidade rápida da tela, ao lado do título (cada tela passa o seu). */
-export function TopBar({ title, back, emoji }: { title?: string; back?: string; emoji?: string }) {
+/**
+ * `backHistory`: o "voltar" volta uma página (de onde a pessoa veio); aberta direto, sem página anterior, vai para
+ * `back`. Usado nas páginas que se abrem de vários lugares (Termos, Privacidade, Reembolso).
+ */
+export function TopBar({ title, back, emoji, backHistory }: { title?: string; back?: string; emoji?: string; backHistory?: boolean }) {
   const { snap } = useStore();
   const t = useTranslations("shell");
   const dog = snap?.dog;
@@ -59,7 +64,15 @@ export function TopBar({ title, back, emoji }: { title?: string; back?: string; 
       <div className="topbar__inner">
         <div className="row" style={{ gap: 8, minWidth: 0 }}>
           {back ? (
-            <Link href={back} className="icon-btn" aria-label={t("back")}><IconArrowLeft /></Link>
+            backHistory ? (
+              <a href={back} className="icon-btn" aria-label={t("back")} onClick={(e) => {
+                let inApp = false;
+                try { inApp = sessionStorage.getItem(IN_APP_NAV) === "1"; } catch { /* sem armazenamento */ }
+                if (inApp && window.history.length > 1) { e.preventDefault(); window.history.back(); }
+              }}><IconArrowLeft /></a>
+            ) : (
+              <Link href={back} className="icon-btn" aria-label={t("back")}><IconArrowLeft /></Link>
+            )
           ) : (
             <Link href="/hoje" aria-label={t("home")} style={{ display: "inline-flex" }}>{title ? <AbuFace size={38} className="brand-lockup__face" /> : <BrandLockup />}</Link>
           )}
