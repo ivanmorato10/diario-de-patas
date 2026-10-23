@@ -34,7 +34,7 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 - Conferir um email de login em inglês de verdade (assunto com a condição de idioma; ver docs/IDIOMAS.md).
 - Termos de uso, política de privacidade e reembolso também em inglês.
 - Pagamento em dólar (Stripe): cobrança real ligada em 23/10/2026. Falta uma compra real de US$ 0,99 com estorno
-  para conferir de ponta a ponta, e publicar Termos/Privacidade/Reembolso (texto aprovado; faltam nome e cidade).
+  para conferir de ponta a ponta, Termos, Privacidade e Reembolso publicados em 23/10/2026 (/termos, /privacidade, /reembolso; Morato Tecnologia, CNPJ 23.928.563/0001-40).
 
 ## App do iPhone (App Store, desde 21/10/2026)
 - Código pronto (Capacitor + compra da Apple + Codemagic). Falta: identificador do app, criar o app no App Store

@@ -30,7 +30,6 @@
       "push": "<strong>Phone notifications:</strong> go through your device's notification service (Apple or Google). You can turn them off in My account › Notifications.",
       "delete": "<strong>Deleting:</strong> in My account › Delete my account, or just one diary in Profile › Manage diary."
     },
-    "terms": "The full terms of use and privacy policy will be published before the public launch.",
     "studioTitle": "Art Studio",
     "studioText": "Each piece of art shows up in the diary with the “🎨 Studio art” badge and counts toward the memory limit. If the diary is full, the art isn't created and no credit is used.",
     "supportTitle": "Support",
@@ -2682,5 +2681,11 @@
     "howLabel": "How art of the month works",
     "pawsLabel": "Paws this month",
     "help": "Every mission is worth paws 🐾. Collect {goal} in a month and you earn 1 credit to create art of {dog} in the Studio. The count starts over every month."
+  },
+  "legal": {
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "refund": "Refund Policy",
+    "label": "Legal documents"
   }
 }

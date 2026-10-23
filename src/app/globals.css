@@ -1032,3 +1032,13 @@ a.done-card:active { transform: scale(0.97); }
  * - :active (afundar o botão) aparece já no toque, porque o layout registra um ouvinte de toque. */
 a, button, summary, label, input[type="checkbox"], input[type="radio"], [role="button"], [role="tab"], [role="radio"] { touch-action: manipulation; }
 
+/* Termos, Privacidade e Reembolso: texto corrido legível no celular. */
+.legal { display: grid; gap: 12px; line-height: 1.55; }
+.legal p, .legal ul { margin: 0; }
+.legal ul { padding-left: 1.2em; display: grid; gap: 6px; }
+.legal__table { overflow-x: auto; }
+.legal__table td { vertical-align: top; padding: 6px 4px; }
+.legal__nav { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; }
+.legal__nav a, .legal-links a { color: var(--link); font-weight: 600; }
+.legal-links { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 0.8125rem; margin: 0; }
+

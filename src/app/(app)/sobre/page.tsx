@@ -7,6 +7,7 @@ import { SUPPORT } from "@/config/business";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
 import { Paw } from "@/components/icons";
+import { LegalLinks } from "@/components/legal-links";
 import { levelName } from "@/i18n/catalog";
 import { loose } from "@/i18n/keys";
 
@@ -60,7 +61,7 @@ export default function Sobre() {
           <ul className="small privacy-list">
             {PRIVACY.map((k) => <li key={k}>{t.rich(`privacy.${k}`, strong)}</li>)}
           </ul>
-          <p className="caption" style={{ margin: 0 }}>{t("terms")}</p>
+          <LegalLinks />
         </section>
 
         <section id="estudio" className="stack" aria-labelledby="estudio-t">

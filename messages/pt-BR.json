@@ -30,7 +30,6 @@
       "push": "<strong>Avisos no celular:</strong> passam pelo serviço de notificações do seu aparelho (Apple ou Google). Você desliga em Minha conta › Notificações.",
       "delete": "<strong>Excluir:</strong> em Minha conta › Excluir minha conta, ou só um diário em Perfil › Gerenciar diário."
     },
-    "terms": "Os termos de uso e a política de privacidade completos serão publicados antes do lançamento público.",
     "studioTitle": "Estúdio de artes",
     "studioText": "Cada arte aparece no diário com o selo “🎨 Arte do Estúdio” e entra no limite de lembranças. Se o diário estiver cheio, a arte não é criada e nenhum crédito é usado.",
     "supportTitle": "Suporte",
@@ -2682,5 +2681,11 @@
     "howLabel": "Como funciona a arte do mês",
     "pawsLabel": "Patinhas do mês",
     "help": "Cada missão vale patinhas 🐾. Juntando {goal} no mês, você ganha 1 crédito para criar uma arte de {dog} no Estúdio. A contagem recomeça todo mês."
+  },
+  "legal": {
+    "terms": "Termos de Uso",
+    "privacy": "Política de Privacidade",
+    "refund": "Política de Reembolso",
+    "label": "Documentos"
   }
 }

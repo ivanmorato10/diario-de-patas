@@ -115,6 +115,15 @@ try:
         check("toque vira clique na hora (touch-action: manipulation)", e.evaluate("getComputedStyle(document.querySelector('button')).touchAction") == "manipulation")
         check("sem efeito de hover preso na tela de toque", not e.evaluate("matchMedia('(hover: hover) and (pointer: fine)').matches"))
         text_checks(e, "entrada (en)", True); no_overflow(e, "entrada 375px")
+        # Termos, Privacidade e Reembolso: públicos (sem login), no idioma de quem lê, sem campos por preencher.
+        check("entrada tem links de Terms/Privacy/Refund", all(e.get_by_role("link", name=n).count() for n in ("Terms of Use", "Privacy Policy", "Refund Policy")))
+        for path, title, word in (("/termos", "Terms of Use", "Morato Tecnologia"), ("/privacidade", "Privacy Policy", "23.928.563/0001-40"), ("/reembolso", "Refund Policy", "14 days")):
+            e.goto(BASE + path)
+            body = e.inner_text("main")
+            check(f"{path} sem login, em inglês, completo", e.get_by_role("heading", name=title).count() > 0 and word in body and "[" not in body and "/entrar" not in e.url)
+            text_checks(e, f"{path} (en)", True); no_overflow(e, f"{path} 375px")
+        e.screenshot(path=f"{OUT}/01c-reembolso-en.png", full_page=True)
+        e.goto(BASE + "/entrar")
         e.screenshot(path=f"{OUT}/01-entrar-en.png", full_page=True)
 
         # ---------- Conta nova em inglês: apresentação, criar diário ----------
@@ -309,6 +318,10 @@ try:
         pp = ctxP.new_page(); pp.on("pageerror", lambda x: errors.append(str(x)))
         login(pp, "P", False)
         st2, _ = rpc(pp, "acceptInvite", {"code": inv["code"], "name": "Paula"})
+        pp.goto(BASE + "/hoje")
+        pp.goto(BASE + "/privacidade")
+        check("Política de Privacidade em português (idioma de quem lê)", pp.get_by_role("heading", name="Política de Privacidade").count() > 0 and "Encarregado" in pp.inner_text("main"))
+        no_overflow(pp, "/privacidade 320px")
         pp.goto(BASE + "/hoje")
         check("pessoa em português no mesmo diário vê tudo em português", eventually(lambda t: expect(pp.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
         text_checks(pp, "Hoje (pt-BR)", False); no_overflow(pp, "Hoje 320px (pt-BR)")

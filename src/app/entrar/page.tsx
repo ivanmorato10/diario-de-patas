@@ -9,6 +9,7 @@ import { browserClient } from "@/data/supabase-browser";
 import { isNativeApp, NATIVE_AUTH_CALLBACK, openNativeAuth } from "@/lib/native";
 import { AbuMascot, PawDiaryNote } from "@/components/brand";
 import { LanguageSwitch } from "@/components/language-switch";
+import { LegalLinks } from "@/components/legal-links";
 import { useErrorText } from "@/i18n/use-error";
 import { IconInfo, Paw } from "@/components/icons";
 import { InstallAppLink, isStandalone } from "@/components/install-app";
@@ -264,6 +265,7 @@ function Entrar() {
           <p className="sp-foot sp-in sp-in--5">{t("foot")}</p>
           <div className="sp-in sp-in--5"><InstallAppLink variant="splash" /></div>
           <div className="sp-in sp-in--5 sp-lang"><LanguageSwitch compact /></div>
+          <div className="sp-in sp-in--5"><LegalLinks /></div>
         </main>
       ) : (
         <>

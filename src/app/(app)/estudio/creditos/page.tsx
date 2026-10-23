@@ -10,6 +10,7 @@ import { createPurchase, creditShop, fakePayPurchase, purchaseStatus, studioStat
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { IconInfo, Paw } from "@/components/icons";
 import { PawBurst } from "@/components/celebrate";
+import { LegalLinks } from "@/components/legal-links";
 import { isNativeApp } from "@/lib/native";
 import { appleProducts, buyWithApple, type AppleProduct, type AppleStore } from "@/lib/apple-iap";
 import { rpc } from "@/data/real-repository";
@@ -220,6 +221,7 @@ function AppleShop({ onPaid }: { onPaid: (p: CreditPurchase) => void }) {
         {busy ? t("opening") : chosen ? t("payApple", { price: chosen.priceString }) : t("pickPack")}
       </button>
       <p className="caption" style={{ textAlign: "center" }}>{t("oneTimeApple")}</p>
+      <LegalLinks only={["refund", "terms"]} />
     </section>
   );
 }
@@ -345,6 +347,7 @@ export default function Creditos() {
               {busy ? (shop.provider === "stripe" ? t("opening") : t("generating")) : pkg ? t(shop.provider === "stripe" ? "payCard" : "pay", { price: money(pkg.priceCents) }) : t("pickPack")}
             </button>
             <p className="caption" style={{ textAlign: "center" }}>{shop.provider === "stripe" ? t("oneTimeCard") : t("oneTime")}</p>
+            <LegalLinks only={["refund", "terms"]} />
           </section>
         ) : error ? <p className="field-error" role="alert">{error}</p> : <PageLoading />}
 
