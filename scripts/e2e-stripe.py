@@ -23,6 +23,11 @@ def admin(method, path, body=None):
                                  headers={"apikey": SERVICE, "authorization": f"Bearer {SERVICE}", "content-type": "application/json"})
     with urllib.request.urlopen(req) as r: return json.loads(r.read() or b"null")
 
+def rest(method, path, body=None):
+    req = urllib.request.Request(f"{URL}/rest/v1/{path}", method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"apikey": SERVICE, "authorization": f"Bearer {SERVICE}", "content-type": "application/json", "prefer": "return=representation"})
+    with urllib.request.urlopen(req) as r: return json.loads(r.read() or b"null")
+
 def stripe_get(path):
     req = urllib.request.Request(f"https://api.stripe.com/v1/{path}", headers={"authorization": f"Bearer {env['STRIPE_SECRET_KEY']}"})
     with urllib.request.urlopen(req) as r: return json.loads(r.read())
@@ -83,6 +88,15 @@ try:
         st, err = rpc(api, "createPurchase", {"packageId": "p99", "idempotencyKey": str(uuid.uuid4())})
         check(f"pacote inexistente recusado pelo servidor ({st})", st == 400)
 
+        # Resposta do Stripe perdida DEPOIS de ele criar a página: a repetição (mesma chave) recupera a MESMA página.
+        key = str(uuid.uuid4())
+        st1, p1 = rpc(api, "createPurchase", {"packageId": "p1", "idempotencyKey": key})
+        sess1 = rest("GET", f"credit_purchases?id=eq.{p1['id']}&select=provider_payment_id")[0]["provider_payment_id"]
+        rest("PATCH", f"credit_purchases?id=eq.{p1['id']}", {"provider_payment_id": None, "checkout_url": None})  # simula a resposta perdida
+        st2, p2 = rpc(api, "createPurchase", {"packageId": "p1", "idempotencyKey": key})
+        sess2 = rest("GET", f"credit_purchases?id=eq.{p1['id']}&select=provider_payment_id,status")[0]
+        check(f"repetição recupera a mesma página do Stripe ({st2}, {sess2['status']})", st2 == 200 and sess2["provider_payment_id"] == sess1 and p2["checkoutUrl"] and sess2["status"] == "pending")
+
         # ---------- Desistir na página do Stripe: nada cobrado, nenhum crédito ----------
         pg.get_by_role("radio", name=re.compile(r"1 credit.*\$0\.99")).tap()
         pg.get_by_role("button", name=re.compile(r"Pay by card")).tap()
@@ -93,7 +107,7 @@ try:
         pg.go_back()  # volta sem pagar (o "voltar" do Stripe leva ao cancel_url; o do navegador, à loja)
         pg.goto(BASE + "/estudio/creditos")
         shop = rpc(api, "creditShop", {})[1]
-        pend = [x for x in shop["purchases"] if x["status"] == "pending"]
+        pend = [x for x in shop["purchases"] if x["status"] == "pending" and x["id"] != p1["id"]]
         check("compra sem pagar fica pendente, com 'continuar pagamento'", len(pend) == 1 and pend[0]["checkoutUrl"] and pend[0]["currency"] == "USD" and pend[0]["amountCents"] == 99)
         check("tela oferece continuar o pagamento", eventually(lambda t: expect(pg.get_by_role("link", name="Continue to payment")).to_be_visible(timeout=t)))
         pg.get_by_role("link", name="Continue to payment").tap()

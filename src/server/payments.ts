@@ -124,16 +124,28 @@ async function siteUrl() {
 
 interface CheckoutCharge { providerPaymentId: string; url: string; expiresAt: string }
 
+/**
+ * Parâmetros da cobrança gravados na compra ANTES da primeira chamada ao provedor. Uma repetição (resposta perdida,
+ * duplo toque) manda exatamente os mesmos, com a mesma chave de idempotência: o provedor devolve a MESMA cobrança.
+ * (Recalcular o vencimento a cada tentativa fazia o Stripe recusar a repetição.)
+ */
+async function frozenRequest<T>(row: any, build: () => Promise<T>): Promise<T> {
+  if (row.provider_request) return row.provider_request as T;
+  const req = await build();
+  const admin = adminClient();
+  await admin.from("credit_purchases").update({ provider_request: req }).eq("id", row.id).is("provider_request", null);
+  const saved = (await admin.from("credit_purchases").select("provider_request").eq("id", row.id).single()).data as any;
+  row.provider_request = saved?.provider_request ?? req; // duas tentativas ao mesmo tempo: vale a que gravou primeiro
+  return row.provider_request as T;
+}
+
 /** Cria a página de pagamento do Stripe para a compra (repetir com o mesmo id devolve a mesma página). */
 async function createCheckout(row: any, description: string, email: string): Promise<CheckoutCharge> {
-  const expiresAt = new Date(Date.now() + CHECKOUT_EXPIRES_MINUTES * 60_000);
-  const site = await siteUrl();
-  const back = `${site}/estudio/creditos?compra=${row.id}`;
-  const locale = await requestLocale();
-  const session = await stripe("checkout/sessions", {
-    method: "POST",
-    idempotencyKey: `checkout-${row.id}`,
-    form: {
+  const form = await frozenRequest<Record<string, string>>(row, async () => {
+    const expiresAt = new Date(Date.now() + CHECKOUT_EXPIRES_MINUTES * 60_000);
+    const back = `${await siteUrl()}/estudio/creditos?compra=${row.id}`;
+    const locale = await requestLocale();
+    return {
       mode: "payment",
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": String(row.currency).toLowerCase(),
@@ -148,9 +160,10 @@ async function createCheckout(row: any, description: string, email: string): Pro
       expires_at: String(Math.floor(expiresAt.getTime() / 1000)),
       success_url: `${back}&pagamento=ok`,
       cancel_url: `${back}&pagamento=cancelado`,
-    },
+    };
   });
-  return { providerPaymentId: String(session.id), url: String(session.url), expiresAt: expiresAt.toISOString() };
+  const session = await stripe("checkout/sessions", { method: "POST", idempotencyKey: `checkout-${row.id}`, form });
+  return { providerPaymentId: String(session.id), url: String(session.url), expiresAt: new Date(Number(form.expires_at) * 1000).toISOString() };
 }
 
 /** Sessão do Stripe → nosso status. Pago e depois estornado ou contestado = estornado. */
@@ -175,23 +188,20 @@ export function validStripeSignature(secret: string, header: string | null, body
   return sigs.some((v) => { const b = Buffer.from(v); return b.length === expected.length && timingSafeEqual(b, expected); });
 }
 
-async function createPix(purchaseId: string, amountCents: number, description: string, email: string): Promise<PixCharge> {
-  const expiresAt = new Date(Date.now() + PIX_EXPIRES_MINUTES * 60_000).toISOString();
+async function createPix(row: any, description: string, email: string): Promise<PixCharge> {
+  const purchaseId = row.id as string;
+  const body = await frozenRequest(row, async () => ({
+    transaction_amount: row.amount_cents / 100,
+    description,
+    payment_method_id: "pix",
+    external_reference: purchaseId,
+    notification_url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://diario-de-patas.vercel.app"}/api/pagamentos/webhook`,
+    date_of_expiration: new Date(Date.now() + PIX_EXPIRES_MINUTES * 60_000).toISOString(),
+    payer: { email },
+  }));
+  const expiresAt = body.date_of_expiration;
   if (paymentsFake()) return { providerPaymentId: `teste-${purchaseId}`, status: "pending", qr: `00020126PIXDETESTE-${purchaseId}`, qrBase64: null, expiresAt };
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://diario-de-patas.vercel.app";
-  const json = await mp("payments", {
-    method: "POST",
-    idempotencyKey: purchaseId,
-    body: JSON.stringify({
-      transaction_amount: amountCents / 100,
-      description,
-      payment_method_id: "pix",
-      external_reference: purchaseId,
-      notification_url: `${site}/api/pagamentos/webhook`,
-      date_of_expiration: expiresAt,
-      payer: { email },
-    }),
-  });
+  const json = await mp("payments", { method: "POST", idempotencyKey: purchaseId, body: JSON.stringify(body) });
   const tx = json?.point_of_interaction?.transaction_data ?? {};
   return { providerPaymentId: String(json.id), status: mapMpStatus(json.status), qr: tx.qr_code ?? null, qrBase64: tx.qr_code_base64 ?? null, expiresAt: json.date_of_expiration ?? expiresAt };
 }
@@ -335,10 +345,10 @@ async function deliverApproved() {
   const have = new Set((((await admin.from("credit_ledger").select("idempotency_key").in("idempotency_key", keys)).data ?? []) as any[]).map((r) => r.idempotency_key));
   let granted = 0, receipts = 0;
   for (const p of approved) {
-    if (!have.has(`purchase:${p.id}`)) {
-      await grantCredits(p.id).then(() => granted++, () => undefined);
-    }
-    if (!p.receipt_sent_at) { await sendReceipt(p.id); receipts++; }
+    // Comprovante só depois de os créditos estarem entregues: se a entrega falhar, fica pendente (sem email).
+    let delivered = have.has(`purchase:${p.id}`);
+    if (!delivered) delivered = await grantCredits(p.id).then(() => { granted++; return true; }, () => false);
+    if (delivered && !p.receipt_sent_at) { await sendReceipt(p.id); receipts++; }
   }
   return { granted, receipts };
 }
@@ -444,7 +454,7 @@ async function attachCheckout(row: any, dogName: string, email: string) {
 async function attachPix(row: any, dogName: string, email: string) {
   const admin = adminClient();
   try {
-    const pix = await createPix(row.id, row.amount_cents, `Diário de Patas — ${row.credits} créditos (${dogName})`, email);
+    const pix = await createPix(row, `Diário de Patas — ${row.credits} créditos (${dogName})`, email);
     const upd = (await admin.from("credit_purchases").update({
       provider_payment_id: pix.providerPaymentId, status: pix.status, pix_qr: pix.qr, pix_qr_base64: pix.qrBase64, expires_at: pix.expiresAt, updated_at: now(),
     }).eq("id", row.id).select("*").single()).data;

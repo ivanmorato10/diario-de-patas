@@ -93,7 +93,13 @@ export async function appleConfirm(ctx: Ctx, args: unknown) {
   const prior = (await admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle()).data as any;
   if (prior) {
     if (prior.owner_id !== ctx.user.id) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
-    return toPurchase(prior); // já entregue (repetição, ou o app reabriu antes de finalizar na Apple)
+    // Repetição (ou o app reabriu antes de finalizar na Apple): garante a entrega antes de dizer "aprovada".
+    // A concessão é idempotente; se falhar, lança e o app não finaliza a transação (tenta na próxima abertura).
+    if (prior.status === "approved") {
+      await grantCredits(prior.id);
+      if (!prior.receipt_sent_at) await sendReceipt(prior.id);
+    }
+    return toPurchase(prior);
   }
   const { tx, env } = await fetchTransaction(transactionId);
   const checked = checkAppleTransaction(tx, { bundleId: APPLE_BUNDLE_ID, token: appAccountTokenFor(ctx.user.id) });
