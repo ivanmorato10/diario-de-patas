@@ -12,6 +12,7 @@ import { IconInfo, Paw } from "@/components/icons";
 import { PawBurst } from "@/components/celebrate";
 import { LegalLinks } from "@/components/legal-links";
 import { isNativeApp } from "@/lib/native";
+import { usePoll } from "@/lib/poll";
 import { appleProducts, buyWithApple, type AppleProduct, type AppleStore } from "@/lib/apple-iap";
 import { rpc } from "@/data/real-repository";
 
@@ -34,17 +35,13 @@ function PixPanel({ purchase, test, onPaid, onRestart }: { purchase: CreditPurch
   const t = useTranslations("credits");
   const f = useFormat();
   const money = (cents: number) => f.money(cents, p.currency || "BRL");
-  useEffect(() => {
-    if (p.status !== "pending") return;
-    const t = setInterval(async () => {
-      try {
-        const n = await purchaseStatus(p.id);
-        setP(n);
-        if (n.status === "approved") onPaid(n);
-      } catch { /* tenta de novo */ }
-    }, 4000);
-    return () => clearInterval(t);
-  }, [p.id, p.status, onPaid]);
+  // Uma consulta por vez; pausa com a tela escondida; espera mais depois de falhas.
+  usePoll(async () => {
+    const n = await purchaseStatus(p.id);
+    setP(n);
+    if (n.status === "approved") onPaid(n);
+    return n.status !== "pending";
+  }, 4000, p.status === "pending");
 
   async function copy() {
     if (!p.pixQr) return;
@@ -110,21 +107,14 @@ function CheckoutPanel({ purchase, returning, onPaid, onRestart }: { purchase: C
   const [slow, setSlow] = useState(false);
   const t = useTranslations("credits");
   const f = useFormat();
-  useEffect(() => {
-    if (p.status !== "pending") return;
-    const started = Date.now();
-    const check = async () => {
-      try {
-        const n = await purchaseStatus(p.id);
-        setP(n);
-        if (n.status === "approved") onPaid(n);
-      } catch { /* tenta de novo */ }
-      if (Date.now() - started > 45_000) setSlow(true);
-    };
-    void check();
-    const timer = setInterval(check, returning === "ok" ? 2500 : 5000);
-    return () => clearInterval(timer);
-  }, [p.id, p.status, returning, onPaid]);
+  const started = useRef(Date.now());
+  usePoll(async () => {
+    if (Date.now() - started.current > 45_000) setSlow(true);
+    const n = await purchaseStatus(p.id);
+    setP(n);
+    if (n.status === "approved") onPaid(n);
+    return n.status !== "pending";
+  }, returning === "ok" ? 2500 : 5000, p.status === "pending");
 
   if (p.status !== "pending") {
     return (

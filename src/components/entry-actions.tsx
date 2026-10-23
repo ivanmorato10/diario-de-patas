@@ -39,7 +39,7 @@ export function Sheet({ open, onClose, labelledBy, children, onAttemptClose }: {
 }
 
 export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEntry; albumIds: string[]; today: string; label: string }) {
-  const { repo, reload } = useStore();
+  const { repo, reload, patchSnap } = useStore();
   const [mode, setMode] = useState<"none" | "edit" | "delete">("none");
   const [caption, setCaption] = useState(entry.caption);
   const [date, setDate] = useState(entry.occurredDate);
@@ -63,13 +63,16 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
     setBusy(true);
     try {
       await repo!.updateEntry(entry.id, { caption, occurredDate: date, albumIds: albums });
-      await reload();
-      setMode("none");
     } catch (e) {
       setError(errText(e instanceof DomainError ? e : null, "errors.saveFailed"));
-    } finally {
       setBusy(false);
+      return;
     }
+    // Gravou: a tela muda na hora e fecha; a atualização completa vem depois (se falhar, não vira "não salvou").
+    patchSnap((s) => ({ ...s, entries: s.entries.map((x) => (x.id === entry.id ? { ...x, caption, occurredDate: date } : x)) }));
+    setBusy(false);
+    setMode("none");
+    void reload().catch(() => undefined);
   }
 
   async function confirmDelete() {
@@ -77,8 +80,9 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
     setBusy(true);
     try {
       await repo!.deleteEntry(entry.id);
+      patchSnap((s) => ({ ...s, entries: s.entries.filter((x) => x.id !== entry.id), albumEntries: s.albumEntries.filter((x) => x.entryId !== entry.id) }));
       setMode("none");
-      await reload();
+      void reload().catch(() => undefined);
     } finally {
       setBusy(false);
     }
@@ -143,9 +147,22 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
 export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: CycleContext; label: string }) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("entry");
+  if (entry.source !== "free" || entry.missionId) return null;
+  return (
+    <>
+      <button type="button" className="btn btn--ghost btn--small" onClick={() => setOpen(true)} aria-label={t("useLabel", { label })}>
+        <IconStar size={18} /> {t("use")}
+      </button>
+      {/* A lista só é montada com a janela aberta: o Diário não monta uma lista por foto à toa. */}
+      {open ? <UseInMissionSheet entry={entry} ctx={ctx} onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
+function UseInMissionSheet({ entry, ctx, onClose }: { entry: DiaryEntry; ctx: CycleContext; onClose: () => void }) {
+  const t = useTranslations("entry");
   const tm = useTranslations("mission");
   const cat = useCatalog(useStore().snap?.dog?.name ?? "");
-  if (entry.source !== "free" || entry.missionId) return null;
   // Do dia (sugestões de hoje), especiais ativas, itens de coleção e o catálogo de missões únicas.
   const today = ctx.plan ? Object.values(ctx.plan.slots).map((id) => missionById(id)!) : [];
   const specials = activeSpecials(ctx.today, ctx.birthDate, ctx.region).map((w) => w.mission);
@@ -155,30 +172,25 @@ export function UseInMission({ entry, ctx, label }: { entry: DiaryEntry; ctx: Cy
     .sort((a, b) => Number(a.state === "completed") - Number(b.state === "completed"));
   const title = `use-${entry.id}`;
   return (
-    <>
-      <button type="button" className="btn btn--ghost btn--small" onClick={() => setOpen(true)} aria-label={t("useLabel", { label })}>
-        <IconStar size={18} /> {t("use")}
-      </button>
-      <Sheet open={open} onClose={() => setOpen(false)} labelledBy={title}>
-        <h2 id={title}>{t("useTitle")}</h2>
-        <p className="page-note">{t("useNote")}</p>
-        <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: "55dvh", overflowY: "auto" }}>
-          {options.map(({ m, state }) => (
-            <li key={m.id}>
-              <Link href={`/guardar?missao=${m.slug}&entrada=${entry.id}`} className="card mission-card" style={{ padding: 12 }}>
-                <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
-                  <strong>{cat.title(m)}</strong>
-                  <span className="caption">{m.kind === "once" ? cat.collection(m.collectionId).title : tm(`kind.${m.kind}`)}{state === "completed" ? ` · ${t("alreadyDone")}` : ""}</span>
-                </span>
-                {state === "available" ? <span className="chip chip--reward">+{m.xp} 🐾</span> : null}
-                <IconChevron size={18} className="muted" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {options.length === 0 ? <p className="small">{t("noneAvailable")}</p> : null}
-        <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(false)}>{t("cancel")}</button>
-      </Sheet>
-    </>
+    <Sheet open onClose={onClose} labelledBy={title}>
+      <h2 id={title}>{t("useTitle")}</h2>
+      <p className="page-note">{t("useNote")}</p>
+      <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: "55dvh", overflowY: "auto" }}>
+        {options.map(({ m, state }) => (
+          <li key={m.id}>
+            <Link href={`/guardar?missao=${m.slug}&entrada=${entry.id}`} className="card mission-card" style={{ padding: 12 }}>
+              <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
+                <strong>{cat.title(m)}</strong>
+                <span className="caption">{m.kind === "once" ? cat.collection(m.collectionId).title : tm(`kind.${m.kind}`)}{state === "completed" ? ` · ${t("alreadyDone")}` : ""}</span>
+              </span>
+              {state === "available" ? <span className="chip chip--reward">+{m.xp} 🐾</span> : null}
+              <IconChevron size={18} className="muted" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {options.length === 0 ? <p className="small">{t("noneAvailable")}</p> : null}
+      <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>{t("cancel")}</button>
+    </Sheet>
   );
 }

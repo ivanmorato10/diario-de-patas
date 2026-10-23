@@ -15,20 +15,25 @@ export function useCareMutation() {
   const [errorRaw, setError] = useState<string | null>(null);
   const errText = useErrorText();
   const error = errorRaw ? errText(errorRaw) : null;
+  /**
+   * Gravar e atualizar a tela são coisas separadas: o sucesso aparece assim que o servidor grava; a atualização da
+   * tela vem em seguida e, se falhar, não vira "não salvou" (a próxima abertura atualiza). Repetir uma criação não
+   * duplica (chave de repetição em real-repository).
+   */
   const run = useCallback(
     async (fn: () => Promise<unknown>): Promise<boolean> => {
       setBusy(true);
       setError(null);
       try {
         await fn();
-        await reload();
-        return true;
       } catch (e) {
         setError(e instanceof DomainError ? e.message : "errors.saveFailed");
-        return false;
-      } finally {
         setBusy(false);
+        return false;
       }
+      setBusy(false);
+      void reload().catch(() => undefined);
+      return true;
     },
     [reload],
   );

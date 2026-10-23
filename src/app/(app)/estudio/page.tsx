@@ -1,5 +1,6 @@
 "use client";
 
+import { usePoll } from "@/lib/poll";
 import { XP_MONTH_GOAL } from "@/config/credits";
 import { LIMITS, fullDiaryParams } from "@/config/business";
 import { Sheet } from "@/components/entry-actions";
@@ -287,6 +288,9 @@ function Estudio() {
     const cur = presetId ? presetById(presetId) : undefined;
     const base = cur ? presetById(cur.variantOf ?? cur.id) : undefined;
     if (base?.illustration) setPresetId(next === "ilustracao" ? base.id + ILLUSTRATED_SUFFIX : base.id);
+    // Tema de estilo único (figurinha) só existe em "Ilustração": ao trocar para "Realista", sai da seleção
+    // (antes ficava escolhido, escondido da lista, e a arte seria criada com ele).
+    else if (base && hasLooks && next === "realista") setPresetId(null);
   }
   const [photoId, setPhotoId] = useState<string | null>(params.get("entrada"));
   const [aspect, setAspect] = useState<StudioAspect | null>(null);
@@ -339,19 +343,15 @@ function Estudio() {
   }, [state, current]);
 
   // Acompanha o job até terminar (a geração continua no servidor mesmo se a tela fechar).
-  useEffect(() => {
-    if (!current || !["queued", "processing"].includes(current.state)) return;
-    const t = setInterval(async () => {
-      try {
-        const j = await studioJob(current.id);
-        if (j.state !== current.state) setCurrent(j);
-        if (!["queued", "processing"].includes(j.state)) void refresh();
-      } catch {
-        /* tenta de novo no próximo intervalo */
-      }
-    }, 3000);
-    return () => clearInterval(t);
-  }, [current, refresh]);
+  // Uma consulta por vez (sem acúmulo em internet lenta); pausa com a tela escondida.
+  usePoll(async () => {
+    if (!current) return true;
+    const j = await studioJob(current.id);
+    if (j.state !== current.state) setCurrent(j);
+    const done = !["queued", "processing"].includes(j.state);
+    if (done) void refresh();
+    return done;
+  }, 3000, !!current && ["queued", "processing"].includes(current.state));
 
   // Valida a foto (e o recorte) antes de gastar crédito: foto ruim dá arte ruim.
   useEffect(() => {

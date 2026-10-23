@@ -71,6 +71,7 @@ function GuardarInner() {
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [pickNotes, setPickNotes] = useState<string[]>([]);
   const [dupe, setDupe] = useState<DiaryEntry | null>(null);
+  const pickedHash = useRef<string | null>(null); // foto da conferência de duplicata em andamento
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const entryKey = useRef<string>("");
@@ -121,9 +122,12 @@ function GuardarInner() {
     setPickNotes([]);
     entryKey.current = newId(); // nova tentativa = nova chave; retries reutilizam
     setDate(p.takenDate && p.takenDate <= snap!.today ? p.takenDate : presetDate && isCivilDate(presetDate) && presetDate <= snap!.today ? presetDate : snap!.today);
-    // Conferir duplicata não pode travar nem perder a foto já preparada: se falhar, segue sem o aviso.
-    setDupe(await repo!.findEntryByHash(p.hash).catch(() => null));
+    // A foto preparada aparece na hora; a conferência de duplicata roda em paralelo e só mostra o aviso se ainda
+    // for a mesma foto (trocou de foto no meio: a resposta antiga é ignorada). Se falhar, segue sem o aviso.
+    setDupe(null);
     setStep({ kind: "edit" });
+    pickedHash.current = p.hash;
+    void repo!.findEntryByHash(p.hash).then((d) => { if (pickedHash.current === p.hash) setDupe(d); }, () => undefined);
   }
 
   function onPickedMany(imgs: ProcessedImage[], failures: PickFailure[], skipped: number) {

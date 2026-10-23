@@ -69,17 +69,26 @@ export function nameFromUser(u: { email?: string | null; user_metadata?: any } |
 /** Lista de diários da pessoa (para o seletor) e membros do diário aberto. */
 export async function familyInfo(ctx: Ctx, dog: CurrentDog | null) {
   const admin = adminClient();
-  const { data: mine } = await admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop, owner_id)").eq("user_id", ctx.user.id).order("created_at");
+  // Meus diários e quem participa deste: as duas consultas ao mesmo tempo.
+  const [{ data: mine }, { data: mem }] = await Promise.all([
+    admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop, owner_id)").eq("user_id", ctx.user.id).order("created_at"),
+    dog ? admin.from("dog_members").select("user_id, role, created_at").eq("dog_id", dog.id).order("created_at") : Promise.resolve({ data: [] as any[] }),
+  ]);
   const diaries = ((mine ?? []) as any[]).map((r) => ({ id: r.dogs.id, name: r.dogs.name, photoMediaId: r.dogs.photo_asset_id ?? null, avatarCrop: r.dogs.avatar_crop ?? null, role: r.role as Role, mine: r.dogs.owner_id === ctx.user.id }));
   let members: { userId: string; name: string; email: string; role: Role; me: boolean; owner: boolean }[] = [];
   if (dog) {
-    const { data: mem } = await admin.from("dog_members").select("user_id, role, created_at").eq("dog_id", dog.id).order("created_at");
-    const { data: profs } = await admin.from("profiles").select("user_id, display_name").in("user_id", ((mem ?? []) as any[]).map((m) => m.user_id));
+    const ids = ((mem ?? []) as any[]).map((m) => m.user_id);
+    // Nomes (perfil) e contas (email/nome do login) de todos numa ida só cada, em paralelo.
+    const [{ data: profs }, { data: accounts }] = await Promise.all([
+      admin.from("profiles").select("user_id, display_name").in("user_id", ids),
+      admin.rpc("member_accounts", { p_ids: ids }),
+    ]);
     const pname = new Map(((profs ?? []) as any[]).map((p) => [p.user_id, p.display_name as string]));
-    members = await Promise.all(((mem ?? []) as any[]).map(async (m) => {
-      const { data } = await admin.auth.admin.getUserById(m.user_id);
-      return { userId: m.user_id, name: pname.get(m.user_id) || nameFromUser(data.user), email: data.user?.email ?? "", role: m.role as Role, me: m.user_id === ctx.user.id, owner: m.user_id === dog.owner_id };
-    }));
+    const account = new Map(((accounts ?? []) as any[]).map((a) => [a.id, { email: a.email as string, user_metadata: a.meta }]));
+    members = ((mem ?? []) as any[]).map((m) => {
+      const acc = account.get(m.user_id);
+      return { userId: m.user_id, name: pname.get(m.user_id) || nameFromUser((acc ?? { email: "" }) as never), email: acc?.email ?? "", role: m.role as Role, me: m.user_id === ctx.user.id, owner: m.user_id === dog.owner_id };
+    });
   }
   return { diaries, members };
 }

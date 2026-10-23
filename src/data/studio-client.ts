@@ -42,7 +42,15 @@ export interface StudioState {
 }
 
 export const studioState = () => rpc<StudioState>("studioState");
-export const studioJob = (id: string) => rpc<StudioJob>("studioJob", { id });
+/** A tela do Estúdio e o acompanhamento geral consultam a mesma arte: uma consulta em andamento por arte. */
+const jobInFlight = new Map<string, Promise<StudioJob>>();
+export const studioJob = (id: string): Promise<StudioJob> => {
+  const cur = jobInFlight.get(id);
+  if (cur) return cur;
+  const p = rpc<StudioJob>("studioJob", { id }).finally(() => jobInFlight.delete(id));
+  jobInFlight.set(id, p);
+  return p;
+};
 export const studioCreateJob = (input: {
   entryId: string; presetId: string; aspect: StudioAspect; idempotencyKey: string;
   crop: { x: number; y: number; w: number; h: number } | null; overlay: StudioOverlay | null;

@@ -12,7 +12,7 @@ import webpush from "web-push";
 import { apnsReady, sendApns } from "./apns";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { adminClient } from "./supabase";
+import { adminClient, HttpError } from "./supabase";
 import { nameFromUser } from "./family";
 import { localesOf, requestLocale, translator, type ServerT } from "./i18n";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
@@ -186,8 +186,14 @@ export async function removePushSubscription(ctx: Ctx, args: unknown) {
 }
 
 export async function setNotifyPrefs(ctx: Ctx, args: unknown) {
-  const a = z.object({ photo: z.boolean(), letter: z.boolean(), bone: z.boolean() }).parse(args);
-  await adminClient().from("profiles").upsert({ user_id: ctx.user.id, notify_photo: a.photo, notify_letter: a.letter, notify_bone: a.bone }, { onConflict: "user_id" });
+  // Só os campos que vieram mudam: dois toques seguidos (fotos e cartinhas) não desfazem um ao outro.
+  const a = z.object({ photo: z.boolean().optional(), letter: z.boolean().optional(), bone: z.boolean().optional() }).parse(args);
+  const row: Record<string, unknown> = { user_id: ctx.user.id };
+  if (a.photo !== undefined) row.notify_photo = a.photo;
+  if (a.letter !== undefined) row.notify_letter = a.letter;
+  if (a.bone !== undefined) row.notify_bone = a.bone;
+  const { error } = await adminClient().from("profiles").upsert(row, { onConflict: "user_id" });
+  if (error) throw new HttpError(500, "SERVER", "errors.saveFailed");
   return {};
 }
 

@@ -172,15 +172,14 @@ export async function setPreferences(ctx: Ctx, args: unknown) {
 
 export async function snapshot(ctx: Ctx) {
   const { supa } = ctx;
-  const profile = await profileOf(ctx);
-  const dog = await dogOf(ctx, false);
+  const [profile, dog] = await Promise.all([profileOf(ctx), dogOf(ctx, false)]); // independentes: ao mesmo tempo
   const today = todayOf(profile);
   if (!dog) {
     const fam = await familyInfo(ctx, null);
     return { profile: profile ? toProfile(profile) : null, me: meOf(ctx, profile), dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
   }
   const D = dog.id;
-  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes] = await Promise.all([
+  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes, plan] = await Promise.all([
     q(supa.from("diary_entries").select("*").eq("dog_id", D).is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*").eq("dog_id", D)),
     q(supa.from("album_entries").select("album_id, entry_id")),
@@ -200,6 +199,7 @@ export async function snapshot(ctx: Ctx) {
     q(supa.from("letters").select("*").eq("dog_id", D).order("letter_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("bones").select("target_type, target_id, user_id").eq("dog_id", D)),
     supa.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).is("read_at", null),
+    ensurePlan(ctx, dog, today), // plano do dia junto com o resto (antes, só depois de tudo)
   ]) as any[];
   const memberName = new Map<string, string>((fam.members as any[]).map((m) => [m.userId, m.name]));
   const albumById = new Map<string, any>(albums.map((a: any) => [a.id, a]));
@@ -245,7 +245,7 @@ export async function snapshot(ctx: Ctx) {
       contacts: contacts.map(toContact).sort((a: any, b: any) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.name.localeCompare(b.name, "pt-BR")),
       documents: docs.map(toDocument),
     },
-    dailyPlan: await ensurePlan(ctx, dog, today),
+    dailyPlan: plan,
     collectionAdvances: advances.map((a: any): CollectionAdvance => ({ key: `${dog.id}:${a.item_id}`, dogId: dog.id, itemId: a.item_id, entryId: a.entry_id, viaMissionId: a.via_mission_id, createdAt: a.created_at })),
     medals: medals.map((m: any): Medal => ({ key: `${dog.id}:${m.set_id}`, dogId: dog.id, setId: m.set_id, createdAt: m.created_at })),
     customAlbums: albums.filter((a: any) => a.type === "custom").map(toCustomAlbum).sort((a: any, b: any) => a.createdAt.localeCompare(b.createdAt)),
@@ -428,11 +428,15 @@ const customUuid = (id: string) => {
 };
 
 export async function createAlbum(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ title: z.string() }), args);
+  const a = parse(z.object({ title: z.string(), key: RepeatKey }), args);
   const dog = await editableDog(ctx);
+  if (a.key) {
+    const already = (await ctx.supa.from("albums").select("*").eq("id", a.key).eq("dog_id", dog.id).maybeSingle()).data;
+    if (already) return toCustomAlbum(already); // repetição: o álbum já foi criado
+  }
   const { count } = await ctx.supa.from("albums").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("type", "custom");
   if ((count ?? 0) >= LIMITS.maxCustomAlbums) throw bad("ALBUM_QUOTA", "errors.albumQuota", { max: LIMITS.maxCustomAlbums });
-  return toCustomAlbum(await q(ctx.supa.from("albums").insert({ owner_id: dog.owner_id, dog_id: dog.id, title: albumTitle(a.title), type: "custom" }).select("*").single()));
+  return toCustomAlbum(await insertOnce(ctx, "albums", { owner_id: dog.owner_id, dog_id: dog.id, title: albumTitle(a.title), type: "custom" }, a.key, dog.id));
 }
 
 export async function renameAlbum(ctx: Ctx, args: unknown) {
@@ -530,14 +534,34 @@ export async function saveHealthProfile(ctx: Ctx, args: unknown) {
   return toHealthProfile(await q(ctx.supa.from("health_profiles").upsert({ dog_id: dog.id, owner_id: dog.owner_id, ...d, updated_at: now() }).select("*").single()));
 }
 
+/** Chave de repetição opcional (UUID) que o app manda nas criações. */
+const RepeatKey = z.string().uuid().optional();
+
+/**
+ * Criação que pode ser repetida sem duplicar: o app manda um id estável (`key`); se o registro já existe (a primeira
+ * tentativa gravou, mas a resposta se perdeu), devolve o mesmo em vez de criar outro. Sem `key`, cria normalmente.
+ */
+async function insertOnce(ctx: Ctx, table: string, row: Record<string, unknown>, key: string | undefined, dogId: string) {
+  const existing = async () => (key ? ((await ctx.supa.from(table).select("*").eq("id", key).eq("dog_id", dogId).maybeSingle()).data as any) : null);
+  const before = await existing();
+  if (before) return before;
+  const { data, error } = await ctx.supa.from(table).insert(key ? { ...row, id: key } : row).select("*").single();
+  if (error?.code === "23505" && key) {
+    const again = await existing(); // duas tentativas ao mesmo tempo: vale a que gravou
+    if (again) return again;
+  }
+  return q(Promise.resolve({ data, error }));
+}
+
 export async function addWeight(ctx: Ctx, args: unknown) {
   const d = parse(WeightSchema, args);
+  const key = parse(RepeatKey, (args as { key?: unknown } | null)?.key);
   const dog = await editableDog(ctx);
-  return toWeight(await q(ctx.supa.from("weights").insert({ owner_id: dog.owner_id, dog_id: dog.id, date: d.date, kg: d.kg }).select("*").single()));
+  return toWeight(await insertOnce(ctx, "weights", { owner_id: dog.owner_id, dog_id: dog.id, date: d.date, kg: d.kg }, key, dog.id));
 }
 
 export async function saveCare(ctx: Ctx, args: unknown) {
-  const a = parse(z.object({ store: z.enum(["vaccines", "visits", "medications", "contacts"]), input: z.unknown(), id: z.string().uuid().optional() }), args);
+  const a = parse(z.object({ store: z.enum(["vaccines", "visits", "medications", "contacts"]), input: z.unknown(), id: z.string().uuid().optional(), key: RepeatKey }), args);
   const def = CARE[a.store];
   const data = parse(def.schema as z.ZodType<any>, a.input);
   const dog = await editableDog(ctx);
@@ -545,7 +569,7 @@ export async function saveCare(ctx: Ctx, args: unknown) {
   const row = { ...def.row(data), updated_at: now() };
   const saved = a.id
     ? ((await q(ctx.supa.from(a.store).update(row).eq("id", a.id).eq("dog_id", dog.id).select("*"))) as any[])[0]
-    : await q(ctx.supa.from(a.store).insert({ ...row, owner_id: dog.owner_id, dog_id: dog.id }).select("*").single());
+    : await insertOnce(ctx, a.store, { ...row, owner_id: dog.owner_id, dog_id: dog.id }, a.key, dog.id);
   if (!saved) throw bad("NOT_FOUND", "errors.recordNotFound");
   if (a.store === "visits") {
     const ids: string[] = data.documentIds ?? [];

@@ -80,9 +80,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Arte do Estúdio em andamento: quando terminar, o diário atualiza em qualquer tela.
   // Erro passageiro (rede, servidor) tenta de novo; só sai da lista quando o pedido não existe mais
   // ou depois que o diário daquele cachorro foi recarregado com sucesso.
+  // Uma volta por vez: a próxima só começa 5 s depois que a anterior terminou (sem acúmulo em internet lenta).
   useEffect(() => {
-    const t = setInterval(async () => {
-      if (!repoRef.current || document.visibilityState !== "visible") return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const loop = async () => {
+      if (stopped) return;
+      if (repoRef.current && document.visibilityState === "visible") await checkArts();
+      if (!stopped) timer = setTimeout(loop, 5000);
+    };
+    const checkArts = async () => {
       for (const p of pendingArts()) {
         let done = false;
         try {
@@ -97,8 +104,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           try { await reload(); untrackArt(p.id); } catch { /* tenta de novo na próxima volta */ }
         }
       }
-    }, 5000);
-    return () => clearInterval(t);
+    };
+    timer = setTimeout(loop, 5000);
+    return () => { stopped = true; clearTimeout(timer); };
   }, [reload]);
 
   useEffect(() => {
@@ -148,11 +156,13 @@ export function useBlobUrl(blob: Blob | null | undefined): string | null {
 }
 
 /** Arquivo de uma foto do diário: undefined = carregando, null = indisponível. */
-export function useMediaBlob(id: string | null | undefined, variant: "thumb" | "display"): Blob | null | undefined {
+/** `enabled: false` = ainda não baixa (foto longe da tela); baixa quando passar a true. */
+export function useMediaBlob(id: string | null | undefined, variant: "thumb" | "display", enabled = true): Blob | null | undefined {
   const { repo } = useStore();
   const [b, setB] = useState<Blob | null | undefined>(undefined);
   useEffect(() => {
     let alive = true;
+    if (!enabled) return;
     if (!repo || !id) {
       setB(id ? undefined : null);
       return;
@@ -162,7 +172,7 @@ export function useMediaBlob(id: string | null | undefined, variant: "thumb" | "
     return () => {
       alive = false;
     };
-  }, [repo, id, variant]);
+  }, [repo, id, variant, enabled]);
   return b;
 }
 

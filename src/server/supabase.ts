@@ -7,7 +7,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
 
 export async function userClient(): Promise<SupabaseClient> {
@@ -44,10 +44,16 @@ export class HttpError extends Error {
   }
 }
 
-/** Usuário da sessão, conferido no servidor do Supabase (não confia só no cookie). */
+/**
+ * Usuário da sessão. A sessão é conferida pela assinatura do token (chaves assimétricas do Supabase, conferidas aqui
+ * sem ida ao servidor de login): cada operação do app fica uma viagem mais rápida. O banco confere o mesmo token
+ * em toda consulta (RLS). Só o que o token traz: id, email e metadados do login.
+ */
 export async function requireUser() {
   const supa = await userClient();
-  const { data, error } = await supa.auth.getUser();
-  if (error || !data.user) throw new HttpError(401, "UNAUTHENTICATED", "errors.unauthenticated");
-  return { user: data.user, supa };
+  const { data, error } = await supa.auth.getClaims();
+  const c = data?.claims as { sub?: string; email?: string; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> } | undefined;
+  if (error || !c?.sub) throw new HttpError(401, "UNAUTHENTICATED", "errors.unauthenticated");
+  const user = { id: c.sub, email: c.email, user_metadata: c.user_metadata ?? {}, app_metadata: c.app_metadata ?? {}, aud: "authenticated", created_at: "" } as User;
+  return { user, supa };
 }

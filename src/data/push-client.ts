@@ -123,7 +123,7 @@ export async function signOutThisDevice() {
     await sub.unsubscribe().catch(() => undefined);
   } catch { /* sair nunca trava por causa dos avisos */ }
 }
-export const setNotifyPrefs = (p: { photo: boolean; letter: boolean; bone: boolean }) => rpc("setNotifyPrefs", p);
+export const setNotifyPrefs = (p: Partial<{ photo: boolean; letter: boolean; bone: boolean }>) => rpc("setNotifyPrefs", p);
 export interface Notice { id: string; dogId: string; read: boolean; createdAt: string; text: string; url: string }
 export const listNotifications = () => rpc<Notice[]>("listNotifications");
 export const markNotificationsRead = (ids: string[]) => rpc("markNotificationsRead", { ids });

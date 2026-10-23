@@ -48,8 +48,11 @@ export function DogBell() {
 /* Estado do push neste aparelho: notify.state.<estado>. */
 
 /** Ligar/desligar o push neste aparelho e escolher quais avisos receber. */
+/** Gravações das preferências de aviso em fila: chegam ao servidor na ordem dos toques. */
+let prefQueue: Promise<unknown> = Promise.resolve();
+
 export function NotificationSettings() {
-  const { snap, reload } = useStore();
+  const { snap, patchSnap } = useStore();
   const [state, setState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -85,9 +88,15 @@ export function NotificationSettings() {
     }
   }
 
-  async function pref(k: "photo" | "letter" | "bone", v: boolean) {
-    await setNotifyPrefs({ ...prefs, [k]: v }).catch(() => setMsg(t("saveFailed")));
-    await reload();
+  /**
+   * A caixa muda na hora; manda só o campo tocado, em fila (toques rápidos chegam em ordem). Se falhar, a caixa
+   * volta ao que era e avisa.
+   */
+  function pref(k: "photo" | "letter" | "bone", v: boolean) {
+    const set = (val: boolean) => patchSnap((s) => (s.me ? { ...s, me: { ...s.me, notify: { ...(s.me.notify ?? { photo: true, letter: true, bone: true }), [k]: val } } } : s));
+    set(v);
+    setMsg(null);
+    prefQueue = prefQueue.then(() => setNotifyPrefs({ [k]: v })).catch(() => { set(!v); setMsg(t("saveFailed")); });
   }
 
   return (

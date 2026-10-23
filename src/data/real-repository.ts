@@ -3,6 +3,7 @@
  * O servidor é a autoridade de posse, XP, cotas e plano do dia; o navegador só processa as fotos
  * (EXIF, metadados, miniatura) e envia os arquivos direto ao bucket privado por URL assinada.
  */
+import { track } from "@/lib/busy";
 import { DomainError } from "./demo-repository";
 import { browserClient } from "./supabase-browser";
 import { isPublicPath } from "@/config/routes";
@@ -18,13 +19,32 @@ let activeDog: string | null = null;
 export const setActiveDog = (id: string | null | undefined) => { activeDog = id ?? null; };
 export const getActiveDog = () => activeDog;
 
+/**
+ * Chave de repetição de uma criação (peso, vacina, consulta, remédio, contato, álbum): o mesmo conteúdo, nesta
+ * abertura do app, dá sempre a mesma chave. Se a primeira tentativa gravou mas a resposta se perdeu, repetir devolve
+ * o mesmo registro em vez de duplicar. Conteúdo diferente = registro novo.
+ */
+const VISIT = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random());
+async function repeatKey(kind: string, input: unknown): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${VISIT}|${kind}|${JSON.stringify(input)}`));
+  const b = new Uint8Array(digest).slice(0, 16);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+/** Criar (com chave de repetição) ou editar um registro de cuidados. */
+const saveCare = async (store: string, input: unknown, id?: string) =>
+  rpc("saveCare", { store, input, id, ...(id ? {} : { key: await repeatKey(store, input) }) });
+
 export async function rpc<T>(method: string, args: unknown = {}): Promise<T> {
-  const res = await fetch(`/api/rpc/${method}`, {
+  const res = await track(fetch(`/api/rpc/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json", ...(activeDog ? { "x-ddp-dog": activeDog } : {}) },
     body: JSON.stringify(args),
     credentials: "same-origin",
-  });
+  }));
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     // Sem sessão: quem leva para /entrar é o proxy (nas páginas protegidas); aqui só sinaliza.
@@ -40,15 +60,19 @@ interface UploadTicket {
 }
 
 /** Cria o registro, envia as variantes e pede ao servidor para inspecionar os bytes antes de aceitar. */
-async function upload(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>): Promise<string> {
+function upload(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>): Promise<string> {
+  return track(uploadNow(kind, meta, files)); // envio em andamento: a atualização automática do app espera
+}
+
+async function uploadNow(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>): Promise<string> {
   const ticket = await rpc<UploadTicket>("createUpload", { kind, ...meta, sizes: Object.fromEntries(Object.entries(files).map(([k, b]) => [k, b?.size ?? 0])) });
-  for (const u of ticket.uploads) {
+  // Direto para o bucket privado, com o token de uso único que o servidor gerou; foto e miniatura ao mesmo tempo.
+  await Promise.all(ticket.uploads.map(async (u) => {
     const b = files[u.variant];
-    if (!b) continue;
-    // Direto para o bucket privado, com o token de uso único que o servidor gerou.
+    if (!b) return;
     const { error } = await browserClient().storage.from(ticket.bucket).uploadToSignedUrl(u.path, u.token, b, { contentType: b.type || "application/octet-stream" });
     if (error) throw new DomainError("UPLOAD", "errors.uploadFailed");
-  }
+  }));
   await rpc("confirmUpload", { kind, id: ticket.id });
   return ticket.id;
 }
@@ -61,8 +85,13 @@ function emptySnapshot(): Snapshot {
 }
 
 export function realRepository(): Repository {
-  const mediaUpload = (img: { mime: string; width: number; height: number; bytes: number; hash: string; display: Blob; thumb: Blob }, kind: "photo" | "art" = "photo") =>
-    upload("media", { mime: img.mime, width: img.width, height: img.height, hash: img.hash, mediaKind: kind }, { display: img.display, thumb: img.thumb });
+  const mediaUpload = async (img: { mime: string; width: number; height: number; bytes: number; hash: string; display: Blob; thumb: Blob }, kind: "photo" | "art" = "photo") => {
+    const id = await upload("media", { mime: img.mime, width: img.width, height: img.height, hash: img.hash, mediaKind: kind }, { display: img.display, thumb: img.thumb });
+    // A foto que acabou de subir já está no aparelho: aparece na hora, sem baixar de novo do servidor.
+    blobCache.set(`${id}:display`, Promise.resolve(img.display));
+    blobCache.set(`${id}:thumb`, Promise.resolve(img.thumb));
+    return id;
+  };
 
   return {
     mode: "real",
@@ -125,18 +154,18 @@ export function realRepository(): Repository {
     },
     updateEntry: (id, patch) => rpc("updateEntry", { id, ...patch }),
     deleteEntry: (id) => rpc("deleteEntry", { id }),
-    createAlbum: (title) => rpc("createAlbum", { title }),
+    createAlbum: async (title) => rpc("createAlbum", { title, key: await repeatKey("album", title) }),
     renameAlbum: (id, title) => rpc("renameAlbum", { id, title }),
     deleteAlbum: (id) => rpc("deleteAlbum", { id }),
     addEntriesToAlbum: (albumId, entryIds) => rpc("addEntriesToAlbum", { albumId, entryIds }),
     submitMission: (input) => rpc("submitMission", input),
     swapDaily: (slot) => rpc("swapDaily", { slot }),
     saveHealthProfile: (input) => rpc("saveHealthProfile", input),
-    addWeight: (input) => rpc("addWeight", input),
-    saveVaccine: (input, id) => rpc("saveCare", { store: "vaccines", input, id }),
-    saveVisit: (input, id) => rpc("saveCare", { store: "visits", input, id }),
-    saveMedication: (input, id) => rpc("saveCare", { store: "medications", input, id }),
-    saveContact: (input, id) => rpc("saveCare", { store: "contacts", input, id }),
+    addWeight: async (input) => rpc("addWeight", { ...input, key: await repeatKey("weights", input) }),
+    saveVaccine: (input, id) => saveCare("vaccines", input, id),
+    saveVisit: (input, id) => saveCare("visits", input, id),
+    saveMedication: (input, id) => saveCare("medications", input, id),
+    saveContact: (input, id) => saveCare("contacts", input, id),
     deleteHealthRecord: (store, id) => rpc("deleteCare", { store, id }),
     async addDocument(meta, file) {
       const id = await upload("document", { ...meta, mime: file.mime }, { file: file.file, thumb: file.thumb });

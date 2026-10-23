@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { appBusy } from "@/lib/busy";
 
 /** Houve troca de tela dentro do app nesta aba (sessionStorage). */
 export const IN_APP_NAV = "ddp_in_app_nav";
@@ -9,8 +10,8 @@ export const IN_APP_NAV = "ddp_in_app_nav";
 /**
  * Registra o service worker só em produção (§15: cache apenas de assets estáticos).
  * Atualizações: o sw.js é buscado sem cache e conferido ao voltar para o app. Quando há versão nova, a página
- * recarrega uma vez, mas NUNCA no meio do uso (antes, recarregar logo ao voltar para o app engolia o toque que a
- * pessoa dava naquele instante): só quando ela muda de tela ou sai do app. Ninguém fica preso numa versão antiga.
+ * recarrega uma vez, mas NUNCA no meio do uso: só na próxima troca de tela, e só sem gravação ou envio em andamento
+ * (src/lib/busy.ts). Não recarrega ao sair do app: uma foto preparada ou uma cartinha por salvar continuam lá.
  */
 export function ServiceWorker() {
   const pathname = usePathname();
@@ -22,7 +23,7 @@ export function ServiceWorker() {
   useEffect(() => {
     if (first.current) { first.current = false; return; }
     try { sessionStorage.setItem(IN_APP_NAV, "1"); } catch { /* sem armazenamento: "voltar" usa o destino padrão */ }
-    if (pending.current) window.location.reload();
+    if (pending.current && !appBusy()) window.location.reload();
   }, [pathname]);
 
   useEffect(() => {
@@ -50,10 +51,7 @@ export function ServiceWorker() {
     };
     const timer = setInterval(checkVersion, 15 * 60_000);
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        if (pending.current) window.location.reload(); // saiu do app: ao voltar, já está na versão nova
-        return;
-      }
+      if (document.visibilityState === "hidden") return; // sair do app não recarrega (pode haver algo por salvar)
       reg?.update().catch(() => undefined);
       void checkVersion();
     };

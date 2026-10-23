@@ -167,15 +167,14 @@ function photoCheckCache(assetId: string, crop: Crop, userId: string) {
     const key = cropKey(crop);
     const hit = (await admin.from("photo_checks").select("result").eq("asset_id", assetId).eq("crop_key", key).maybeSingle()).data as any;
     if (hit) return hit.result as PhotoAssessment;
-    const { count } = await admin.from("photo_checks").select("asset_id", { count: "exact", head: true }).eq("requested_by", userId).gte("created_at", todayUtcStart());
-    if ((count ?? 0) >= PHOTO_CHECKS_PER_DAY) return null; // segue só com as checagens locais (grátis)
+    // Reserva atômica ANTES de chamar a IA (limite por pessoa + teto do dia): chamadas ao mesmo tempo não passam do
+    // limite, e uma tentativa sem resultado continua contada (pode ter sido cobrada). Sem vaga: só as checagens grátis.
     const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD) || null;
-    if (budget) {
-      const spent = Number((await admin.rpc("studio_spent_today_usd")).data ?? 0);
-      if (spent + STUDIO_COST_USD.check > budget) return null;
-    }
+    const { data: ok, error } = await admin.rpc("reserve_photo_check", { p_user: userId, p_cost: STUDIO_COST_USD.check, p_per_day: PHOTO_CHECKS_PER_DAY, p_budget_usd: budget });
+    if (error || !ok) return null;
     const r = await run();
-    if (r) await admin.from("photo_checks").upsert({ asset_id: assetId, crop_key: key, result: r, cost_usd: STUDIO_COST_USD.check, requested_by: userId }, { onConflict: "asset_id,crop_key", ignoreDuplicates: true });
+    // Custo já está na reserva; o resultado entra no cache (foto + recorte) sem somar de novo.
+    if (r) await admin.from("photo_checks").upsert({ asset_id: assetId, crop_key: key, result: r, cost_usd: 0, requested_by: userId }, { onConflict: "asset_id,crop_key", ignoreDuplicates: true });
     return r;
   };
 }

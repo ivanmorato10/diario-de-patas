@@ -49,8 +49,10 @@ export async function attachReferral(ctx: Ctx) {
   try {
     const raw = (await cookies()).get(REFERRAL_COOKIE)?.value?.toUpperCase();
     if (!raw || !isReferralCode(raw)) return;
-    if (Date.now() - Date.parse(ctx.user.created_at) > NEW_ACCOUNT_MS) return;
     const admin = adminClient();
+    // A sessão não traz a data da conta (vem do token): busca só aqui, no primeiro diário de quem chegou por indicação.
+    const { data: acc } = await admin.auth.admin.getUserById(ctx.user.id);
+    if (!acc.user || Date.now() - Date.parse(acc.user.created_at) > NEW_ACCOUNT_MS) return;
     const { data: ref } = await admin.from("profiles").select("user_id").eq("referral_code", raw).maybeSingle();
     const referrer = (ref as any)?.user_id;
     if (!referrer || referrer === ctx.user.id) return;

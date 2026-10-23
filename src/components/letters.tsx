@@ -30,7 +30,8 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
     setBusy(true);
     // Na hora: o ossinho aparece antes da resposta do servidor (o reload confirma).
     patchSnap((s) => ({ ...s, bones: mine ? (s.bones ?? []).filter((b) => !(b.targetType === targetType && b.targetId === targetId && b.userId === me)) : [...(s.bones ?? []), { targetType, targetId, userId: me! }] }));
-    try { await toggleBone(targetType, targetId); } finally { await reload().catch(() => undefined); setBusy(false); }
+    // O botão libera assim que o servidor gravou; a conferência completa vem depois, sem travar o próximo toque.
+    try { await toggleBone(targetType, targetId); } finally { setBusy(false); void reload().catch(() => undefined); }
   }
 
   // Na própria lembrança: osso aceso com o número; tocar mostra quem deu (não dá para dar em si mesmo).

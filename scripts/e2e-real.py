@@ -175,7 +175,7 @@ with sync_playwright() as p:
     # ---------- Conta B: não vê nem mexe em nada de A ----------
     # ---------- Indicar o app: B chega pelo link de A ----------
     a.goto(BASE + "/hoje"); a.get_by_role("link", name="Minha conta").click(); a.wait_for_url("**/conta")
-    check("topo: botão de pessoa abre Minha conta", a.get_by_role("heading", name="Minha conta", exact=True).is_visible())
+    check("topo: botão de pessoa abre Minha conta", eventually(lambda t: expect(a.get_by_role("heading", name="Minha conta", exact=True)).to_be_visible(timeout=t)))
     a.get_by_role("button", name=re.compile("Indicar o Diário de Patas")).click()
     ref_input = a.get_by_label("Seu link de indicação"); expect(ref_input).to_be_visible(timeout=20000)
     ref_link = ref_input.input_value()
@@ -186,7 +186,12 @@ with sync_playwright() as p:
     b = ctxB.new_page(); b.on("pageerror", lambda e: errors.append(str(e)))
     b.goto(ref_link.replace(ref_link.split("/?")[0], BASE)); b.wait_for_url("**/entrar")
     login(b, "B")
-    b.goto(BASE + "/comecar"); b.get_by_label("Nome do cachorro").fill("Thor"); b.get_by_role("button", name="Criar meu diário").click(); b.wait_for_url(lambda u: "bemvindo=1" in u, timeout=30000); b.get_by_role("button", name="Agora não").click(); b.wait_for_url("**/hoje", timeout=10000)
+    b.goto(BASE + "/comecar"); b.get_by_label("Nome do cachorro").fill("Thor"); b.get_by_role("button", name="Criar meu diário").click()
+    try:
+        b.wait_for_url(lambda u: "bemvindo=1" in u, timeout=30000)
+    except Exception:
+        print("DIAG url:", b.url); print("DIAG tela:", b.inner_text("body")[:600]); b.screenshot(path=f"{OUT}/diag-comecar.png", full_page=True); raise
+    b.get_by_role("button", name="Agora não").click(); b.wait_for_url("**/hoje", timeout=10000)
     credB = (rpc(b, "studioState", {})[1] or {}).get("balance"); credB2 = (rpc(b, "studioState", {})[1] or {}).get("balance")
     check(f"conta nova ganha exatamente 1 crédito de boas-vindas, sem repetir ({credB}, {credB2})", credB == 1 and credB2 == 1)
     snapB = rpc(b, "snapshot", {})[1]
