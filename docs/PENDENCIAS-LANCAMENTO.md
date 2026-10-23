@@ -24,9 +24,9 @@ O app explica a privacidade em Sobre › Privacidade, mas faltam os documentos f
 ## Configuração
 - Mercado Pago: em produção desde 18/10/2026 (pacotes 1/R$ 1, 5/R$ 4, 10/R$ 7; email de comprovante). Credenciais trocadas pelo proprietário em 21/10/2026.
 - Estúdio: teto diário com o Gemini de US$ 5 (`STUDIO_DAILY_BUDGET_USD`, desde 18/10/2026). Subir conforme o uso.
-- Google Cloud (projeto "Diario de Patas", conta diariodepatas.app): "Publish app" depende da página Branding: home page,
-  link da política de privacidade e dos termos, e o domínio diario-de-patas.vercel.app autorizado. Fazer depois de
-  publicar as páginas de Termos/Privacidade (rascunho em revisão pelo proprietário, 21/10/2026).
+- Google Cloud (projeto "Diario de Patas", conta diariodepatas.app): login com Google publicado ("In production") em
+  23/10/2026, com home page, /privacidade, /termos e o domínio diario-de-patas.vercel.app autorizado. Sem logo e
+  só com email/nome, não precisa de verificação do Google (com logo, precisaria).
 - Amazon (Achadinhos): elegibilidade da conta de associado para fotos dos produtos.
 - Mercado Livre (Achadinhos): hoje só texto; fotos e títulos pela API exigem um app registrado na conta de serviços (Client ID/Secret só no .env.local e na Vercel).
 
