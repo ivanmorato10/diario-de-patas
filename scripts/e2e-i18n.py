@@ -375,12 +375,49 @@ try:
         server_photo = rpc(e, "snapshot", {})[1]["me"]["notify"]["photo"]
         check(f"preferência com falha no meio: tela ({box.is_checked()}) = servidor ({server_photo}) = última escolha (desligado)", server_photo is False and not box.is_checked())
         box.click(); e.wait_for_timeout(1500)  # volta a ligar para o resto do teste
+        # Ligada: desliga e liga de novo, as DUAS gravações falham. Servidor continua ligado; a tela também.
+        held2 = []
+        e.route("**/api/rpc/setNotifyPrefs", lambda r: held2.append(r))
+        box.click(); box.click()
+        e.wait_for_timeout(300)
+        for r in held2: r.abort()
+        e.wait_for_timeout(800)
+        for r in held2[len(held2):]: r.abort()
+        e.wait_for_timeout(1500)
+        e.unroute("**/api/rpc/setNotifyPrefs")
+        server_photo = rpc(e, "snapshot", {})[1]["me"]["notify"]["photo"]
+        check(f"duas falhas seguidas: tela ({box.is_checked()}) = servidor ({server_photo}) = ligado", server_photo is True and box.is_checked())
         e.locator("dialog[open]").get_by_role("button", name="Close").last.click()
         # Ossinho de E (inglês) na foto de P (português): o aviso de P sai em português.
         entry = next(x for x in rpc(e, "snapshot", {})[1]["entries"] if x.get("createdByName") == "Paula")
         rpc(e, "toggleBone", {"targetType": "entry", "targetId": entry["id"]})
         pp.wait_for_timeout(3000); pp.goto(BASE + "/novidades")
         check("aviso para quem usa português sai em português", eventually(lambda t: expect(pp.get_by_text(re.compile("deu um ossinho na sua foto de Luna"))).to_be_visible(timeout=t), 20000))
+        # Trocar de cachorro no meio de uma gravação: o peso do Thor não pode aparecer na tela da Luna.
+        rpc(pp, "createDiary", {"timezone": "America/Sao_Paulo", "name": "Thor", "birthDate": None, "preferences": {"home": True, "outdoor": True, "people": True, "socialDogs": False}, "another": True})
+        thor = next(d for d in rpc(pp, "snapshot", {})[1]["diaries"] if d["name"] == "Thor")
+        rpc(pp, "switchDog", {"dogId": thor["id"]})
+        pp.goto(BASE + "/cuidados/peso"); expect(pp.get_by_label("Peso (kg)")).to_be_visible(timeout=20000)
+        expect(pp.locator("header .dog-switch").first).to_have_attribute("aria-label", re.compile("^Thor"), timeout=15000)
+        held_w = []
+        pp.route("**/api/rpc/addWeight", lambda r: held_w.append(r))
+        pp.get_by_label("Peso (kg)").fill("7,7"); pp.get_by_role("button", name="Adicionar peso").click()
+        pp.wait_for_timeout(500)
+        pp.locator("header .dog-switch").first.click()
+        pp.locator("dialog[open] .dog-list__item").filter(has_text="Luna").click()
+        pp.wait_for_url("**/hoje", timeout=20000); expect(pp.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=20000)
+        for r in held_w: r.continue_()  # a resposta do peso do Thor chega com a Luna aberta
+        pp.wait_for_timeout(1500)
+        pp.unroute("**/api/rpc/addWeight")
+        pp.evaluate("window.next.router.push('/cuidados/peso')")
+        expect(pp.get_by_label("Peso (kg)")).to_be_visible(timeout=20000)
+        pp.wait_for_timeout(800)
+        luna_cells = pp.locator("table").inner_text() if pp.locator("table").count() else ""
+        thor_w = [w["kg"] for w in rpc(pp, "snapshot", {})[1]["health"]["weights"]]
+        check(f"trocar de cachorro durante a gravação: peso do Thor não aparece na Luna ({'7,7' in luna_cells})", "7,7" not in luna_cells)
+        rpc(pp, "switchDog", {"dogId": thor["id"]})
+        check(f"e o peso foi salvo no Thor ({[w['kg'] for w in rpc(pp, 'snapshot', {})[1]['health']['weights']]})", any(abs(float(w["kg"]) - 7.7) < 0.01 for w in rpc(pp, "snapshot", {})[1]["health"]["weights"]))
+        rpc(pp, "switchDog", {"dogId": next(d for d in rpc(pp, "snapshot", {})[1]["diaries"] if d["name"] == "Luna")["id"]})
         st3, err = rpc(pp, "createAlbum", {"title": ""})
         st4, err_en = rpc(e, "createAlbum", {"title": ""})
         check("erro do servidor no idioma de quem pede", err.get("message") == "Dê um nome ao álbum." and err_en.get("message") == "Give the album a name.")

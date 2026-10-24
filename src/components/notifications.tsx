@@ -50,8 +50,15 @@ export function DogBell() {
 /** Ligar/desligar o push neste aparelho e escolher quais avisos receber. */
 /** Gravações das preferências de aviso em fila: chegam ao servidor na ordem dos toques. */
 let prefQueue: Promise<unknown> = Promise.resolve();
-/** Versão da escolha de cada campo (desfazer uma falha nunca passa por cima de um toque mais novo). */
-const prefVersion = { photo: 0, letter: 0, bone: 0 };
+/**
+ * Por campo: versão da escolha mais nova (desfazer uma falha nunca passa por cima de um toque mais novo), gravações
+ * em andamento e o último valor CONFIRMADO pelo servidor (para onde a caixa volta se a escolha mais nova falhar).
+ */
+const prefState = {
+  photo: { version: 0, pending: 0, confirmed: true, shown: true },
+  letter: { version: 0, pending: 0, confirmed: true, shown: true },
+  bone: { version: 0, pending: 0, confirmed: true, shown: true },
+};
 
 export function NotificationSettings() {
   const { snap, patchSnap } = useStore();
@@ -94,16 +101,27 @@ export function NotificationSettings() {
    * A caixa muda na hora; manda só o campo tocado, em fila (toques rápidos chegam em ordem). Se falhar, a caixa
    * volta ao que era e avisa.
    */
-  function pref(k: "photo" | "letter" | "bone", v: boolean) {
-    const set = (val: boolean) => patchSnap((s) => (s.me ? { ...s, me: { ...s.me, notify: { ...(s.me.notify ?? { photo: true, letter: true, bone: true }), [k]: val } } } : s));
-    const version = ++prefVersion[k]; // a escolha mais nova deste campo
+  /** Cada toque inverte o que a tela mostra AGORA (mesmo antes de redesenhar): toques muito rápidos não se perdem. */
+  function pref(k: "photo" | "letter" | "bone") {
+    const st = prefState[k];
+    const set = (val: boolean) => { st.shown = val; patchSnap((s) => (s.me ? { ...s, me: { ...s.me, notify: { ...(s.me.notify ?? { photo: true, letter: true, bone: true }), [k]: val } } } : s)); };
+    if (st.pending === 0) { st.confirmed = prefs[k]; st.shown = prefs[k]; } // sem gravação pendente, a tela mostra o que o servidor tem
+    const v = !st.shown;
+    const version = ++st.version;
+    st.pending++;
     set(v);
     setMsg(null);
-    prefQueue = prefQueue.then(() => setNotifyPrefs({ [k]: v })).catch(() => {
-      // Só desfaz se esta ainda é a escolha mais recente do campo; se a pessoa tocou de novo depois, vale o toque novo.
-      if (prefVersion[k] === version) set(!v);
-      setMsg(t("saveFailed"));
-    });
+    prefQueue = prefQueue
+      .then(() => setNotifyPrefs({ [k]: v }))
+      .then(
+        () => { st.confirmed = v; },
+        () => {
+          // Só a escolha mais recente mexe na caixa; e volta para o último valor confirmado (não o oposto do toque).
+          if (st.version === version) set(st.confirmed);
+          setMsg(t("saveFailed"));
+        },
+      )
+      .finally(() => { st.pending--; });
   }
 
   return (
@@ -120,9 +138,9 @@ export function NotificationSettings() {
       </div>
       <fieldset className="invite-box__roles">
         <legend className="caption">{t("legend")}</legend>
-        <label className="check"><input type="checkbox" checked={prefs.photo} onChange={(e) => pref("photo", e.target.checked)} /><span>{t("photo")}</span></label>
-        <label className="check"><input type="checkbox" checked={prefs.letter} onChange={(e) => pref("letter", e.target.checked)} /><span>{t("letter")}</span></label>
-        <label className="check"><input type="checkbox" checked={prefs.bone} onChange={(e) => pref("bone", e.target.checked)} /><span>{t("bone")}</span></label>
+        <label className="check"><input type="checkbox" checked={prefs.photo} onChange={() => pref("photo")} /><span>{t("photo")}</span></label>
+        <label className="check"><input type="checkbox" checked={prefs.letter} onChange={() => pref("letter")} /><span>{t("letter")}</span></label>
+        <label className="check"><input type="checkbox" checked={prefs.bone} onChange={() => pref("bone")} /><span>{t("bone")}</span></label>
       </fieldset>
       {msg ? <p className="small" role="status" style={{ margin: 0 }}>{msg}</p> : null}
     </div>

@@ -19,6 +19,11 @@ interface StoreValue {
   reload: () => Promise<void>;
   /** Atualização otimista: muda a tela na hora, antes da resposta do servidor (o reload confirma depois). */
   patchSnap: (fn: (s: Snapshot) => Snapshot) => void;
+  /**
+   * Atualização com a resposta do servidor de uma operação que começou no cachorro `dogId`: só vale se o diário
+   * aberto ainda é esse (trocou de cachorro enquanto esperava? a resposta não vai para a tela do outro).
+   */
+  patchDog: (dogId: string | null | undefined, fn: (s: Snapshot) => Snapshot) => void;
   /** Demo: apaga o diário deste aparelho. Real: exclui a conta. */
   reset: () => Promise<void>;
 }
@@ -130,7 +135,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [reload]);
 
   const patchSnap = useCallback((fn: (s: Snapshot) => Snapshot) => setSnap((s) => (s ? fn(s) : s)), []);
-  const value = useMemo(() => ({ repo, snap, unavailable, reload, reset, patchSnap }), [repo, snap, unavailable, reload, reset, patchSnap]);
+  const patchDog = useCallback((dogId: string | null | undefined, fn: (s: Snapshot) => Snapshot) => setSnap((s) => (s && dogId && s.dog?.id === dogId ? fn(s) : s)), []);
+  const value = useMemo(() => ({ repo, snap, unavailable, reload, reset, patchSnap, patchDog }), [repo, snap, unavailable, reload, reset, patchSnap, patchDog]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

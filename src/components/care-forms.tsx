@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useErrorText } from "@/i18n/use-error";
 import { DomainError } from "@/data/demo-repository";
@@ -28,7 +28,9 @@ export const removeCare = (store: CareList, id: string) => (s: Snapshot): Snapsh
   ({ ...s, health: { ...s.health, [store]: (s.health[store] as { id: string }[]).filter((x) => x.id !== id) } });
 
 export function useCareMutation() {
-  const { reload, patchSnap } = useStore();
+  const { snap, reload, patchDog } = useStore();
+  const dogNow = useRef<string | undefined>(undefined);
+  dogNow.current = snap?.dog?.id; // cachorro aberto agora (lido no começo de cada operação)
   const [busy, setBusy] = useState(false);
   const [errorRaw, setError] = useState<string | null>(null);
   const errText = useErrorText();
@@ -42,6 +44,7 @@ export function useCareMutation() {
     async <T,>(fn: () => Promise<T>, apply?: (s: Snapshot, saved: T) => Snapshot): Promise<boolean> => {
       setBusy(true);
       setError(null);
+      const dogAtStart = dogNow.current; // a resposta só entra se o diário aberto ainda for este
       let saved: T;
       try {
         saved = await fn();
@@ -51,12 +54,12 @@ export function useCareMutation() {
         return false;
       }
       // O que o servidor devolveu entra na tela já; o recarregamento depois só confere.
-      if (apply) patchSnap((s) => apply(s, saved));
+      if (apply) patchDog(dogAtStart, (s) => apply(s, saved));
       setBusy(false);
       void reload().catch(() => undefined);
       return true;
     },
-    [reload, patchSnap],
+    [reload, patchDog],
   );
   return { busy, error, setError, run };
 }

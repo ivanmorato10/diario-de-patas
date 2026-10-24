@@ -53,7 +53,7 @@ function Albuns() {
       return { a, photos: links.length, cover: links.length ? entriesById.get(links[links.length - 1].entryId)?.mediaId : undefined };
     });
   }, [snap]);
-  const { repo, reload, patchSnap } = useStore();
+  const { snap: storeSnap, repo, reload, patchDog } = useStore();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -67,10 +67,11 @@ function Albuns() {
     if (!repo || busy) return;
     setBusy(true);
     setError(null);
+    const dogAtStart = storeSnap?.dog?.id;
     try {
       const album = await repo.createAlbum(name);
       // Gravou: o álbum novo entra na tela na hora e a atualização completa vem depois (se falhar, não vira erro).
-      patchSnap((s) => ({ ...s, customAlbums: [...s.customAlbums.filter((x) => x.id !== album.id), album] }));
+      patchDog(dogAtStart, (s) => ({ ...s, customAlbums: [...s.customAlbums.filter((x) => x.id !== album.id), album] }));
       void reload().catch(() => undefined);
       setCreating(false);
       setName("");

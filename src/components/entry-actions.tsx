@@ -39,7 +39,7 @@ export function Sheet({ open, onClose, labelledBy, children, onAttemptClose }: {
 }
 
 export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEntry; albumIds: string[]; today: string; label: string }) {
-  const { repo, reload, patchSnap } = useStore();
+  const { snap, repo, reload, patchDog } = useStore();
   const [mode, setMode] = useState<"none" | "edit" | "delete">("none");
   const [caption, setCaption] = useState(entry.caption);
   const [date, setDate] = useState(entry.occurredDate);
@@ -60,6 +60,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   async function saveEdit() {
     if (!repo) return;
     if (!isCivilDate(date) || date > today) return setError(errText("errors.dateUpToToday"));
+    const dogAtStart = snap?.dog?.id; // a resposta só entra se o diário aberto ainda for este
     setBusy(true);
     try {
       await repo!.updateEntry(entry.id, { caption, occurredDate: date, albumIds: albums });
@@ -69,7 +70,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
       return;
     }
     // Gravou: a tela muda na hora e fecha; a atualização completa vem depois (se falhar, não vira "não salvou").
-    patchSnap((s) => ({ ...s, entries: s.entries.map((x) => (x.id === entry.id ? { ...x, caption, occurredDate: date } : x)) }));
+    patchDog(dogAtStart, (s) => ({ ...s, entries: s.entries.map((x) => (x.id === entry.id ? { ...x, caption, occurredDate: date } : x)) }));
     setBusy(false);
     setMode("none");
     void reload().catch(() => undefined);
@@ -77,10 +78,11 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
 
   async function confirmDelete() {
     if (!repo) return;
+    const dogAtStart = snap?.dog?.id;
     setBusy(true);
     try {
       await repo!.deleteEntry(entry.id);
-      patchSnap((s) => ({ ...s, entries: s.entries.filter((x) => x.id !== entry.id), albumEntries: s.albumEntries.filter((x) => x.entryId !== entry.id) }));
+      patchDog(dogAtStart, (s) => ({ ...s, entries: s.entries.filter((x) => x.id !== entry.id), albumEntries: s.albumEntries.filter((x) => x.entryId !== entry.id) }));
       setMode("none");
       void reload().catch(() => undefined);
     } finally {

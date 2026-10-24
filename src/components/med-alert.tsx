@@ -12,7 +12,7 @@ const key = (today: string) => `ddp-med-alert:${today}`;
 
 /** Janela "Hora do remédio" ao abrir o app no dia da dose (uma vez por dia; "Lembrar mais tarde" adia para amanhã). */
 export function MedAlert({ meds, today, dogName }: { meds: Medication[]; today: string; dogName: string }) {
-  const { repo, reload, patchSnap } = useStore();
+  const { snap, repo, reload, patchDog } = useStore();
   const due = medsDue(meds, today);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -32,9 +32,10 @@ export function MedAlert({ meds, today, dogName }: { meds: Medication[]; today: 
   };
   async function given(m: Medication) {
     setBusy(m.id);
+    const dogAtStart = snap?.dog?.id;
     try {
       const saved = await repo!.saveMedication({ ...m, lastGiven: today }, m.id);
-      patchSnap((s) => upsertCare("medications")(s, saved));
+      patchDog(dogAtStart, (s) => upsertCare("medications")(s, saved));
       void reload().catch(() => undefined);
     } finally {
       setBusy(null);
