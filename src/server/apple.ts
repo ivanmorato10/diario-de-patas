@@ -16,6 +16,7 @@ import { APPLE_ROOT_CA_G3 } from "./apple-root-ca";
 import { uuidV5 } from "./ids";
 import { currentDog, requireEditor } from "./family";
 import { adminClient, HttpError } from "./supabase";
+import { must } from "./db";
 import { grantCredits, sendReceipt, syncPurchase, toPurchase } from "./payments";
 
 type Ctx = { supa: SupabaseClient; user: User };
@@ -67,6 +68,18 @@ export function checkAppleTransaction(tx: JWSTransactionDecodedPayload, expected
 
 // ---------- RPC ----------
 
+/**
+ * Logo antes de abrir a compra da Apple: grava em qual diário os créditos devem entrar (o aberto quando a pessoa
+ * tocou em comprar). A confirmação, mesmo atrasada, usa este diário.
+ */
+export async function appleIntent(ctx: Ctx) {
+  const dog = (await currentDog(ctx))!;
+  requireEditor(dog);
+  const { error } = await adminClient().from("apple_purchase_intents").upsert({ user_id: ctx.user.id, dog_id: dog.id, created_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (error) throw new HttpError(500, "SERVER", "errors.generic");
+  return {};
+}
+
 /** Antes de abrir a compra da Apple: produtos e o identificador da pessoa (só quem pode editar o diário compra). */
 export async function appleStore(ctx: Ctx) {
   const dog = (await currentDog(ctx))!;
@@ -85,7 +98,7 @@ async function settleApplePurchase(ctx: Ctx, row: any) {
     await grantCredits(row.id);
     if (!row.receipt_sent_at) await sendReceipt(row.id);
   }
-  return toPurchase((await adminClient().from("credit_purchases").select("*").eq("id", row.id).single()).data);
+  return toPurchase(await must(adminClient().from("credit_purchases").select("*").eq("id", row.id).single(), "errors.generic"));
 }
 
 /** Depois da compra no iPhone: confere na Apple e entrega os créditos ao diário atual (uma vez por transação). */
@@ -93,7 +106,7 @@ export async function appleConfirm(ctx: Ctx, args: unknown) {
   if (!appleEnabled()) throw new HttpError(400, "PAYMENTS_OFF", "errors.paymentsOff");
   const { transactionId } = z.object({ transactionId: z.string().regex(/^\d{1,30}$/) }).parse(args);
   const admin = adminClient();
-  const prior = (await admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle()).data as any;
+  const prior = (await must(admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle(), "errors.generic")) as any;
   if (prior) return settleApplePurchase(ctx, prior); // repetição, ou o app reabriu antes de finalizar na Apple
   const { tx, env } = await fetchTransaction(transactionId);
   const checked = checkAppleTransaction(tx, { bundleId: APPLE_BUNDLE_ID, token: appAccountTokenFor(ctx.user.id) });
@@ -101,6 +114,10 @@ export async function appleConfirm(ctx: Ctx, args: unknown) {
     console.error("compra da Apple recusada", transactionId, checked.error);
     throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
   }
+  // Diário pretendido: o gravado antes da compra (até 3 dias); a participação é conferida de novo aqui.
+  const { data: intent, error: intentError } = await admin.from("apple_purchase_intents").select("dog_id, created_at").eq("user_id", ctx.user.id).maybeSingle();
+  if (intentError) throw new HttpError(500, "SERVER", "errors.generic");
+  if (intent && Date.parse((intent as any).created_at) > Date.now() - 3 * 86_400_000) (ctx as { dogHint?: string | null }).dogHint = (intent as any).dog_id;
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);
   const now = new Date().toISOString();
@@ -111,7 +128,7 @@ export async function appleConfirm(ctx: Ctx, args: unknown) {
   }).select("*").single();
   if (error) {
     // Duas confirmações ao mesmo tempo: a outra gravou primeiro; vale a dela.
-    const again = (await admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle()).data;
+    const again = await must(admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle(), "errors.generic");
     if (again) return settleApplePurchase(ctx, again);
     throw new HttpError(500, "SERVER", "errors.generic");
   }
@@ -147,9 +164,10 @@ export async function handleAppleNotification(req: Request) {
   if (!note.data?.signedTransactionInfo) return 200;
   const tx = await verifier(env).verifyAndDecodeTransaction(note.data.signedTransactionInfo);
   const admin = adminClient();
-  const p = (await admin.from("credit_purchases").select("id, status").eq("provider", "apple").eq("provider_payment_id", String(tx.transactionId)).maybeSingle()).data as any;
+  // Estorno: só responde 200 à Apple depois de gravar (se o banco falhar, lança e a Apple manda o aviso de novo).
+  const p = (await must(admin.from("credit_purchases").select("id, status").eq("provider", "apple").eq("provider_payment_id", String(tx.transactionId)).maybeSingle(), "errors.generic")) as any;
   if (!p) return 200;
-  if (p.status === "approved") await admin.from("credit_purchases").update({ status: "refunded", updated_at: new Date().toISOString() }).eq("id", p.id).eq("status", "approved");
+  if (p.status === "approved") await must(admin.from("credit_purchases").update({ status: "refunded", updated_at: new Date().toISOString() }).eq("id", p.id).eq("status", "approved"));
   await syncPurchase(p.id); // aplica a retirada dos créditos (revoke_purchase_credits), uma vez
   return 200;
 }

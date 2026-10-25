@@ -25,6 +25,7 @@ import { AbuMascot, AbuSays } from "@/components/brand";
 import { MediaImage } from "@/components/media";
 import { IconAlert, IconBrush, IconCheck, IconImage, IconInfo, IconRotate, IconStar, IconTrash } from "@/components/icons";
 import { rotateProcessed } from "@/lib/image";
+import { withSavedEntry, withSubmitResult } from "@/lib/snapshot-updates";
 
 type Step =
   | { kind: "pick" }
@@ -54,7 +55,7 @@ function GuardarInner() {
   // Data sugerida vinda de outra tela (ex.: “Guardar uma foto desta visita”).
   const presetDate = params.get("data");
   const { ready, snap, unavailable } = useRequireDiary();
-  const { repo, reload } = useStore();
+  const { repo, reload, patchDog } = useStore();
   const t = useTranslations("save");
   const te = useTranslations("errors");
   const tf = useTranslations("family");
@@ -76,6 +77,8 @@ function GuardarInner() {
   const [error, setError] = useState<string | null>(null);
   const entryKey = useRef<string>("");
   const submissionKey = useRef<string>("");
+  /** Cachorro da operação: capturado ao escolher a foto; salvar, repetir e confirmar a missão vão sempre para ele. */
+  const opDog = useRef<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   // Foto já guardada no diário (“Usar numa missão”): nada é enviado de novo.
@@ -106,6 +109,7 @@ function GuardarInner() {
     if (missionStateNow === "not_today") return setEntryError(t("entry.notToday"));
     if (missionStateNow === "out_of_window") return setEntryError(t("entry.outOfWindow"));
     submissionKey.current = newId();
+    opDog.current = snap.dog?.id ?? null;
     setStep({ kind: "confirm", entry });
   }, [snap, mission, fromEntryId, step.kind, missionStateNow, t, te, cat]);
 
@@ -117,6 +121,7 @@ function GuardarInner() {
   const room = Math.max(0, LIMITS.maxEntries - snap.entries.length);
 
   async function onPicked(p: ProcessedImage) {
+    opDog.current = snap!.dog?.id ?? null;
     setImg(p);
     setError(null);
     setPickNotes([]);
@@ -131,6 +136,7 @@ function GuardarInner() {
   }
 
   function onPickedMany(imgs: ProcessedImage[], failures: PickFailure[], skipped: number) {
+    opDog.current = snap!.dog?.id ?? null;
     const notes = failures.map((x) => `${x.name}: ${x.message}`);
     if (skipped > 0) notes.push(t("skipped", { count: skipped, room }));
     setPickNotes(notes);
@@ -153,11 +159,14 @@ function GuardarInner() {
     setBusy(true);
     setError(null);
     try {
+      const albumIds = mission ? [] : albums;
       const entry = await repo!.saveEntry({
         requestKey: entryKey.current, image: img, caption, occurredDate: date,
-        source: "free", missionId: null, albumIds: mission ? [] : albums,
+        source: "free", missionId: null, albumIds, dogId: opDog.current,
       });
-      // Já está salvo: a atualização da tela vai em segundo plano e, se falhar, não desfaz o "guardada".
+      // Já está salvo: entra no Diário e nos álbuns na hora; a conferência completa vai em segundo plano e, se
+      // falhar, não desfaz o "guardada".
+      patchDog(opDog.current, (s) => withSavedEntry(s, entry, albumIds));
       void sync();
       if (mission && missionAvailable) {
         submissionKey.current = newId();
@@ -184,7 +193,8 @@ function GuardarInner() {
         continue;
       }
       try {
-        await repo!.saveEntry({ requestKey: item.key, image: item.img, caption: item.caption, occurredDate: item.date, source: "free", missionId: null, albumIds: albums });
+        const entry = await repo!.saveEntry({ requestKey: item.key, image: item.img, caption: item.caption, occurredDate: item.date, source: "free", missionId: null, albumIds: albums, dogId: opDog.current });
+        patchDog(opDog.current, (s) => withSavedEntry(s, entry, albums));
         next[i] = { ...item, state: "saved", message: undefined };
       } catch (err) {
         next[i] = { ...item, state: "error", message: errText(err instanceof DomainError ? err : null, "errors.savePhotoFailed") };
@@ -210,8 +220,10 @@ function GuardarInner() {
       const result = await repo!.submitMission({
         requestKey: submissionKey.current, missionId: mission.id, entryId: entry.id,
         status: matches ? "approved" : "uncertain", reasonCode: matches ? "OWNER_CONFIRMED" : "OWNER_UNSURE",
-        mode: "owner", providerVersion: null,
+        mode: "owner", providerVersion: null, dogId: opDog.current,
       });
+      // Conclusão, XP, álbum da missão, medalhas e item de coleção entram na tela já (com o cachorro da operação).
+      patchDog(opDog.current, (s) => withSubmitResult(s, entry.id, mission, result));
       setStep({ kind: "result", entry, result }); // o servidor confirmou: mostra já
       void sync();
     } catch (err) {
@@ -501,6 +513,8 @@ function collectionOf(id: string): CollectionId {
 function slugFor(id: string) {
   return missionById(id)?.slug ?? "";
 }
+
+
 
 export default function GuardarPage() {
   return (

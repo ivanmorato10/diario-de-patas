@@ -13,6 +13,7 @@ import { apnsReady, sendApns } from "./apns";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { adminClient, HttpError } from "./supabase";
+import { must } from "./db";
 import { nameFromUser } from "./family";
 import { localesOf, requestLocale, translator, type ServerT } from "./i18n";
 import { DEFAULT_LOCALE } from "@/i18n/locale";
@@ -140,7 +141,8 @@ export function notifyFamily(ctx: { user: User }, a: { dogId: string; dogName: s
 
 export async function listNotifications(ctx: Ctx) {
   const admin = adminClient();
-  const rows = ((await ctx.supa.from("notifications").select("*").eq("user_id", ctx.user.id).order("created_at", { ascending: false }).limit(40)).data ?? []) as any[];
+  // Erro do banco é erro (nunca "sem avisos"): a tela mostra "não deu para carregar" com tentar de novo.
+  const rows = ((await must(ctx.supa.from("notifications").select("*").eq("user_id", ctx.user.id).order("created_at", { ascending: false }).limit(40), "errors.generic")) ?? []) as any[];
   const dogIds = [...new Set(rows.map((r) => r.dog_id))];
   const actorIds = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))];
   const [dogs, profs] = await Promise.all([
@@ -159,14 +161,14 @@ export async function listNotifications(ctx: Ctx) {
 /** Só a contagem do sininho (leve: consultada a cada minuto e ao voltar para o app). */
 export async function unreadCount(ctx: Ctx) {
   const { count, error } = await ctx.supa.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).is("read_at", null);
-  if (error) throw new Error(error.message);
+  if (error) throw new HttpError(500, "SERVER", "errors.generic");
   return { unread: count ?? 0 };
 }
 
 /** Marca como lidos SÓ os avisos que a pessoa viu (os que chegarem depois continuam novos). */
 export async function markNotificationsRead(ctx: Ctx, args: unknown) {
   const { ids } = z.object({ ids: z.array(z.string().uuid()).max(100) }).parse(args);
-  if (ids.length) await adminClient().from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", ctx.user.id).in("id", ids).is("read_at", null);
+  if (ids.length) await must(adminClient().from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", ctx.user.id).in("id", ids).is("read_at", null));
   return {};
 }
 
@@ -175,13 +177,13 @@ const Sub = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p2
 export async function savePushSubscription(ctx: Ctx, args: unknown) {
   const { endpoint, keys } = Sub.parse((args as any)?.subscription ?? args);
   const ua = String((args as any)?.userAgent ?? "").slice(0, 200);
-  await adminClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth, user_agent: ua }, { onConflict: "endpoint" });
+  await must(adminClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth, user_agent: ua }, { onConflict: "endpoint" }));
   return { ok: true };
 }
 
 export async function removePushSubscription(ctx: Ctx, args: unknown) {
   const { endpoint } = z.object({ endpoint: z.string() }).parse(args);
-  await adminClient().from("push_subscriptions").delete().eq("user_id", ctx.user.id).eq("endpoint", endpoint);
+  await must(adminClient().from("push_subscriptions").delete().eq("user_id", ctx.user.id).eq("endpoint", endpoint));
   return {};
 }
 
@@ -200,7 +202,7 @@ export async function setNotifyPrefs(ctx: Ctx, args: unknown) {
 /** App do iPhone: liga os avisos deste aparelho (token da Apple) à conta que está usando agora. */
 export async function saveNativePush(ctx: Ctx, args: unknown) {
   const { token } = z.object({ token: z.string().regex(/^[0-9a-fA-F]{32,200}$/) }).parse(args);
-  await adminClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, kind: "apns", endpoint: `apns:${token.toLowerCase()}`, p256dh: null, auth: null, user_agent: "ios-app" }, { onConflict: "endpoint" });
+  await must(adminClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, kind: "apns", endpoint: `apns:${token.toLowerCase()}`, p256dh: null, auth: null, user_agent: "ios-app" }, { onConflict: "endpoint" }));
   return {};
 }
 
@@ -220,8 +222,8 @@ export async function testPush(ctx: Ctx) {
 export async function checkPushSubscription(ctx: Ctx, args: unknown) {
   const { endpoint } = z.object({ endpoint: z.string().max(1000) }).parse(args);
   const admin = adminClient();
-  const { data } = await admin.from("push_subscriptions").select("user_id").eq("endpoint", endpoint).maybeSingle();
+  const data = await must(admin.from("push_subscriptions").select("user_id").eq("endpoint", endpoint).maybeSingle(), "errors.generic");
   const owner = (data as any)?.user_id as string | undefined;
-  if (owner && owner !== ctx.user.id) await admin.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  if (owner && owner !== ctx.user.id) await must(admin.from("push_subscriptions").delete().eq("endpoint", endpoint));
   return { registered: owner === ctx.user.id };
 }

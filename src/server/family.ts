@@ -9,6 +9,7 @@ import "server-only";
 import { createHash, randomInt } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { must, mustRow } from "./db";
 import { adminClient, HttpError } from "./supabase";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -27,10 +28,11 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
     return c;
   }
   const admin = adminClient();
-  const [{ data: prof }, { data: mem }] = await Promise.all([
-    admin.from("profiles").select("current_dog_id").eq("user_id", ctx.user.id).maybeSingle(),
+  // Erro do banco aqui é erro (nunca "sem cachorro" ou "sem acesso" por engano).
+  const [prof, mem] = await Promise.all([
+    must(admin.from("profiles").select("current_dog_id").eq("user_id", ctx.user.id).maybeSingle(), "errors.generic"),
     // O cachorro vem junto da participação: uma ida ao banco a menos em toda operação.
-    admin.from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"),
+    must(admin.from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"), "errors.generic"),
   ]);
   const members = (mem ?? []) as { dog_id: string; role: Role; dogs: any }[];
   // A tela disse qual cachorro: ou é esse, ou é erro. Nunca troca por outro diário em silêncio
@@ -70,18 +72,18 @@ export function nameFromUser(u: { email?: string | null; user_metadata?: any } |
 export async function familyInfo(ctx: Ctx, dog: CurrentDog | null) {
   const admin = adminClient();
   // Meus diários e quem participa deste: as duas consultas ao mesmo tempo.
-  const [{ data: mine }, { data: mem }] = await Promise.all([
-    admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop, owner_id)").eq("user_id", ctx.user.id).order("created_at"),
-    dog ? admin.from("dog_members").select("user_id, role, created_at").eq("dog_id", dog.id).order("created_at") : Promise.resolve({ data: [] as any[] }),
+  const [mine, mem] = await Promise.all([
+    must(admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop, owner_id)").eq("user_id", ctx.user.id).order("created_at"), "errors.generic"),
+    dog ? must(admin.from("dog_members").select("user_id, role, created_at").eq("dog_id", dog.id).order("created_at"), "errors.generic") : Promise.resolve([] as any[]),
   ]);
   const diaries = ((mine ?? []) as any[]).map((r) => ({ id: r.dogs.id, name: r.dogs.name, photoMediaId: r.dogs.photo_asset_id ?? null, avatarCrop: r.dogs.avatar_crop ?? null, role: r.role as Role, mine: r.dogs.owner_id === ctx.user.id }));
   let members: { userId: string; name: string; email: string; role: Role; me: boolean; owner: boolean }[] = [];
   if (dog) {
     const ids = ((mem ?? []) as any[]).map((m) => m.user_id);
     // Nomes (perfil) e contas (email/nome do login) de todos numa ida só cada, em paralelo.
-    const [{ data: profs }, { data: accounts }] = await Promise.all([
-      admin.from("profiles").select("user_id, display_name").in("user_id", ids),
-      admin.rpc("member_accounts", { p_ids: ids }),
+    const [profs, accounts] = await Promise.all([
+      must(admin.from("profiles").select("user_id, display_name").in("user_id", ids), "errors.generic"),
+      must(admin.rpc("member_accounts", { p_ids: ids }), "errors.generic"),
     ]);
     const pname = new Map(((profs ?? []) as any[]).map((p) => [p.user_id, p.display_name as string]));
     const account = new Map(((accounts ?? []) as any[]).map((a) => [a.id, { email: a.email as string, user_metadata: a.meta }]));
@@ -96,9 +98,9 @@ export async function familyInfo(ctx: Ctx, dog: CurrentDog | null) {
 export async function switchDog(ctx: Ctx, args: unknown) {
   const { dogId } = z.object({ dogId: z.string().uuid() }).parse(args);
   const admin = adminClient();
-  const { data } = await admin.from("dog_members").select("dog_id").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle();
+  const data = await must(admin.from("dog_members").select("dog_id").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle(), "errors.generic");
   if (!data) throw bad("NOT_FOUND", "errors.diaryNotFound");
-  await admin.from("profiles").update({ current_dog_id: dogId }).eq("user_id", ctx.user.id);
+  await must(admin.from("profiles").update({ current_dog_id: dogId }).eq("user_id", ctx.user.id));
   forgetDog(ctx);
   return {};
 }
@@ -132,8 +134,7 @@ export function inviteRateLimited(ip: string) {
 async function findInvite(code: string) {
   const norm = normalizeInvite(code);
   if (norm.length !== 8) throw bad("INVALID_CODE", "errors.checkCode");
-  const { data } = await adminClient().from("dog_invites").select("*").eq("code_hash", hashInvite(norm)).maybeSingle();
-  const inv = data as any;
+  const inv = (await must(adminClient().from("dog_invites").select("*").eq("code_hash", hashInvite(norm)).maybeSingle(), "errors.generic")) as any;
   if (!inv || inv.used_at || Date.parse(inv.expires_at) < Date.now()) throw bad("INVALID_CODE", "errors.inviteInvalid");
   return inv;
 }
@@ -170,10 +171,11 @@ export async function updateMember(ctx: Ctx, args: unknown) {
   requireAdmin(dog);
   const admin = adminClient();
   if (a.userId === ctx.user.id && a.role !== "admin") {
-    const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
+    const { count, error: countError } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
+    if (countError) throw new HttpError(500, "SERVER", "errors.generic");
     if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "errors.lastAdmin");
   }
-  await admin.from("dog_members").update({ role: a.role }).eq("dog_id", dog.id).eq("user_id", a.userId);
+  await mustRow(admin.from("dog_members").update({ role: a.role }).eq("dog_id", dog.id).eq("user_id", a.userId).select("user_id"), "errors.memberNotFound");
   return {};
 }
 
@@ -185,12 +187,14 @@ export async function removeMember(ctx: Ctx, args: unknown) {
   if (!self) requireAdmin(dog);
   if (a.userId === dog.owner_id) throw bad("OWNER", "errors.ownerCantBeRemoved");
   if (self && dog.role === "admin") {
-    const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
+    const { count, error: countError } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("role", "admin");
+    if (countError) throw new HttpError(500, "SERVER", "errors.generic");
     if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "errors.lastAdminLeave");
   }
-  await admin.from("dog_members").delete().eq("dog_id", dog.id).eq("user_id", a.userId);
+  // Só diz "removido" com a participação apagada de fato (senão a pessoa pareceria fora e manteria o acesso).
+  await mustRow(admin.from("dog_members").delete().eq("dog_id", dog.id).eq("user_id", a.userId).select("user_id"), "errors.memberNotFound");
   if (self) {
-    await admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id);
+    await must(admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id));
     forgetDog(ctx);
   }
   return {};
@@ -200,16 +204,16 @@ export async function removeMember(ctx: Ctx, args: unknown) {
 export async function leaveDiary(ctx: Ctx, args: unknown) {
   const { dogId } = z.object({ dogId: z.string().uuid() }).parse(args);
   const admin = adminClient();
-  const { data: m } = await admin.from("dog_members").select("role, dogs!inner(owner_id)").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle();
-  const mem = m as any;
+  const mem = (await must(admin.from("dog_members").select("role, dogs!inner(owner_id)").eq("dog_id", dogId).eq("user_id", ctx.user.id).maybeSingle(), "errors.generic")) as any;
   if (!mem) throw new HttpError(404, "NOT_FOUND", "errors.diaryNotFound");
   if (mem.dogs.owner_id === ctx.user.id) throw bad("OWNER", "errors.ownerLeave");
   if (mem.role === "admin") {
-    const { count } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dogId).eq("role", "admin");
+    const { count, error: countError } = await admin.from("dog_members").select("user_id", { count: "exact", head: true }).eq("dog_id", dogId).eq("role", "admin");
+    if (countError) throw new HttpError(500, "SERVER", "errors.generic");
     if ((count ?? 0) <= 1) throw bad("LAST_ADMIN", "errors.lastAdminLeave");
   }
-  await admin.from("dog_members").delete().eq("dog_id", dogId).eq("user_id", ctx.user.id);
-  await admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id).eq("current_dog_id", dogId);
+  await mustRow(admin.from("dog_members").delete().eq("dog_id", dogId).eq("user_id", ctx.user.id).select("user_id"), "errors.diaryNotFound");
+  await must(admin.from("profiles").update({ current_dog_id: null }).eq("user_id", ctx.user.id).eq("current_dog_id", dogId));
   forgetDog(ctx);
   return {};
 }

@@ -245,7 +245,8 @@
     "many": "{a}, {b}, and {n} more left bones",
     "countLabel": "{count, plural, one {# bone} other {# bones}}: {who}",
     "remove": "Take back the bone",
-    "give": "Leave a bone"
+    "give": "Leave a bone",
+    "failed": "We couldn't save the bone. Please try again."
   },
   "brand": {
     "abuReading": "Abu reading the Diário de Patas",
@@ -1412,7 +1413,8 @@
     "useTitle": "Use this photo in a mission",
     "useNote": "The photo stays the same — nothing is uploaded again. Then you confirm whether it shows what the mission asks for.",
     "alreadyDone": "already done, no paws",
-    "noneAvailable": "No missions available right now."
+    "noneAvailable": "No missions available right now.",
+    "deleteFailed": "We couldn't delete it right now. Check your connection and try again."
   },
   "errors": {
     "unauthenticated": "Sign in to your account to continue.",
@@ -1522,7 +1524,10 @@
     "checkoutRefused": "The card payment page was declined. Please try again in a moment.",
     "checkoutUncertain": "We couldn't open the payment page right now. Please try again in a moment.",
     "appleUncertain": "We couldn't confirm the purchase with Apple right now. It stays saved on your iPhone, and we'll confirm it the next time you open the app.",
-    "appleInvalid": "Apple couldn't find this purchase."
+    "appleInvalid": "Apple couldn't find this purchase.",
+    "memberNotFound": "This person is no longer in this diary.",
+    "diaryCreatedPhotoFailed": "The diary was created, but the photo didn't upload. Try again from the dog's profile.",
+    "mediaNotFound": "We couldn't find this image."
   },
   "family": {
     "roles": {
@@ -1636,7 +1641,8 @@
     "deleteLabel": "Delete {label}",
     "optional": "(optional)",
     "prefsFailed": "We couldn't save your choice. Check your connection.",
-    "prefsRetry": "Try again"
+    "prefsRetry": "Try again",
+    "deleting": "Deleting…"
   },
   "importDemo": {
     "doneTitle": "Diary moved to your account",
@@ -1777,7 +1783,8 @@
     "today": "Today's dose",
     "saving": "Saving…",
     "given": "Done, given",
-    "later": "Remind me later"
+    "later": "Remind me tomorrow",
+    "failed": "We couldn't mark the dose. Please try again."
   },
   "media": {
     "unavailable": "{alt} (photo unavailable)",
@@ -2201,7 +2208,9 @@
     "none": "No active links. To create one, select photos in an <link>album</link>.",
     "linkMeta": "{count, plural, one {# photo} other {# photos}} · created {date}",
     "revokeLabel": "Revoke the link {title}",
-    "revoke": "Revoke"
+    "revoke": "Revoke",
+    "revokeFailed": "We couldn't revoke the link. Please try again.",
+    "revoking": "Revoking…"
   },
   "shareActions": {
     "whatsapp": "Send via WhatsApp",
@@ -2287,7 +2296,10 @@
     "create": "Create my diary",
     "nick": "Pet name",
     "nickPlaceholder": "e.g., Pepito, Buddy, My Baby",
-    "nickHint": "What you call them at home. Shows on their profile, and you can change it later."
+    "nickHint": "What you call them at home. Shows on their profile, and you can change it later.",
+    "photoRetry": "Try the photo again",
+    "continueWithout": "Continue without a photo",
+    "photoLater": "You can add the photo later from the dog's profile."
   },
   "studio": {
     "exampleAbu": "example with Abu",

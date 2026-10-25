@@ -36,6 +36,8 @@ export interface SaveEntryInput {
   missionId: string | null;
   albumIds: string[];
   kind?: MediaAsset["kind"];
+  /** Cachorro da operação (capturado quando a pessoa escolheu a foto): todas as etapas e repetições vão para ele. */
+  dogId?: string | null;
 }
 
 export interface SubmitInput {
@@ -46,6 +48,8 @@ export interface SubmitInput {
   reasonCode: string | null;
   mode: MissionSubmission["mode"];
   providerVersion: string | null;
+  /** Cachorro da operação (o mesmo da foto). */
+  dogId?: string | null;
 }
 
 export interface Repository {

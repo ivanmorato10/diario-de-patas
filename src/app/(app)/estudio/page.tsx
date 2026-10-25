@@ -19,6 +19,7 @@ import { DomainError } from "@/data/demo-repository";
 import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
 import { FAILURE_CODES, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
 import { composeArt } from "@/lib/compose-art";
+import { composeModeFor, saveComposite } from "@/lib/studio-composite";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { MediaImage } from "@/components/media";
 import { IconBrush, IconCheck, IconDownload, IconInfo, IconStar, Paw } from "@/components/icons";
@@ -189,8 +190,9 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
   const studioAlbumHref = studioAlbum ? `/albuns/${studioAlbum.id}` : "/diario";
   const preset = presetById(job.presetId);
   const art = useMediaBlob(job.outputMediaId, "display");
+  const { repo, reload } = useStore();
   const [composed, setComposed] = useState<Blob | null>(null);
-  const mode = preset?.post === "card" ? "card" : preset?.addTextOverlay ? "banner" : "none";
+  const mode = composeModeFor(job.presetId);
   useEffect(() => {
     let alive = true;
     if (art) composeArt(art, job.overlay, mode).then((b) => alive && setComposed(b), () => alive && setComposed(art));
@@ -198,6 +200,11 @@ function StudioResult({ job, onAgain }: { job: StudioJob; onAgain: () => void })
       alive = false;
     };
   }, [art, job.overlay, mode]);
+  // A composta (com nome/mensagem) vira a imagem da lembrança: Diário, álbum e link mostram o mesmo que aqui.
+  useEffect(() => {
+    if (!composed || composed === art || !repo) return;
+    void saveComposite(job, () => repo.getMediaBlob(job.outputMediaId!, "display"), composed).then(() => reload().catch(() => undefined), () => undefined);
+  }, [composed, art, job, repo, reload]);
   const url = useBlobUrl(composed);
   const sticker = preset?.post === "sticker";
   const download = () => {

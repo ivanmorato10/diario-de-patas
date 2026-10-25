@@ -6,11 +6,11 @@ import { useTranslations } from "next-intl";
 import { useCatalog } from "@/i18n/catalog";
 import { useFormat } from "@/i18n/use-format";
 import { useErrorText } from "@/i18n/use-error";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { DomainError } from "@/data/demo-repository";
 import { LIMITS, fullDiaryParams } from "@/config/business";
-import { rpc } from "@/data/real-repository";
+import { rpc, setActiveDog } from "@/data/real-repository";
+import type { Dog } from "@/domain/types";
 import { ShareLinksList } from "@/components/share";
 import { ImportDemoCard } from "@/components/import-demo";
 import { AvatarCropSheet } from "@/components/avatar-crop";
@@ -33,8 +33,7 @@ type Panel = "edit" | "family" | "prefs" | "manage" | null;
 
 export default function Perfil() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { repo, reload, patchSnap } = useStore();
-  const router = useRouter();
+  const { repo, reload, patchSnap, patchDog } = useStore();
   const [name, setName] = useState("");
   const [birth, setBirth] = useState("");
   const [nick, setNick] = useState("");
@@ -73,17 +72,25 @@ export default function Perfil() {
   // "Salvar alterações" só aparece quando algo mudou.
   const dirty = name.trim() !== dog.name || nick.trim() !== (dog.nickname ?? "") || birth !== (dog.birthDate ?? "") || JSON.stringify(prefs) !== JSON.stringify(dog.preferences);
 
+  /**
+   * Gravar e conferir são separados: o cachorro salvo (devolvido pelo servidor) entra na tela na hora e o "salvo"
+   * aparece; a recarga completa vem depois e, se falhar, não vira erro de gravação.
+   */
   async function run(fn: () => Promise<unknown>, ok: string) {
     setMsg(null);
+    const dogAtStart = snap?.dog?.id;
+    let saved: unknown;
     try {
-      await fn();
-      await reload();
-      setMsg({ kind: "ok", text: ok });
-      return true;
+      saved = await fn();
     } catch (e) {
       setMsg({ kind: "error", text: errText(e instanceof DomainError ? e : null, "errors.saveFailed") });
       return false;
     }
+    const d = saved && typeof saved === "object" && "id" in saved ? (saved as Dog) : null;
+    if (d) patchDog(dogAtStart, (s) => ({ ...s, dog: s.dog ? { ...s.dog, ...d } : s.dog, diaries: s.diaries?.map((x) => (x.id === d.id ? { ...x, name: d.name, photoMediaId: d.photoMediaId, avatarCrop: d.avatarCrop ?? null } : x)) }));
+    setMsg({ kind: "ok", text: ok });
+    void reload().catch(() => undefined);
+    return true;
   }
 
   async function saveProfile(e?: React.FormEvent) {
@@ -110,12 +117,14 @@ export default function Perfil() {
     setDeleteError(null);
     try {
       await rpc("deleteDiary", { confirmName: confirmText.trim() });
-      await reload();
-      router.replace("/");
     } catch (e) {
       setDeleteError(errText(e instanceof Error ? e.message : "profile.deleteFailed"));
       setDeleting(false);
+      return;
     }
+    // Apagou: abre o app do zero (vai para o diário que restou ou para "adicionar cachorro"), sem depender de recarga.
+    setActiveDog(null);
+    window.location.assign("/");
   }
 
 

@@ -39,7 +39,7 @@ export default function Contatos() {
     <>
       <TopBar title={t("title")} back="/cuidados" emoji="📞" />
       <main className="main">
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> {t("add")}</button>
+        <button type="button" className="btn btn--primary btn--block edit-only" onClick={openNew}><IconPlus /> {t("add")}</button>
         <a className="btn btn--secondary btn--block" href={mapsUrl(t("vetSearch"), t("nearMe"))} target="_blank" rel="noopener">{t("findVet")}</a>
         {contacts.length === 0 ? <p className="page-note">{t("empty")}</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -83,7 +83,7 @@ export default function Contatos() {
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
+      <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("contacts", toDelete.id), removeCare("contacts", toDelete.id)))) setToDelete(null); }} />
     </>
   );

@@ -95,15 +95,17 @@ export function FormSheet({
 }
 
 /** Confirmação de exclusão. */
-export function DeleteSheet({ open, onClose, title, text, onConfirm, busy }: { open: boolean; onClose: () => void; title: string; text: string; onConfirm: () => void; busy: boolean }) {
+/** Confirmar exclusão. O erro aparece DENTRO da janela (antes ficava atrás dela, no formulário da tela). */
+export function DeleteSheet({ open, onClose, title, text, onConfirm, busy, error }: { open: boolean; onClose: () => void; title: string; text: string; onConfirm: () => void; busy: boolean; error?: string | null }) {
   const id = useId();
   const t = useTranslations("forms");
   return (
     <Sheet open={open} onClose={onClose} labelledBy={id}>
       <h2 id={id}>{title}</h2>
       <p>{text} {t("noUndo")}</p>
+      {error ? <p className="field-error" role="alert">{error}</p> : null}
       <div className="stack">
-        <button type="button" className="btn btn--danger btn--block" onClick={onConfirm} disabled={busy}>{t("delete")}</button>
+        <button type="button" className="btn btn--danger btn--block" onClick={onConfirm} disabled={busy}>{busy ? t("deleting") : t("delete")}</button>
         <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>{t("cancel")}</button>
       </div>
     </Sheet>
@@ -113,6 +115,8 @@ export function DeleteSheet({ open, onClose, title, text, onConfirm, busy }: { o
 /** Botões editar/excluir de uma linha. */
 export function RowActions({ label, onEdit, onDelete }: { label: string; onEdit?: () => void; onDelete: () => void }) {
   const t = useTranslations("forms");
+  const { snap } = useStore();
+  if (snap?.role === "viewer") return null; // "só ver": sem editar/apagar (o servidor também recusa)
   return (
     <div className="row" style={{ gap: 0, flex: "none" }}>
       {onEdit ? <button type="button" className="icon-btn" onClick={onEdit} aria-label={t("editLabel", { label })}><IconPencil /></button> : null}

@@ -63,9 +63,26 @@ export function ShareLinksList() {
   const { repo } = useStore();
   const [links, setLinks] = useState<ShareLink[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
   const t = useTranslations("share");
   const f = useFormat();
   const load = () => repo?.listShares().then(setLinks, () => setError(t("loadFailed")));
+  /** Revoga e confere na lista do servidor; se falhar, o link continua listado e aparece o aviso. */
+  async function revoke(id: string) {
+    if (!repo || revoking) return;
+    setRevoking(id);
+    setRevokeError(null);
+    try {
+      await repo.revokeShare(id);
+      setLinks((ls) => ls?.map((l) => (l.id === id ? { ...l, revokedAt: new Date().toISOString() } : l)) ?? ls);
+      void load();
+    } catch {
+      setRevokeError(id);
+    } finally {
+      setRevoking(null);
+    }
+  }
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,7 +99,8 @@ export function ShareLinksList() {
             <strong style={{ overflowWrap: "anywhere" }}><IconShare size={16} /> {l.title}</strong>
             <span className="caption">{t("linkMeta", { count: l.count, date: f.instant(l.createdAt, { day: "numeric", month: "long", year: "numeric" }) })}</span>
           </span>
-          <button type="button" className="btn btn--danger-outline btn--small" onClick={async () => { await repo?.revokeShare(l.id); await load(); }} aria-label={t("revokeLabel", { title: l.title })}>{t("revoke")}</button>
+          <button type="button" className="btn btn--danger-outline btn--small" disabled={!!revoking} onClick={() => void revoke(l.id)} aria-label={t("revokeLabel", { title: l.title })}>{revoking === l.id ? t("revoking") : t("revoke")}</button>
+          {revokeError === l.id ? <span className="field-error" role="alert" style={{ flexBasis: "100%" }}>{t("revokeFailed")}</span> : null}
         </li>
       ))}
     </ul>

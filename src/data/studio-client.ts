@@ -15,6 +15,8 @@ export interface StudioJob {
   outputMediaId: string | null;
   credits: number;
   overlay: StudioOverlay | null;
+  /** Versão composta (nome/mensagem/moldura) já guardada como imagem da lembrança. */
+  compositeMediaId?: string | null;
   createdAt: string;
   finishedAt: string | null;
 }

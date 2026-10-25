@@ -376,15 +376,21 @@ try:
         check(f"preferência com falha no meio: tela ({box.is_checked()}) = servidor ({server_photo}) = última escolha (desligado)", server_photo is False and not box.is_checked())
         box.click(); e.wait_for_timeout(1500)  # volta a ligar para o resto do teste
         # Ligada: desliga e liga de novo, as DUAS gravações falham. Servidor continua ligado; a tela também.
-        held2 = []
+        # A 2ª gravação só sai depois da resposta da 1ª: derruba cada uma conforme chega, até não chegar mais nenhuma.
+        held2, aborted2 = [], [0]
         e.route("**/api/rpc/setNotifyPrefs", lambda r: held2.append(r))
         box.click(); box.click()
-        e.wait_for_timeout(300)
-        for r in held2: r.abort()
-        e.wait_for_timeout(800)
-        for r in held2[len(held2):]: r.abort()
-        e.wait_for_timeout(1500)
+        quiet = 0
+        for _ in range(40):  # até ~8 s
+            e.wait_for_timeout(200)
+            if held2:
+                while held2: held2.pop(0).abort(); aborted2[0] += 1
+                quiet = 0
+            else:
+                quiet += 1
+                if aborted2[0] and quiet >= 8: break  # 1,6 s sem nova gravação
         e.unroute("**/api/rpc/setNotifyPrefs")
+        check(f"duas falhas seguidas: as gravações derrubadas ({aborted2[0]}) e nenhuma ficou presa", aborted2[0] == 2 and not held2)
         server_photo = rpc(e, "snapshot", {})[1]["me"]["notify"]["photo"]
         check(f"duas falhas seguidas: tela ({box.is_checked()}) = servidor ({server_photo}) = ligado", server_photo is True and box.is_checked())
         e.locator("dialog[open]").get_by_role("button", name="Close").last.click()

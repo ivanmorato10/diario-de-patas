@@ -11,7 +11,7 @@ import { setMyName } from "@/data/letters-client";
  * Vem preenchido com o palpite (Google/Apple/email); a pessoa confirma ou corrige uma vez.
  */
 export function NameAsk({ title, note }: { title?: string; note?: string }) {
-  const { snap, reload } = useStore();
+  const { snap, reload, patchSnap } = useStore();
   const t = useTranslations("nameAsk");
   const errText = useErrorText();
   const [name, setName] = useState(snap?.me?.suggestedName ?? "");
@@ -24,13 +24,17 @@ export function NameAsk({ title, note }: { title?: string; note?: string }) {
     if (!name.trim()) return setError(t("required"));
     setBusy(true);
     setError(null);
+    let saved: string;
     try {
-      await setMyName(name);
-      await reload();
+      saved = (await setMyName(name)).name;
     } catch (er) {
       setError(errText(er, "errors.nameSaveFailed"));
       setBusy(false);
+      return;
     }
+    // Gravou: o nome vale na tela já (a pergunta some); a conferência completa vem depois, sem virar erro.
+    patchSnap((s) => (s.me ? { ...s, me: { ...s.me, name: saved, nameConfirmed: true } } : s));
+    void reload().catch(() => undefined);
   }
 
   return (
@@ -48,7 +52,7 @@ export function NameAsk({ title, note }: { title?: string; note?: string }) {
 
 /** Ajustes → Conta: mudar o nome que a família vê. */
 export function MyNameField() {
-  const { snap, reload } = useStore();
+  const { snap, reload, patchSnap } = useStore();
   const t = useTranslations("nameAsk");
   const errText = useErrorText();
   const [name, setName] = useState<string | null>(null);
@@ -63,10 +67,11 @@ export function MyNameField() {
     setBusy(true);
     setMsg(null);
     try {
-      await setMyName(value);
-      await reload();
+      const saved = (await setMyName(value)).name;
+      patchSnap((s) => (s.me ? { ...s, me: { ...s.me, name: saved, nameConfirmed: true } } : s));
       setName(null);
       setMsg(t("saved"));
+      void reload().catch(() => undefined);
     } catch (er) {
       setMsg(errText(er, "errors.nameSaveFailed"));
     } finally {

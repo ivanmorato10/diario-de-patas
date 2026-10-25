@@ -26,11 +26,18 @@ export function DogList({ onDone }: { onDone?: () => void }) {
     setError(null);
     try {
       await switchDog(id);
+    } catch {
+      setError(t("switchFailed"));
+      setBusy(null);
+      return;
+    }
+    // Trocou: carrega o diário escolhido; se a conferência falhar, abre o app do zero nele (não diz "não trocou").
+    try {
       await reload();
       onDone?.();
       router.push(then);
     } catch {
-      setError(t("switchFailed"));
+      window.location.assign(then);
     } finally {
       setBusy(null);
     }

@@ -51,7 +51,7 @@ export default function Documentos() {
       <TopBar title={t("title")} back="/cuidados" emoji="📄" />
       <main className="main">
         <p className="page-note">{t("note")}</p>
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew} disabled={full}><IconPlus /> {t("add")}</button>
+        <button type="button" className="btn btn--primary btn--block edit-only" onClick={openNew} disabled={full}><IconPlus /> {t("add")}</button>
         {/* Limite só aparece quando estiver perto. */}
         {LIMITS.maxDocuments - docs.length <= 3 ? <p className="caption">{full ? t("full", { max: LIMITS.maxDocuments }) : t("left", { count: LIMITS.maxDocuments - docs.length })}</p> : null}
         {docs.length === 0 ? <p className="muted">{t("empty")}</p> : null}
@@ -100,7 +100,7 @@ export default function Documentos() {
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { title: toDelete.title }) : ""} busy={busy}
+      <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { title: toDelete.title }) : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteDocument(toDelete.id), removeCare("documents", toDelete.id)))) setToDelete(null); }} />
     </>
   );

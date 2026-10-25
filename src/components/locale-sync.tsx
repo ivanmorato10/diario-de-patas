@@ -66,6 +66,33 @@ export function LocaleSync() {
 
 /** Salvamentos em fila: toques rápidos (kg → lb) chegam ao servidor na ordem em que a pessoa escolheu. */
 let queue: Promise<unknown> = Promise.resolve();
+/**
+ * Região e unidade: último valor CONFIRMADO pelo servidor e versão de cada campo. Falha volta ao confirmado
+ * (não ao valor de antes do toque, que pode ser outro toque ainda sem resposta), e só se não houve toque mais novo.
+ */
+type Instant = Pick<Prefs, "region" | "weightUnit">;
+const prefState = { pending: 0, user: "", confirmed: {} as Instant, ver: { region: 0, weightUnit: 0 } };
+/** Começa uma gravação: fixa o ponto confirmado (se nada pendente) e devolve a versão de cada campo tocado. */
+export function beginPrefWrite(userId: string, onScreen: Instant, touched: Instant) {
+  if (prefState.pending === 0 || prefState.user !== userId) {
+    prefState.user = userId;
+    prefState.confirmed = { ...onScreen }; // sem gravação pendente, a tela mostra o que o servidor tem
+  }
+  prefState.pending++;
+  const mine: Partial<Record<keyof Instant, number>> = {};
+  for (const k of Object.keys(touched) as (keyof Instant)[]) mine[k] = ++prefState.ver[k];
+  return mine;
+}
+/** Resultado de uma gravação. Falha: o que voltar na tela (só campos sem toque mais novo, para o valor confirmado). */
+export function endPrefWrite(mine: Partial<Record<keyof Instant, number>>, sent: Instant, ok: boolean): Record<string, unknown> {
+  prefState.pending--;
+  const back: Record<string, unknown> = {};
+  for (const k of Object.keys(mine) as (keyof Instant)[]) {
+    if (ok) prefState.confirmed[k] = sent[k] as never;
+    else if (prefState.ver[k] === mine[k]) back[k] = prefState.confirmed[k] ?? null;
+  }
+  return back;
+}
 
 /**
  * Troca de preferências da pessoa. Devolve false se o servidor não gravou (e aí nada muda: perfil, cookie e tela
@@ -94,25 +121,18 @@ export function useSetPreferences() {
     const apply = (v: Prefs) => patchSnap((s) => (s.me ? { ...s, me: { ...s.me, ...v } } : s));
     const instant: Prefs = { region: full.region, weightUnit: full.weightUnit };
     for (const k of Object.keys(instant) as (keyof Prefs)[]) if (instant[k] === undefined) delete instant[k];
-    const before: Prefs = { region: me.region ?? undefined, weightUnit: me.weightUnit ?? undefined };
+    const mine = beginPrefWrite(me.userId, { region: me.region ?? undefined, weightUnit: me.weightUnit ?? undefined }, instant);
     if (!p.locale) apply(instant);
     const save = queue.then(() => rpc("setPreferences", full));
     queue = save.catch(() => undefined);
     try {
       await save;
     } catch {
-      if (!p.locale) {
-        // Volta só o que ainda está com o valor que falhou (um toque mais novo vale mais).
-        patchSnap((s) => {
-          if (!s.me) return s;
-          const back: Record<string, unknown> = {};
-          if (instant.region && s.me.region === instant.region) back.region = before.region ?? null;
-          if (instant.weightUnit && s.me.weightUnit === instant.weightUnit) back.weightUnit = before.weightUnit ?? null;
-          return { ...s, me: { ...s.me, ...back } };
-        });
-      }
+      const back = endPrefWrite(mine, instant, false);
+      if (!p.locale) patchSnap((s) => (s.me ? { ...s, me: { ...s.me, ...back } } : s));
       return false;
     }
+    endPrefWrite(mine, instant, true);
     if (p.locale || opts.quiet) apply(full);
     if (p.locale && p.locale !== current) { document.cookie = localeCookie(p.locale); router.refresh(); }
     return true;

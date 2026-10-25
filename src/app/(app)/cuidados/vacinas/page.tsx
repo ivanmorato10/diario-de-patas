@@ -54,7 +54,7 @@ export default function Vacinas() {
     <>
       <TopBar title={t("title")} back="/cuidados" emoji="💉" />
       <main className="main">
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> {t("add")}</button>
+        <button type="button" className="btn btn--primary btn--block edit-only" onClick={openNew}><IconPlus /> {t("add")}</button>
         {vaccines.length === 0 ? <p className="muted">{t("empty")}</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {vaccines.map((v) => {
@@ -102,7 +102,7 @@ export default function Vacinas() {
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { kind: kind(toDelete.kind), name: toDelete.name, date: fmt.date(toDelete.appliedDate) }) : ""} busy={busy}
+      <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { kind: kind(toDelete.kind), name: toDelete.name, date: fmt.date(toDelete.appliedDate) }) : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("vaccines", toDelete.id), removeCare("vaccines", toDelete.id)))) setToDelete(null); }} />
     </>
   );

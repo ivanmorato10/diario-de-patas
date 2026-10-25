@@ -14,7 +14,7 @@ import { LIMITS } from "@/config/business";
 import { useStore } from "@/data/store";
 import { getMedia, DomainError } from "@/data/demo-repository";
 import { isCivilDate } from "@/domain/dates";
-import type { DiaryEntry } from "@/domain/types";
+import type { AlbumId, DiaryEntry } from "@/domain/types";
 import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
 
 /**
@@ -47,6 +47,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const t = useTranslations("entry");
+  const [delError, setDelError] = useState<string | null>(null);
   const errText = useErrorText();
 
   function openEdit() {
@@ -70,24 +71,36 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
       return;
     }
     // Gravou: a tela muda na hora e fecha; a atualização completa vem depois (se falhar, não vira "não salvou").
-    patchDog(dogAtStart, (s) => ({ ...s, entries: s.entries.map((x) => (x.id === entry.id ? { ...x, caption, occurredDate: date } : x)) }));
+    // Legenda, data e álbuns (a lista inteira, como o servidor grava) já na tela.
+    patchDog(dogAtStart, (s) => ({
+      ...s,
+      entries: s.entries.map((x) => (x.id === entry.id ? { ...x, caption, occurredDate: date } : x)),
+      albumEntries: [
+        ...s.albumEntries.filter((x) => x.entryId !== entry.id),
+        ...albums.map((albumId) => s.albumEntries.find((x) => x.entryId === entry.id && x.albumId === albumId) ?? { key: `${albumId}:${entry.id}`, albumId: albumId as AlbumId, entryId: entry.id, addedAt: new Date().toISOString() }),
+      ],
+    }));
     setBusy(false);
     setMode("none");
     void reload().catch(() => undefined);
   }
 
   async function confirmDelete() {
-    if (!repo) return;
+    if (!repo || busy) return;
     const dogAtStart = snap?.dog?.id;
     setBusy(true);
+    setDelError(null);
     try {
       await repo!.deleteEntry(entry.id);
-      patchDog(dogAtStart, (s) => ({ ...s, entries: s.entries.filter((x) => x.id !== entry.id), albumEntries: s.albumEntries.filter((x) => x.entryId !== entry.id) }));
-      setMode("none");
-      void reload().catch(() => undefined);
-    } finally {
+    } catch {
+      setDelError(t("deleteFailed")); // aparece na janela de apagar (antes a falha passava em silêncio)
       setBusy(false);
+      return;
     }
+    patchDog(dogAtStart, (s) => ({ ...s, entries: s.entries.filter((x) => x.id !== entry.id), albumEntries: s.albumEntries.filter((x) => x.entryId !== entry.id) }));
+    setBusy(false);
+    setMode("none");
+    void reload().catch(() => undefined);
   }
 
   async function download() {
@@ -133,6 +146,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
       <Sheet open={mode === "delete"} onClose={() => setMode("none")} labelledBy={delTitle}>
         <h2 id={delTitle}>{t("deleteTitle")}</h2>
         <p>{t("deleteText")} {entry.missionId ? t("deleteKeeps") : ""} {t("noUndo")}</p>
+        {delError ? <p className="field-error" role="alert">{delError}</p> : null}
         <div className="stack">
           <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy}>{t("delete")}</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>

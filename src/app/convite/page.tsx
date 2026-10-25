@@ -59,12 +59,13 @@ function Convite() {
     setError(null);
     try {
       await acceptInvite(code, nameValue.trim() || undefined); // sem nome: fica o palpite e o app pergunta depois
-      await reload();
-      router.replace("/hoje");
     } catch (e) {
       setBusy(false);
       setError(e instanceof Error ? e.message : "errors.acceptFailed");
+      return;
     }
+    // Entrou: abre o diário; se a conferência falhar, abre o app do zero (nunca diz "não entrou" depois de entrar).
+    try { await reload(); router.replace("/hoje"); } catch { window.location.assign("/hoje"); }
   }
 
   const next = encodeURIComponent(`/convite?codigo=${encodeURIComponent(code)}`);

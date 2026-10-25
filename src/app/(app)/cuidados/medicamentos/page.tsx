@@ -77,7 +77,7 @@ export default function Medicamentos() {
     <>
       <TopBar title={t("title")} back="/cuidados" emoji="💊" />
       <main className="main">
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> {t("add")}</button>
+        <button type="button" className="btn btn--primary btn--block edit-only" onClick={openNew}><IconPlus /> {t("add")}</button>
         <p className="page-note">{t("note")}</p>
         {meds.length === 0 ? <p className="muted">{t("empty")}</p> : null}
         {active.length ? (
@@ -113,7 +113,7 @@ export default function Medicamentos() {
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
+      <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? `${toDelete.name}.` : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("medications", toDelete.id), removeCare("medications", toDelete.id)))) setToDelete(null); }} />
     </>
   );

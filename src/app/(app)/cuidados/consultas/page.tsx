@@ -57,7 +57,7 @@ export default function Consultas() {
     <>
       <TopBar title={t("title")} back="/cuidados" emoji="🩺" />
       <main className="main">
-        <button type="button" className="btn btn--primary btn--block" onClick={openNew}><IconPlus /> {t("add")}</button>
+        <button type="button" className="btn btn--primary btn--block edit-only" onClick={openNew}><IconPlus /> {t("add")}</button>
         {visits.length === 0 ? <p className="muted">{t("empty")}</p> : null}
         <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {visits.map((v) => (
@@ -119,7 +119,7 @@ export default function Consultas() {
           </>
         ) : null}
       </FormSheet>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { date: fmt.date(toDelete.date) }) : ""} busy={busy}
+      <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { date: fmt.date(toDelete.date) }) : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("visits", toDelete.id), removeCare("visits", toDelete.id)))) setToDelete(null); }} />
     </>
   );

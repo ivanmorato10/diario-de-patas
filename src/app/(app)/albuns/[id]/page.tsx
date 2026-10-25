@@ -10,6 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import { LIMITS } from "@/config/business";
 import { useStore } from "@/data/store";
 import { DomainError, type Snapshot } from "@/data/demo-repository";
+import type { AlbumId } from "@/domain/types";
 import { DeleteSheet, Field, FormSheet } from "@/components/care-forms";
 import { Sheet } from "@/components/entry-actions";
 import { IconPencil, IconPlus, IconTrash } from "@/components/icons";
@@ -152,7 +153,7 @@ function ShareAlbumButton({ entries, defaultTitle }: { entries: Snapshot["entrie
 
 /** Álbum criado pela pessoa: só fotos, com o nome que ela quiser (não tem conquistas). */
 function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; albumId: string; title: string; entries: Snapshot["entries"] }) {
-  const { repo, reload } = useStore();
+  const { repo, reload, patchDog } = useStore();
   const router = useRouter();
   const [mode, setMode] = useState<"none" | "rename" | "delete" | "add">("none");
   const [name, setName] = useState(title);
@@ -165,20 +166,24 @@ function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; al
   const errText = useErrorText();
   const candidates = snap.entries.filter((e) => !inAlbum.has(e.id));
 
-  async function run(fn: () => Promise<unknown>, after?: () => void) {
+  /** Grava; com sucesso, a tela muda na hora (`apply`) e a conferência completa vem depois, sem virar erro. */
+  async function run(fn: () => Promise<unknown>, apply: (s: Snapshot) => Snapshot, after?: () => void) {
     if (!repo || busy) return;
     setBusy(true);
     setError(null);
+    const dogAtStart = snap.dog?.id;
     try {
       await fn();
-      await reload();
-      setMode("none");
-      after?.();
     } catch (e) {
       setError(errText(e instanceof DomainError ? e : null, "errors.saveFailed"));
-    } finally {
       setBusy(false);
+      return;
     }
+    patchDog(dogAtStart, apply);
+    setBusy(false);
+    setMode("none");
+    after?.();
+    void reload().catch(() => undefined);
   }
 
   return (
@@ -187,15 +192,15 @@ function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; al
       <main className="main">
         <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
           <ShareAlbumButton entries={entries} defaultTitle={t("shareDefault", { album: title, dog: snap.dog?.name ?? "" })} />
-          <button type="button" className="btn btn--secondary btn--small" onClick={() => { setPicked(new Set()); setError(null); setMode("add"); }} disabled={candidates.length === 0}><IconPlus size={18} /> {t("addFromDiary")}</button>
-          <button type="button" className="btn btn--secondary btn--small" onClick={() => { setName(title); setError(null); setMode("rename"); }}><IconPencil size={18} /> {t("rename")}</button>
-          <button type="button" className="btn btn--ghost btn--small" style={{ color: "var(--danger)" }} onClick={() => setMode("delete")}><IconTrash size={18} /> {t("deleteAlbum")}</button>
+          <button type="button" className="btn btn--secondary btn--small edit-only" onClick={() => { setPicked(new Set()); setError(null); setMode("add"); }} disabled={candidates.length === 0}><IconPlus size={18} /> {t("addFromDiary")}</button>
+          <button type="button" className="btn btn--secondary btn--small edit-only" onClick={() => { setName(title); setError(null); setMode("rename"); }}><IconPencil size={18} /> {t("rename")}</button>
+          <button type="button" className="btn btn--ghost btn--small edit-only" style={{ color: "var(--danger)" }} onClick={() => setMode("delete")}><IconTrash size={18} /> {t("deleteAlbum")}</button>
         </div>
         <p className="caption">{t("customCount", { count: entries.length })}</p>
         {entries.length === 0 ? (
           <div className="card stitched empty" style={{ boxShadow: "none" }}>
             <p className="muted">{t("empty")}</p>
-            {candidates.length ? <button type="button" className="btn btn--secondary btn--small" onClick={() => setMode("add")}>{t("pickFromDiary")}</button> : <Link href="/guardar" className="btn btn--secondary btn--small">{t("saveMoment")}</Link>}
+            {candidates.length ? <button type="button" className="btn btn--secondary btn--small edit-only" onClick={() => setMode("add")}>{t("pickFromDiary")}</button> : <Link href="/guardar" className="btn btn--secondary btn--small">{t("saveMoment")}</Link>}
           </div>
         ) : (
           <div className="grid-photos">
@@ -223,18 +228,18 @@ function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; al
         </div>
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
-          <button type="button" className="btn btn--primary btn--block" disabled={busy || picked.size === 0} onClick={() => run(() => repo!.addEntriesToAlbum(albumId, [...picked]))}>
+          <button type="button" className="btn btn--primary btn--block" disabled={busy || picked.size === 0} onClick={() => { const ids = [...picked]; run(() => repo!.addEntriesToAlbum(albumId, ids), (s) => ({ ...s, albumEntries: [...s.albumEntries, ...ids.filter((e) => !s.albumEntries.some((x) => x.albumId === albumId && x.entryId === e)).map((entryId) => ({ key: `${albumId}:${entryId}`, albumId: albumId as AlbumId, entryId, addedAt: new Date().toISOString() }))] })); }}>
             {picked.size ? t("addN", { count: picked.size }) : t("pickPhotos")}
           </button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>
         </div>
       </Sheet>
 
-      <FormSheet open={mode === "rename"} onClose={() => setMode("none")} title={t("renameTitle")} onSubmit={() => run(() => repo!.renameAlbum(albumId, name))} busy={busy} error={error}>
+      <FormSheet open={mode === "rename"} onClose={() => setMode("none")} title={t("renameTitle")} onSubmit={() => run(() => repo!.renameAlbum(albumId, name), (s) => ({ ...s, customAlbums: s.customAlbums.map((a) => (a.id === albumId ? { ...a, title: name.trim() || a.title } : a)) }))} busy={busy} error={error}>
         <Field id="rename" label={t("name")} value={name} onChange={setName} maxLength={LIMITS.albumTitleMaxChars} />
       </FormSheet>
-      <DeleteSheet open={mode === "delete"} onClose={() => setMode("none")} title={t("deleteTitle")} text={t("deleteText", { title })} busy={busy}
-        onConfirm={() => run(() => repo!.deleteAlbum(albumId), () => router.replace("/albuns"))} />
+      <DeleteSheet error={mode === "delete" ? error : null} open={mode === "delete"} onClose={() => setMode("none")} title={t("deleteTitle")} text={t("deleteText", { title })} busy={busy}
+        onConfirm={() => run(() => repo!.deleteAlbum(albumId), (s) => ({ ...s, customAlbums: s.customAlbums.filter((a) => a.id !== albumId), albumEntries: s.albumEntries.filter((x) => x.albumId !== albumId) }), () => router.replace("/albuns"))} />
     </>
   );
 }

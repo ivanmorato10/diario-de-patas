@@ -27,7 +27,7 @@ type Panel = "name" | "family" | "notify" | "tz" | "lang" | "delete" | null;
 
 /** Minha conta: quem é você (nome e email) e linhas que abrem cada ajuste — como o Perfil do cachorro. */
 export default function Conta() {
-  const { snap, repo, reload, reset, unavailable } = useStore();
+  const { snap, repo, reload, reset, unavailable, patchSnap } = useStore();
   const router = useRouter();
   const [account, setAccount] = useState<{ email: string; via: string } | null>(null);
   const [tz, setTz] = useState<string | null>(null);
@@ -68,12 +68,15 @@ export default function Conta() {
     if (!isValidTimezone(tzValue)) return setTzMsg(errText("errors.invalidTimezone"));
     try {
       await repo!.updateTimezone(tzValue);
-      await reload();
-      setTz(null);
-      setTzMsg(t("tzSaved"));
     } catch {
-      setTzMsg(errText("errors.nameSaveFailed"));
+      setTzMsg(errText("errors.saveFailed"));
+      return;
     }
+    // Gravou: o fuso novo já vale na tela; a conferência completa vem depois (se falhar, não vira erro).
+    patchSnap((s) => (s.profile ? { ...s, profile: { ...s.profile, timezone: tzValue } } : s));
+    setTz(null);
+    setTzMsg(t("tzSaved"));
+    void reload().catch(() => undefined);
   }
 
   async function deleteAccount() {

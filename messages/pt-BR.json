@@ -245,7 +245,8 @@
     "many": "{a}, {b} e mais {n} deram ossinho",
     "countLabel": "{count, plural, one {# ossinho} other {# ossinhos}}: {who}",
     "remove": "Tirar ossinho",
-    "give": "Dar ossinho"
+    "give": "Dar ossinho",
+    "failed": "Não deu para salvar o ossinho. Tente de novo."
   },
   "brand": {
     "abuReading": "Abu lendo o Diário de Patas",
@@ -1412,7 +1413,8 @@
     "useTitle": "Usar esta foto numa missão",
     "useNote": "A foto continua a mesma — nada é enviado de novo. Depois você confirma se ela mostra o que a missão pede.",
     "alreadyDone": "já concluída, sem patinhas",
-    "noneAvailable": "Nenhuma missão disponível agora."
+    "noneAvailable": "Nenhuma missão disponível agora.",
+    "deleteFailed": "Não deu para apagar agora. Confira a internet e tente de novo."
   },
   "errors": {
     "unauthenticated": "Entre na sua conta para continuar.",
@@ -1522,7 +1524,10 @@
     "checkoutRefused": "O pagamento por cartão foi recusado ao abrir. Tente de novo em instantes.",
     "checkoutUncertain": "Não conseguimos abrir o pagamento agora. Tente de novo em instantes.",
     "appleUncertain": "Não conseguimos confirmar a compra com a Apple agora. Ela fica guardada no iPhone e confirmamos na próxima vez que você abrir o app.",
-    "appleInvalid": "A Apple não encontrou essa compra."
+    "appleInvalid": "A Apple não encontrou essa compra.",
+    "memberNotFound": "Essa pessoa não está mais neste diário.",
+    "diaryCreatedPhotoFailed": "O diário foi criado, mas a foto não subiu. Tente de novo pelo perfil do cachorro.",
+    "mediaNotFound": "Não encontramos essa imagem."
   },
   "family": {
     "roles": {
@@ -1636,7 +1641,8 @@
     "deleteLabel": "Excluir {label}",
     "optional": "(opcional)",
     "prefsFailed": "Não deu para salvar a sua escolha. Confira a internet.",
-    "prefsRetry": "Tentar de novo"
+    "prefsRetry": "Tentar de novo",
+    "deleting": "Excluindo…"
   },
   "importDemo": {
     "doneTitle": "Diário trazido para a sua conta",
@@ -1777,7 +1783,8 @@
     "today": "Dose de hoje",
     "saving": "Salvando…",
     "given": "Já dei",
-    "later": "Lembrar mais tarde"
+    "later": "Lembrar amanhã",
+    "failed": "Não deu para marcar a dose. Tente de novo."
   },
   "media": {
     "unavailable": "{alt} (foto indisponível)",
@@ -2201,7 +2208,9 @@
     "none": "Nenhum link ativo. Para criar, selecione fotos em um <link>álbum</link>.",
     "linkMeta": "{count, plural, one {# foto} other {# fotos}} · criado em {date}",
     "revokeLabel": "Revogar o link {title}",
-    "revoke": "Revogar"
+    "revoke": "Revogar",
+    "revokeFailed": "Não deu para revogar o link. Tente de novo.",
+    "revoking": "Revogando…"
   },
   "shareActions": {
     "whatsapp": "Enviar pelo WhatsApp",
@@ -2287,7 +2296,10 @@
     "create": "Criar meu diário",
     "nick": "Apelido carinhoso",
     "nickPlaceholder": "Ex.: Pepezinho, Bolinha, Meu Bebê",
-    "nickHint": "Do jeitinho que vocês chamam em casa. Aparece no perfil e dá para mudar depois."
+    "nickHint": "Do jeitinho que vocês chamam em casa. Aparece no perfil e dá para mudar depois.",
+    "photoRetry": "Tentar a foto de novo",
+    "continueWithout": "Seguir sem foto",
+    "photoLater": "Dá para pôr a foto depois, no perfil do cachorro."
   },
   "studio": {
     "exampleAbu": "exemplo com o Abu",

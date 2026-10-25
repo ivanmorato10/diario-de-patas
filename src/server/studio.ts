@@ -3,6 +3,7 @@
  * Estados: queued → processing → succeeded | failed | cancelled. Crédito: reserva antes, consumo só depois de salvar,
  * liberação em falha confirmada. A arte vai para “Datas especiais” com o selo de IA e nunca conclui missão.
  */
+import { after } from "next/server";
 import { currentDog, requireEditor } from "./family";
 import "server-only";
 import { fullDiaryParams, serverMaxEntries } from "@/config/business";
@@ -56,8 +57,27 @@ async function presetsWithFlags(): Promise<(StudioPreset & { enabled: boolean })
 const toJob = (r: any) => ({
   id: r.id, presetId: r.theme_id, presetVersion: r.preset_version, aspect: r.aspect, state: r.state, failureCode: r.failure_code,
   inputEntryId: r.input_entry_id, outputEntryId: r.output_entry_id, outputMediaId: r.output_asset_id, credits: r.credits, overlay: r.overlay,
-  createdAt: r.created_at, finishedAt: r.finished_at, dogId: r.dog_id as string,
+  createdAt: r.created_at, finishedAt: r.finished_at, dogId: r.dog_id as string, compositeMediaId: (r.composite_asset_id as string | null) ?? null,
 });
+
+/**
+ * A arte composta pelo app (nome/mensagem/moldura) passa a ser a imagem da lembrança: o Diário, o álbum, o link
+ * público e o download mostram o mesmo que a tela de resultado. Idempotente: a primeira composição vale.
+ */
+export async function studioSetComposite(ctx: Ctx, args: unknown) {
+  const a = z.object({ jobId: z.string().uuid(), mediaId: z.string().uuid() }).parse(args);
+  const dog = (await currentDog(ctx))!;
+  requireEditor(dog);
+  const admin = adminClient();
+  const job = (await q(admin.from("generation_jobs").select("*").eq("id", a.jobId).eq("dog_id", dog.id).maybeSingle())) as any;
+  if (!job || job.state !== "succeeded" || !job.output_entry_id) throw bad("NOT_FOUND", "errors.jobNotFound");
+  if (job.composite_asset_id) return toJob(job);
+  const media = (await q(admin.from("media_assets").select("id, status, kind, dog_id").eq("id", a.mediaId).maybeSingle())) as any;
+  if (!media || media.status !== "ready" || media.kind !== "art" || media.dog_id !== dog.id) throw bad("NOT_FOUND", "errors.mediaNotFound");
+  await q(admin.from("diary_entries").update({ media_asset_id: a.mediaId }).eq("id", job.output_entry_id).eq("dog_id", dog.id).eq("media_asset_id", job.output_asset_id));
+  const upd = (await q(admin.from("generation_jobs").update({ composite_asset_id: a.mediaId, updated_at: now() }).eq("id", a.jobId).is("composite_asset_id", null).select("*"))) as any[];
+  return toJob(upd[0] ?? job);
+}
 
 /** Tela do Estúdio: disponibilidade, saldo de teste, limites, presets e histórico. */
 export async function studioState(ctx: Ctx) {
@@ -124,7 +144,8 @@ async function studioAlbumId(dogId: string, ownerId: string): Promise<string> {
 async function countToday(dogId?: string) {
   let query = adminClient().from("generation_jobs").select("id", { count: "exact", head: true }).gte("created_at", todayUtcStart()).or("failure_code.is.null,failure_code.neq.NO_CREDITS");
   if (dogId) query = query.eq("dog_id", dogId);
-  const { count } = await query;
+  const { count, error } = await query;
+  if (error) throw new HttpError(500, "SERVER", "errors.generic"); // erro de contagem não vira "zero" (gasto incerto)
   return count ?? 0;
 }
 
@@ -220,10 +241,8 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   const entry = (await q(ctx.supa.from("diary_entries").select("id, dog_id, source, media_asset_id").eq("id", entryId).eq("dog_id", dog.id).is("deleted_at", null).maybeSingle())) as any;
   if (!entry) throw bad("NOT_FOUND", "errors.photoNotFound");
   if (entry.source === "studio") throw bad("INVALID", "errors.pickPhotoNotArt");
-  if ((await countToday(dog.id)) >= env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount)) throw bad("DAILY_LIMIT", "errors.dailyLimit");
-  if ((await countToday()) >= env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations)) throw bad("GLOBAL_LIMIT", "errors.globalLimit");
-  // Reserva vaga no diário e orçamento do dia ANTES de qualquer chamada paga (no banco, com trava):
-  // dois pedidos ao mesmo tempo não passam juntos. A arte em andamento ocupa a vaga.
+  // Limites do dia (por cachorro e geral), vaga no diário e orçamento: tudo conferido NO BANCO, com trava, junto com
+  // a criação do job, ANTES de qualquer chamada paga. Dois pedidos ao mesmo tempo não passam juntos.
   const budget = Number(process.env.STUDIO_DAILY_BUDGET_USD) || null;
   const created = await admin.rpc("create_studio_job", {
     p_job: {
@@ -231,10 +250,14 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
       aspect, crop: crop ?? null, overlay: overlay ?? null, model: gen.modelFor(preset.premium), credits: preset.credits, cost_usd: estimateCostUsd(preset, aspect), idempotency_key: idempotencyKey,
     },
     p_max_entries: serverMaxEntries(), p_budget_usd: budget,
+    p_max_per_dog: env("STUDIO_DAILY_PER_ACCOUNT", STUDIO_DEFAULTS.dailyPerAccount),
+    p_max_global: env("STUDIO_MAX_DAILY_GENERATIONS", STUDIO_DEFAULTS.maxDailyGenerations),
   });
   if (created.error) {
     if (/NO_SPACE/.test(created.error.message)) throw bad("NO_SPACE", "errors.fullDiaryNoCredit", fullDiaryParams(dog.name));
     if (/BUDGET/.test(created.error.message)) throw bad("GLOBAL_LIMIT", "errors.globalPause");
+    if (/DAILY_LIMIT/.test(created.error.message)) throw bad("DAILY_LIMIT", "errors.dailyLimit");
+    if (/GLOBAL_LIMIT/.test(created.error.message)) throw bad("GLOBAL_LIMIT", "errors.globalLimit");
     console.error("create_studio_job:", created.error.message);
     throw new HttpError(500, "SERVER", "errors.startArtFailed");
   }
@@ -265,22 +288,44 @@ export async function studioJob(ctx: Ctx, args: unknown) {
   return toJob(await q(ctx.supa.from("generation_jobs").select("*").eq("id", id).single()));
 }
 
-/** Termina um job com falha confirmada e devolve o crédito. */
+/**
+ * Termina um job com falha confirmada e devolve a reserva — só se ele ainda estava em andamento. Um job já concluído
+ * (arte entregue, crédito consumido) nunca vira falha aqui, nem pelo "travado" nem por uma repetição.
+ */
 async function fail(jobId: string, code: string) {
   const admin = adminClient();
-  await q(admin.from("generation_jobs").update({ state: "failed", failure_code: code, finished_at: now(), updated_at: now() }).eq("id", jobId).in("state", ["queued", "processing"]));
-  await q(admin.rpc("settle_credit", { p_job: jobId, p_op: "release" }));
+  const changed = (await q(admin.from("generation_jobs").update({ state: "failed", failure_code: code, finished_at: now(), updated_at: now() }).eq("id", jobId).in("state", ["queued", "processing"]).select("id"))) as any[];
+  if (changed.length) await q(admin.rpc("settle_credit", { p_job: jobId, p_op: "release" }));
+}
+
+/** O crédito deste job está reservado? (sem reserva, nunca chama a IA paga) */
+async function hasReserve(jobId: string) {
+  return !!(await q(adminClient().from("credit_ledger").select("id").eq("idempotency_key", `reserve:${jobId}`).maybeSingle()));
 }
 
 /**
- * Jobs travados: com `store: false` o provedor não guarda o pedido, então não há resultado a recuperar —
- * se passou do tempo, nada foi entregue: falha confirmada e o crédito volta. Fila esquecida é retomada.
+ * Jobs travados:
+ * - na fila há tempo demais (o processamento não chegou a começar): com crédito reservado, é processado de novo;
+ *   sem reserva, falha sem cobrar;
+ * - processando além do prazo: se a arte já está no Diário (lembrança com este job), conclui (consumo uma vez);
+ *   senão, com `store: false` não há resultado a recuperar: falha confirmada e a reserva volta.
  */
 async function reconcileStuck(dogId: string) {
   const admin = adminClient();
   const limit = new Date(Date.now() - env("STUDIO_JOB_TIMEOUT_MINUTES", STUDIO_DEFAULTS.jobTimeoutMinutes) * 60_000).toISOString();
-  const stuck = ((await admin.from("generation_jobs").select("id, state, created_at").eq("dog_id", dogId).in("state", ["queued", "processing"]).lt("updated_at", limit)).data ?? []) as any[];
-  for (const j of stuck) await fail(j.id, "PROVIDER_TIMEOUT");
+  const stuck = ((await q(admin.from("generation_jobs").select("id, state, created_at, output_entry_id").eq("dog_id", dogId).in("state", ["queued", "processing"]).lt("updated_at", limit))) ?? []) as any[];
+  for (const j of stuck) {
+    if (j.state === "queued") {
+      if (await hasReserve(j.id)) after(() => processJob(j.id));
+      else await fail(j.id, "NO_CREDITS");
+      continue;
+    }
+    const delivered = (await q(admin.from("diary_entries").select("id, media_asset_id").eq("request_key", j.id).eq("source", "studio").maybeSingle())) as any;
+    if (delivered) {
+      await q(admin.rpc("settle_credit", { p_job: j.id, p_op: "consume" }));
+      await q(admin.from("generation_jobs").update({ state: "succeeded", output_entry_id: delivered.id, output_asset_id: delivered.media_asset_id, finished_at: now(), updated_at: now() }).eq("id", j.id).eq("state", "processing"));
+    } else await fail(j.id, "PROVIDER_TIMEOUT");
+  }
 }
 
 /** Remove o fundo verde (#00FF00) da figurinha e exporta WebP 512×512 com transparência (adendo §10.6). */
@@ -313,9 +358,13 @@ export async function processJob(jobId: string) {
   const claimed = ((await admin.from("generation_jobs").update({ state: "processing", started_at: now(), updated_at: now() }).eq("id", jobId).eq("state", "queued").select("*")).data ?? []) as any[];
   const job = claimed[0];
   if (!job) return;
+  // Sem crédito reservado (falha entre criar o job e reservar), nunca chama a IA paga.
+  if (!(await hasReserve(jobId).catch(() => false))) { await fail(jobId, "NO_CREDITS").catch(() => undefined); return; }
   const preset = presetById(job.theme_id);
   const gen = artGenerator();
   let providerCalled = false;
+  let uploaded: string[] = []; // arquivos já enviados desta tentativa (limpeza se ela não for concluída)
+  let finished = false;
   try {
     if (!preset || !gen) throw new ProviderError("NOT_CONFIGURED", "sem provedor");
     const entry = (await q(admin.from("diary_entries").select("id, media_asset_id, deleted_at").eq("id", job.input_entry_id).maybeSingle())) as any;
@@ -348,34 +397,41 @@ export async function processJob(jobId: string) {
     for (const [k, b] of [[key, art], [thumbKey, thumb]] as const) {
       const { error } = await admin.storage.from("media").upload(k, b, { contentType: "image/webp", upsert: false });
       if (error) throw new ProviderError("PROVIDER_UNAVAILABLE", "não salvou a arte");
+      uploaded = [...uploaded, k];
     }
-    await q(admin.from("media_assets").insert({ id: mediaId, owner_id: job.owner_id, dog_id: job.dog_id, private_storage_key: key, thumb_storage_key: thumbKey, mime: "image/webp", bytes: art.length, width: meta.width ?? 1024, height: meta.height ?? 1024, hash, kind: "art", status: "ready" }));
     const profile = (await q(admin.from("profiles").select("timezone").eq("user_id", job.owner_id).maybeSingle())) as any;
     const tz = profile?.timezone ?? "America/Sao_Paulo";
-    // A lembrança é de quem pediu a arte (aparece "guardada por" e gera aviso para a família).
-    const saved = await admin.from("diary_entries").upsert({
-      owner_id: job.owner_id, created_by: job.requested_by ?? null, dog_id: job.dog_id, media_asset_id: mediaId, caption: await artCaption(job.requested_by ?? job.owner_id, preset.variantOf ?? preset.id),
-      occurred_date: civilDateInTz(new Date(), tz), timezone: tz, source: "studio", request_key: job.id,
-    }, { onConflict: "owner_id,request_key" }).select("id").single();
-    if (saved.error) {
-      if (/STORAGE_QUOTA/.test(saved.error.message)) throw new ProviderError("NO_SPACE", "diário cheio");
+    const albumId = await studioAlbumId(job.dog_id, job.owner_id);
+    // Conclusão numa transação só (finalize_studio_job): mídia + lembrança (de quem pediu, com aviso à família) +
+    // álbum + consumo do crédito + "concluída". Ou tudo, ou nada; repetir devolve a mesma lembrança.
+    const fin = await admin.rpc("finalize_studio_job", {
+      p_job: jobId,
+      p_media: { id: mediaId, private_storage_key: key, thumb_storage_key: thumbKey, bytes: art.length, width: meta.width ?? 1024, height: meta.height ?? 1024, hash },
+      p_entry: { caption: await artCaption(job.requested_by ?? job.owner_id, preset.variantOf ?? preset.id), occurred_date: civilDateInTz(new Date(), tz), timezone: tz },
+      p_album: albumId,
+      p_provider: out.model,
+    });
+    if (fin.error) {
+      if (/STORAGE_QUOTA/.test(fin.error.message)) throw new ProviderError("NO_SPACE", "diário cheio");
       throw new ProviderError("PROVIDER_UNAVAILABLE", "não salvou a arte");
     }
-    const outEntry = saved.data as any;
-    await q(admin.from("album_entries").upsert({ album_id: await studioAlbumId(job.dog_id, job.owner_id), entry_id: outEntry.id }, { onConflict: "album_id,entry_id", ignoreDuplicates: true }));
-
-    // Só agora: consome o crédito, registra o custo e conclui.
-    await q(admin.rpc("settle_credit", { p_job: jobId, p_op: "consume" }));
-    await q(admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation:${preset.id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: jobId }));
-    await q(admin.from("generation_jobs").update({ state: "succeeded", output_asset_id: mediaId, output_entry_id: outEntry.id, provider_job_id: out.model, finished_at: now(), updated_at: now() }).eq("id", jobId));
+    finished = true;
+    const outEntry = { id: fin.data as string };
+    // Registro de custo é controle interno: se falhar, a arte entregue continua entregue (só fica no log).
+    const usage = await admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation:${preset.id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: jobId });
+    if (usage.error) console.error("studio: registro de uso não gravado", jobId, usage.error.message);
     // Aviso para a família só depois de a arte estar salva no diário.
     if (job.requested_by) {
       const dog = (await admin.from("dogs").select("name").eq("id", job.dog_id).maybeSingle()).data as any;
       await notifyFamily({ user: { id: job.requested_by } as User }, { dogId: job.dog_id, dogName: dog?.name ?? "", kind: "art", targetType: "entry", targetId: outEntry.id, detail: preset.variantOf ?? preset.id, now: true });
     }
   } catch (e) {
+    // Depois de concluída (arte entregue e crédito consumido), nada mais transforma a arte em falha.
+    if (finished) { console.error("studio: depois da conclusão", jobId, e); return; }
     const code = e instanceof ProviderError ? e.code : "TECHNICAL";
     if (!(e instanceof ProviderError)) console.error("studio job", jobId, e);
+    // Arquivos já enviados desta tentativa, sem lembrança: vão para a fila de limpeza (não ficam órfãos).
+    if (uploaded.length) await admin.from("storage_cleanup").insert(uploaded.map((k) => ({ bucket: "media", object_key: k, reason: "studio_failed" }))).then(() => undefined, () => undefined);
     // Tentativa que pode ter sido cobrada pelo provedor: entra no controle de custo (valor ESTIMADO).
     if (providerCalled) await admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation-failed:${job.theme_id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: `${jobId}:failed` }).then(() => undefined, () => undefined);
     await fail(jobId, code).catch((err) => console.error("studio fail", jobId, err));

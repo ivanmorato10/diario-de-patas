@@ -4,6 +4,7 @@
  * cliente do usuário (RLS vale); escritas privilegiadas pelo admin com owner_id da sessão.
  * Mensagens de erro iguais às do modo demonstração.
  */
+import { must } from "./db";
 import { repeatRowId } from "./ids";
 import "server-only";
 import { z } from "zod";
@@ -24,13 +25,13 @@ import { LOCALES, REGIONS, WEIGHT_UNITS, defaultRegion, defaultWeightUnit, isLoc
 import { MESSAGES as MESSAGES_BY_LOCALE } from "@/i18n/messages";
 import { localeOf, regionOf, requestLocale, translator } from "./i18n";
 import { after } from "next/server";
-import { studioCheckPhoto, studioCreateJob, studioJob, studioState } from "./studio";
+import { studioCheckPhoto, studioCreateJob, studioJob, studioSetComposite, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
 import { attachReferral, confirmReferral, referralInfo } from "./referrals";
 import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
 import { checkPushSubscription, unreadCount, listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, saveNativePush, setNotifyPrefs, testPush } from "./notify";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
-import { appleConfirm, appleStore } from "./apple";
+import { appleConfirm, appleIntent, appleStore } from "./apple";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
 import { STUDIO_DEFAULTS } from "@/config/studio";
 import { achadinhosInfo } from "./amazon";
@@ -183,14 +184,14 @@ export async function snapshot(ctx: Ctx) {
   const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes, plan] = await Promise.all([
     q(supa.from("diary_entries").select("*").eq("dog_id", D).is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*").eq("dog_id", D)),
-    q(supa.from("album_entries").select("album_id, entry_id")),
+    q(supa.from("album_entries").select("album_id, entry_id, albums!inner(dog_id)").eq("albums.dog_id", D)), // só do cachorro aberto
     q(supa.from("mission_completions").select("id, completed_at, mission_instances!inner(template_id, period_key, dog_id), mission_submissions!mission_completions_accepted_submission_id_fkey(entry_id, id)").eq("mission_instances.dog_id", D)),
     q(supa.from("xp_ledger").select("amount, created_at").eq("dog_id", D)),
     q(supa.from("health_profiles").select("*").eq("dog_id", D).maybeSingle()),
     q(supa.from("weights").select("*").eq("dog_id", D).order("date").order("created_at")),
     q(supa.from("vaccines").select("*").eq("dog_id", D).order("applied_date", { ascending: false })),
     q(supa.from("visits").select("*").eq("dog_id", D).order("date", { ascending: false })),
-    q(supa.from("visit_documents").select("*")),
+    q(supa.from("visit_documents").select("visit_id, document_id, visits!inner(dog_id)").eq("visits.dog_id", D)),
     q(supa.from("medications").select("*").eq("dog_id", D).order("start_date", { ascending: false })),
     q(supa.from("contacts").select("*").eq("dog_id", D)),
     q(supa.from("documents").select("*").eq("dog_id", D).eq("status", "ready").order("created_at", { ascending: false })),
@@ -323,8 +324,9 @@ export async function updateDog(ctx: Ctx, args: unknown) {
   const old = dog.photo_asset_id as string | null;
   if (a.photoMediaId !== undefined && old && old !== a.photoMediaId) {
     // Não apaga se a mesma mídia ainda é usada por uma lembrança do diário.
-    const { count } = await adminClient().from("diary_entries").select("id", { count: "exact", head: true }).eq("media_asset_id", old).is("deleted_at", null);
-    if (!count) await discardMedia(ctx, old);
+    // Na dúvida (erro ao contar), não apaga: antes, o erro virava "zero" e apagava uma foto ainda usada no Diário.
+    const { count, error } = await adminClient().from("diary_entries").select("id", { count: "exact", head: true }).eq("media_asset_id", old).is("deleted_at", null);
+    if (!error && count === 0) await discardMedia(ctx, old);
   }
   return updated;
 }
@@ -363,7 +365,8 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   if (a.occurredDate > todayOf(profile)) throw bad("INVALID", "errors.dateUpToToday");
   const prior = (await q(ctx.supa.from("diary_entries").select("*").eq("dog_id", dog.id).eq("request_key", a.requestKey).maybeSingle())) as any;
   if (prior) return toEntry(prior, null); // retry: mesma lembrança
-  const { count } = await ctx.supa.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
+  const { count, error: countError } = await ctx.supa.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
+  if (countError) throw new HttpError(500, "SERVER", "errors.savePhotoFailed");
   if ((count ?? 0) >= serverMaxEntries()) throw bad("STORAGE_QUOTA", "errors.fullDiary", fullDiaryParams(dog.name));
   await readyMedia(ctx, a.mediaId);
   const used = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).eq("media_asset_id", a.mediaId).limit(1))) as any[];
@@ -440,10 +443,11 @@ export async function createAlbum(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ title: z.string(), key: RepeatKey }), args);
   const dog = await editableDog(ctx);
   if (a.key) {
-    const already = (await ctx.supa.from("albums").select("*").eq("id", repeatRowId(dog.id, "albums", a.key)).eq("dog_id", dog.id).maybeSingle()).data;
+    const already = await must(ctx.supa.from("albums").select("*").eq("id", repeatRowId(dog.id, "albums", a.key)).eq("dog_id", dog.id).maybeSingle());
     if (already) return toCustomAlbum(already); // repetição: o álbum já foi criado
   }
-  const { count } = await ctx.supa.from("albums").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("type", "custom");
+  const { count, error: countError } = await ctx.supa.from("albums").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).eq("type", "custom");
+  if (countError) throw new HttpError(500, "SERVER", "errors.saveFailed");
   if ((count ?? 0) >= LIMITS.maxCustomAlbums) throw bad("ALBUM_QUOTA", "errors.albumQuota", { max: LIMITS.maxCustomAlbums });
   return toCustomAlbum(await insertOnce(ctx, "albums", { owner_id: dog.owner_id, dog_id: dog.id, title: albumTitle(a.title), type: "custom" }, a.key, dog.id));
 }
@@ -552,7 +556,7 @@ const RepeatKey = z.string().uuid().optional();
  */
 async function insertOnce(ctx: Ctx, table: string, row: Record<string, unknown>, key: string | undefined, dogId: string) {
   const id = key ? repeatRowId(dogId, table, key) : undefined; // a chave só vale dentro deste cachorro e tabela
-  const existing = async () => (id ? ((await ctx.supa.from(table).select("*").eq("id", id).eq("dog_id", dogId).maybeSingle()).data as any) : null);
+  const existing = async () => (id ? ((await must(ctx.supa.from(table).select("*").eq("id", id).eq("dog_id", dogId).maybeSingle())) as any) : null);
   const before = await existing();
   if (before) return before;
   const { data, error } = await ctx.supa.from(table).insert(id ? { ...row, id } : row).select("*").single();
@@ -567,6 +571,7 @@ export async function addWeight(ctx: Ctx, args: unknown) {
   const d = parse(WeightSchema, args);
   const key = parse(RepeatKey, (args as { key?: unknown } | null)?.key);
   const dog = await editableDog(ctx);
+  if (d.date > todayOf(await profileOf(ctx))) throw bad("INVALID", "errors.dateUpToToday"); // pesagem no futuro, não
   return toWeight(await insertOnce(ctx, "weights", { owner_id: dog.owner_id, dog_id: dog.id, date: d.date, kg: d.kg }, key, dog.id));
 }
 
@@ -746,13 +751,14 @@ export async function processCleanup(limit = 200) {
   const admin = adminClient();
   const cutoff = new Date(Date.now() - 24 * 3600_000).toISOString();
   for (const [table, bucket] of [["media_assets", "media"], ["documents", "documents"]] as const) {
-    const stale = ((await admin.from(table).select("id, private_storage_key, thumb_storage_key").eq("status", "pending_upload").lt("created_at", cutoff).limit(limit)).data ?? []) as any[];
+    const stale = ((await must(admin.from(table).select("id, private_storage_key, thumb_storage_key").eq("status", "pending_upload").lt("created_at", cutoff).limit(limit), "errors.generic")) ?? []) as any[];
     if (stale.length) {
-      await admin.from("storage_cleanup").insert(stale.flatMap((r) => [r.private_storage_key, r.thumb_storage_key].filter(Boolean).map((k: string) => ({ bucket, object_key: k, reason: "orphan_upload" }))));
-      await admin.from(table).delete().in("id", stale.map((r) => r.id));
+      // Primeiro enfileira a remoção dos arquivos; só apaga os registros se a fila gravou (senão o arquivo ficaria perdido).
+      await must(admin.from("storage_cleanup").insert(stale.flatMap((r) => [r.private_storage_key, r.thumb_storage_key].filter(Boolean).map((k: string) => ({ bucket, object_key: k, reason: "orphan_upload" })))), "errors.generic");
+      await must(admin.from(table).delete().in("id", stale.map((r) => r.id)), "errors.generic");
     }
   }
-  const jobs = ((await admin.from("storage_cleanup").select("*").is("done_at", null).lt("attempts", 10).order("created_at").limit(limit)).data ?? []) as any[];
+  const jobs = ((await must(admin.from("storage_cleanup").select("*").is("done_at", null).lt("attempts", 10).order("created_at").limit(limit), "errors.generic")) ?? []) as any[];
   let removed = 0, failed = 0;
   for (const bucket of ["media", "documents"] as const) {
     const items = jobs.filter((j) => j.bucket === bucket);
@@ -766,7 +772,8 @@ export async function processCleanup(limit = 200) {
       await Promise.all(items.map((j) => admin.from("storage_cleanup").update({ attempts: (j.attempts ?? 0) + 1, last_error: error.message.slice(0, 300) }).eq("id", j.id)));
     } else {
       removed += items.length;
-      await admin.from("storage_cleanup").update({ done_at: now(), attempts: 0, last_error: null }).in("id", items.map((j) => j.id));
+      const { error: doneError } = await admin.from("storage_cleanup").update({ done_at: now(), attempts: 0, last_error: null }).in("id", items.map((j) => j.id));
+      if (doneError) console.error("limpeza: arquivos removidos, mas a fila não foi marcada (repete sem problema)", doneError.message);
     }
   }
   return { removed, failed };
@@ -787,7 +794,8 @@ export async function createShare(ctx: Ctx, args: unknown) {
   const dog = await editableDog(ctx);
   const own = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).in("id", [...new Set(a.entryIds)]).is("deleted_at", null))) as any[];
   if (!own.length) throw bad("NOT_FOUND", "errors.photosNotFound");
-  const { count } = await ctx.supa.from("share_links").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("revoked_at", null);
+  const { count, error: countError } = await ctx.supa.from("share_links").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("revoked_at", null);
+  if (countError) throw new HttpError(500, "SERVER", "errors.saveFailed");
   if ((count ?? 0) >= 20) throw bad("SHARE_QUOTA", "errors.shareQuota");
   const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
   const admin = adminClient();
@@ -842,8 +850,8 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   getDocument, updateDocument, deleteDocument,
   createUpload, confirmUpload, exportMetadata: (c) => exportMetadata(c), deleteAccount: (c) => deleteAccount(c),
   createShare, listShares: (c) => listShares(c), revokeShare,
-  studioState: (c) => studioState(c), studioJob, studioCheckPhoto,
-  creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase, appleStore: (c) => appleStore(c), appleConfirm,
+  studioState: (c) => studioState(c), studioJob, studioCheckPhoto, studioSetComposite,
+  creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase, appleStore: (c) => appleStore(c), appleIntent: (c) => appleIntent(c), appleConfirm,
   achadinhosInfo: () => achadinhosInfo(),
   setPreferences,
   switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead, checkPushSubscription, unreadCount: (c) => unreadCount(c), savePushSubscription, saveNativePush, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,

@@ -3,15 +3,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useErrorText } from "@/i18n/use-error";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
 import { rpc } from "@/data/real-repository";
 import { DogAvatar } from "./media";
 
 /** Minha conta: diários de outras pessoas em que você participa, com "Sair" (inclusive para quem só acompanha). */
 export function FamilyDiaries() {
-  const { snap, reload } = useStore();
-  const router = useRouter();
+  const { snap, reload, patchSnap } = useStore();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const t = useTranslations("familyDiaries");
@@ -26,15 +24,17 @@ export function FamilyDiaries() {
     setMsg(null);
     try {
       await rpc("leaveDiary", { dogId: id });
-      // Sem nenhum cachorro: volta para "Qual é o seu caso?" (cadastrar um ou usar um convite).
-      await reload();
-      if ((snap?.diaries?.length ?? 0) <= 1) return router.replace("/");
-      setMsg(t("left", { dog: name }));
     } catch (e) {
       setMsg(errText(e instanceof Error ? e.message : "familyDiaries.leaveFailed"));
-    } finally {
       setBusy(null);
+      return;
     }
+    setBusy(null);
+    // Sem nenhum cachorro: volta para "Qual é o seu caso?" (cadastrar um ou usar um convite), com o app do zero.
+    if ((snap?.diaries?.length ?? 0) <= 1) { window.location.assign("/"); return; }
+    patchSnap((s) => ({ ...s, diaries: (s.diaries ?? []).filter((d) => d.id !== id) }));
+    setMsg(t("left", { dog: name }));
+    void reload().catch(() => undefined);
   }
 
   return (

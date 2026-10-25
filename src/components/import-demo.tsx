@@ -53,11 +53,12 @@ export function ImportDemoCard() {
     setState("running");
     try {
       setReport(await importDemo(source!, repo!, (d, t) => setProgress([d, t])));
-      await reload();
-      setState("done");
     } catch {
       setState("error");
+      return;
     }
+    setState("done");
+    void reload().catch(() => undefined); // importou: a conferência da tela não vira "falhou"
   }
 
   return (

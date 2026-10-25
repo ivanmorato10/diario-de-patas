@@ -1,10 +1,11 @@
 "use client";
 
+import { needsComposite, saveComposite } from "@/lib/studio-composite";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DomainError, type Snapshot } from "./demo-repository";
 import { getActiveDog, realRepository, setActiveDog } from "./real-repository";
 import { syncDeviceOwner } from "./push-client";
-import { pendingArts, studioJob, untrackArt } from "./studio-client";
+import { pendingArts, studioJob, untrackArt, type StudioJob } from "./studio-client";
 import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
 import { CONFIG_OK } from "@/config/mode";
@@ -97,8 +98,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const checkArts = async () => {
       for (const p of pendingArts()) {
         let done = false;
+        let job: StudioJob | null = null;
         try {
           const j = await studioJob(p.id);
+          job = j;
           done = j.state !== "queued" && j.state !== "processing";
           if (done && j.dogId && j.dogId !== getActiveDog()) { untrackArt(p.id); continue; } // outro cachorro: carrega ao abrir o diário dele
         } catch (e) {
@@ -106,6 +109,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           continue;
         }
         if (done) {
+          // Arte com nome/mensagem: guarda a versão composta antes de atualizar o Diário (se falhar, tenta na próxima).
+          if (job && needsComposite(job) && repoRef.current) {
+            const r = repoRef.current;
+            try { await saveComposite(job, () => r.getMediaBlob(job!.outputMediaId!, "display")); } catch { continue; }
+          }
           try { await reload(); untrackArt(p.id); } catch { /* tenta de novo na próxima volta */ }
         }
       }

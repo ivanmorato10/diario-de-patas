@@ -15,6 +15,7 @@ import { headers } from "next/headers";
 import { CHECKOUT_EXPIRES_MINUTES, CREDIT_MARKETS, PIX_EXPIRES_MINUTES, marketForRegion, packageById } from "@/config/credits";
 import { formatInstant, formatMoney } from "@/i18n/format";
 import { adminClient, HttpError } from "./supabase";
+import { must } from "./db";
 import { sendPurchaseConfirmed } from "./mailer";
 import { localeOf, regionOf, requestLocale, translator } from "./i18n";
 
@@ -172,11 +173,20 @@ async function createCheckout(row: any, description: string, email: string): Pro
   return { providerPaymentId: String(session.id), url: String(session.url), expiresAt: new Date(Number(form.expires_at) * 1000).toISOString() };
 }
 
-/** Sessão do Stripe → nosso status. Pago e depois estornado ou contestado = estornado. */
-export function mapStripeSession(s: { status?: string; payment_status?: string; payment_intent?: any }): Status {
+/**
+ * Sessão do Stripe → nosso status. Pago e depois estornado POR INTEIRO ou contestado = estornado.
+ * Estorno parcial (só acontece se alguém fizer à mão no painel) continua aprovado, como o Mercado Pago
+ * ("partially_refunded" segue "approved"): os créditos não são retirados e fica um aviso no log para decisão manual.
+ */
+export function mapStripeSession(s: { status?: string; payment_status?: string; payment_intent?: any; amount_total?: number }): Status {
   if (s.payment_status === "paid") {
     const charge = s.payment_intent && typeof s.payment_intent === "object" ? s.payment_intent.latest_charge : null;
-    if (charge && typeof charge === "object" && (charge.amount_refunded > 0 || charge.refunded || charge.disputed)) return "refunded";
+    if (charge && typeof charge === "object") {
+      if (charge.disputed || charge.refunded) return "refunded";
+      const total = Number(charge.amount ?? s.amount_total ?? 0);
+      if (charge.amount_refunded > 0 && total > 0 && charge.amount_refunded >= total) return "refunded";
+      if (charge.amount_refunded > 0) console.warn("estorno parcial no Stripe: créditos mantidos (decisão manual)", charge.id, charge.amount_refunded, total);
+    }
     return "approved";
   }
   if (s.status === "expired") return "expired";
@@ -221,7 +231,7 @@ async function createPix(row: any, description: string, email: string): Promise<
  */
 export async function syncPurchase(purchaseId: string): Promise<Status> {
   const admin = adminClient();
-  const p = (await admin.from("credit_purchases").select("*").eq("id", purchaseId).maybeSingle()).data as any;
+  const p = (await must(admin.from("credit_purchases").select("*").eq("id", purchaseId).maybeSingle(), "errors.generic")) as any;
   if (!p) return "cancelled";
   let status: Status = p.status;
   // Pix cuja resposta se perdeu ao criar: procura pela nossa referência (a mesma compra, nunca outra).
@@ -231,7 +241,7 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
       const pay = (found?.results ?? [])[0];
       if (pay) {
         const tx = pay.point_of_interaction?.transaction_data ?? {};
-        await admin.from("credit_purchases").update({ provider_payment_id: String(pay.id), pix_qr: tx.qr_code ?? null, pix_qr_base64: tx.qr_code_base64 ?? null, expires_at: pay.date_of_expiration ?? p.expires_at, updated_at: now() }).eq("id", p.id).is("provider_payment_id", null);
+        await must(admin.from("credit_purchases").update({ provider_payment_id: String(pay.id), pix_qr: tx.qr_code ?? null, pix_qr_base64: tx.qr_code_base64 ?? null, expires_at: pay.date_of_expiration ?? p.expires_at, updated_at: now() }).eq("id", p.id).is("provider_payment_id", null));
         p.provider_payment_id = String(pay.id);
       } else if (Date.parse(p.created_at) < Date.now() - (PIX_EXPIRES_MINUTES + 10) * 60_000) {
         status = "expired"; // o Mercado Pago confirma que não há cobrança e já passou do prazo
@@ -276,7 +286,7 @@ export async function syncPurchase(purchaseId: string): Promise<Status> {
     status = "expired"; // Pix de teste (sem provedor real)
   }
   if (status !== p.status) {
-    await admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" && !p.approved_at ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", p.status);
+    await must(admin.from("credit_purchases").update({ status, updated_at: now(), ...(status === "approved" && !p.approved_at ? { approved_at: now() } : {}) }).eq("id", p.id).eq("status", p.status));
   }
   if (status === "approved") {
     await grantCredits(p.id); // falhou? lança: o pagamento fica aprovado e a reconciliação entrega depois
@@ -341,40 +351,60 @@ export async function sendReceipt(purchaseId: string) {
   }
 }
 
-/** Compras aprovadas sem créditos entregues ou sem comprovante: entrega agora (idempotente). */
-async function deliverApproved() {
+const PAGE = 200;
+
+/**
+ * Compras aprovadas ainda sem comprovante (de qualquer data, em páginas): entrega os créditos e envia.
+ * O comprovante só é marcado depois dos créditos entregues, então "aprovada sem comprovante" é a lista
+ * durável do que falta entregar. Teto por rodada para caber no tempo da rotina; o resto fica para a próxima.
+ */
+export async function deliverApproved(maxRows = 2000) {
   const admin = adminClient();
-  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
-  const approved = ((await admin.from("credit_purchases").select("id, receipt_sent_at, approved_at").eq("status", "approved").gte("created_at", since).limit(500)).data ?? []) as any[];
-  if (!approved.length) return { granted: 0, receipts: 0 };
-  const keys = approved.map((p) => `purchase:${p.id}`);
-  const have = new Set((((await admin.from("credit_ledger").select("idempotency_key").in("idempotency_key", keys)).data ?? []) as any[]).map((r) => r.idempotency_key));
-  let granted = 0, receipts = 0;
-  for (const p of approved) {
-    // Comprovante só depois de os créditos estarem entregues: se a entrega falhar, fica pendente (sem email).
-    let delivered = have.has(`purchase:${p.id}`);
-    if (!delivered) delivered = await grantCredits(p.id).then(() => { granted++; return true; }, () => false);
-    if (delivered && !p.receipt_sent_at) { await sendReceipt(p.id); receipts++; }
+  let granted = 0, receipts = 0, after = "", seen = 0;
+  while (seen < maxRows) {
+    let q = admin.from("credit_purchases").select("id, receipt_sent_at").eq("status", "approved").is("receipt_sent_at", null);
+    if (after) q = q.gt("id", after);
+    const page = ((await must(q.order("id").limit(PAGE), "errors.generic")) ?? []) as any[];
+    if (!page.length) break;
+    seen += page.length;
+    after = page[page.length - 1].id;
+    const keys = page.map((p) => `purchase:${p.id}`);
+    const have = new Set((((await must(admin.from("credit_ledger").select("idempotency_key").in("idempotency_key", keys), "errors.generic")) ?? []) as any[]).map((r) => r.idempotency_key));
+    for (const p of page) {
+      // Comprovante só depois de os créditos estarem entregues: se a entrega falhar, fica pendente (sem email).
+      let delivered = have.has(`purchase:${p.id}`);
+      if (!delivered) delivered = await grantCredits(p.id).then(() => { granted++; return true; }, () => false);
+      if (delivered) { await sendReceipt(p.id); receipts++; }
+    }
+    if (page.length < PAGE) break;
   }
   return { granted, receipts };
+}
+
+/** Roda `fn` em todos os itens, `n` por vez (sem estourar o tempo da rotina com chamadas uma a uma). */
+async function inBatches<T>(items: T[], n: number, fn: (x: T) => Promise<void>) {
+  for (let i = 0; i < items.length; i += n) await Promise.all(items.slice(i, i + n).map(fn));
 }
 
 export async function reconcileRecentPurchases() {
   const delivered = await deliverApproved().catch((e) => ({ error: e instanceof Error ? e.message : "erro" }));
   const providers = [process.env.MP_ACCESS_TOKEN ? "mercadopago" : null, process.env.STRIPE_SECRET_KEY ? "stripe" : null].filter(Boolean) as string[];
   if (!providers.length) return { checked: 0, delivered };
-  const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
   const admin = adminClient();
-  const recent = ((await admin.from("credit_purchases").select("id, status").in("provider", providers).in("status", ["pending", "expired"]).gte("created_at", since).limit(200)).data ?? []) as any[];
+  const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  const recent = ((await must(admin.from("credit_purchases").select("id, status").in("provider", providers).in("status", ["pending", "expired"]).gte("created_at", since).limit(200), "errors.generic")) ?? []) as any[];
+  // Aprovadas dos últimos 60 dias: confere no provedor se houve estorno/contestação que o aviso não trouxe.
+  const sinceApproved = new Date(Date.now() - 60 * 86_400_000).toISOString();
+  const approved = ((await must(admin.from("credit_purchases").select("id, status").in("provider", providers).eq("status", "approved").gte("created_at", sinceApproved).order("created_at", { ascending: false }).limit(300), "errors.generic")) ?? []) as any[];
   // Estornos ainda não aplicados (de qualquer data: chargeback pode chegar semanas depois).
-  const refunds = ((await admin.from("credit_purchases").select("id, status").eq("status", "refunded").is("refund_applied_at", null).limit(200)).data ?? []) as any[];
-  const rows = [...recent, ...refunds];
+  const refunds = ((await must(admin.from("credit_purchases").select("id, status").eq("status", "refunded").is("refund_applied_at", null).limit(200), "errors.generic")) ?? []) as any[];
+  const rows = [...recent, ...approved, ...refunds];
   let changed = 0;
-  for (const r of rows) {
+  await inBatches(rows, 5, async (r) => {
     const before = r.status;
     const after = await syncPurchase(r.id).catch(() => before);
     if (after !== before || r.status === "refunded") changed++;
-  }
+  });
   return { checked: rows.length, changed, delivered };
 }
 
@@ -390,7 +420,7 @@ export const toPurchase = (p: any) => ({
 
 export async function creditShop(ctx: Ctx) {
   const dog = (await currentDog(ctx))!;
-  const recent = (await ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10)).data ?? [];
+  const recent = (await must(ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10), "credits.loadFailed")) ?? [];
   const code = await marketOf(ctx);
   const market = CREDIT_MARKETS[code];
   const test = paymentsFake() || (market.provider === "stripe" ? stripeTest() : (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"));
@@ -399,7 +429,7 @@ export async function creditShop(ctx: Ctx) {
 
 /** Mercado da compra pela região do app de quem compra (perfil; sem escolha, a sugestão do idioma). */
 async function marketOf(ctx: Ctx) {
-  const { data } = await ctx.supa.from("profiles").select("region, locale").eq("user_id", ctx.user.id).maybeSingle();
+  const data = await must(ctx.supa.from("profiles").select("region, locale").eq("user_id", ctx.user.id).maybeSingle(), "errors.generic");
   return marketForRegion(regionOf(data as { region?: string | null; locale?: string | null } | null));
 }
 
@@ -417,20 +447,32 @@ export async function createPurchase(ctx: Ctx, args: unknown) {
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);
   const admin = adminClient();
-  const prior = (await admin.from("credit_purchases").select("*").eq("idempotency_key", `${ctx.user.id}:${a.data.idempotencyKey}`).maybeSingle()).data;
-  if (prior) {
-    // Duplo toque ou nova tentativa: o mesmo Pix. Se a cobrança ficou incerta, tenta anexar de novo
-    // (o Mercado Pago devolve a MESMA cobrança para a mesma chave de idempotência).
+  const key = `${ctx.user.id}:${a.data.idempotencyKey}`;
+  // Duplo toque ou nova tentativa: o mesmo Pix. Se a cobrança ficou incerta, tenta anexar de novo
+  // (o Mercado Pago devolve a MESMA cobrança para a mesma chave de idempotência).
+  const resume = (prior: any) => {
     if (prior.status === "pending" && !prior.provider_payment_id && prior.provider === "mercadopago") return attachPix(prior, dog.name, ctx.user.email ?? "");
     if (prior.status === "pending" && !prior.provider_payment_id && prior.provider === "stripe") return attachCheckout(prior, dog.name, ctx.user.email ?? "");
     return toPurchase(prior);
-  }
-  const pending = (await admin.from("credit_purchases").select("id").eq("owner_id", ctx.user.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 3600_000).toISOString())).data ?? [];
+  };
+  const prior = (await must(admin.from("credit_purchases").select("*").eq("idempotency_key", key).maybeSingle(), "errors.generic")) as any;
+  if (prior) return resume(prior);
+  const pending = (await must(admin.from("credit_purchases").select("id").eq("owner_id", ctx.user.id).eq("status", "pending").gte("created_at", new Date(Date.now() - 3600_000).toISOString()), "errors.generic")) ?? [];
   if (pending.length >= 5) throw bad("TOO_MANY", "errors.tooManyPix");
-  const row = (await admin.from("credit_purchases").insert({
+  const ins = await admin.from("credit_purchases").insert({
     owner_id: ctx.user.id, dog_id: dog.id, package_id: pkg.id, credits: pkg.credits, amount_cents: pkg.priceCents, currency: market.currency,
-    provider: paymentsFake() ? "teste" : market.provider, idempotency_key: `${ctx.user.id}:${a.data.idempotencyKey}`,
-  }).select("*").single()).data as any;
+    provider: paymentsFake() ? "teste" : market.provider, idempotency_key: key,
+  }).select("*").single();
+  if (ins.error) {
+    // Dois toques simultâneos: o outro pedido gravou primeiro. Segue com a MESMA compra (nunca uma segunda).
+    if ((ins.error as any).code === "23505") {
+      const winner = await must(admin.from("credit_purchases").select("*").eq("idempotency_key", key).maybeSingle(), "errors.generic");
+      if (winner) return resume(winner);
+    }
+    console.error("compra não criada", ins.error.message);
+    throw new HttpError(500, "SERVER", "errors.saveFailed");
+  }
+  const row = ins.data as any;
   return row.provider === "stripe" ? attachCheckout(row, dog.name, ctx.user.email ?? "") : attachPix(row, dog.name, ctx.user.email ?? "");
 }
 
@@ -442,9 +484,10 @@ async function attachCheckout(row: any, dogName: string, email: string) {
   const admin = adminClient();
   try {
     const c = await createCheckout(row, `Diário de Patas — ${row.credits} credit${row.credits === 1 ? "" : "s"} (${dogName})`, email);
-    const upd = (await admin.from("credit_purchases").update({
+    // Se gravar falhar, a repetição recupera a MESMA cobrança (chave de idempotência + parâmetros gravados).
+    const upd = await must(admin.from("credit_purchases").update({
       provider_payment_id: c.providerPaymentId, checkout_url: c.url, expires_at: c.expiresAt, updated_at: now(),
-    }).eq("id", row.id).select("*").single()).data;
+    }).eq("id", row.id).select("*").single(), "errors.checkoutUncertain");
     return toPurchase(upd);
   } catch (e) {
     if (e instanceof StripeError && e.certain) await admin.from("credit_purchases").update({ status: "cancelled", updated_at: now() }).eq("id", row.id).eq("status", "pending");
@@ -461,9 +504,9 @@ async function attachPix(row: any, dogName: string, email: string) {
   const admin = adminClient();
   try {
     const pix = await createPix(row, `Diário de Patas — ${row.credits} créditos (${dogName})`, email);
-    const upd = (await admin.from("credit_purchases").update({
+    const upd = await must(admin.from("credit_purchases").update({
       provider_payment_id: pix.providerPaymentId, status: pix.status, pix_qr: pix.qr, pix_qr_base64: pix.qrBase64, expires_at: pix.expiresAt, updated_at: now(),
-    }).eq("id", row.id).select("*").single()).data;
+    }).eq("id", row.id).select("*").single(), "errors.pixUncertain");
     return toPurchase(upd);
   } catch (e) {
     if (e instanceof MpError && e.certain) await admin.from("credit_purchases").update({ status: "cancelled", updated_at: now() }).eq("id", row.id).eq("status", "pending");
@@ -473,10 +516,10 @@ async function attachPix(row: any, dogName: string, email: string) {
 
 export async function purchaseStatus(ctx: Ctx, args: unknown) {
   const id = z.object({ id: z.string().uuid() }).parse(args).id;
-  const own = (await ctx.supa.from("credit_purchases").select("id").eq("id", id).maybeSingle()).data;
+  const own = await must(ctx.supa.from("credit_purchases").select("id").eq("id", id).maybeSingle(), "errors.generic");
   if (!own) throw new HttpError(404, "NOT_FOUND", "errors.purchaseNotFound");
   await syncPurchase(id);
-  return toPurchase((await ctx.supa.from("credit_purchases").select("*").eq("id", id).single()).data);
+  return toPurchase(await must(ctx.supa.from("credit_purchases").select("*").eq("id", id).single(), "errors.generic"));
 }
 
 /** Só no modo de teste local: simula o pagamento aprovado. */
@@ -514,7 +557,7 @@ export async function handleMpWebhook(req: Request) {
   const ref = json?.external_reference;
   if (!ref || !/^[0-9a-f-]{36}$/.test(ref)) return 200;
   const admin = adminClient();
-  const p = (await admin.from("credit_purchases").select("id, provider_payment_id").eq("id", ref).maybeSingle()).data as any;
+  const p = (await must(admin.from("credit_purchases").select("id, provider_payment_id").eq("id", ref).maybeSingle(), "errors.generic")) as any;
   if (!p || p.provider_payment_id !== String(json.id)) return 200;
   await syncPurchase(p.id);
   return 200;
@@ -538,7 +581,7 @@ export async function handleStripeWebhook(req: Request) {
     sessionId = list?.data?.[0]?.id ?? null;
   }
   if (!sessionId) return 200;
-  const p = (await adminClient().from("credit_purchases").select("id").eq("provider", "stripe").eq("provider_payment_id", sessionId).maybeSingle()).data as any;
+  const p = (await must(adminClient().from("credit_purchases").select("id").eq("provider", "stripe").eq("provider_payment_id", sessionId).maybeSingle(), "errors.generic")) as any;
   if (!p) return 200;
   await syncPurchase(p.id);
   return 200;

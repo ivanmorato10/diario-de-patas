@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useStore } from "@/data/store";
 import { bonesText, toggleBone } from "@/data/letters-client";
@@ -11,8 +11,10 @@ import { loose } from "@/i18n/keys";
 
 /** Ossinho (o "curtir" do app): só aparece com 2+ pessoas no diário; não vale na própria lembrança. */
 export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry" | "letter"; targetId: string; authorId: string | null | undefined }) {
-  const { snap, reload, patchSnap } = useStore();
+  const { snap, reload, patchDog } = useStore();
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const sending = useRef(false); // toque duplo antes de a tela redesenhar
   const [showWho, setShowWho] = useState(false);
   const t = useTranslations("bones");
   const tl = loose(t);
@@ -26,12 +28,32 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
   const allWho = bonesText(bones, snap.members ?? [], me, tl);
   if (own && !bones.length) return null;
 
+  /**
+   * Na hora o ossinho muda; depois vale o que o SERVIDOR confirmou. Se não gravou, volta ao que era e avisa
+   * (antes, uma falha podia deixar um ossinho que não existia).
+   */
   async function toggle() {
+    if (sending.current) return;
+    sending.current = true;
     setBusy(true);
-    // Na hora: o ossinho aparece antes da resposta do servidor (o reload confirma).
-    patchSnap((s) => ({ ...s, bones: mine ? (s.bones ?? []).filter((b) => !(b.targetType === targetType && b.targetId === targetId && b.userId === me)) : [...(s.bones ?? []), { targetType, targetId, userId: me! }] }));
-    // O botão libera assim que o servidor gravou; a conferência completa vem depois, sem travar o próximo toque.
-    try { await toggleBone(targetType, targetId); } finally { setBusy(false); void reload().catch(() => undefined); }
+    setFailed(false);
+    const dogAtStart = snap!.dog?.id;
+    const set = (on: boolean) => patchDog(dogAtStart, (s) => {
+      const rest = (s.bones ?? []).filter((b) => !(b.targetType === targetType && b.targetId === targetId && b.userId === me));
+      return { ...s, bones: on ? [...rest, { targetType, targetId, userId: me! }] : rest };
+    });
+    set(!mine);
+    try {
+      const r = await toggleBone(targetType, targetId);
+      set(r.given);
+      void reload().catch(() => undefined);
+    } catch {
+      set(mine);
+      setFailed(true);
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
   }
 
   // Na própria lembrança: osso aceso com o número; tocar mostra quem deu (não dá para dar em si mesmo).
@@ -52,6 +74,7 @@ export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry
         <span aria-hidden="true">🦴</span>{bones.length ? ` ${bones.length}` : ""}
       </button>
       {text ? <span className="caption bone-bar__who">{text}</span> : null}
+      {failed ? <span className="field-error bone-bar__error" role="alert">{t("failed")}</span> : null}
     </div>
   );
 }

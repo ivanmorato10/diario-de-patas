@@ -3,7 +3,7 @@
  * entrega os créditos é o servidor (src/server/apple.ts). A transação só é finalizada na Apple DEPOIS de o servidor
  * confirmar: se algo falhar no meio, ela continua no iPhone e é confirmada na próxima abertura do app.
  */
-import { rpc } from "@/data/real-repository";
+import { getActiveDog, rpc } from "@/data/real-repository";
 import type { CreditPurchase } from "@/data/studio-client";
 import { isNativeApp } from "./native";
 
@@ -26,6 +26,9 @@ export async function appleProducts(store: AppleStore): Promise<AppleProduct[]> 
 /** Compra; devolve a compra confirmada pelo servidor, ou null se a pessoa desistiu na tela da Apple. */
 export async function buyWithApple(store: AppleStore, productId: string): Promise<CreditPurchase | null> {
   const np = await plugin();
+  // O diário que vai receber os créditos fica gravado no servidor antes de a Apple cobrar.
+  const dog = getActiveDog();
+  await rpc("appleIntent", {}, { dog });
   let tx;
   try {
     tx = await np.purchaseProduct({ productIdentifier: productId, appAccountToken: store.appAccountToken, autoAcknowledgePurchases: false });
@@ -33,7 +36,7 @@ export async function buyWithApple(store: AppleStore, productId: string): Promis
     if (/cancel/i.test(e instanceof Error ? e.message : String(e))) return null;
     throw e;
   }
-  const purchase = await rpc<CreditPurchase>("appleConfirm", { transactionId: tx.transactionId });
+  const purchase = await rpc<CreditPurchase>("appleConfirm", { transactionId: tx.transactionId }, { dog });
   await np.acknowledgePurchase({ purchaseToken: tx.transactionId });
   return purchase;
 }

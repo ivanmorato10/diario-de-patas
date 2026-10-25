@@ -28,6 +28,8 @@ export default function Comecar() {
   const [tz, setTz] = useState("America/Sao_Paulo");
   const [errorKey, setError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
+  /** Diário criado mas a foto não subiu: guarda para onde seguir; a tela oferece só reenviar a foto. */
+  const [photoOnly, setPhotoOnly] = useState<string | null>(null);
   const t = useTranslations("start");
   const errText = useErrorText();
   const error = errorKey ? errText(errorKey) : null;
@@ -47,6 +49,7 @@ export default function Comecar() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!repo || saving) return;
+    if (photoOnly) return retryPhoto(); // o diário já existe: nunca cria de novo
     if (!name.trim()) {
       setError("errors.dogNameRequired");
       document.getElementById("dog-name")?.focus();
@@ -58,14 +61,37 @@ export default function Comecar() {
     }
     setSaving(true);
     setError(null);
+    const next = another && snap?.dog ? "/hoje" : "/hoje?bemvindo=1"; // primeiro diário: convite da família
     try {
       await repo!.createDiary({ timezone: tz, name, nickname: nick.trim() || null, birthDate: birth || null, preferences: prefs, photo, another: !!another && !!snap?.dog });
-      await reload();
-      router.replace(another && snap?.dog ? "/hoje" : "/hoje?bemvindo=1"); // primeiro diário: convite da família
     } catch (err) {
+      // Diário criado, só a foto falhou: não pede para criar de novo (isso duplicaria o diário).
+      if (err instanceof DomainError && err.code === "PHOTO_AFTER_CREATE") { setPhotoOnly(next); setError(err); setSaving(false); return; }
       setError(err instanceof DomainError ? err : "errors.createDiaryFailed");
       setSaving(false);
+      return;
     }
+    await goToDiary(next);
+  }
+
+  /** O diário novo precisa estar carregado para abrir Hoje; se a conferência falhar, abre o app do zero. */
+  async function goToDiary(next: string) {
+    try { await reload(); router.replace(next); } catch { window.location.assign(next); }
+  }
+
+  /** Só a foto, no diário que já foi criado (o cachorro novo já é o desta tela). */
+  async function retryPhoto() {
+    if (!repo || !photo || saving || !photoOnly) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await repo.updateDog({ photo });
+    } catch (err) {
+      setError(err instanceof DomainError ? err : "errors.diaryCreatedPhotoFailed");
+      setSaving(false);
+      return;
+    }
+    await goToDiary(photoOnly);
   }
 
   return (
@@ -128,9 +154,17 @@ export default function Comecar() {
             </div>
 
             {error ? <p className="field-error" role="alert">{error}</p> : null}
-            <button type="submit" className="btn btn--primary btn--block" disabled={saving || !repo}>
-              {saving ? t("creating") : t("create")}
-            </button>
+            {photoOnly ? (
+              <div className="stack" style={{ gap: 8 }}>
+                <button type="button" className="btn btn--primary btn--block" disabled={saving} onClick={retryPhoto}>{saving ? t("creating") : t("photoRetry")}</button>
+                <button type="button" className="btn btn--secondary btn--block" disabled={saving} onClick={() => void goToDiary(photoOnly)}>{t("continueWithout")}</button>
+                <p className="caption" style={{ margin: 0, textAlign: "center" }}>{t("photoLater")}</p>
+              </div>
+            ) : (
+              <button type="submit" className="btn btn--primary btn--block" disabled={saving || !repo}>
+                {saving ? t("creating") : t("create")}
+              </button>
+            )}
           </form>
         )}
       </main>

@@ -91,7 +91,7 @@ export default function Peso() {
             </table>
           ) : null}
         </section>
-        <form className="card stack" onSubmit={(e) => { e.preventDefault(); add(); }} aria-labelledby="peso-novo" noValidate>
+        <form className="card stack edit-only" onSubmit={(e) => { e.preventDefault(); add(); }} aria-labelledby="peso-novo" noValidate>
           <h2 id="peso-novo" style={{ fontSize: "1.0625rem" }}>{t("new")}</h2>
           <div className="field">
             <label htmlFor="kg">{t("weightIn", { unit })}</label>
@@ -110,7 +110,7 @@ export default function Peso() {
           <button type="submit" className="btn btn--primary btn--block" disabled={busy || unitSaver.busy}>{t("add")}</button>
         </form>
       </main>
-      <DeleteSheet open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { weight: f.weight(toDelete.kg, 2), date: f.date(toDelete.date) }) : ""} busy={busy}
+      <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { weight: f.weight(toDelete.kg, 2), date: f.date(toDelete.date) }) : ""} busy={busy}
         onConfirm={async () => { if (toDelete && (await run(() => repo!.deleteHealthRecord("weights", toDelete.id), removeCare("weights", toDelete.id)))) setToDelete(null); }} />
     </>
   );

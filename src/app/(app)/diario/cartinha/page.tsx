@@ -14,7 +14,7 @@ const MAX = 3000;
 /** Escrever (ou editar) uma cartinha para o cachorro: folha de carta, data e assinatura com o nome da pessoa. */
 function Cartinha() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { reload } = useStore();
+  const { reload, patchDog } = useStore();
   const router = useRouter();
   const id = useSearchParams().get("id");
   const editing = id ? snap?.letters?.find((l) => l.id === id) ?? null : null;
@@ -46,27 +46,41 @@ function Cartinha() {
     if (!body.trim()) return setError(t("empty", { dog: dog.name }));
     setBusy(true);
     setError(null);
+    const dogAtStart = dog.id;
+    let res: { id: string };
     try {
-      const res = editing ? (await updateLetter({ id: editing.id, body, date }), { id: editing.id }) : await saveLetter({ requestKey: key.current, body, date });
-      await reload();
-      router.replace(`/diario#carta-${res.id}`);
+      res = editing ? (await updateLetter({ id: editing.id, body, date }), { id: editing.id }) : await saveLetter({ requestKey: key.current, body, date });
     } catch (er) {
       setError(errText(er, "errors.letterSaveFailed"));
       setBusy(false);
+      return;
     }
+    // Gravou: a cartinha entra no Diário na hora; a conferência completa vem depois (se falhar, não vira erro).
+    const me = snap!.me;
+    patchDog(dogAtStart, (s) => {
+      const letters = s.letters ?? [];
+      const prev = letters.find((l) => l.id === res.id);
+      const letter = prev ? { ...prev, body: body.trim(), date } : { id: res.id, body: body.trim(), date, createdBy: me?.userId ?? null, createdByName: null, mine: true, createdAt: new Date().toISOString() };
+      return { ...s, letters: [letter, ...letters.filter((l) => l.id !== res.id)].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)) };
+    });
+    void reload().catch(() => undefined);
+    router.replace(`/diario#carta-${res.id}`);
   }
 
   async function remove() {
     if (!editing || !window.confirm(t("confirmDelete"))) return;
     setBusy(true);
+    const id = editing.id;
     try {
-      await deleteLetter(editing.id);
-      await reload();
-      router.replace("/diario");
+      await deleteLetter(id);
     } catch (er) {
       setError(errText(er, "letterEdit.deleteFailed"));
       setBusy(false);
+      return;
     }
+    patchDog(dog.id, (s) => ({ ...s, letters: (s.letters ?? []).filter((l) => l.id !== id), bones: (s.bones ?? []).filter((b) => !(b.targetType === "letter" && b.targetId === id)) }));
+    void reload().catch(() => undefined);
+    router.replace("/diario");
   }
 
   return (

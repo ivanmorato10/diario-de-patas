@@ -31,7 +31,7 @@ import { upcomingCare } from "@/domain/health";
 
 export default function Hoje() {
   const { ready, snap, unavailable } = useRequireDiary();
-  const { repo, reload } = useStore();
+  const { repo, reload, patchDog } = useStore();
   const [swapping, setSwapping] = useState<DailySlot | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
   const [ideasHelp, setIdeasHelp] = useState(false);
@@ -63,9 +63,12 @@ export default function Hoje() {
   async function swap(slot: DailySlot) {
     setSwapping(slot);
     setSwapError(null);
+    const dogAtStart = snap!.dog?.id;
     try {
-      await repo!.swapDaily(slot);
-      await reload();
+      const plan = await repo!.swapDaily(slot);
+      // O plano novo (devolvido pelo servidor) entra na hora; a conferência completa vem depois, sem virar erro.
+      patchDog(dogAtStart, (s) => ({ ...s, dailyPlan: plan }));
+      void reload().catch(() => undefined);
     } catch (e) {
       setSwapError(errText(e instanceof DomainError ? e : null, "today.swapFailed"));
     } finally {
