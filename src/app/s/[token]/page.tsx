@@ -6,6 +6,7 @@ import { Paw } from "@/components/icons";
 import { CONFIG_OK } from "@/config/mode";
 import { formatCivilDate } from "@/i18n/format";
 import { resolveShare } from "@/server/rpc";
+import { ShareReport } from "@/components/share-report";
 
 export const dynamic = "force-dynamic"; // revogar precisa valer na hora: nada em cache
 // Nada privado no Open Graph: título genérico, sem foto nem nome do cachorro (briefing §12).
@@ -114,6 +115,7 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
         </section>
 
         <Invite />
+        <ShareReport token={token} />
       </main>
       <footer className="shared-foot">
         {t.rich("foot", { link: (c) => <Link href={SIGNUP}>{c}</Link> })}

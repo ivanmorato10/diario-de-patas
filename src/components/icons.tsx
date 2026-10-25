@@ -39,6 +39,7 @@ export const IconPhone = (p: P) => (<Svg {...p}><path d="M6 3h3l2 5-2.5 1.5a11 1
 export const IconPin = (p: P) => (<Svg {...p}><path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11Z" /><circle cx="12" cy="10" r="2.2" /></Svg>);
 export const IconClock = (p: P) => (<Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Svg>);
 export const IconFile = (p: P) => (<Svg {...p}><path d="M7 3h7l5 5v13H7Z" /><path d="M14 3v5h5" /></Svg>);
+export const IconFlag = (p: P) => (<Svg {...p}><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></Svg>);
 
 /** Patinha preenchida — elemento da marca. */
 export function Paw({ size = 22, ...rest }: P) {

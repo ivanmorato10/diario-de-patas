@@ -5,8 +5,10 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
 
 ## Como funciona
 - O app do iPhone é o mesmo app publicado na Vercel, aberto dentro do **Capacitor** (`capacitor.config.ts`,
-  projeto em `ios/`). As telas vêm do site: toda publicação na Vercel já vale no iPhone, sem novo envio à Apple.
-  Novo envio só quando mudar algo nativo (ícone, permissões, plugins).
+  projeto em `ios/`). As telas vêm do site: correções e ajustes publicados na Vercel valem no iPhone sem novo envio.
+  **Regra da Apple (2.5.2 / 4.2):** publicação remota não pode mudar o app de forma relevante (função nova, outro
+  propósito, outra forma de pagar) sem passar pela revisão — mudança assim vai junto de um novo envio pelo Codemagic.
+  Novo envio também quando mudar algo nativo (ícone, permissões, plugins).
 - Diferenças dentro do app (`src/lib/native.ts`):
   - **Créditos pela compra da Apple** (exigência da App Store): pacotes 1, 5 e 10 créditos como produtos
     "consumíveis"; preço de cada país é o da faixa escolhida no App Store Connect. Pix e cartão não aparecem.
@@ -14,8 +16,11 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
     `diariodepatas://auth/callback` (já liberado no Supabase).
 - Servidor (`src/server/apple.ts`): o app só informa o número da transação; o servidor busca a transação **na
   Apple** (App Store Server API), confere a assinatura com o certificado raiz da Apple, o app, o produto, a pessoa
-  (`appAccountToken`) e se não foi estornada; entrega os créditos uma vez (`grant_purchase_credits`). A transação só
-  é finalizada no iPhone depois da confirmação; se o app fechar no meio, confirma na próxima abertura.
+  (`appAccountToken`, um por tentativa: `apple_purchase_attempts` guarda o diário de destino daquela compra) e se
+  não foi estornada; entrega os créditos uma vez (`grant_purchase_credits`). A transação só é finalizada no iPhone
+  depois da confirmação; se o app fechar no meio, confirma ao abrir/voltar ao app ou quando a Apple avisar.
+- Plugin de compras corrigido por `scripts/patch-native-purchases.mjs` (roda no `npm ci`, inclusive no Codemagic):
+  o aviso da Apple não finaliza a transação sozinho. Atualizar o plugin = revisar essa correção.
 - Estorno/revogação: avisos da Apple em `/api/pagamentos/apple` (assinados) retiram os créditos que sobraram.
 - Compras de teste (TestFlight/sandbox) ficam marcadas como teste (`credit_purchases.sandbox`).
 - **Avisos no celular**: dentro do app, pelo serviço da Apple (APNs), direto do servidor (`src/server/apns.ts`,
@@ -63,6 +68,8 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
 | `APNS_KEY_ID` | Key ID da chave de avisos (passo 8) |
 | `APNS_TEAM_ID` | Team ID da conta de desenvolvedor |
 | `APNS_PRIVATE_KEY` | conteúdo do `.p8` do passo 8 (com as quebras de linha como `\n`) |
+| `APPLE_SERVICES_ID` | o mesmo Services ID do login com Apple (está no `.env.local`) — revogar na exclusão de conta |
+| `APPLE_SECRET` | o mesmo "Secret Key" do login com Apple (`npm run apple:secret`) — renovar a cada 6 meses |
 
 ### 3. Codemagic (compila sem Mac)
 1. codemagic.io › entrar com o GitHub › adicionar o repositório `diario-de-patas` (ele lê o `codemagic.yaml`).
@@ -82,6 +89,13 @@ Situação (21/10/2026): **código pronto**, ainda não compilado nem enviado à
 ## Pontos de atenção na revisão da Apple
 - **4.2 (app muito parecido com site)**: o app tem compra nativa, avisos nativos, login pelo sistema, câmera e
   fotos; se a Apple pedir mais: salvar artes na galeria pelo app.
-- **1.2 (conteúdo de outras pessoas)**: o diário é privado, só com convidados; links compartilhados são só de
-  leitura. Se pedirem, acrescentar "denunciar" e "bloquear".
+- **1.2 (conteúdo de outras pessoas)**: denunciar foto, cartinha, pessoa e álbum público; bloquear pessoa
+  (`src/server/safety.ts`). Cada denúncia chega por email ao suporte (`REPORTS_EMAIL` ou o email de suporte) e fica
+  em `content_reports`: responder em até 24 h e marcar `resolved_at`/`resolution`.
+  Decisão do proprietário (25/10/2026): sem filtro automático de fotos por enquanto (exigiria enviar todas as fotos
+  a um serviço de moderação); a proteção é denúncia + resposta em 24 h + bloqueio. Criar o filtro só se a Apple pedir.
+- **5.1.2(i) (fotos para a IA)**: o Estúdio pede autorização antes de enviar qualquer foto ao Google Gemini; sem
+  ela o servidor não envia nada. Retirar em Minha conta.
+- **5.1.1(v) (excluir conta)**: Minha conta › Excluir; com login Apple, revoga na Apple (precisa de
+  `APPLE_SERVICES_ID` e `APPLE_SECRET` na Vercel — renovar o `APPLE_SECRET` junto com o do Supabase, a cada 6 meses).
 - **3.1.1**: dentro do app só a compra da Apple (já é assim).

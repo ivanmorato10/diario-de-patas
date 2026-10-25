@@ -25,8 +25,8 @@
       "who": "<strong>Who sees the diary:</strong> you and the people you invite, according to each person's role (can add moments or can follow along). A diary manager can remove someone at any time.",
       "links": "<strong>Shared links:</strong> anyone with the link sees only the photos you chose — no care records, documents, or email. You can revoke it in Profile › Manage diary; revoking doesn't delete copies someone already downloaded.",
       "where": "<strong>Where photos are stored:</strong> in private storage tied to your account. When you save a photo, we remove its location and other hidden data.",
-      "studio": "<strong>Studio:</strong> to check the photo and create the art, it's sent to Google's paid API (Gemini). Under that API's terms, the content isn't used to train Google products; a record may be kept for a limited time, only to detect abuse. The art carries an invisible Google watermark.",
-      "payments": "<strong>Payments:</strong> Pix is processed by Mercado Pago; the app never sees your banking details.",
+      "studio": "<strong>Studio:</strong> only with your permission (asked before the first upload, and you can withdraw it in My account), the photo you pick is sent to Google’s paid API (Gemini) to check the photo and create the art. Under that API’s terms, content isn’t used to train Google products; a record may be kept for a limited time only to detect abuse. The art carries an invisible Google watermark.",
+      "payments": "<strong>Payments:</strong> on the website, card payments are processed by Stripe and Pix by Mercado Pago; in the iPhone app, purchases go through Apple. The app never sees card or bank details.",
       "push": "<strong>Phone notifications:</strong> go through your device's notification service (Apple or Google). You can turn them off in My account › Notifications.",
       "delete": "<strong>Deleting:</strong> in My account › Delete my account, or just one diary in Profile › Manage diary."
     },
@@ -70,7 +70,16 @@
     "deleteText": "The diaries you created are deleted with everything in them, including for invited family. Other people's diaries stay with them. This can't be undone.",
     "confirmLabel": "To confirm, type <strong>{word}</strong>",
     "deleting": "Deleting…",
-    "langRegionTitle": "Idioma / Language & region"
+    "langRegionTitle": "Idioma / Language & region",
+    "aiTitle": "Photos for AI (Studio)",
+    "aiOn": "Allowed",
+    "aiOff": "Not allowed",
+    "aiText": "You allowed sending the photos you pick in the Studio to Google Gemini, to check the photo and create the art. If you withdraw, nothing else is sent and the Studio asks again before the next time. The rest of the app stays the same.",
+    "aiOffText": "No photo will be sent to AI. The Studio asks for permission before creating art.",
+    "aiWithdraw": "Withdraw permission",
+    "aiWithdrawing": "Withdrawing…",
+    "aiWithdrawn": "Permission withdrawn. No photo will be sent to AI.",
+    "deleteAppleNote": "You sign in with Apple: when you delete, we also remove the link between Paw Diary and your Apple ID. To check, go to iPhone Settings › [your name] › Sign in with Apple."
   },
   "add": {
     "back": "Back",
@@ -1191,7 +1200,8 @@
     "chooseAnother": "Choose another package",
     "payApple": "Buy · {price}",
     "oneTimeApple": "One-time payment through the App Store, with your Apple Account. No subscription.",
-    "appleSoon": "Buying credits in the app is coming soon."
+    "appleSoon": "Buying credits in the app is coming soon.",
+    "applePending": "Purchase waiting for approval. As soon as Apple approves it, the credits are added automatically."
   },
   "diary": {
     "title": "Diary",
@@ -1527,7 +1537,10 @@
     "appleInvalid": "Apple couldn't find this purchase.",
     "memberNotFound": "This person is no longer in this diary.",
     "diaryCreatedPhotoFailed": "The diary was created, but the photo didn't upload. Try again from the dog's profile.",
-    "mediaNotFound": "We couldn't find this image."
+    "mediaNotFound": "We couldn't find this image.",
+    "appleDiaryGone": "Your purchase went through, but the diary you picked is no longer available. Your credits are safe: contact support in About and we will sort it out.",
+    "aiConsentNeeded": "To create the art, allow sending the photo to Google Gemini.",
+    "tooManyReports": "Too many reports in a short time. If it is urgent, contact support."
   },
   "family": {
     "roles": {
@@ -2386,7 +2399,8 @@
       "INPUT_DELETED": "The photo was deleted before the art was ready. The credit was refunded.",
       "NOT_CONFIGURED": "The Studio isn't available yet. The credit was refunded.",
       "NO_SPACE": "{dog}'s diary has reached its memory limit, so the art would have nowhere to go. The credit was refunded.",
-      "TECHNICAL": "Something went wrong on our end. The credit was refunded."
+      "TECHNICAL": "Something went wrong on our end. The credit was refunded.",
+      "AI_CONSENT": "Permission to send photos to AI was withdrawn. Nothing was sent and the credit was returned."
     },
     "title": "Studio",
     "heading": "Art of {dog}",
@@ -2425,7 +2439,16 @@
     "outOfCredits": "You're out of credits for now.",
     "seeCredits": "See credits",
     "history": "History",
-    "openArt": "Open {theme} art"
+    "openArt": "Open {theme} art",
+    "aiConsent": {
+      "title": "Before creating: your photo goes to Google AI",
+      "body": "To check this photo and create the art, we need to send it to Google Gemini. The photo may show people or details of your home. Do you allow this?",
+      "details": "This applies to the photos you pick in the Studio. Google uses the photo only to answer the request, under the paid API terms; it may keep a record for a limited time to detect abuse. You can withdraw this in My account.",
+      "privacyLink": "How your data is handled",
+      "allow": "Allow and continue",
+      "notNow": "Not now",
+      "saving": "Saving…"
+    }
   },
   "studioCatalog": {
     "tabs": {
@@ -2699,5 +2722,39 @@
     "privacy": "Privacy Policy",
     "refund": "Refund Policy",
     "label": "Legal documents"
+  },
+  "report": {
+    "title": {
+      "entry": "Report this photo",
+      "letter": "Report this letter",
+      "user": "Report this person",
+      "share": "Report this album"
+    },
+    "why": "What is happening?",
+    "reasons": {
+      "inappropriate": "Inappropriate or offensive content",
+      "harassment": "Harassment, threat or abuse",
+      "spam": "Spam or scam",
+      "other": "Something else"
+    },
+    "details": "Want to tell us more? (optional)",
+    "alsoBlock": "Also block {name} (you stop seeing what they post and getting their notifications)",
+    "thisPerson": "this person",
+    "send": "Send report",
+    "sending": "Sending…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "thanks": "We got your report. Support reviews it within 24 hours and, if needed, removes the content or the person. Questions: {email}.",
+    "blockedToo": "{name} is now blocked for you.",
+    "failed": "Could not send the report. Please try again.",
+    "reportPerson": "Report",
+    "block": "Block",
+    "unblock": "Unblock",
+    "blockedLabel": "Blocked by you",
+    "blockFailed": "Could not save. Please try again.",
+    "reportAlbum": "Report this album",
+    "publicThanks": "Thank you. Support reviews it within 24 hours.",
+    "entryLabel": "Report photo: {label}",
+    "letterLabel": "Report letter"
   }
 }

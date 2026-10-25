@@ -5,15 +5,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 
-const m = vi.hoisted(() => ({ image: Buffer.alloc(0), state: "queued", released: false, finalized: false, finalizeFails: false, usageFails: true, cleanup: [] as string[], reserved: true, generated: false }));
+const m = vi.hoisted(() => ({ image: Buffer.alloc(0), state: "queued", released: false, finalized: false, finalizeFails: false, lostReply: false, readFails: false, usageFails: true, cleanup: [] as string[], reserved: true, generated: false, finalizeCalls: 0, consent: true }));
 vi.mock("./supabase", () => ({
   HttpError: class extends Error {},
   adminClient: () => ({
     storage: { from: () => ({ download: async () => ({ data: new Blob([m.image]) }), upload: async () => ({ error: null }) }) },
     rpc: async (name: string, a: any) => {
       if (name === "finalize_studio_job") {
+        m.finalizeCalls++;
         if (m.finalizeFails) return { data: null, error: { message: "boom" } };
-        m.finalized = true; m.state = "succeeded"; return { data: "output-entry", error: null };
+        m.finalized = true; m.state = "succeeded";
+        if (m.lostReply) return { data: null, error: { message: "fetch failed" } }; // gravou, mas a resposta se perdeu
+        return { data: "output-entry", error: null };
       }
       if (name === "settle_credit" && a.p_op === "release") { m.released = true; return { data: true, error: null }; }
       return { data: true, error: null };
@@ -30,9 +33,10 @@ vi.mock("./supabase", () => ({
           else if (patch.state === "failed" && m.state !== "succeeded") { m.state = "failed"; data = [{ id: "job" }]; }
           else data = [];
         }
+        if (table === "generation_jobs" && op === "read") { if (m.readFails) error = { message: "fetch failed" }; else data = { state: m.state, output_entry_id: m.state === "succeeded" ? "output-entry" : null }; }
         if (table === "diary_entries") data = { id: "input", media_asset_id: "asset", deleted_at: null };
         if (table === "media_assets") data = { private_storage_key: "input.webp" };
-        if (table === "profiles") data = { timezone: "UTC" };
+        if (table === "profiles") data = { timezone: "UTC", ai_consent_version: m.consent ? 1 : null };
         if (table === "albums") data = { id: "album" };
         if (table === "dogs") data = { name: "Abu" };
         if (table === "credit_ledger") data = m.reserved ? { id: 1 } : null;
@@ -51,7 +55,7 @@ import { processJob } from "./studio";
 
 beforeEach(async () => {
   m.image = await sharp({ create: { width: 64, height: 64, channels: 3, background: "#aabbcc" } }).png().toBuffer();
-  Object.assign(m, { state: "queued", released: false, finalized: false, finalizeFails: false, usageFails: true, cleanup: [], reserved: true, generated: false });
+  Object.assign(m, { state: "queued", released: false, finalized: false, finalizeFails: false, lostReply: false, readFails: false, usageFails: true, cleanup: [], reserved: true, generated: false, finalizeCalls: 0, consent: true });
 });
 
 describe("conclusão da arte", () => {
@@ -73,5 +77,32 @@ describe("conclusão da arte", () => {
     await processJob("job");
     expect(m.generated).toBe(false);
     expect(m.state).toBe("failed");
+  });
+  it("banco concluiu e a resposta se perdeu: arte entregue, sem falha, sem devolução e sem arquivo na limpeza", async () => {
+    m.lostReply = true; m.usageFails = false;
+    await processJob("job");
+    expect(m.state).toBe("succeeded");
+    expect(m.released).toBe(false);
+    expect(m.cleanup).toEqual([]);
+  });
+  it("banco não concluiu (erro confirmado): repete uma vez, falha, devolve e limpa", async () => {
+    m.finalizeFails = true;
+    await processJob("job");
+    expect(m.finalizeCalls).toBe(2);
+    expect(m.state).toBe("failed");
+    expect(m.released).toBe(true);
+  });
+  it("sem conseguir ler o estado: incerto — não falha nem devolve (a recuperação decide)", async () => {
+    m.finalizeFails = true; m.readFails = true;
+    await processJob("job");
+    expect(m.state).toBe("processing");
+    expect(m.released).toBe(false);
+  });
+  it("autorização para a IA retirada depois de pedir: não envia a foto, falha e devolve o crédito", async () => {
+    m.consent = false;
+    await processJob("job");
+    expect(m.generated).toBe(false);
+    expect(m.state).toBe("failed");
+    expect(m.released).toBe(true);
   });
 });

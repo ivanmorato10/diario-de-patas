@@ -7,6 +7,7 @@ import { usePrefs } from "@/i18n/use-format";
 import { rpc } from "@/data/real-repository";
 import { ACHADINHO_CATEGORIES, achadinhoUrl, achadinhosFor, type Achadinho, type AchadinhoCategory } from "@/config/achadinhos";
 import { isStandalone } from "@/components/install-app";
+import { isNativeApp } from "@/lib/native";
 import { TopBar } from "@/components/shell";
 import { AbuMascot } from "@/components/brand";
 
@@ -81,7 +82,7 @@ export default function Achadinhos() {
           })}
         </ul>
 
-        {list.length ? <p className="caption achados-disclosure">{region === "BR" ? t("disclosureMl") : t("disclosure")}{typeof window !== "undefined" && isStandalone() ? ` ${t("backToApp")}` : ""}</p> : null}
+        {list.length ? <p className="caption achados-disclosure">{region === "BR" ? t("disclosureMl") : t("disclosure")}{typeof window !== "undefined" && isStandalone() && !isNativeApp() ? ` ${t("backToApp")}` : ""}</p> : null}
       </main>
     </>
   );

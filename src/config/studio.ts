@@ -304,4 +304,10 @@ export function buildStudioPrompt(preset: StudioPreset, aspect: StudioAspect): s
 export const STUDIO_ALBUM_TITLE = "Artes do Estúdio";
 
 /** Limites de custo (variáveis de ambiente no servidor; estes são os padrões). */
+/**
+ * Versão do texto de autorização para enviar fotos à IA (Google Gemini). Mudou o que sai, para quem ou para quê:
+ * suba o número — todos precisam autorizar de novo antes do próximo envio.
+ */
+export const AI_CONSENT_VERSION = 1;
+
 export const STUDIO_DEFAULTS = { testCredits: 1, dailyPerAccount: 5, maxDailyGenerations: 50, jobTimeoutMinutes: 10 } as const;

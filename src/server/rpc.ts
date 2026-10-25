@@ -25,7 +25,7 @@ import { LOCALES, REGIONS, WEIGHT_UNITS, defaultRegion, defaultWeightUnit, isLoc
 import { MESSAGES as MESSAGES_BY_LOCALE } from "@/i18n/messages";
 import { localeOf, regionOf, requestLocale, translator } from "./i18n";
 import { after } from "next/server";
-import { studioCheckPhoto, studioCreateJob, studioJob, studioSetComposite, studioState } from "./studio";
+import { studioAiConsent, studioCheckPhoto, studioCreateJob, studioJob, studioSetComposite, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
 import { attachReferral, confirmReferral, referralInfo } from "./referrals";
 import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
@@ -33,7 +33,9 @@ import { checkPushSubscription, unreadCount, listNotifications, markNotification
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { appleConfirm, appleIntent, appleStore } from "./apple";
 import { XP_MONTH_GOAL, xpMonthOf } from "@/config/credits";
-import { STUDIO_DEFAULTS } from "@/config/studio";
+import { AI_CONSENT_VERSION, STUDIO_DEFAULTS } from "@/config/studio";
+import { revokeAppleSignIn } from "./apple-signin";
+import { blockUser, blockedBy, reportContent } from "./safety";
 import { achadinhosInfo } from "./amazon";
 import { acceptInvite, createInvite, currentDog, familyInfo, forgetDog, leaveDiary, nameFromUser, removeMember, requireEditor, switchDog, updateMember } from "./family";
 import {
@@ -144,6 +146,7 @@ const meOf = (ctx: Ctx, profile: any) => {
     userId: ctx.user.id, name: (profile?.display_name as string) || nameFromUser(ctx.user), nameConfirmed: !!profile?.name_confirmed, suggestedName: fromLogin.slice(0, 40),
     notify: { photo: profile?.notify_photo !== false, letter: profile?.notify_letter !== false, bone: profile?.notify_bone !== false },
     locale: isLocale(profile?.locale) ? profile.locale : null, region: isRegion(profile?.region) ? profile.region : null, weightUnit: isWeightUnit(profile?.weight_unit) ? profile.weight_unit : null,
+    aiConsent: profile?.ai_consent_version === AI_CONSENT_VERSION,
   };
 };
 
@@ -181,7 +184,7 @@ export async function snapshot(ctx: Ctx) {
     return { profile: profile ? toProfile(profile) : null, me: meOf(ctx, profile), dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
   }
   const D = dog.id;
-  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes, plan] = await Promise.all([
+  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes, plan, blockedIds] = await Promise.all([
     q(supa.from("diary_entries").select("*").eq("dog_id", D).is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*").eq("dog_id", D)),
     q(supa.from("album_entries").select("album_id, entry_id, albums!inner(dog_id)").eq("albums.dog_id", D)), // só do cachorro aberto
@@ -202,7 +205,11 @@ export async function snapshot(ctx: Ctx) {
     q(supa.from("bones").select("target_type, target_id, user_id").eq("dog_id", D)),
     supa.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).is("read_at", null),
     ensurePlan(ctx, dog, today), // plano do dia junto com o resto (antes, só depois de tudo)
+    blockedBy(ctx.user.id),
   ]) as any[];
+  // Pessoas que você bloqueou: as fotos e cartinhas delas não aparecem para você (o diário continua igual para os outros).
+  const blocked = new Set<string>(blockedIds);
+  const visible = (by: string | null) => !by || !blocked.has(by);
   const memberName = new Map<string, string>((fam.members as any[]).map((m) => [m.userId, m.name]));
   const albumById = new Map<string, any>(albums.map((a: any) => [a.id, a]));
   const comps: MissionCompletion[] = completions.map((c: any) => {
@@ -225,9 +232,9 @@ export async function snapshot(ctx: Ctx) {
     role: dog.role,
     diaries: fam.diaries,
     members: fam.members,
-    me: meOf(ctx, profile),
-    entries: entries.map((e: any) => ({ ...toEntry(e, missionByEntry.get(e.id) ?? null), createdBy: e.created_by ?? null, createdByName: e.created_by && e.created_by !== ctx.user.id ? memberName.get(e.created_by) ?? null : null })),
-    letters: letterRows.map((l: any) => ({ id: l.id, body: l.body, date: l.letter_date, createdBy: l.created_by, createdByName: l.created_by ? memberName.get(l.created_by) ?? null : null, mine: l.created_by === ctx.user.id, createdAt: l.created_at })),
+    me: { ...meOf(ctx, profile), blocked: [...blocked] },
+    entries: entries.filter((e: any) => visible(e.created_by)).map((e: any) => ({ ...toEntry(e, missionByEntry.get(e.id) ?? null), createdBy: e.created_by ?? null, createdByName: e.created_by && e.created_by !== ctx.user.id ? memberName.get(e.created_by) ?? null : null })),
+    letters: letterRows.filter((l: any) => visible(l.created_by)).map((l: any) => ({ id: l.id, body: l.body, date: l.letter_date, createdBy: l.created_by, createdByName: l.created_by ? memberName.get(l.created_by) ?? null : null, mine: l.created_by === ctx.user.id, createdAt: l.created_at })),
     bones: boneRows.map((b: any) => ({ targetType: b.target_type, targetId: b.target_id, userId: b.user_id })),
     unread: unreadRes?.count ?? 0,
     albumEntries: albumEntries.filter((a: any) => albumById.has(a.album_id)).map((a: any) => {
@@ -739,6 +746,10 @@ export async function deleteAccount(ctx: Ctx) {
   const locale = await localeOf(ctx.user.id); // antes de apagar o perfil: o email de despedida vai no idioma da pessoa
   await q(admin.rpc("prepare_account_deletion", { p_owner: ctx.user.id }));
   await processCleanup(500);
+  // Entrou com a Apple: revoga a autorização na Apple antes de apagar (o próximo cadastro começa do zero).
+  // Sem token guardado (conta antiga) ou falha: a exclusão segue; a tela explica como remover em Ajustes.
+  const apple = await revokeAppleSignIn(ctx.user.id).catch(() => "failed" as const);
+  if (apple !== "no-token") console.warn("exclusão de conta: login Apple", apple);
   const { error } = await admin.auth.admin.deleteUser(ctx.user.id);
   if (error) throw new HttpError(500, "SERVER", "errors.deleteAccountFailed");
   await ctx.supa.auth.signOut().catch(() => undefined);
@@ -761,7 +772,24 @@ export async function processCleanup(limit = 200) {
   const jobs = ((await must(admin.from("storage_cleanup").select("*").is("done_at", null).lt("attempts", 10).order("created_at").limit(limit), "errors.generic")) ?? []) as any[];
   let removed = 0, failed = 0;
   for (const bucket of ["media", "documents"] as const) {
-    const items = jobs.filter((j) => j.bucket === bucket);
+    let items = jobs.filter((j) => j.bucket === bucket);
+    if (!items.length) continue;
+    // Nunca apaga arquivo que ainda pertence a uma mídia/documento vivo (ex.: arte concluída cuja resposta se
+    // perdeu). O item fica na fila e é conferido de novo nas próximas rodadas (até 10): se o registro for apagado
+    // depois, o arquivo sai; se continuar em uso, nunca é apagado.
+    const keys = items.map((j) => j.object_key);
+    const table = bucket === "media" ? "media_assets" : "documents";
+    const [byMain, byThumb] = await Promise.all([
+      must(admin.from(table).select("private_storage_key, thumb_storage_key").neq("status", "deleted").in("private_storage_key", keys), "errors.generic"),
+      must(admin.from(table).select("private_storage_key, thumb_storage_key").neq("status", "deleted").in("thumb_storage_key", keys), "errors.generic"),
+    ]);
+    const inUse = new Set(([...(byMain ?? []), ...(byThumb ?? [])] as any[]).flatMap((r) => [r.private_storage_key, r.thumb_storage_key]));
+    const keep = items.filter((j) => inUse.has(j.object_key));
+    if (keep.length) {
+      console.warn("limpeza: arquivo em uso não apagado", keep.length);
+      await Promise.all(keep.map((j) => admin.from("storage_cleanup").update({ attempts: (j.attempts ?? 0) + 1, last_error: "em uso: não apagado" }).eq("id", j.id)));
+    }
+    items = items.filter((j) => !inUse.has(j.object_key));
     if (!items.length) continue;
     // Só marca como feito quando o armazenamento confirma. Arquivo que já não existe também conta como feito
     // (a remoção não devolve erro para ele). Com erro, fica na fila para nova tentativa.
@@ -850,7 +878,7 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   getDocument, updateDocument, deleteDocument,
   createUpload, confirmUpload, exportMetadata: (c) => exportMetadata(c), deleteAccount: (c) => deleteAccount(c),
   createShare, listShares: (c) => listShares(c), revokeShare,
-  studioState: (c) => studioState(c), studioJob, studioCheckPhoto, studioSetComposite,
+  studioState: (c) => studioState(c), studioJob, studioCheckPhoto, studioSetComposite, studioAiConsent, reportContent, blockUser,
   creditShop: (c) => creditShop(c), createPurchase, purchaseStatus, fakePayPurchase, appleStore: (c) => appleStore(c), appleIntent: (c) => appleIntent(c), appleConfirm,
   achadinhosInfo: () => achadinhosInfo(),
   setPreferences,

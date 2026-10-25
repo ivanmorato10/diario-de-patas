@@ -25,8 +25,8 @@
       "who": "<strong>Quem vê o diário:</strong> você e as pessoas que você convidar, conforme o papel de cada uma (pode adicionar momentos ou pode acompanhar). Quem é responsável pelo diário pode tirar alguém a qualquer momento.",
       "links": "<strong>Links compartilhados:</strong> quem tiver o link vê só as fotos que você escolheu, sem cuidados, documentos ou email. Você revoga em Perfil › Gerenciar diário; revogar não apaga cópias que alguém já tenha baixado.",
       "where": "<strong>Onde ficam as fotos:</strong> num armazenamento privado ligado à sua conta. Ao guardar, removemos a localização e outros dados escondidos da foto.",
-      "studio": "<strong>Estúdio:</strong> para conferir a foto e criar a arte, ela é enviada à API paga do Google (Gemini). Pelos termos dessa API, o conteúdo não é usado para treinar produtos do Google; pode ficar um registro por tempo limitado, só para detectar abusos. A arte sai com uma marca d’água invisível do Google.",
-      "payments": "<strong>Pagamentos:</strong> o Pix é processado pelo Mercado Pago; o app não vê dados bancários.",
+      "studio": "<strong>Estúdio:</strong> só com a sua autorização (pedida antes do primeiro envio e que você retira em Minha conta), a foto escolhida é enviada à API paga do Google (Gemini) para conferir a foto e criar a arte. Pelos termos dessa API, o conteúdo não é usado para treinar produtos do Google; pode ficar um registro por tempo limitado, só para detectar abusos. A arte sai com uma marca d’água invisível do Google.",
+      "payments": "<strong>Pagamentos:</strong> no site, o Pix é processado pelo Mercado Pago e o cartão pelo Stripe; no app do iPhone, a compra é feita pela Apple. O app não vê dados de cartão nem bancários.",
       "push": "<strong>Avisos no celular:</strong> passam pelo serviço de notificações do seu aparelho (Apple ou Google). Você desliga em Minha conta › Notificações.",
       "delete": "<strong>Excluir:</strong> em Minha conta › Excluir minha conta, ou só um diário em Perfil › Gerenciar diário."
     },
@@ -70,7 +70,16 @@
     "deleteText": "Os diários que você criou são apagados com tudo o que está neles, inclusive para a família convidada. Diários de outras pessoas continuam com elas. Não dá para desfazer.",
     "confirmLabel": "Para confirmar, digite <strong>{word}</strong>",
     "deleting": "Excluindo…",
-    "langRegionTitle": "Idioma / Language e região"
+    "langRegionTitle": "Idioma / Language e região",
+    "aiTitle": "Fotos para a IA (Estúdio)",
+    "aiOn": "Autorizado",
+    "aiOff": "Não autorizado",
+    "aiText": "Você autorizou enviar ao Google Gemini as fotos que escolher no Estúdio, para conferir a foto e criar a arte. Se retirar, nada mais é enviado e o Estúdio pede de novo antes do próximo envio. O resto do app continua igual.",
+    "aiOffText": "Nenhuma foto será enviada à IA. O Estúdio pede a autorização antes de criar uma arte.",
+    "aiWithdraw": "Retirar autorização",
+    "aiWithdrawing": "Retirando…",
+    "aiWithdrawn": "Autorização retirada. Nenhuma foto será enviada à IA.",
+    "deleteAppleNote": "Você entra com a Apple: ao excluir, também cancelamos a ligação do Diário de Patas com o seu ID Apple. Se quiser conferir, vá em Ajustes do iPhone › [seu nome] › Entrar com a Apple."
   },
   "add": {
     "back": "Voltar",
@@ -1191,7 +1200,8 @@
     "chooseAnother": "Escolher outro pacote",
     "payApple": "Comprar · {price}",
     "oneTimeApple": "Pagamento único pela App Store, com a sua conta Apple. Sem assinatura.",
-    "appleSoon": "Em breve, compra de créditos aqui no app."
+    "appleSoon": "Em breve, compra de créditos aqui no app.",
+    "applePending": "Compra aguardando aprovação. Assim que a Apple aprovar, os créditos entram sozinhos."
   },
   "diary": {
     "title": "Diário",
@@ -1527,7 +1537,10 @@
     "appleInvalid": "A Apple não encontrou essa compra.",
     "memberNotFound": "Essa pessoa não está mais neste diário.",
     "diaryCreatedPhotoFailed": "O diário foi criado, mas a foto não subiu. Tente de novo pelo perfil do cachorro.",
-    "mediaNotFound": "Não encontramos essa imagem."
+    "mediaNotFound": "Não encontramos essa imagem.",
+    "appleDiaryGone": "A compra foi paga, mas o diário escolhido não está mais disponível. Seus créditos estão guardados: escreva para o suporte em Sobre que a gente resolve.",
+    "aiConsentNeeded": "Para criar a arte, autorize o envio da foto ao Google Gemini.",
+    "tooManyReports": "Muitas denúncias em pouco tempo. Se for urgente, escreva para o suporte."
   },
   "family": {
     "roles": {
@@ -2386,7 +2399,8 @@
       "INPUT_DELETED": "A foto foi excluída antes de a arte ficar pronta. O crédito foi devolvido.",
       "NOT_CONFIGURED": "O Estúdio ainda não está disponível. O crédito foi devolvido.",
       "NO_SPACE": "O diário de {dog} chegou ao limite de lembranças, e a arte não teria onde ficar. O crédito foi devolvido.",
-      "TECHNICAL": "Algo deu errado do nosso lado. O crédito foi devolvido."
+      "TECHNICAL": "Algo deu errado do nosso lado. O crédito foi devolvido.",
+      "AI_CONSENT": "A autorização para enviar fotos à IA foi retirada. Nada foi enviado e o crédito voltou."
     },
     "title": "Estúdio",
     "heading": "Artes de {dog}",
@@ -2425,7 +2439,16 @@
     "outOfCredits": "Os créditos acabaram por enquanto.",
     "seeCredits": "Ver créditos",
     "history": "Histórico",
-    "openArt": "Abrir arte {theme}"
+    "openArt": "Abrir arte {theme}",
+    "aiConsent": {
+      "title": "Antes de criar: sua foto vai para a IA do Google",
+      "body": "Para conferir esta foto e criar a arte, precisamos enviá-la ao Google Gemini. A foto pode mostrar pessoas ou detalhes da sua casa. Você autoriza esse envio?",
+      "details": "Vale para as fotos que você escolher no Estúdio. O Google usa a foto só para responder ao pedido, pelos termos da API paga; pode guardar um registro por tempo limitado para detectar abusos. Dá para retirar a autorização em Minha conta.",
+      "privacyLink": "Como seus dados são tratados",
+      "allow": "Autorizar e continuar",
+      "notNow": "Agora não",
+      "saving": "Salvando…"
+    }
   },
   "studioCatalog": {
     "tabs": {
@@ -2699,5 +2722,39 @@
     "privacy": "Política de Privacidade",
     "refund": "Política de Reembolso",
     "label": "Documentos"
+  },
+  "report": {
+    "title": {
+      "entry": "Denunciar esta foto",
+      "letter": "Denunciar esta cartinha",
+      "user": "Denunciar esta pessoa",
+      "share": "Denunciar este álbum"
+    },
+    "why": "O que está acontecendo?",
+    "reasons": {
+      "inappropriate": "Conteúdo impróprio ou ofensivo",
+      "harassment": "Assédio, ameaça ou abuso",
+      "spam": "Spam ou golpe",
+      "other": "Outro motivo"
+    },
+    "details": "Quer contar mais? (opcional)",
+    "alsoBlock": "Também bloquear {name} (você deixa de ver o que publica e de receber avisos dessa pessoa)",
+    "thisPerson": "esta pessoa",
+    "send": "Enviar denúncia",
+    "sending": "Enviando…",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "thanks": "Recebemos sua denúncia. O suporte analisa em até 24 horas e, se for o caso, remove o conteúdo ou a pessoa. Dúvidas: {email}.",
+    "blockedToo": "{name} foi bloqueada para você.",
+    "failed": "Não deu para enviar a denúncia. Tente de novo.",
+    "reportPerson": "Denunciar",
+    "block": "Bloquear",
+    "unblock": "Desbloquear",
+    "blockedLabel": "Bloqueada por você",
+    "blockFailed": "Não deu para salvar. Tente de novo.",
+    "reportAlbum": "Denunciar este álbum",
+    "publicThanks": "Obrigado. O suporte analisa em até 24 horas.",
+    "entryLabel": "Denunciar foto: {label}",
+    "letterLabel": "Denunciar cartinha"
   }
 }

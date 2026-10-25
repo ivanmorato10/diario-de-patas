@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ -n "${DATABASE_URL:-}" ]]; then
-  for t in supabase/tests/rls.sql supabase/tests/missions.sql supabase/tests/studio.sql supabase/tests/payments.sql supabase/tests/family.sql supabase/tests/referrals.sql supabase/tests/letters.sql supabase/tests/notifications.sql supabase/tests/integrity.sql supabase/tests/i18n.sql supabase/tests/photo_check.sql supabase/tests/studio_finalize.sql supabase/tests/studio_limits.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$t"; done
+  for t in supabase/tests/rls.sql supabase/tests/missions.sql supabase/tests/studio.sql supabase/tests/payments.sql supabase/tests/family.sql supabase/tests/referrals.sql supabase/tests/letters.sql supabase/tests/notifications.sql supabase/tests/integrity.sql supabase/tests/i18n.sql supabase/tests/photo_check.sql supabase/tests/studio_finalize.sql supabase/tests/studio_limits.sql supabase/tests/safety_apple.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$t"; done
   exit 0
 fi
 BIN="${PG_BIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
@@ -30,6 +30,7 @@ for f in supabase/migrations/*.sql; do "${P[@]}" -f "$f"; done
 "${P[@]}" -f supabase/tests/photo_check.sql
 "${P[@]}" -f supabase/tests/studio_finalize.sql
 "${P[@]}" -f supabase/tests/studio_limits.sql
+"${P[@]}" -f supabase/tests/safety_apple.sql
 # Produção: a migration de idiomas roda com o catálogo já existente (inserção de S04/S05 sem duplicar).
 "${P[@]}" -f supabase/migrations/20261106000000_i18n.sql
 "${P[@]}" -f supabase/tests/i18n.sql

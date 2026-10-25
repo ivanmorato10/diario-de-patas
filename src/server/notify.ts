@@ -7,6 +7,7 @@
  * - Tudo roda depois da resposta (after): guardar uma foto não fica mais lento.
  */
 import "server-only";
+import { whoBlocked } from "./safety";
 import { after } from "next/server";
 import webpush from "web-push";
 import { apnsReady, sendApns } from "./apns";
@@ -109,6 +110,9 @@ export function notifyFamily(ctx: { user: User }, a: { dogId: string; dogName: s
     const prefs = ((await admin.from("profiles").select(`user_id, ${PREF[a.kind]}`).in("user_id", recipients)).data ?? []) as any[];
     const off = new Set(prefs.filter((p) => p[PREF[a.kind]] === false).map((p) => p.user_id));
     recipients = recipients.filter((u) => !off.has(u));
+    // Quem bloqueou esta pessoa não recebe avisos dela.
+    const blockedActor = await whoBlocked(actor, recipients);
+    recipients = recipients.filter((u) => !blockedActor.has(u));
     if (!recipients.length) return;
     const actorName = await displayName(actor, ctx.user);
     const locales = await localesOf(recipients); // cada pessoa recebe no próprio idioma

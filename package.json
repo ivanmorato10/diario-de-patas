@@ -5,6 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "node scripts/patch-native-purchases.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "contrast": "node scripts/contrast.mjs",

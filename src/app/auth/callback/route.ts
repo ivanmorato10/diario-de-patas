@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminClient, userClient } from "@/server/supabase";
 import { requestLocale } from "@/server/i18n";
+import { saveAppleToken } from "@/server/apple-signin";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,9 @@ export async function GET(req: Request) {
       // Google/Apple não levam o idioma no cadastro: grava já aqui o idioma em uso (escolhido na entrada ou o do
       // celular), para os emails do Supabase saírem nele desde o começo. Quem já tem idioma salvo não muda.
       const u = data.user;
+      // Entrar com Apple: o token da Apple vem só agora; guardado para revogar na Apple se a conta for excluída.
+      const appleRefresh = data.session?.provider_refresh_token;
+      if (u && appleRefresh && u.app_metadata?.provider === "apple") await saveAppleToken(u.id, appleRefresh).catch(() => undefined);
       if (u && !(u.user_metadata as { locale?: string } | null)?.locale) {
         await adminClient().auth.admin.updateUserById(u.id, { user_metadata: { locale: await requestLocale() } }).catch(() => undefined);
       }

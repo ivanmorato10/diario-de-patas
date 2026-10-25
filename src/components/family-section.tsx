@@ -9,6 +9,7 @@ import { InviteBox } from "./invite-box";
 import type { DiaryRole } from "@/domain/types";
 import type { Snapshot } from "@/data/demo-repository";
 import { setActiveDog } from "@/data/real-repository";
+import { ReportSheet, useBlock, type ReportTarget } from "./report";
 
 /**
  * Família do diário: cada pessoa entra com a PRÓPRIA conta. O administrador gera um convite com o papel
@@ -21,6 +22,10 @@ export function FamilySection() {
   const t = useTranslations("familySection");
   const tf = useTranslations("family");
   const errText = useErrorText();
+  const tr = useTranslations("report");
+  const block = useBlock();
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
+  const blocked = new Set(snap?.me?.blocked ?? []);
   const dog = snap?.dog;
   const me = snap?.role ?? "admin";
   const members = snap?.members ?? [];
@@ -69,6 +74,14 @@ export function FamilySection() {
             <span className="member__text">
               <strong>{m.name}{m.me ? ` ${t("you")}` : ""}</strong>
               <span className="caption">{m.email}</span>
+              {/* Qualquer papel: denunciar ou bloquear outra pessoa do diário (App Store 1.2). */}
+              {!m.me ? (
+                <span className="row" style={{ gap: 4, flexWrap: "wrap" }}>
+                  {blocked.has(m.userId) ? <span className="caption">{tr("blockedLabel")}</span> : null}
+                  <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => setReporting({ type: "user", id: m.userId, authorId: m.userId, authorName: m.name })}>{tr("reportPerson")}</button>
+                  <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => { setBusy(true); setMsg(null); block(m.userId, !blocked.has(m.userId)).catch(() => setMsg(tr("blockFailed"))).finally(() => setBusy(false)); }}>{blocked.has(m.userId) ? tr("unblock") : tr("block")}</button>
+                </span>
+              ) : null}
             </span>
             {isAdmin && !m.me ? (
               <span className="member__actions">
@@ -87,6 +100,7 @@ export function FamilySection() {
           </li>
         ))}
       </ul>
+      {reporting ? <ReportSheet open onClose={() => setReporting(null)} target={reporting} /> : null}
 
       {isAdmin ? (
         <InviteBox dogName={dog.name} />

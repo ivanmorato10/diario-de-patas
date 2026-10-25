@@ -28,6 +28,8 @@ export interface StudioOverlay {
 }
 
 export interface StudioState {
+  /** A pessoa autorizou enviar fotos à IA (Google Gemini), na versão atual do texto. */
+  aiConsent?: boolean;
   available: boolean;
   configured: boolean;
   paused: boolean;
@@ -44,6 +46,7 @@ export interface StudioState {
 }
 
 export const studioState = () => rpc<StudioState>("studioState");
+export const studioAiConsent = (granted: boolean) => rpc<{ aiConsent: boolean }>("studioAiConsent", { granted });
 /** A tela do Estúdio e o acompanhamento geral consultam a mesma arte: uma consulta em andamento por arte. */
 const jobInFlight = new Map<string, Promise<StudioJob>>();
 export const studioJob = (id: string): Promise<StudioJob> => {
@@ -86,7 +89,7 @@ export interface PhotoCheck { verdict: "good" | "warn" | "bad"; issues: { code: 
 export const studioCheckPhoto = (input: { entryId: string; crop: { x: number; y: number; w: number; h: number } | null }) => rpc<PhotoCheck>("studioCheckPhoto", input);
 
 /** Motivos de falha conhecidos (texto em studio.failures.<código>); outro código vira TECHNICAL. */
-export const FAILURE_CODES = ["PROVIDER_REFUSED", "QUALITY_REJECTED", "PROVIDER_TIMEOUT", "PROVIDER_UNAVAILABLE", "NO_CREDITS", "INPUT_DELETED", "NOT_CONFIGURED", "NO_SPACE", "TECHNICAL"] as const;
+export const FAILURE_CODES = ["PROVIDER_REFUSED", "QUALITY_REJECTED", "PROVIDER_TIMEOUT", "PROVIDER_UNAVAILABLE", "NO_CREDITS", "INPUT_DELETED", "NOT_CONFIGURED", "NO_SPACE", "AI_CONSENT", "TECHNICAL"] as const;
 
 // ---------- Compra de créditos (Pix no Brasil, cartão pelo Stripe nos EUA) ----------
 export interface CreditPurchase {

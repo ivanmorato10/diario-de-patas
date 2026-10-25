@@ -84,6 +84,10 @@ export interface Bone { targetType: "entry" | "letter"; targetId: string; userId
 export interface Me {
   userId: string; name: string; nameConfirmed: boolean; suggestedName?: string; notify?: { photo: boolean; letter: boolean; bone: boolean };
   locale?: AppLocale | null; region?: Region | null; weightUnit?: WeightUnit | null;
+  /** Autorizou enviar fotos à IA (Estúdio), na versão atual do texto. */
+  aiConsent?: boolean;
+  /** Pessoas que você bloqueou (não vê o que publicam nem recebe avisos delas). */
+  blocked?: string[];
 }
 export interface DiaryMember { userId: string; name: string; email: string; role: DiaryRole; me: boolean; owner: boolean }
 

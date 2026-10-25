@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Sheet } from "@/components/entry-actions";
+import { isNativeApp } from "@/lib/native";
 
 /**
  * PWA: opção discreta "Instalar aplicativo" e aviso de sem conexão.
@@ -16,8 +17,10 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+/** Já está como app: instalado pela tela de início (PWA) ou o app do iPhone da App Store (nunca oferecer "instalar"). */
 export function isStandalone() {
   if (typeof window === "undefined") return false;
+  if (isNativeApp()) return true;
   return window.matchMedia?.("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
 }
 

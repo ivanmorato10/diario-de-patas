@@ -22,8 +22,10 @@ import { InstallAppLink } from "@/components/install-app";
 import { TimezoneSelect } from "@/components/profile-fields";
 import { IconChevron } from "@/components/icons";
 import { Sheet } from "@/components/entry-actions";
+import { studioAiConsent } from "@/data/studio-client";
+import { DomainError } from "@/data/demo-repository";
 
-type Panel = "name" | "family" | "notify" | "tz" | "lang" | "delete" | null;
+type Panel = "name" | "family" | "notify" | "tz" | "lang" | "ai" | "delete" | null;
 
 /** Minha conta: quem é você (nome e email) e linhas que abrem cada ajuste — como o Perfil do cachorro. */
 export default function Conta() {
@@ -41,6 +43,8 @@ export default function Conta() {
   const prefs = usePrefs();
   const regionSaver = usePreferenceSaver();
   const CONFIRM_WORD = t("confirmWord");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState<string | null>(null);
 
   useEffect(() => {
     browserClient().auth.getUser().then(({ data }) => {
@@ -79,6 +83,22 @@ export default function Conta() {
     void reload().catch(() => undefined);
   }
 
+  /** Retira a autorização de enviar fotos à IA: o Estúdio pede de novo antes do próximo envio. */
+  async function withdrawAi() {
+    if (aiBusy) return;
+    setAiBusy(true);
+    setAiMsg(null);
+    try {
+      await studioAiConsent(false);
+      patchSnap((s) => (s.me ? { ...s, me: { ...s.me, aiConsent: false } } : s));
+      setAiMsg(t("aiWithdrawn"));
+    } catch (e) {
+      setAiMsg(errText(e instanceof DomainError ? e : null, "errors.saveFailed"));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   async function deleteAccount() {
     setBusy(true);
     setError(null);
@@ -111,6 +131,7 @@ export default function Conta() {
           {others > 0 ? <Row id="family" icon="👨‍👩‍👧" label={t("familyDiaries")} sub={t("othersDiaries", { count: others })} /> : null}
           <Row id="notify" icon="🔔" label={t("notifications")} sub={t("notificationsSub")} />
           <Row id="tz" icon="🕐" label={t("timezone")} sub={tzValue.replace(/_/g, " ")} />
+          {snap.me?.aiConsent || aiMsg ? <Row id="ai" icon="🎨" label={t("aiTitle")} sub={snap.me?.aiConsent ? t("aiOn") : t("aiOff")} /> : null}
           <ShareApp />
           <Link href="/achadinhos" className="card row-between profile-row"><span className="profile-row__text"><span>🛍️ {t("finds")}</span></span><IconChevron /></Link>
           <Link href="/sobre" className="card row-between profile-row"><span className="profile-row__text"><span>🐾 {t("about")}</span></span><IconChevron /></Link>
@@ -168,9 +189,18 @@ export default function Conta() {
           </form>
         </Sheet>
 
+        <Sheet open={panel === "ai"} onClose={() => { setPanel(null); setAiMsg(null); }} labelledBy="c-ai">
+          <h2 id="c-ai">{t("aiTitle")}</h2>
+          <p className="small">{snap.me?.aiConsent ? t("aiText") : t("aiOffText")}</p>
+          {aiMsg ? <p className="small" role="status">{aiMsg}</p> : null}
+          {snap.me?.aiConsent ? <button type="button" className="btn btn--danger-outline btn--block" onClick={withdrawAi} disabled={aiBusy}>{aiBusy ? t("aiWithdrawing") : t("aiWithdraw")}</button> : null}
+          <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => { setPanel(null); setAiMsg(null); }}>{t("close")}</button>
+        </Sheet>
+
         <Sheet open={panel === "delete"} onClose={() => setPanel(null)} labelledBy="excluir">
           <h2 id="excluir">{t("delete")}</h2>
           <p className="small">{t("deleteText")}</p>
+          {account?.via === "Apple" ? <p className="caption">{t("deleteAppleNote")}</p> : null}
           <div className="field">
             <label htmlFor="confirm-conta">{t.rich("confirmLabel", { word: CONFIRM_WORD, strong: (c) => <strong>{c}</strong> })}</label>
             <input id="confirm-conta" className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" autoCapitalize="characters" />

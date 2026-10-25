@@ -36,3 +36,21 @@ export async function sendPurchaseConfirmed(to: string, receipt: PurchaseReceipt
     .sendMail({ from: process.env.SMTP_FROM || `Diário de Patas <${process.env.SMTP_USER}>`, to, subject: mail.subject, html: mail.html, text: mail.text })
     .then(() => "sent" as const, (e) => { console.error("email de compra não enviado:", e instanceof Error ? e.message : e); return "failed" as const; });
 }
+
+export interface ReportNotice { id: string; targetType: string; targetId: string; dogId: string | null; reason: string; details: string; reporter: string }
+
+/** Denúncia nova: vai para a caixa do suporte (que responde em até 24 h). Sem SMTP, fica só no banco e no log. */
+export async function sendReportToSupport(r: ReportNotice) {
+  console.warn("denúncia recebida", r.id, r.targetType, r.reason);
+  const t = transport();
+  const to = process.env.REPORTS_EMAIL || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "diariodepatas.app@gmail.com";
+  if (!t) return;
+  const text = [
+    `Denúncia ${r.id}`, `Tipo: ${r.targetType}`, `Alvo: ${r.targetId}`, `Diário: ${r.dogId ?? "-"}`, `Motivo: ${r.reason}`,
+    `Quem denunciou: ${r.reporter}`, "", r.details || "(sem detalhes)", "",
+    "Responder em até 24 h. Registro em content_reports (marcar resolved_at e resolution ao concluir).",
+  ].join("\n");
+  await t
+    .sendMail({ from: process.env.SMTP_FROM || `Diário de Patas <${process.env.SMTP_USER}>`, to, subject: `[Denúncia] ${r.targetType} · ${r.reason}`, text })
+    .catch((e) => console.error("email de denúncia não enviado (fica no banco):", e instanceof Error ? e.message : e));
+}

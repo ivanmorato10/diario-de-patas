@@ -17,7 +17,7 @@ import {
 } from "@/config/studio";
 import { DomainError } from "@/data/demo-repository";
 import { useBlobUrl, useMediaBlob, useStore } from "@/data/store";
-import { FAILURE_CODES, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
+import { FAILURE_CODES, studioAiConsent, studioCheckPhoto, studioCreateJob, type PhotoCheck, studioJob, studioState, type StudioJob, type StudioOverlay, type StudioState } from "@/data/studio-client";
 import { composeArt } from "@/lib/compose-art";
 import { composeModeFor, saveComposite } from "@/lib/studio-composite";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
@@ -322,7 +322,7 @@ function Estudio() {
 
   // Arte pronta (aqui ou em segundo plano) que o Diário/álbuns ainda não têm: atualiza o app todo, sem
   // precisar fechar e abrir. Só quando falta mesmo (evita recarregar à toa a cada consulta).
-  const { reload: reloadStore } = useStore();
+  const { reload: reloadStore, patchSnap } = useStore();
   const entriesRef = useRef<Set<string>>(new Set());
   entriesRef.current = new Set((snap?.entries ?? []).map((e) => e.id));
   const refresh = useCallback(async () => {
@@ -371,7 +371,7 @@ function Estudio() {
         .catch(() => { if (alive) setPhotoCheck(null); });
     }, cropOn ? 700 : 0);
     return () => { alive = false; clearTimeout(t); };
-  }, [photoId, cropOn, crop]);
+  }, [photoId, cropOn, crop, state?.aiConsent]); // autorizou agora: confere de novo, já com a IA
 
   const preset = presetId ? presetById(presetId) : undefined;
   const flags = useMemo(() => new Map((state?.presets ?? []).map((p) => [p.id, p])), [state]);
@@ -397,7 +397,8 @@ function Estudio() {
   const credits = preset ? flags.get(preset.id)?.credits ?? preset.credits : 0;
   const photo = photos.find((p) => p.id === photoId);
   const full = snap ? snap.entries.length >= LIMITS.maxEntries : false;
-  const canCreate = !full && (!!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad"));
+  const needsConsent = !!state && !state.aiConsent;
+  const canCreate = !full && !needsConsent && (!!state?.available && !!preset && !!photo && (flags.get(preset.id)?.enabled ?? true) && (state?.balance ?? 0) >= credits && !busy && photoCheck !== "checking" && !(photoCheck && photoCheck.verdict === "bad"));
 
   async function create() {
     if (!canCreate || !preset || !photo) return;
@@ -411,6 +412,7 @@ function Estudio() {
       setCurrent(job);
       void refresh();
     } catch (e) {
+      if (e instanceof DomainError && e.code === "AI_CONSENT") setState((s) => (s ? { ...s, aiConsent: false } : s)); // pede a autorização de novo
       setError(errText(e instanceof DomainError ? e : null, "errors.startArtFailed"));
     } finally {
       setBusy(false);
@@ -474,6 +476,9 @@ function Estudio() {
                 <label className="check"><input type="checkbox" checked={cropOn} onChange={(e) => setCropOn(e.target.checked)} /><span>{t("crop", { dog: snap.dog.name })}</span></label>
               ) : null}
               {photo && cropOn ? <CropBox entryMediaId={photo.mediaId} value={crop} onChange={setCrop} /> : null}
+              {photo && needsConsent && state?.available ? (
+                <AiConsentCard onGranted={() => { setState((s) => (s ? { ...s, aiConsent: true } : s)); patchSnap((s) => (s.me ? { ...s, me: { ...s.me, aiConsent: true } } : s)); }} onDecline={() => setPhotoId(null)} />
+              ) : null}
               {photo ? <PhotoCheckNote check={photoCheck} /> : null}
             </section>
 
@@ -573,5 +578,39 @@ export default function EstudioPage() {
     <Suspense fallback={<main className="main"><PageLoading /></main>}>
       <Estudio />
     </Suspense>
+  );
+}
+
+/**
+ * Autorização para enviar a foto à IA (App Store 5.1.2(i)): diz o que sai, para quem e para quê, antes de qualquer
+ * envio. Sem autorizar, nada vai ao Google; o resto do app continua igual. Dá para retirar em Minha conta.
+ */
+function AiConsentCard({ onGranted, onDecline }: { onGranted: () => void; onDecline: () => void }) {
+  const t = useTranslations("studio.aiConsent");
+  const errText = useErrorText();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function allow() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await studioAiConsent(true);
+      onGranted();
+    } catch (e) {
+      setError(errText(e instanceof DomainError ? e : null, "errors.saveFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="card stack" aria-labelledby="ai-consent-title" role="region">
+      <h3 id="ai-consent-title" style={{ margin: 0 }}>{t("title")}</h3>
+      <p className="small" style={{ margin: 0 }}>{t("body")}</p>
+      <p className="caption" style={{ margin: 0 }}>{t("details")} <Link href="/privacidade">{t("privacyLink")}</Link></p>
+      {error ? <p className="field-error" role="alert">{error}</p> : null}
+      <button type="button" className="btn btn--primary btn--block" onClick={allow} disabled={busy}>{busy ? t("saving") : t("allow")}</button>
+      <button type="button" className="btn btn--ghost btn--block" onClick={onDecline} disabled={busy}>{t("notNow")}</button>
+    </section>
   );
 }

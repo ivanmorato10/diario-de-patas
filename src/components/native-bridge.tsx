@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { isNativeApp, NATIVE_AUTH_CALLBACK } from "@/lib/native";
-import { resumeApplePurchases } from "@/lib/apple-iap";
+import { listenAppleUpdates, resumeApplePurchases } from "@/lib/apple-iap";
 
 /**
  * Só no app do iPhone: recebe a volta do login do Google/Apple (diariodepatas://auth/callback?code=…) e
@@ -28,7 +28,10 @@ export function NativeBridge() {
         const to = (notification.data as { url?: string } | undefined)?.url;
         if (to && to.startsWith("/") && !to.startsWith("//")) window.location.assign(to);
       });
-      remove = () => { void handle.remove(); void tap.remove(); };
+      // Compras da Apple em aberto: confere ao voltar para o app e quando a Apple avisar (aprovação depois).
+      const back = await App.addListener("appStateChange", ({ isActive }) => { if (isActive) void resumeApplePurchases().catch(() => undefined); });
+      const stopApple = await listenAppleUpdates().catch(() => () => {});
+      remove = () => { void handle.remove(); void tap.remove(); void back.remove(); stopApple(); };
     })();
     const t = setTimeout(() => void resumeApplePurchases().catch(() => undefined), 4000);
     return () => { remove?.(); clearTimeout(t); };

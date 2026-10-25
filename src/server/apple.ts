@@ -55,36 +55,66 @@ async function fetchTransaction(transactionId: string): Promise<{ tx: JWSTransac
   throw new HttpError(400, "INVALID", "errors.appleInvalid");
 }
 
-/** Confere a transação já verificada (pura, testada): devolve o pacote ou o motivo da recusa. */
-export function checkAppleTransaction(tx: JWSTransactionDecodedPayload, expected: { bundleId: string; token: string }) {
+/**
+ * Confere a transação já verificada (pura, testada): devolve o pacote e o appAccountToken, ou o motivo da recusa.
+ * O token é conferido à parte (tentativa de compra da pessoa, ou o token antigo fixo por conta).
+ */
+export function checkAppleTransaction(tx: JWSTransactionDecodedPayload, expected: { bundleId: string }) {
   if (tx.bundleId !== expected.bundleId) return { error: "bundle" as const };
-  if (!tx.appAccountToken || tx.appAccountToken.toLowerCase() !== expected.token.toLowerCase()) return { error: "account" as const };
+  if (!tx.appAccountToken) return { error: "account" as const };
   if (tx.revocationDate) return { error: "revoked" as const };
   const pkg = packageForAppleProduct(String(tx.productId));
   if (!pkg) return { error: "product" as const };
   const quantity = Math.max(1, Number(tx.quantity) || 1);
-  return { pkg, credits: pkg.credits * quantity, amountCents: Math.round(Number(tx.price ?? 0) / 10), currency: String(tx.currency ?? "USD").toUpperCase() };
+  return { pkg, token: tx.appAccountToken.toLowerCase(), credits: pkg.credits * quantity, amountCents: Math.round(Number(tx.price ?? 0) / 10), currency: String(tx.currency ?? "USD").toUpperCase() };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Diário de destino de uma transação pelo token dela:
+ * - token de uma tentativa desta pessoa → o diário escolhido NAQUELA tentativa (nunca o aberto agora);
+ * - token antigo fixo da conta (compras feitas antes desta versão) → o diário aberto, como era;
+ * - diário apagado ou sem acesso → pendência explícita (a compra não é finalizada na Apple e o suporte resolve).
+ */
+async function destinationDog(ctx: Ctx, token: string): Promise<string> {
+  const admin = adminClient();
+  if (token === appAccountTokenFor(ctx.user.id).toLowerCase()) {
+    const dog = (await currentDog(ctx))!;
+    requireEditor(dog);
+    return dog.id;
+  }
+  if (!UUID.test(token)) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
+  const attempt = (await must(admin.from("apple_purchase_attempts").select("user_id, dog_id").eq("id", token).maybeSingle(), "errors.generic")) as any;
+  if (!attempt || attempt.user_id !== ctx.user.id) throw new HttpError(409, "MISMATCH", "errors.paymentMismatch"); // compra de outra conta
+  const member = attempt.dog_id
+    ? await must(admin.from("dog_members").select("dog_id").eq("dog_id", attempt.dog_id).eq("user_id", ctx.user.id).maybeSingle(), "errors.generic")
+    : null;
+  if (!member) {
+    console.error("compra da Apple sem diário de destino (pendência)", token);
+    throw new HttpError(409, "APPLE_DIARY_GONE", "errors.appleDiaryGone");
+  }
+  return attempt.dog_id;
 }
 
 // ---------- RPC ----------
 
 /**
- * Logo antes de abrir a compra da Apple: grava em qual diário os créditos devem entrar (o aberto quando a pessoa
- * tocou em comprar). A confirmação, mesmo atrasada, usa este diário.
+ * Logo antes de abrir a compra da Apple: cria uma tentativa com id próprio, gravando o diário aberto (quem pode
+ * editar). O id vai para a Apple como appAccountToken; a confirmação, mesmo atrasada ou feita em outro aparelho,
+ * entrega neste diário. Duas tentativas nunca mexem no destino uma da outra.
  */
 export async function appleIntent(ctx: Ctx) {
   const dog = (await currentDog(ctx))!;
   requireEditor(dog);
-  const { error } = await adminClient().from("apple_purchase_intents").upsert({ user_id: ctx.user.id, dog_id: dog.id, created_at: new Date().toISOString() }, { onConflict: "user_id" });
-  if (error) throw new HttpError(500, "SERVER", "errors.generic");
-  return {};
+  const id = crypto.randomUUID();
+  await must(adminClient().from("apple_purchase_attempts").insert({ id, user_id: ctx.user.id, dog_id: dog.id }));
+  return { appAccountToken: id };
 }
 
-/** Antes de abrir a compra da Apple: produtos e o identificador da pessoa (só quem pode editar o diário compra). */
-export async function appleStore(ctx: Ctx) {
-  const dog = (await currentDog(ctx))!;
-  requireEditor(dog);
-  return { enabled: appleEnabled(), products: APPLE_PRODUCTS, appAccountToken: appAccountTokenFor(ctx.user.id) };
+/** Produtos da Apple. Não exige poder editar o diário aberto: a recuperação de compras usa também. */
+export async function appleStore(_ctx: Ctx) {
+  return { enabled: appleEnabled(), products: APPLE_PRODUCTS };
 }
 
 /**
@@ -109,20 +139,15 @@ export async function appleConfirm(ctx: Ctx, args: unknown) {
   const prior = (await must(admin.from("credit_purchases").select("*").eq("provider", "apple").eq("provider_payment_id", transactionId).maybeSingle(), "errors.generic")) as any;
   if (prior) return settleApplePurchase(ctx, prior); // repetição, ou o app reabriu antes de finalizar na Apple
   const { tx, env } = await fetchTransaction(transactionId);
-  const checked = checkAppleTransaction(tx, { bundleId: APPLE_BUNDLE_ID, token: appAccountTokenFor(ctx.user.id) });
+  const checked = checkAppleTransaction(tx, { bundleId: APPLE_BUNDLE_ID });
   if ("error" in checked) {
     console.error("compra da Apple recusada", transactionId, checked.error);
     throw new HttpError(409, "MISMATCH", "errors.paymentMismatch");
   }
-  // Diário pretendido: o gravado antes da compra (até 3 dias); a participação é conferida de novo aqui.
-  const { data: intent, error: intentError } = await admin.from("apple_purchase_intents").select("dog_id, created_at").eq("user_id", ctx.user.id).maybeSingle();
-  if (intentError) throw new HttpError(500, "SERVER", "errors.generic");
-  if (intent && Date.parse((intent as any).created_at) > Date.now() - 3 * 86_400_000) (ctx as { dogHint?: string | null }).dogHint = (intent as any).dog_id;
-  const dog = (await currentDog(ctx))!;
-  requireEditor(dog);
+  const dogId = await destinationDog(ctx, checked.token);
   const now = new Date().toISOString();
   const { data: row, error } = await admin.from("credit_purchases").insert({
-    owner_id: ctx.user.id, dog_id: dog.id, package_id: checked.pkg.id, credits: checked.credits, amount_cents: checked.amountCents, currency: checked.currency,
+    owner_id: ctx.user.id, dog_id: dogId, package_id: checked.pkg.id, credits: checked.credits, amount_cents: checked.amountCents, currency: checked.currency,
     provider: "apple", provider_payment_id: transactionId, idempotency_key: `apple:${transactionId}`, status: "approved", approved_at: now, updated_at: now,
     sandbox: env !== Environment.PRODUCTION,
   }).select("*").single();

@@ -11,7 +11,7 @@ import { z } from "zod";
 import sharp from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
-  STUDIO_ALBUM_TITLE, STUDIO_COST_USD, STUDIO_DEFAULTS, STUDIO_PRESETS, buildStudioPrompt, estimateCostUsd, imageSizeFor, presetById, type StudioAspect, type StudioPreset,
+  AI_CONSENT_VERSION, STUDIO_ALBUM_TITLE, STUDIO_COST_USD, STUDIO_DEFAULTS, STUDIO_PRESETS, buildStudioPrompt, estimateCostUsd, imageSizeFor, presetById, type StudioAspect, type StudioPreset,
 } from "@/config/studio";
 import { civilDateInTz } from "@/domain/dates";
 import { adminClient, HttpError } from "./supabase";
@@ -80,6 +80,24 @@ export async function studioSetComposite(ctx: Ctx, args: unknown) {
 }
 
 /** Tela do Estúdio: disponibilidade, saldo de teste, limites, presets e histórico. */
+/** A pessoa autorizou enviar fotos à IA, na versão atual do texto? (erro do banco = erro, nunca "autorizado") */
+export async function hasAiConsent(userId: string) {
+  const row = (await q(adminClient().from("profiles").select("ai_consent_version").eq("user_id", userId).maybeSingle())) as { ai_consent_version?: number | null } | null;
+  return row?.ai_consent_version === AI_CONSENT_VERSION;
+}
+async function requireAiConsent(ctx: Ctx) {
+  if (!(await hasAiConsent(ctx.user.id))) throw new HttpError(403, "AI_CONSENT", "errors.aiConsentNeeded");
+}
+
+/** Autorizar (ou retirar a autorização de) enviar fotos à IA. Vale para esta pessoa, em todos os diários. */
+export async function studioAiConsent(ctx: Ctx, args: unknown) {
+  const { granted } = z.object({ granted: z.boolean() }).parse(args);
+  const patch = granted ? { ai_consent_version: AI_CONSENT_VERSION, ai_consent_at: now() } : { ai_consent_version: null, ai_consent_at: null };
+  const rows = (await q(adminClient().from("profiles").update(patch).eq("user_id", ctx.user.id).select("user_id"))) as any[];
+  if (!rows.length) throw new HttpError(500, "SERVER", "errors.saveFailed");
+  return { aiConsent: granted };
+}
+
 export async function studioState(ctx: Ctx) {
   const admin = adminClient();
   const gen = artGenerator();
@@ -91,14 +109,16 @@ export async function studioState(ctx: Ctx) {
     reconcileStuck(dog.id),
     q(admin.rpc("grant_monthly_xp_credit_dog", { p_dog: dog.id, p_goal: XP_MONTH_GOAL })),
   ]);
-  const [balance, jobs, usedToday, consumed, presets] = await Promise.all([
+  const [balance, jobs, usedToday, consumed, presets, aiConsent] = await Promise.all([
     q(admin.rpc("credit_available_dog", { p_dog: dog.id })),
     q(ctx.supa.from("generation_jobs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(30)),
     countToday(dog.id),
     admin.from("credit_ledger").select("amount").eq("dog_id", dog.id).eq("operation", "consume"),
     presetsWithFlags(),
+    hasAiConsent(ctx.user.id),
   ]);
   return {
+    aiConsent,
     available: !!gen && !paused(),
     configured: !!gen,
     paused: paused(),
@@ -216,7 +236,9 @@ export async function studioCheckPhoto(ctx: Ctx, args: unknown): Promise<PhotoCh
   if ((await capacityLeft(dog.id)) <= 0) throw bad("NO_SPACE", "errors.fullDiaryNoCredit", fullDiaryParams(dog.name));
   try {
     const crop = a.data.crop ?? null;
-    const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), artGenerator(), photoCheckCache(entry.media_asset_id, crop, ctx.user.id));
+    // Sem autorização, nada sai para a IA: só as checagens locais (nitidez, luz, tamanho), feitas aqui.
+    const gen = (await hasAiConsent(ctx.user.id)) ? artGenerator() : null;
+    const r = await assessPhoto(await loadInputPhoto(entry.media_asset_id, crop), gen, gen ? photoCheckCache(entry.media_asset_id, crop, ctx.user.id) : undefined);
     return r; // códigos; a tela mostra o texto no idioma da pessoa (studio.issues.<código>)
   } catch {
     return { verdict: "warn", issues: [], aiChecked: false }; // falha nossa: não bloqueia, mas não garante nada
@@ -232,6 +254,7 @@ export async function studioCreateJob(ctx: Ctx, args: unknown, schedule: (fn: ()
   requireEditor(dog);
   const prior = (await q(admin.from("generation_jobs").select("*").eq("dog_id", dog.id).eq("idempotency_key", idempotencyKey).maybeSingle())) as any;
   if (prior) return toJob(prior); // duplo clique / retry: mesmo job, mesma cobrança
+  await requireAiConsent(ctx); // a foto vai para a IA: só com autorização (conferida aqui, não só na tela)
   if (paused()) throw bad("PAUSED", "errors.studioPaused");
   const gen = artGenerator();
   if (!gen) throw bad("NOT_CONFIGURED", "errors.studioNotConfigured");
@@ -360,6 +383,8 @@ export async function processJob(jobId: string) {
   if (!job) return;
   // Sem crédito reservado (falha entre criar o job e reservar), nunca chama a IA paga.
   if (!(await hasReserve(jobId).catch(() => false))) { await fail(jobId, "NO_CREDITS").catch(() => undefined); return; }
+  // Autorização retirada (ou incerta) depois de pedir: a foto não vai para a IA; o crédito volta.
+  if (!(await hasAiConsent(job.requested_by ?? job.owner_id).catch(() => false))) { await fail(jobId, "AI_CONSENT").catch(() => undefined); return; }
   const preset = presetById(job.theme_id);
   const gen = artGenerator();
   let providerCalled = false;
@@ -404,19 +429,16 @@ export async function processJob(jobId: string) {
     const albumId = await studioAlbumId(job.dog_id, job.owner_id);
     // Conclusão numa transação só (finalize_studio_job): mídia + lembrança (de quem pediu, com aviso à família) +
     // álbum + consumo do crédito + "concluída". Ou tudo, ou nada; repetir devolve a mesma lembrança.
-    const fin = await admin.rpc("finalize_studio_job", {
+    const finArgs = {
       p_job: jobId,
       p_media: { id: mediaId, private_storage_key: key, thumb_storage_key: thumbKey, bytes: art.length, width: meta.width ?? 1024, height: meta.height ?? 1024, hash },
       p_entry: { caption: await artCaption(job.requested_by ?? job.owner_id, preset.variantOf ?? preset.id), occurred_date: civilDateInTz(new Date(), tz), timezone: tz },
       p_album: albumId,
       p_provider: out.model,
-    });
-    if (fin.error) {
-      if (/STORAGE_QUOTA/.test(fin.error.message)) throw new ProviderError("NO_SPACE", "diário cheio");
-      throw new ProviderError("PROVIDER_UNAVAILABLE", "não salvou a arte");
-    }
+    };
+    const outId = await finalizeConfirmed(jobId, finArgs);
     finished = true;
-    const outEntry = { id: fin.data as string };
+    const outEntry = { id: outId };
     // Registro de custo é controle interno: se falhar, a arte entregue continua entregue (só fica no log).
     const usage = await admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation:${preset.id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: jobId });
     if (usage.error) console.error("studio: registro de uso não gravado", jobId, usage.error.message);
@@ -428,6 +450,13 @@ export async function processJob(jobId: string) {
   } catch (e) {
     // Depois de concluída (arte entregue e crédito consumido), nada mais transforma a arte em falha.
     if (finished) { console.error("studio: depois da conclusão", jobId, e); return; }
+    // Conclusão com resultado desconhecido (banco fora): não falha nem devolve aqui. A recuperação de jobs parados
+    // decide depois pelo que está no banco; os arquivos vão para a limpeza, que não apaga arquivo de mídia viva.
+    if (e instanceof FinalizeUncertain) {
+      console.error("studio: conclusão incerta, a recuperação decide", jobId);
+      if (uploaded.length) await admin.from("storage_cleanup").insert(uploaded.map((k) => ({ bucket: "media", object_key: k, reason: "studio_uncertain" }))).then(() => undefined, () => undefined);
+      return;
+    }
     const code = e instanceof ProviderError ? e.code : "TECHNICAL";
     if (!(e instanceof ProviderError)) console.error("studio job", jobId, e);
     // Arquivos já enviados desta tentativa, sem lembrança: vão para a fila de limpeza (não ficam órfãos).
@@ -436,6 +465,27 @@ export async function processJob(jobId: string) {
     if (providerCalled) await admin.from("usage_events").insert({ owner_id: job.owner_id, type: `generation-failed:${job.theme_id}`, day_bucket: new Date().toISOString().slice(0, 10), cost_units: job.cost_usd, request_id: `${jobId}:failed` }).then(() => undefined, () => undefined);
     await fail(jobId, code).catch((err) => console.error("studio fail", jobId, err));
   }
+}
+
+class FinalizeUncertain extends Error {}
+
+/**
+ * Conclui o job e só devolve quando o banco CONFIRMA. Erro de transporte não é "não gravou": a transação pode ter
+ * sido confirmada e a resposta se perdido. Repete (a conclusão é idempotente) e, se ainda falhar, lê o estado:
+ * concluído → segue como entregue; ainda processando → não gravou; sem conseguir ler → incerto.
+ */
+async function finalizeConfirmed(jobId: string, args: Record<string, unknown>): Promise<string> {
+  const admin = adminClient();
+  let fin = await admin.rpc("finalize_studio_job", args);
+  const definite = (msg: string) => /STORAGE_QUOTA|JOB_NOT_PROCESSING|JOB_NOT_FOUND/.test(msg);
+  if (fin.error && !definite(fin.error.message)) fin = await admin.rpc("finalize_studio_job", args);
+  if (!fin.error) return fin.data as string;
+  const st = await admin.from("generation_jobs").select("state, output_entry_id").eq("id", jobId).maybeSingle();
+  const row = st.data as { state?: string; output_entry_id?: string } | null;
+  if (!st.error && row?.state === "succeeded" && row.output_entry_id) return row.output_entry_id;
+  if (/STORAGE_QUOTA/.test(fin.error.message)) throw new ProviderError("NO_SPACE", "diário cheio");
+  if (st.error || !row) throw new FinalizeUncertain(fin.error.message);
+  throw new ProviderError("PROVIDER_UNAVAILABLE", "não salvou a arte");
 }
 
 /** Legenda da arte no idioma de quem pediu (vira uma legenda comum: a pessoa pode editar). */

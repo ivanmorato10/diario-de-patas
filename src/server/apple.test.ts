@@ -20,12 +20,12 @@ describe("compra de créditos pela Apple (app do iPhone)", () => {
   it("confere app, pessoa, produto e estorno antes de entregar", () => {
     const token = appAccountTokenFor("u1");
     const ok = { bundleId: "com.diariodepatas.app", appAccountToken: token, productId: "diariodepatas.credits.10", price: 4990, currency: "USD", quantity: 1 };
-    const exp = { bundleId: "com.diariodepatas.app", token };
-    expect(checkAppleTransaction(ok, exp)).toMatchObject({ credits: 10, amountCents: 499, currency: "USD" });
+    const exp = { bundleId: "com.diariodepatas.app" };
+    expect(checkAppleTransaction(ok, exp)).toMatchObject({ credits: 10, amountCents: 499, currency: "USD", token: token.toLowerCase() });
+    expect(checkAppleTransaction({ ...ok, appAccountToken: token.toUpperCase() }, exp)).toMatchObject({ token: token.toLowerCase() }); // maiúsculas do Swift
     expect(checkAppleTransaction({ ...ok, price: 27900, currency: "BRL" }, exp)).toMatchObject({ amountCents: 2790, currency: "BRL" });
     expect(checkAppleTransaction({ ...ok, quantity: 2 }, exp)).toMatchObject({ credits: 20 });
     expect(checkAppleTransaction({ ...ok, bundleId: "com.outro.app" }, exp)).toEqual({ error: "bundle" });
-    expect(checkAppleTransaction({ ...ok, appAccountToken: appAccountTokenFor("u2") }, exp)).toEqual({ error: "account" });
     expect(checkAppleTransaction({ ...ok, appAccountToken: undefined }, exp)).toEqual({ error: "account" });
     expect(checkAppleTransaction({ ...ok, revocationDate: 1_700_000_000_000 }, exp)).toEqual({ error: "revoked" });
     expect(checkAppleTransaction({ ...ok, productId: "diariodepatas.credits.999" }, exp)).toEqual({ error: "product" });

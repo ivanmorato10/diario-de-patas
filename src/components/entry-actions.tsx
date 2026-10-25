@@ -15,7 +15,8 @@ import { useStore } from "@/data/store";
 import { getMedia, DomainError } from "@/data/demo-repository";
 import { isCivilDate } from "@/domain/dates";
 import type { AlbumId, DiaryEntry } from "@/domain/types";
-import { IconChevron, IconDownload, IconPencil, IconStar, IconTrash } from "./icons";
+import { IconChevron, IconDownload, IconFlag, IconPencil, IconStar, IconTrash } from "./icons";
+import { ReportSheet } from "./report";
 
 /**
  * Janela de baixo (dialog). Com `onAttemptClose`, Esc e toque fora NÃO fecham direto: chamam essa
@@ -48,6 +49,10 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
   const [busy, setBusy] = useState(false);
   const t = useTranslations("entry");
   const [delError, setDelError] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const tr = useTranslations("report");
+  // Foto de outra pessoa da família: dá para denunciar (e bloquear quem publicou).
+  const othersEntry = !!entry.createdBy && entry.createdBy !== snap?.me?.userId;
   const errText = useErrorText();
 
   function openEdit() {
@@ -123,7 +128,9 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
         <button type="button" className="icon-btn edit-only" onClick={openEdit} aria-label={t("editLabel", { label })}><IconPencil /></button>
         <button type="button" className="icon-btn" onClick={download} aria-label={t("downloadLabel", { label })}><IconDownload /></button>
         <button type="button" className="icon-btn edit-only" onClick={() => setMode("delete")} aria-label={t("deleteLabel", { label })} style={{ color: "var(--danger)" }}><IconTrash /></button>
+        {othersEntry ? <button type="button" className="icon-btn" onClick={() => setReporting(true)} aria-label={tr("entryLabel", { label })}><IconFlag /></button> : null}
       </div>
+      {othersEntry ? <ReportSheet open={reporting} onClose={() => setReporting(false)} target={{ type: "entry", id: entry.id, authorId: entry.createdBy, authorName: entry.createdByName }} /> : null}
 
       <Sheet open={mode === "edit"} onClose={() => setMode("none")} labelledBy={editTitle}>
         <h2 id={editTitle}>{t("editTitle")}</h2>

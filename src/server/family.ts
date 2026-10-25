@@ -10,6 +10,7 @@ import { createHash, randomInt } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { must, mustRow } from "./db";
+import { whoBlocked } from "./safety";
 import { adminClient, HttpError } from "./supabase";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -156,6 +157,13 @@ export async function acceptInvite(ctx: Ctx, args: unknown) {
   const { code, name } = z.object({ code: z.string(), name: z.string().optional() }).parse(args);
   const norm = normalizeInvite(code);
   if (norm.length !== 8) throw bad("INVALID_CODE", "errors.checkCode");
+  // Bloqueado por quem convidou ou por um administrador do diário: não entra pelo convite.
+  const inv = await findInvite(code).catch(() => null);
+  if (inv) {
+    const admins = (((await must(adminClient().from("dog_members").select("user_id").eq("dog_id", inv.dog_id).eq("role", "admin"), "errors.generic")) ?? []) as any[]).map((r) => r.user_id as string);
+    const blockers = await whoBlocked(ctx.user.id, [...new Set([inv.created_by, ...admins])]);
+    if (blockers.size) throw bad("INVALID_CODE", "errors.inviteInvalid");
+  }
   const { data, error } = await adminClient().rpc("accept_invite", { p_code_hash: hashInvite(norm), p_user: ctx.user.id, p_name: name ?? null });
   if (error) {
     if (/INVALID_CODE/.test(error.message)) throw bad("INVALID_CODE", "errors.inviteInvalid");

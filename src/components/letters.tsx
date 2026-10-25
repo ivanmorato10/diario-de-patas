@@ -8,6 +8,8 @@ import { bonesText, toggleBone } from "@/data/letters-client";
 import type { Letter } from "@/domain/types";
 import { useFormat } from "@/i18n/use-format";
 import { loose } from "@/i18n/keys";
+import { IconFlag } from "./icons";
+import { ReportSheet } from "./report";
 
 /** Ossinho (o "curtir" do app): só aparece com 2+ pessoas no diário; não vale na própria lembrança. */
 export function BoneBar({ targetType, targetId, authorId }: { targetType: "entry" | "letter"; targetId: string; authorId: string | null | undefined }) {
@@ -86,6 +88,8 @@ export function LetterCard({ letter, dogName }: { letter: Letter; dogName: strin
   const t = useTranslations("letter");
   const f = useFormat();
   const author = letter.createdByName ?? t("someone");
+  const [reporting, setReporting] = useState(false);
+  const tr = useTranslations("report");
   return (
     <article id={`carta-${letter.id}`} className="letter-card" style={{ margin: "6px 4px 14px" }}>
       <p className="letter-card__kicker">{letter.mine ? t("kickerMine") : t("kickerFrom", { author })}</p>
@@ -94,8 +98,12 @@ export function LetterCard({ letter, dogName }: { letter: Letter; dogName: strin
       <p className="letter-card__sign">— {letter.mine ? (snap?.me?.name ?? t("you")) : author}</p>
       <div className="row-between" style={{ marginTop: 8 }}>
         <p className="caption" style={{ margin: 0 }}>{f.date(letter.date)}</p>
-        {canEdit ? <Link href={`/diario/cartinha?id=${letter.id}`} className="btn btn--ghost btn--small">{t("edit")}</Link> : null}
+        <div className="row" style={{ gap: 0 }}>
+          {canEdit ? <Link href={`/diario/cartinha?id=${letter.id}`} className="btn btn--ghost btn--small">{t("edit")}</Link> : null}
+          {!letter.mine && letter.createdBy ? <button type="button" className="icon-btn" onClick={() => setReporting(true)} aria-label={tr("letterLabel")}><IconFlag /></button> : null}
+        </div>
       </div>
+      {!letter.mine && letter.createdBy ? <ReportSheet open={reporting} onClose={() => setReporting(false)} target={{ type: "letter", id: letter.id, authorId: letter.createdBy, authorName: letter.createdByName }} /> : null}
       <BoneBar targetType="letter" targetId={letter.id} authorId={letter.createdBy} />
     </article>
   );
