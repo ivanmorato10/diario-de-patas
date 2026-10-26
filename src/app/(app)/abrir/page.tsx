@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/data/store";
-import { switchDog } from "@/data/family-client";
+import { switchDogAndLoad } from "@/data/family-client";
 import { PageLoading, TopBar } from "@/components/shell";
 
 /**
@@ -39,7 +39,7 @@ function Abrir() {
       if (switching.current) return; // esperando o diário certo carregar
       if (!(snap.diaries ?? []).some((d) => d.id === cao)) { setProblem(t("noAccess")); return; }
       switching.current = true;
-      switchDog(cao).then(() => reload()).catch(() => setProblem(t("openFailed")));
+      switchDogAndLoad(cao, snap.dog?.id ?? null, reload).catch(() => setProblem(t("openFailed")));
       return;
     }
     // Já no cachorro certo: a lembrança ainda existe?

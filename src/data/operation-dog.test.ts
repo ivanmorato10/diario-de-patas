@@ -51,11 +51,15 @@ describe("cachorro fixo durante a operação inteira", () => {
       expect(server.calls.every(([, dog]) => dog === "abu")).toBe(true);
     });
   }
-  it("foto: a repetição (mesma chave) usa o cachorro capturado, mesmo com outro aberto", async () => {
+  it("foto: 1ª tentativa vai direto (envio conferido junto do salvamento); a repetição procura a anterior, no cachorro capturado", async () => {
     const server = fakeServer();
     server.release();
     setActiveDog("pepe");
-    await realRepository().saveEntry({ requestKey: "k", image: img, caption: "", occurredDate: "2026-10-20", source: "free", missionId: null, albumIds: [], dogId: "abu" } as never);
-    expect(server.calls.map(([m, d]) => `${m}:${d}`)).toEqual(["entryByRequestKey:abu", "createUpload:abu", "confirmUpload:abu", "saveEntry:abu"]);
+    const input = { requestKey: "k-repeticao", image: img, caption: "", occurredDate: "2026-10-20", source: "free", missionId: null, albumIds: [], dogId: "abu" } as never;
+    await realRepository().saveEntry(input);
+    expect(server.calls.map(([m, d]) => `${m}:${d}`)).toEqual(["createUpload:abu", "saveEntry:abu"]);
+    server.calls.length = 0;
+    await realRepository().saveEntry(input); // a resposta da 1ª se perdeu: a pessoa toca de novo
+    expect(server.calls.map(([m, d]) => `${m}:${d}`)).toEqual(["entryByRequestKey:abu", "createUpload:abu", "saveEntry:abu"]);
   });
 });

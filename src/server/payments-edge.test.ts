@@ -53,7 +53,7 @@ vi.mock("./supabase", () => ({
     },
   }),
 }));
-vi.mock("./family", () => ({ currentDog: async () => ({ id: "dog", owner_id: "user", name: "Abu", role: "admin" }), requireEditor: () => {} }));
+vi.mock("./family", () => ({ currentDog: async () => ({ id: "dog", owner_id: "user", name: "Abu", role: "admin" }), requireEditor: () => {}, profileRow: async () => ({ region: "BR" }) }));
 vi.mock("./i18n", async (orig) => ({ ...(await orig<object>()), localeOf: async () => "pt-BR", translator: () => () => "" }));
 vi.mock("./mailer", () => ({ sendPurchaseConfirmed: async () => "skipped" }));
 

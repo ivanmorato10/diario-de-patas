@@ -167,7 +167,8 @@ function GuardarInner() {
       // Já está salvo: entra no Diário e nos álbuns na hora; a conferência completa vai em segundo plano e, se
       // falhar, não desfaz o "guardada".
       patchDog(opDog.current, (s) => withSavedEntry(s, entry, albumIds));
-      void sync();
+      // Missão: a conferência completa vem depois da confirmação (uma recarga só, não duas seguidas).
+      if (!(mission && missionAvailable)) void sync();
       if (mission && missionAvailable) {
         submissionKey.current = newId();
         setStep({ kind: "confirm", entry });
@@ -202,11 +203,8 @@ function GuardarInner() {
       setBatch([...next]);
     }
     setBatch(next);
-    try {
-      await sync(); // falha de atualização não é falha de envio
-    } finally {
-      setBusy(false);
-    }
+    setBusy(false);
+    void sync(); // as guardadas já entraram na tela; a conferência vai em segundo plano (falha não é falha de envio)
     const saved = next.filter((x) => x.state === "saved").length;
     if (saved === next.length) setStep({ kind: "batchDone", count: saved });
     else setError(t("batchPartial", { saved, total: next.length }));

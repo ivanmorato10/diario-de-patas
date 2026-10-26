@@ -31,7 +31,9 @@ export function BottomNav() {
           const active = path === href || path.startsWith(`${href}/`);
           return (
             <li key={href}>
-              <Link href={href} aria-current={active ? "page" : undefined}>
+              {/* Pré-carregamento completo das 5 telas do menu: o toque troca a tela direto, sem o esqueleto de
+                  carregamento (que o React segura ~300 ms antes de mostrar a tela pronta). */}
+              <Link href={href} prefetch aria-current={active ? "page" : undefined}>
                 <span className="nav-icon"><Icon /></span>
                 {t(`nav.${label}`)}
               </Link>

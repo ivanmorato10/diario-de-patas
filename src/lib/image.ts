@@ -36,15 +36,27 @@ function fit(w: number, h: number, max: number) {
   return { w: Math.round(w * k), h: Math.round(h * k) };
 }
 
+let webpEncode: boolean | null = null;
+/** O navegador gera WebP? (testado uma vez só: antes, um canvas a mais a cada foto) */
 function supportsWebpEncode(): boolean {
+  if (webpEncode !== null) return webpEncode;
   try {
-    return document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
+    webpEncode = document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
   } catch {
-    return false;
+    webpEncode = false;
   }
+  return webpEncode;
 }
 
-async function encode(bmp: ImageBitmap, maxEdge: number, quality: number, mime: string): Promise<Blob> {
+async function encode(bmp: CanvasImageSource & { width: number; height: number }, maxEdge: number, quality: number, mime: string): Promise<Blob> {
+  return draw(bmp, maxEdge, quality, mime).blob;
+}
+
+/**
+ * Desenha reduzido (na hora) e codifica (em segundo plano): o canvas já serve de fonte pequena para a miniatura
+ * enquanto a versão de exibição ainda está sendo codificada.
+ */
+function draw(bmp: CanvasImageSource & { width: number; height: number }, maxEdge: number, quality: number, mime: string): { canvas: HTMLCanvasElement; blob: Promise<Blob> } {
   const { w, h } = fit(bmp.width, bmp.height, maxEdge);
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -52,9 +64,11 @@ async function encode(bmp: ImageBitmap, maxEdge: number, quality: number, mime: 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new ImageError("CORRUPT", "errors.imagePrepare");
   ctx.drawImage(bmp, 0, 0, w, h);
-  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, mime, quality));
-  if (!blob) throw new ImageError("CORRUPT", "errors.imagePrepare");
-  return blob;
+  const blob = new Promise<Blob | null>((res) => canvas.toBlob(res, mime, quality)).then((b) => {
+    if (!b) throw new ImageError("CORRUPT", "errors.imagePrepare");
+    return b;
+  });
+  return { canvas, blob };
 }
 
 /** Lê largura/altura sem decodificar a imagem inteira (JPEG/PNG/WebP), para o limite de pixels. */
@@ -109,6 +123,8 @@ export async function processImage(file: Blob, opts: { displayMaxEdge?: number }
   if (dims && dims.w * dims.h > LIMITS.maxUploadPixels) {
     throw new ImageError("TOO_MANY_PIXELS", "errors.imageTooManyPixels");
   }
+  const hashing = sha256Hex(buf); // em paralelo com a decodificação e as codificações
+  hashing.catch(() => undefined);
   let bmp: ImageBitmap;
   try {
     bmp = await createImageBitmap(new Blob([buf], { type: mime }), { imageOrientation: "from-image" });
@@ -116,11 +132,14 @@ export async function processImage(file: Blob, opts: { displayMaxEdge?: number }
     throw new ImageError("CORRUPT", "errors.imageCorrupt");
   }
   const out = supportsWebpEncode() ? "image/webp" : "image/jpeg";
+  const { w, h } = fit(bmp.width, bmp.height, maxEdge);
   try {
-    const display = await encode(bmp, maxEdge, IMAGE.displayQuality, out);
-    const thumb = await encode(bmp, IMAGE.thumbMaxEdge, IMAGE.thumbQuality, out);
-    const { w, h } = fit(bmp.width, bmp.height, maxEdge);
-    return { mime: out, width: w, height: h, bytes: display.size, hash: await sha256Hex(buf), display, thumb, takenDate };
+    // A foto grande (12 MP) é reduzida UMA vez; a miniatura sai da versão de exibição (fonte pequena), e as duas
+    // codificações correm juntas, com o hash do original.
+    const display = draw(bmp, maxEdge, IMAGE.displayQuality, out);
+    const thumb = encode(display.canvas, IMAGE.thumbMaxEdge, IMAGE.thumbQuality, out);
+    const [d, t, hash] = await Promise.all([display.blob, thumb, hashing]);
+    return { mime: out, width: w, height: h, bytes: d.size, hash, display: d, thumb: t, takenDate };
   } finally {
     bmp.close();
   }

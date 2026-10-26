@@ -7,12 +7,21 @@ import { configMissing } from "@/server/config-check";
 import { HttpError, requireUser } from "@/server/supabase";
 import { requestLocale, translateKey, translator } from "@/server/i18n";
 import { RPC } from "@/server/rpc";
+import { perfOn, serverTimingHeader, withTiming } from "@/server/timing";
 
 export const dynamic = "force-dynamic";
 // A geração de artes continua depois da resposta (after) — até 5 minutos.
 export const maxDuration = 300;
 
-export async function POST(req: Request, { params }: { params: Promise<{ method: string }> }) {
+export async function POST(req: Request, ctx: { params: Promise<{ method: string }> }) {
+  if (!perfOn()) return handle(req, ctx);
+  const t = performance.now();
+  const { result, span } = await withTiming(() => handle(req, ctx));
+  result.headers.set("server-timing", serverTimingHeader(performance.now() - t, span));
+  return result;
+}
+
+async function handle(req: Request, { params }: { params: Promise<{ method: string }> }) {
   const locale = await requestLocale();
   const missing = configMissing(locale);
   if (missing) return missing;

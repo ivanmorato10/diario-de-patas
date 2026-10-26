@@ -9,6 +9,7 @@ import { pendingArts, studioJob, untrackArt, type StudioJob } from "./studio-cli
 import type { Repository } from "./repository";
 import type { CycleContext } from "@/domain/cycle";
 import { CONFIG_OK } from "@/config/mode";
+import { noteUnreadFresh } from "@/lib/unread";
 import type { Region } from "@/i18n/locale";
 
 interface StoreValue {
@@ -63,6 +64,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const apply = useCallback((s: Snapshot, n: number) => {
     if (n !== seq.current) return;
     setActiveDog(s.dog?.id ?? null);
+    noteUnreadFresh(); // o snapshot já trouxe a contagem de novidades
     setSnap(s);
   }, []);
   const loadedAt = useRef(0);
@@ -76,7 +78,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Voltou ao app depois de um tempo (outra pessoa pode ter postado): busca dados novos.
   useEffect(() => {
     const onBack = () => {
-      if (document.visibilityState === "visible" && loadedAt.current && Date.now() - loadedAt.current > 60_000) void reload().catch(() => {});
+      if (document.visibilityState === "visible" && loadedAt.current && Date.now() - loadedAt.current > 60_000) {
+        // Visibilidade e foco chegam quase juntos ao voltar: marca já, para só UM deles recarregar.
+        loadedAt.current = Date.now();
+        void reload().catch(() => {});
+      }
     };
     document.addEventListener("visibilitychange", onBack);
     window.addEventListener("focus", onBack);

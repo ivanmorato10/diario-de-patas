@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useFormat } from "@/i18n/use-format";
 import { useErrorText } from "@/i18n/use-error";
 import { DomainError } from "@/data/demo-repository";
-import { createPurchase, creditShop, fakePayPurchase, purchaseStatus, studioState, type CreditPurchase, type CreditShop } from "@/data/studio-client";
+import { createPurchase, creditShop, fakePayPurchase, purchaseStatus, type CreditPurchase, type CreditShop } from "@/data/studio-client";
 import { PageLoading, StorageUnavailable, TopBar, useRequireDiary } from "@/components/shell";
 import { IconInfo, Paw } from "@/components/icons";
 import { PawBurst } from "@/components/celebrate";
@@ -237,9 +237,9 @@ export default function Creditos() {
 
   const load = useCallback(async () => {
     try {
-      const [s, st] = await Promise.all([creditShop(), studioState()]);
+      const s = await creditShop();
       setShop(s);
-      setBalance(st.balance);
+      setBalance(s.balance ?? null);
       const back = new URLSearchParams(window.location.search);
       const backId = back.get("compra");
       const fromCheckout = backId ? s.purchases.find((x) => x.id === backId) : undefined;

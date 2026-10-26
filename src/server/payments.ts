@@ -6,7 +6,7 @@
  * - Pix desligado sem PAYMENTS_ENABLED=true; Stripe desligado sem STRIPE_ENABLED=true (loja dos EUA "em breve").
  *   PAYMENTS_FAKE=1 (só local, nunca na Vercel) simula o pagamento para testes.
  */
-import { currentDog, requireEditor } from "./family";
+import { currentDog, profileRow, requireEditor } from "./family";
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -351,7 +351,7 @@ export async function sendReceipt(purchaseId: string) {
   }
 }
 
-const PAGE = 200;
+const PAGE = 100; // ids na consulta (endereço): lotes pequenos, longe do limite de tamanho
 
 /**
  * Compras aprovadas ainda sem comprovante (de qualquer data, em páginas): entrega os créditos e envia.
@@ -420,16 +420,21 @@ export const toPurchase = (p: any) => ({
 
 export async function creditShop(ctx: Ctx) {
   const dog = (await currentDog(ctx))!;
-  const recent = (await must(ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10), "credits.loadFailed")) ?? [];
-  const code = await marketOf(ctx);
+  // Compras, saldo e mercado ao mesmo tempo (a tela da loja não precisa mais do estado inteiro do Estúdio).
+  const [recentRows, balance, code] = await Promise.all([
+    must(ctx.supa.from("credit_purchases").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(10), "credits.loadFailed"),
+    must(adminClient().rpc("credit_available_dog", { p_dog: dog.id }), "credits.loadFailed"),
+    marketOf(ctx),
+  ]);
+  const recent = (recentRows ?? []) as any[];
   const market = CREDIT_MARKETS[code];
   const test = paymentsFake() || (market.provider === "stripe" ? stripeTest() : (process.env.MP_ACCESS_TOKEN ?? "").startsWith("TEST-"));
-  return { enabled: providerEnabled(market.provider) && market.packages.length > 0, test, market: code, currency: market.currency, provider: market.provider, packages: market.packages, purchases: recent.map(toPurchase) };
+  return { enabled: providerEnabled(market.provider) && market.packages.length > 0, test, market: code, currency: market.currency, provider: market.provider, packages: market.packages, purchases: recent.map(toPurchase), balance: typeof balance === "number" ? balance : 0 };
 }
 
 /** Mercado da compra pela região do app de quem compra (perfil; sem escolha, a sugestão do idioma). */
 async function marketOf(ctx: Ctx) {
-  const data = await must(ctx.supa.from("profiles").select("region, locale").eq("user_id", ctx.user.id).maybeSingle(), "errors.generic");
+  const data = await profileRow(ctx); // a mesma leitura do perfil desta requisição
   return marketForRegion(regionOf(data as { region?: string | null; locale?: string | null } | null));
 }
 

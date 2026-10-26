@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/data/store";
-import { switchDog } from "@/data/family-client";
+import { switchDogAndLoad } from "@/data/family-client";
 import { Sheet } from "./entry-actions";
 import { DogAvatar } from "./media";
 import { IconPencil } from "./icons";
@@ -19,39 +19,36 @@ export function DogList({ onDone }: { onDone?: () => void }) {
   const tf = useTranslations("family");
   const current = snap?.dog?.id;
   const diaries = snap?.diaries ?? [];
+  // O cachorro tocado fica marcado NA HORA (antes, o ✓ ficava no antigo até o diário novo carregar e parecia
+  // que o toque não tinha pegado); se a troca falhar, a marca volta para o atual.
+  const selected = busy ?? current;
 
   async function pick(id: string, then = "/hoje") {
     if (id === current) { onDone?.(); if (then !== "/hoje") router.push(then); return; }
     setBusy(id);
     setError(null);
     try {
-      await switchDog(id);
-    } catch {
-      setError(t("switchFailed"));
-      setBusy(null);
-      return;
-    }
-    // Trocou: carrega o diário escolhido; se a conferência falhar, abre o app do zero nele (não diz "não trocou").
-    try {
-      await reload();
+      await switchDogAndLoad(id, current ?? null, reload);
       onDone?.();
       router.push(then);
-    } catch {
-      window.location.assign(then);
+    } catch (e) {
+      // Trocou, mas a conferência falhou: abre o app do zero no cachorro novo (não diz "não trocou").
+      if ((e as { switched?: boolean }).switched) window.location.assign(then);
+      else setError(t("switchFailed"));
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <div className="stack" style={{ gap: 8 }}>
+    <div className="stack" style={{ gap: 8 }} aria-busy={busy ? "true" : undefined}>
       <ul className="dog-list" role="list">
         {diaries.map((d) => (
           <li key={d.id} className="dog-list__row">
-            <button type="button" className={`dog-list__item${d.id === current ? " dog-list__item--on" : ""}`} onClick={() => pick(d.id)} disabled={!!busy} aria-current={d.id === current ? "true" : undefined}>
+            <button type="button" className={`dog-list__item${d.id === selected ? " dog-list__item--on" : ""}`} onClick={() => pick(d.id)} disabled={!!busy} aria-current={d.id === current ? "true" : undefined}>
               <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} />
-              <span className="dog-list__text"><strong>{d.name}</strong><span className="caption">{tf(`roles.${d.role}`)}</span></span>
-              <span className="dog-list__mark" aria-hidden="true">{busy === d.id ? "…" : d.id === current ? "✓" : ""}</span>
+              <span className="dog-list__text"><strong>{d.name}</strong><span className="caption" role={busy === d.id ? "status" : undefined}>{busy === d.id ? t("opening") : tf(`roles.${d.role}`)}</span></span>
+              <span className="dog-list__mark" aria-hidden="true">{busy === d.id ? <span className="sp-spinner" /> : d.id === selected ? "✓" : ""}</span>
             </button>
             {/* Editar o perfil: só para quem pode editar aquele cachorro. */}
             {d.role !== "viewer" ? (

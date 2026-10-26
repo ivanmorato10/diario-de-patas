@@ -100,7 +100,7 @@ export interface CreditPurchase {
   provider?: string; checkoutUrl?: string | null;
 }
 /** `currency`: moeda REAL da cobrança (BRL no Brasil, USD nos EUA), mostrada como está, sem conversão. */
-export interface CreditShop { enabled: boolean; test: boolean; market: "BR" | "US"; currency: string; provider?: "mercadopago" | "stripe" | null; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[] }
+export interface CreditShop { enabled: boolean; test: boolean; market: "BR" | "US"; currency: string; provider?: "mercadopago" | "stripe" | null; packages: { id: string; credits: number; priceCents: number; badge?: "best" }[]; purchases: CreditPurchase[]; /** Saldo do diário (créditos disponíveis). */ balance?: number }
 export const creditShop = () => rpc<CreditShop>("creditShop");
 export const createPurchase = (packageId: string, idempotencyKey: string) => rpc<CreditPurchase>("createPurchase", { packageId, idempotencyKey });
 export const purchaseStatus = (id: string) => rpc<CreditPurchase>("purchaseStatus", { id });

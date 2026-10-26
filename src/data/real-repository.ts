@@ -5,7 +5,11 @@
  */
 import { track } from "@/lib/busy";
 import { DomainError } from "./demo-repository";
-import { browserClient } from "./supabase-browser";
+/**
+ * Cliente do Supabase no navegador só quando precisa (enviar arquivo, sair de uma sessão vencida): fora do pacote
+ * de abertura do app (~65 KB comprimidos a menos para baixar e executar antes da primeira tela).
+ */
+const browserClient = async () => (await import("./supabase-browser")).browserClient();
 import { isPublicPath } from "@/config/routes";
 import type { Repository, Snapshot } from "./repository";
 import { EMPTY_HEALTH } from "@/domain/health";
@@ -78,24 +82,30 @@ interface UploadTicket {
 }
 
 /** Cria o registro, envia as variantes e pede ao servidor para inspecionar os bytes antes de aceitar. */
-function upload(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>, dog: string | null): Promise<string> {
-  return track(uploadNow(kind, meta, files, dog)); // envio em andamento: a atualização automática do app espera
+function upload(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>, dog: string | null, confirm = true): Promise<string> {
+  return track(uploadNow(kind, meta, files, dog, confirm)); // envio em andamento: a atualização automática do app espera
 }
 
-async function uploadNow(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>, dog: string | null): Promise<string> {
+/** `confirm: false`: quem chama confere o envio junto da próxima operação (ex.: saveEntry com confirmMedia). */
+async function uploadNow(kind: "media" | "document", meta: Record<string, unknown>, files: Partial<Record<"display" | "thumb" | "file", Blob | null>>, dog: string | null, confirm = true): Promise<string> {
+  const client = browserClient(); // carrega junto com a criação do envio (não soma tempo)
+  client.catch(() => undefined);
   const ticket = await rpc<UploadTicket>("createUpload", { kind, ...meta, sizes: Object.fromEntries(Object.entries(files).map(([k, b]) => [k, b?.size ?? 0])) }, { dog });
   // Direto para o bucket privado, com o token de uso único que o servidor gerou; foto e miniatura ao mesmo tempo.
   await Promise.all(ticket.uploads.map(async (u) => {
     const b = files[u.variant];
     if (!b) return;
-    const { error } = await browserClient().storage.from(ticket.bucket).uploadToSignedUrl(u.path, u.token, b, { contentType: b.type || "application/octet-stream" });
+    const sb = await client;
+    const { error } = await sb.storage.from(ticket.bucket).uploadToSignedUrl(u.path, u.token, b, { contentType: b.type || "application/octet-stream" });
     if (error) throw new DomainError("UPLOAD", "errors.uploadFailed");
   }));
-  await rpc("confirmUpload", { kind, id: ticket.id }, { dog });
+  if (confirm) await rpc("confirmUpload", { kind, id: ticket.id }, { dog });
   return ticket.id;
 }
 
 const blobCache = new Map<string, Promise<Blob | null>>();
+/** Chaves de gravação de lembrança já tentadas nesta abertura do app (só nelas vale procurar a anterior). */
+const triedKeys = new Set<string>();
 /** Teto de fotos na memória (rolar um diário enorme não pode crescer sem limite): sai a usada há mais tempo. */
 export const BLOB_CACHE_MAX = 240;
 export function cacheBlob(key: string, p: Promise<Blob | null>) {
@@ -119,8 +129,8 @@ export async function uploadMediaFor(img: { mime: string; width: number; height:
 }
 
 export function realRepository(): Repository {
-  const mediaUpload = async (img: { mime: string; width: number; height: number; bytes: number; hash: string; display: Blob; thumb: Blob }, kind: "photo" | "art", dog: string | null) => {
-    const id = await upload("media", { mime: img.mime, width: img.width, height: img.height, hash: img.hash, mediaKind: kind }, { display: img.display, thumb: img.thumb }, dog);
+  const mediaUpload = async (img: { mime: string; width: number; height: number; bytes: number; hash: string; display: Blob; thumb: Blob }, kind: "photo" | "art", dog: string | null, confirm = true) => {
+    const id = await upload("media", { mime: img.mime, width: img.width, height: img.height, hash: img.hash, mediaKind: kind }, { display: img.display, thumb: img.thumb }, dog, confirm);
     // A foto que acabou de subir já está no aparelho: aparece na hora, sem baixar de novo do servidor.
     cacheBlob(`${id}:display`, Promise.resolve(img.display));
     cacheBlob(`${id}:thumb`, Promise.resolve(img.thumb));
@@ -141,7 +151,7 @@ export function realRepository(): Repository {
         // Páginas abertas (boas-vindas, entrar, sobre) funcionam sem conta: diário vazio.
         if (e instanceof DomainError && e.code === "UNAUTHENTICATED") {
           // Sessão que o servidor não aceita mais (ex.: conta excluída, token revogado): limpa e pede login.
-          await browserClient().auth.signOut({ scope: "local" }).catch(() => undefined);
+          await browserClient().then((c) => c.auth.signOut({ scope: "local" })).catch(() => undefined);
           const path = window.location.pathname;
           if (!isPublicPath(path)) window.location.assign(`/entrar?next=${encodeURIComponent(path)}`);
           return emptySnapshot();
@@ -189,11 +199,16 @@ export function realRepository(): Repository {
     async saveEntry(input) {
       // Todas as etapas no cachorro em que a pessoa tocou "guardar" (trocar de cachorro no meio não muda o destino).
       const dog = input.dogId ?? activeDog;
-      // Retry com a mesma chave não reenvia a foto: o servidor devolve a lembrança existente.
-      const existing = await rpc<{ entry: unknown } | null>("entryByRequestKey", { requestKey: input.requestKey }, { dog });
-      if (existing?.entry) return existing.entry as never;
-      const mediaId = await mediaUpload(input.image, input.kind ?? "photo", dog);
-      return rpc("saveEntry", { ...input, dogId: undefined, image: undefined, mediaId }, { dog });
+      // Nova tentativa com a mesma chave não reenvia a foto: o servidor devolve a lembrança existente. Na primeira
+      // tentativa desta chave não há o que procurar (uma viagem a menos); o saveEntry também não duplica pela chave.
+      if (triedKeys.has(input.requestKey)) {
+        const existing = await rpc<{ entry: unknown } | null>("entryByRequestKey", { requestKey: input.requestKey }, { dog });
+        if (existing?.entry) return existing.entry as never;
+      }
+      triedKeys.add(input.requestKey);
+      // A conferência do envio vai junto do salvamento (confirmMedia): uma viagem a menos.
+      const mediaId = await mediaUpload(input.image, input.kind ?? "photo", dog, false);
+      return rpc("saveEntry", { ...input, dogId: undefined, image: undefined, mediaId, confirmMedia: true }, { dog });
     },
     updateEntry: (id, patch) => rpc("updateEntry", { id, ...patch }),
     deleteEntry: (id) => rpc("deleteEntry", { id }),

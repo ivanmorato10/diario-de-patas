@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useStore } from "@/data/store";
 import { rpc } from "@/data/real-repository";
+import { noteUnreadFresh, unreadIsFresh } from "@/lib/unread";
 import { disablePush, enablePush, pushState, setNotifyPrefs, testPush, type PushState } from "@/data/push-client";
 
 /** Sininho de cachorro (sino com orelhinhas e patinha) no topo, com o número de novidades. */
@@ -18,8 +19,9 @@ export function DogBell() {
   useEffect(() => {
     if (!hasDog) return;
     const refresh = () => {
-      if (document.visibilityState !== "visible") return;
-      rpc<{ unread: number }>("unreadCount").then((r) => patchSnap((s) => (s.unread === r.unread ? s : { ...s, unread: r.unread }))).catch(() => undefined);
+      if (document.visibilityState !== "visible" || unreadIsFresh()) return;
+      noteUnreadFresh(); // uma busca por vez (tela nova, foco e visibilidade juntos não somam)
+      rpc<{ unread: number }>("unreadCount").then((r) => patchSnap((s) => (s.unread === r.unread ? s : { ...s, unread: r.unread }))).catch(() => noteUnreadFresh(0));
     };
     refresh();
     const t = setInterval(refresh, 60_000);

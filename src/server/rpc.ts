@@ -37,7 +37,7 @@ import { AI_CONSENT_VERSION, STUDIO_DEFAULTS } from "@/config/studio";
 import { revokeAppleSignIn } from "./apple-signin";
 import { blockUser, blockedBy, reportContent } from "./safety";
 import { achadinhosInfo } from "./amazon";
-import { acceptInvite, createInvite, currentDog, familyInfo, forgetDog, leaveDiary, nameFromUser, removeMember, requireEditor, switchDog, updateMember } from "./family";
+import { acceptInvite, createInvite, currentDog, dogMembersOf, familyInfo, forgetDog, leaveDiary, nameFromUser, profileRow, removeMember, requireEditor, switchDog, updateMember } from "./family";
 import {
   albumClientId, instanceKeyOf, toContact, toCustomAlbum, toDocument, toDog, toEntry, toHealthProfile, toMedication, toPlan, toProfile,
   toVaccine, toVisit, toWeight,
@@ -81,8 +81,10 @@ const MESSAGES: Record<string, string> = {
   FOREIGN_MEDIA: "errors.foreignMedia",
 };
 
-async function profileOf({ supa, user }: Ctx) {
-  return (await q(supa.from("profiles").select("*").eq("user_id", user.id).maybeSingle())) as any;
+/** Perfil de quem pede. Padrão: a leitura desta requisição (compartilhada com o currentDog); `fresh`: lê de novo. */
+async function profileOf(ctx: Ctx, fresh = false) {
+  if (!fresh) return profileRow(ctx);
+  return (await q(ctx.supa.from("profiles").select("*").eq("user_id", ctx.user.id).maybeSingle())) as any;
 }
 /** Diário aberto agora (vários cachorros e família): com o papel da pessoa em `role`. */
 async function dogOf(ctx: Ctx, required = true): Promise<any> {
@@ -167,24 +169,23 @@ export async function setPreferences(ctx: Ctx, args: unknown) {
   if (!isRegion(current?.region) && !row.region) row.region = defaultRegion(base);
   if (!isWeightUnit(current?.weight_unit) && !row.weight_unit) row.weight_unit = defaultWeightUnit(base);
   if (!isLocale(current?.locale) && !row.locale) row.locale = base;
-  await q(adminClient().from("profiles").upsert(row, { onConflict: "user_id" }));
-  if (a.locale && (ctx.user.user_metadata as any)?.locale !== a.locale) {
-    const { error } = await adminClient().auth.admin.updateUserById(ctx.user.id, { user_metadata: { locale: a.locale } });
-    if (error) console.error("idioma nos metadados do login:", error.message);
-  }
+  // Perfil e metadados do login ao mesmo tempo (independentes). Só o perfil decide o sucesso.
+  await Promise.all([
+    q(adminClient().from("profiles").upsert(row, { onConflict: "user_id" })),
+    a.locale && (ctx.user.user_metadata as any)?.locale !== a.locale
+      ? adminClient().auth.admin.updateUserById(ctx.user.id, { user_metadata: { locale: a.locale } }).then(({ error }) => { if (error) console.error("idioma nos metadados do login:", error.message); }, (e) => console.error("idioma nos metadados do login:", e))
+      : null,
+  ]);
   return {};
 }
 
-export async function snapshot(ctx: Ctx) {
+/**
+ * Consultas do diário `D` que passam pelas regras do banco (RLS: a sessão só lê o que pode). Podem começar antes de
+ * o servidor confirmar o cachorro (a tela diz qual é): se a participação não se confirmar, o resultado é descartado.
+ */
+function diaryQueries(ctx: Ctx, D: string) {
   const { supa } = ctx;
-  const [profile, dog] = await Promise.all([profileOf(ctx), dogOf(ctx, false)]); // independentes: ao mesmo tempo
-  const today = todayOf(profile);
-  if (!dog) {
-    const fam = await familyInfo(ctx, null);
-    return { profile: profile ? toProfile(profile) : null, me: meOf(ctx, profile), dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
-  }
-  const D = dog.id;
-  const [entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, fam, letterRows, boneRows, unreadRes, plan, blockedIds] = await Promise.all([
+  const all = Promise.all([
     q(supa.from("diary_entries").select("*").eq("dog_id", D).is("deleted_at", null).order("occurred_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("albums").select("*").eq("dog_id", D)),
     q(supa.from("album_entries").select("album_id, entry_id, albums!inner(dog_id)").eq("albums.dog_id", D)), // só do cachorro aberto
@@ -200,13 +201,36 @@ export async function snapshot(ctx: Ctx) {
     q(supa.from("documents").select("*").eq("dog_id", D).eq("status", "ready").order("created_at", { ascending: false })),
     q(supa.from("collection_advances").select("*").eq("dog_id", D)),
     q(supa.from("medals").select("*").eq("dog_id", D)),
-    familyInfo(ctx, dog),
     q(supa.from("letters").select("*").eq("dog_id", D).order("letter_date", { ascending: false }).order("created_at", { ascending: false })),
     q(supa.from("bones").select("target_type, target_id, user_id").eq("dog_id", D)),
+  ]);
+  all.catch(() => undefined); // descartada (cachorro não confirmado) não vira erro solto
+  return all;
+}
+
+export async function snapshot(ctx: Ctx) {
+  const { supa } = ctx;
+  // A tela diz qual cachorro está aberto: as consultas dele já começam junto com a conferência da participação
+  // (uma onda de idas ao banco a menos). Só são usadas se o servidor confirmar que é esse mesmo cachorro.
+  const hint = (ctx as { dogHint?: string | null }).dogHint ?? null;
+  const early = hint ? diaryQueries(ctx, hint) : null;
+  const earlyMembers = hint ? { dogId: hint, members: dogMembersOf(hint) } : null;
+  const [profile, dog, unreadRes, blockedIds] = await Promise.all([
+    profileOf(ctx), dogOf(ctx, false), // independentes: ao mesmo tempo
     supa.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).is("read_at", null),
-    ensurePlan(ctx, dog, today), // plano do dia junto com o resto (antes, só depois de tudo)
     blockedBy(ctx.user.id),
-  ]) as any[];
+  ]);
+  const today = todayOf(profile);
+  if (!dog) {
+    const fam = await familyInfo(ctx, null);
+    return { profile: profile ? toProfile(profile) : null, me: meOf(ctx, profile), dog: null, role: null, diaries: fam.diaries, members: [], entries: [], albumEntries: [], completions: [], xpTotal: 0, xpMonth: 0, today, health: EMPTY_HEALTH, dailyPlan: null, collectionAdvances: [], medals: [], customAlbums: [] };
+  }
+  const D = dog.id;
+  const [[entries, albums, albumEntries, completions, xp, hp, weights, vaccines, visits, visitDocs, meds, contacts, docs, advances, medals, letterRows, boneRows], fam, plan] = await Promise.all([
+    early && hint === D ? early : diaryQueries(ctx, D),
+    familyInfo(ctx, dog, earlyMembers), // participantes já pedidos, usados só porque o cachorro foi confirmado
+    ensurePlan(ctx, dog, today), // plano do dia junto com o resto
+  ]) as [any[], Awaited<ReturnType<typeof familyInfo>>, DailyPlan];
   // Pessoas que você bloqueou: as fotos e cartinhas delas não aparecem para você (o diário continua igual para os outros).
   const blocked = new Set<string>(blockedIds);
   const visible = (by: string | null) => !by || !blocked.has(by);
@@ -268,12 +292,12 @@ const civil = z.string().refine(isCivilDate, "errors.invalidDate");
 
 async function ensureProfile(ctx: Ctx, timezone?: string) {
   const tz = timezone && isValidTimezone(timezone) ? timezone : "America/Sao_Paulo";
-  let p = await profileOf(ctx);
+  let p = await profileOf(ctx, true);
   if (!p) {
     // Conta nova: outra operação da abertura (ex.: gravar o idioma) pode criar o perfil ao mesmo tempo. Quem chegar
     // depois usa o que já existe, sem erro (antes, "chave duplicada" fazia o primeiro diário não ser criado).
     await q(ctx.supa.from("profiles").upsert({ user_id: ctx.user.id, timezone: tz, display_name: nameFromUser(ctx.user) }, { onConflict: "user_id", ignoreDuplicates: true }));
-    p = await profileOf(ctx);
+    p = await profileOf(ctx, true);
   }
   if (!p) return;
   const patch: Record<string, string> = {};
@@ -366,18 +390,28 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   const a = parse(z.object({
     requestKey: z.string().uuid(), mediaId: z.string().uuid(), caption: z.string(), occurredDate: civil, source: z.enum(["free", "mission", "studio"]),
     albumIds: z.array(z.string()).max(60), kind: z.enum(["photo", "art"]).optional(),
+    // O app manda a foto e já pede para conferir o envio aqui (uma viagem a menos); versões antigas chamam confirmUpload antes.
+    confirmMedia: z.boolean().optional(),
   }), args);
-  const dog = await editableDog(ctx);
-  const profile = await profileOf(ctx);
+  const [dog, profile] = await Promise.all([editableDog(ctx), profileOf(ctx)]);
   if (a.occurredDate > todayOf(profile)) throw bad("INVALID", "errors.dateUpToToday");
-  const prior = (await q(ctx.supa.from("diary_entries").select("*").eq("dog_id", dog.id).eq("request_key", a.requestKey).maybeSingle())) as any;
+  // Repetição, limite do diário e a foto: conferidos ao mesmo tempo (nenhum depende do outro).
+  // O registro da foto também (a conferência do envio usa; é conferido de novo lá: dono e diário).
+  const mediaRow = a.confirmMedia ? q(adminClient().from("media_assets").select("*").eq("id", a.mediaId).maybeSingle()) : undefined;
+  mediaRow?.catch(() => undefined);
+  const [prior, counted, used] = await Promise.all([
+    q(ctx.supa.from("diary_entries").select("*").eq("dog_id", dog.id).eq("request_key", a.requestKey).maybeSingle()),
+    ctx.supa.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null),
+    q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).eq("media_asset_id", a.mediaId).limit(1)),
+    mediaRow,
+  ]) as [any, { count: number | null; error: unknown }, any[], unknown];
   if (prior) return toEntry(prior, null); // retry: mesma lembrança
-  const { count, error: countError } = await ctx.supa.from("diary_entries").select("id", { count: "exact", head: true }).eq("dog_id", dog.id).is("deleted_at", null);
-  if (countError) throw new HttpError(500, "SERVER", "errors.savePhotoFailed");
-  if ((count ?? 0) >= serverMaxEntries()) throw bad("STORAGE_QUOTA", "errors.fullDiary", fullDiaryParams(dog.name));
-  await readyMedia(ctx, a.mediaId);
-  const used = (await q(ctx.supa.from("diary_entries").select("id").eq("dog_id", dog.id).eq("media_asset_id", a.mediaId).limit(1))) as any[];
+  if (counted.error) throw new HttpError(500, "SERVER", "errors.savePhotoFailed");
+  if ((counted.count ?? 0) >= serverMaxEntries()) throw bad("STORAGE_QUOTA", "errors.fullDiary", fullDiaryParams(dog.name));
   if (used.length) throw bad("INVALID", "errors.photoAlreadyUsed");
+  // Conferir o envio já garante a foto pronta e deste diário; sem ele, confere que a foto está pronta.
+  if (a.confirmMedia) await confirmFile(ctx, "media", a.mediaId, mediaRow);
+  else await readyMedia(ctx, a.mediaId);
   const ins = await adminClient().from("diary_entries").insert({
     owner_id: dog.owner_id, created_by: ctx.user.id, dog_id: dog.id, media_asset_id: a.mediaId, caption: a.caption.trim().slice(0, LIMITS.captionMaxChars),
     occurred_date: a.occurredDate, timezone: profile?.timezone ?? "America/Sao_Paulo", source: a.source === "mission" ? "free" : a.source, request_key: a.requestKey,
@@ -390,7 +424,8 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
   }
   const row = ins.data as any;
   await setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false);
-  if (dog.owner_id === ctx.user.id) await confirmReferral(ctx); // primeira foto no próprio diário confirma a indicação
+  // Primeira foto no próprio diário confirma a indicação: depois da resposta (não muda o que a pessoa vê agora).
+  if (dog.owner_id === ctx.user.id) after(() => confirmReferral(ctx));
   notifyFamily(ctx, { dogId: dog.id, dogName: dog.name, kind: "photo", targetType: "entry", targetId: row.id });
   return toEntry(row, null);
 }
@@ -490,8 +525,7 @@ export async function submitMission(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ requestKey: z.string().uuid(), missionId: z.string(), entryId: z.string().uuid(), status: z.enum(["approved", "uncertain", "not_matched", "pending", "technical_failure"]) }).passthrough(), args);
   const mission = missionById(a.missionId);
   if (!mission) throw bad("UNKNOWN_MISSION", MESSAGES.UNKNOWN_MISSION);
-  const dog = await editableDog(ctx);
-  const profile = await profileOf(ctx);
+  const [dog, profile] = await Promise.all([editableDog(ctx), profileOf(ctx)]);
   const today = todayOf(profile);
   let period: string | null = null;
   if (mission.kind === "special") {
@@ -500,22 +534,28 @@ export async function submitMission(ctx: Ctx, args: unknown) {
     if (!w) throw bad("OUT_OF_WINDOW", MESSAGES.OUT_OF_WINDOW);
     period = w.occurrence;
   }
-  if (mission.kind === "daily") await ensurePlan(ctx, dog, today);
   const admin = adminClient();
   const advItem = mission.advancesItem;
-  const advBefore = advItem ? await q(admin.from("collection_advances").select("item_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) : null;
+  // Plano do dia e o item da coleção antes da confirmação: ao mesmo tempo (um não depende do outro).
+  const [, advBefore] = await Promise.all([
+    mission.kind === "daily" ? ensurePlan(ctx, dog, today) : null,
+    advItem ? q(admin.from("collection_advances").select("item_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) : null,
+  ]);
   const res = (await q(admin.rpc("confirm_mission", {
     p_owner: dog.owner_id, p_dog: dog.id, p_template: mission.id, p_entry: a.entryId, p_request_key: a.requestKey,
     p_approved: a.status === "approved", p_today: today, p_period: period,
   }))) as any[];
   const r = res[0] ?? { xp_awarded: 0, already_completed: true, medals: [] };
-  const advAfter = advItem && !advBefore ? await q(admin.from("collection_advances").select("item_id, via_mission_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) as any : null;
   const approved = a.status === "approved";
-  // Recompensa: cada 200 XP de missões vira 1 crédito do Estúdio (idempotente por marco).
-  // Arte do mês: 200 XP no mês liberam 1 crédito, uma única vez por mês (idempotente no banco).
-  const creditsEarned = approved && r.xp_awarded > 0 && (await q(admin.rpc("grant_monthly_xp_credit_dog", { p_dog: dog.id, p_goal: XP_MONTH_GOAL }))) ? 1 : 0;
-  // Foto aprovada entra no álbum da missão (igual ao modo demo).
-  if (approved) await setEntryAlbums(ctx, dog.id, a.entryId, [mission.collectionId], false);
+  // Depois da confirmação, ao mesmo tempo: o item da coleção, o crédito do mês e o álbum da missão.
+  const [advAfter, granted] = await Promise.all([
+    advItem && !advBefore ? q(admin.from("collection_advances").select("item_id, via_mission_id").eq("dog_id", dog.id).eq("item_id", advItem).maybeSingle()) as Promise<any> : null,
+    // Arte do mês: 200 XP no mês liberam 1 crédito, uma única vez por mês (idempotente no banco).
+    approved && r.xp_awarded > 0 ? q(admin.rpc("grant_monthly_xp_credit_dog", { p_dog: dog.id, p_goal: XP_MONTH_GOAL })) : null,
+    // Foto aprovada entra no álbum da missão (igual ao modo demo).
+    approved ? setEntryAlbums(ctx, dog.id, a.entryId, [mission.collectionId], false) : null,
+  ]);
+  const creditsEarned = granted ? 1 : 0;
   const instanceKey = instanceKeyOf(dog.id, mission.id, mission.kind === "daily" ? today : period ?? "once");
   return {
     submission: { id: a.requestKey, requestKey: a.requestKey, missionId: mission.id, dogId: dog.id, entryId: a.entryId, status: approved ? "approved" : "uncertain", reasonCode: approved ? "OWNER_CONFIRMED" : "OWNER_UNSURE", mode: "owner", providerVersion: null, createdAt: now() },
@@ -663,8 +703,12 @@ export async function createUpload(ctx: Ctx, args: unknown) {
   if (a.kind === "media") {
     if (!(IMAGE_MIME as readonly string[]).includes(a.mime) || !a.width || !a.height || !a.hash) throw bad("UNSUPPORTED", "errors.notAPhoto");
     const key = `${base}.${EXT[a.mime]}`, thumb = `${base}-thumb.${EXT[a.mime]}`;
-    await q(admin.from("media_assets").insert({ id, owner_id: dog.owner_id, dog_id: dog.id, private_storage_key: key, thumb_storage_key: thumb, mime: a.mime, bytes: Math.max(1, a.sizes.display ?? 1), width: a.width, height: a.height, hash: a.hash, kind: a.mediaKind ?? "photo", status: "pending_upload" }));
-    return { id, bucket: "media", uploads: await Promise.all([["display", key], ["thumb", thumb]].map(async ([variant, path]) => ({ variant, path, token: (await q(admin.storage.from("media").createSignedUploadUrl(path)) as any).token }))) };
+    // Registro e endereços de envio ao mesmo tempo (um não depende do outro; sem o registro, o envio não vale nada).
+    const [, uploads] = await Promise.all([
+      q(admin.from("media_assets").insert({ id, owner_id: dog.owner_id, dog_id: dog.id, private_storage_key: key, thumb_storage_key: thumb, mime: a.mime, bytes: Math.max(1, a.sizes.display ?? 1), width: a.width, height: a.height, hash: a.hash, kind: a.mediaKind ?? "photo", status: "pending_upload" })),
+      Promise.all([["display", key], ["thumb", thumb]].map(async ([variant, path]) => ({ variant, path, token: (await q(admin.storage.from("media").createSignedUploadUrl(path)) as any).token }))),
+    ]);
+    return { id, bucket: "media", uploads };
   }
   const meta = parse(DocumentMetaSchema, { title: a.title, category: a.category, docDate: a.docDate ?? null, expiresOn: a.expiresOn ?? null, notes: a.notes ?? "" });
   if (!["application/pdf", ...IMAGE_MIME].includes(a.mime)) throw bad("UNSUPPORTED", "errors.notPdfOrImage");
@@ -678,19 +722,29 @@ export async function createUpload(ctx: Ctx, args: unknown) {
 /** Confere o que chegou no bucket: tipo real pelos bytes (sharp / %PDF), tamanho e pixels. Recusa → apaga. */
 export async function confirmUpload(ctx: Ctx, args: unknown) {
   const a = parse(z.object({ kind: z.enum(["media", "document"]), id: z.string().uuid() }), args);
+  await confirmFile(ctx, a.kind, a.id);
+  return { ok: true };
+}
+
+/**
+ * Confere o que chegou no bucket: tipo real pelos bytes (sharp / %PDF), tamanho e pixels. Recusa → apaga.
+ * Diário e registro são lidos ao mesmo tempo, e o arquivo e a miniatura baixados ao mesmo tempo (antes, um de cada vez).
+ */
+async function confirmFile(ctx: Ctx, kind: "media" | "document", id: string, prefetched?: Promise<unknown>) {
   const admin = adminClient();
-  const table = a.kind === "media" ? "media_assets" : "documents";
-  const bucket = a.kind === "media" ? "media" : "documents";
-  const dog = await editableDog(ctx);
-  const row = (await q(admin.from(table).select("*").eq("id", a.id).eq("dog_id", dog.id).maybeSingle())) as any;
-  if (!row) throw bad("NOT_FOUND", "errors.uploadNotFound");
-  if (row.status === "ready") return { ok: true };
+  const table = kind === "media" ? "media_assets" : "documents";
+  const bucket = kind === "media" ? "media" : "documents";
+  const [dog, found] = await Promise.all([editableDog(ctx), prefetched ?? q(admin.from(table).select("*").eq("id", id).maybeSingle())]);
+  const row = found as any;
+  if (!row || row.dog_id !== dog.id) throw bad("NOT_FOUND", "errors.uploadNotFound");
+  if (row.status === "ready") return;
   const reject = async (message: string) => {
     await admin.storage.from(bucket).remove([row.private_storage_key, row.thumb_storage_key].filter(Boolean));
     await admin.from(table).delete().eq("id", row.id);
     throw bad("UNSUPPORTED", message);
   };
-  const download = async (path: string) => {
+  const download = async (path: string | null) => {
+    if (!path) return null;
     const { data, error } = await admin.storage.from(bucket).download(path);
     if (error || !data) return null;
     return Buffer.from(await data.arrayBuffer());
@@ -704,20 +758,18 @@ export async function confirmUpload(ctx: Ctx, args: unknown) {
       return null;
     }
   };
-  const main = await download(row.private_storage_key);
+  const [main, thumbBuf] = await Promise.all([download(row.private_storage_key), download(row.thumb_storage_key)]);
   if (!main) return reject("errors.fileMissing");
-  if (a.kind === "media") {
-    const m = await inspectImage(main);
-    const t = row.thumb_storage_key ? await inspectImage(await download(row.thumb_storage_key)) : null;
+  if (kind === "media") {
+    const [m, t] = await Promise.all([inspectImage(main), row.thumb_storage_key ? inspectImage(thumbBuf) : null]);
     if (!m || !t) return reject("errors.notAPhoto");
     await q(admin.from("media_assets").update({ status: "ready", bytes: main.length, width: m.width, height: m.height }).eq("id", row.id));
   } else {
     const isPdf = row.mime === "application/pdf";
     if (isPdf ? main.subarray(0, 5).toString("latin1") !== "%PDF-" : !(await inspectImage(main))) return reject(isPdf ? "errors.notPdf" : "errors.notImage");
-    if (row.thumb_storage_key && !(await inspectImage(await download(row.thumb_storage_key)))) return reject("errors.badThumb");
+    if (row.thumb_storage_key && !(await inspectImage(thumbBuf))) return reject("errors.badThumb");
     await q(admin.from("documents").update({ status: "ready", bytes: main.length }).eq("id", row.id)); // gatilho de cota: 50 por cachorro
   }
-  return { ok: true };
 }
 
 export async function exportMetadata(ctx: Ctx) {
@@ -757,6 +809,8 @@ export async function deleteAccount(ctx: Ctx) {
   return {};
 }
 
+const CLEANUP_CHECK_CHUNK = 50;
+
 /** Esvazia a fila de limpeza dos buckets e descarta uploads abandonados há mais de 24 h. */
 export async function processCleanup(limit = 200) {
   const admin = adminClient();
@@ -779,11 +833,13 @@ export async function processCleanup(limit = 200) {
     // depois, o arquivo sai; se continuar em uso, nunca é apagado.
     const keys = items.map((j) => j.object_key);
     const table = bucket === "media" ? "media_assets" : "documents";
-    const [byMain, byThumb] = await Promise.all([
-      must(admin.from(table).select("private_storage_key, thumb_storage_key").neq("status", "deleted").in("private_storage_key", keys), "errors.generic"),
-      must(admin.from(table).select("private_storage_key, thumb_storage_key").neq("status", "deleted").in("thumb_storage_key", keys), "errors.generic"),
-    ]);
-    const inUse = new Set(([...(byMain ?? []), ...(byThumb ?? [])] as any[]).flatMap((r) => [r.private_storage_key, r.thumb_storage_key]));
+    // Em lotes de 50 chaves: a consulta vai no endereço, e centenas de chaves (excluir uma conta com muitas fotos)
+    // passavam do limite de tamanho, derrubando a exclusão inteira.
+    const chunks: string[][] = [];
+    for (let i = 0; i < keys.length; i += CLEANUP_CHECK_CHUNK) chunks.push(keys.slice(i, i + CLEANUP_CHECK_CHUNK));
+    const found = await Promise.all(chunks.flatMap((part) => (["private_storage_key", "thumb_storage_key"] as const).map((col) =>
+      must(admin.from(table).select("private_storage_key, thumb_storage_key").neq("status", "deleted").in(col, part), "errors.generic"))));
+    const inUse = new Set((found.flat().filter(Boolean) as any[]).flatMap((r) => [r.private_storage_key, r.thumb_storage_key]));
     const keep = items.filter((j) => inUse.has(j.object_key));
     if (keep.length) {
       console.warn("limpeza: arquivo em uso não apagado", keep.length);

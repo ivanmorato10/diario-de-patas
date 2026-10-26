@@ -20,6 +20,26 @@ export interface CurrentDog { id: string; owner_id: string; role: Role; [k: stri
 
 const bad = (code: string, message: string, params?: Record<string, string | number>) => new HttpError(400, code, message, params);
 const cache = new WeakMap<object, CurrentDog | null>();
+/**
+ * Leituras repetidas DENTRO da mesma requisição (perfil e participações): uma ida ao banco só, reaproveitada por
+ * currentDog, familyInfo e o perfil do snapshot. Vale só para esta requisição (ctx); trocar de diário esquece.
+ */
+const profileMemo = new WeakMap<object, Promise<any>>();
+const membersMemo = new WeakMap<object, Promise<any[]>>();
+export function profileRow(ctx: Ctx): Promise<any> {
+  let p = profileMemo.get(ctx);
+  if (!p) { p = must(adminClient().from("profiles").select("*").eq("user_id", ctx.user.id).maybeSingle(), "errors.generic"); profileMemo.set(ctx, p); p.catch(() => profileMemo.delete(ctx)); }
+  return p;
+}
+function myMemberships(ctx: Ctx): Promise<any[]> {
+  let p = membersMemo.get(ctx);
+  if (!p) {
+    // O cachorro vem junto da participação: uma ida ao banco a menos em toda operação.
+    p = must(adminClient().from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"), "errors.generic").then((r) => (r ?? []) as any[]);
+    membersMemo.set(ctx, p); p.catch(() => membersMemo.delete(ctx));
+  }
+  return p;
+}
 
 /** Diário aberto agora (com o papel da pessoa nele). */
 export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog | null> {
@@ -28,13 +48,8 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
     if (!c && required) throw bad("NO_DOG", "errors.noDog");
     return c;
   }
-  const admin = adminClient();
   // Erro do banco aqui é erro (nunca "sem cachorro" ou "sem acesso" por engano).
-  const [prof, mem] = await Promise.all([
-    must(admin.from("profiles").select("current_dog_id").eq("user_id", ctx.user.id).maybeSingle(), "errors.generic"),
-    // O cachorro vem junto da participação: uma ida ao banco a menos em toda operação.
-    must(admin.from("dog_members").select("dog_id, role, created_at, dogs!inner(*)").eq("user_id", ctx.user.id).order("created_at"), "errors.generic"),
-  ]);
+  const [prof, mem] = await Promise.all([profileRow(ctx), myMemberships(ctx)]);
   const members = (mem ?? []) as { dog_id: string; role: Role; dogs: any }[];
   // A tela disse qual cachorro: ou é esse, ou é erro. Nunca troca por outro diário em silêncio
   // (ex.: acesso removido com a tela aberta). Sem indicação: o salvo na conta, senão o primeiro.
@@ -51,6 +66,8 @@ export async function currentDog(ctx: Ctx, required = true): Promise<CurrentDog 
 
 export function forgetDog(ctx: Ctx) {
   cache.delete(ctx);
+  profileMemo.delete(ctx);
+  membersMemo.delete(ctx);
 }
 
 export function requireEditor(dog: CurrentDog) {
@@ -70,12 +87,20 @@ export function nameFromUser(u: { email?: string | null; user_metadata?: any } |
 }
 
 /** Lista de diários da pessoa (para o seletor) e membros do diário aberto. */
-export async function familyInfo(ctx: Ctx, dog: CurrentDog | null) {
+/** Quem participa do diário `dogId` (só leitura). */
+export function dogMembersOf(dogId: string): Promise<any[]> {
+  const p = must(adminClient().from("dog_members").select("user_id, role, created_at").eq("dog_id", dogId).order("created_at"), "errors.generic").then((r) => (r ?? []) as any[]);
+  p.catch(() => undefined);
+  return p;
+}
+
+/** `early`: participantes já pedidos (dogMembersOf), usados SÓ se forem deste diário, já confirmado por currentDog. */
+export async function familyInfo(ctx: Ctx, dog: CurrentDog | null, early?: { dogId: string; members: Promise<any[]> } | null) {
   const admin = adminClient();
   // Meus diários e quem participa deste: as duas consultas ao mesmo tempo.
   const [mine, mem] = await Promise.all([
-    must(admin.from("dog_members").select("dog_id, role, dogs!inner(id, name, photo_asset_id, avatar_crop, owner_id)").eq("user_id", ctx.user.id).order("created_at"), "errors.generic"),
-    dog ? must(admin.from("dog_members").select("user_id, role, created_at").eq("dog_id", dog.id).order("created_at"), "errors.generic") : Promise.resolve([] as any[]),
+    myMemberships(ctx), // a mesma leitura do currentDog desta requisição
+    dog ? (early && early.dogId === dog.id ? early.members : dogMembersOf(dog.id)) : Promise.resolve([] as any[]),
   ]);
   const diaries = ((mine ?? []) as any[]).map((r) => ({ id: r.dogs.id, name: r.dogs.name, photoMediaId: r.dogs.photo_asset_id ?? null, avatarCrop: r.dogs.avatar_crop ?? null, role: r.role as Role, mine: r.dogs.owner_id === ctx.user.id }));
   let members: { userId: string; name: string; email: string; role: Role; me: boolean; owner: boolean }[] = [];

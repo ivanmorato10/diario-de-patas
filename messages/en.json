@@ -1137,8 +1137,8 @@
     "deleteTitle": "Delete this contact?"
   },
   "credits": {
-    "expiresIn": "Expires in {time}",
-    "pixExpired": "This Pix expired",
+    "expiresIn": "Pay within {time}",
+    "pixExpired": "This Pix code is no longer valid. Nothing was charged.",
     "notCompleted": "Payment not completed",
     "notCharged": "Nothing was charged. Just create a new Pix.",
     "newPix": "Create another Pix",
@@ -1183,7 +1183,7 @@
       "pending": "Awaiting payment",
       "approved": "Paid",
       "rejected": "Declined",
-      "expired": "Expired",
+      "expired": "Not completed",
       "cancelled": "Canceled",
       "refunded": "Refunded"
     },
@@ -1289,7 +1289,8 @@
     "add": "+ Add a dog",
     "menuLabel": "{dog}: switch dogs or see the profile",
     "title": "Your dogs",
-    "close": "Close"
+    "close": "Close",
+    "opening": "Opening the diary…"
   },
   "emails": {
     "signature": "With love,\nAbu and the Diário de Patas team",

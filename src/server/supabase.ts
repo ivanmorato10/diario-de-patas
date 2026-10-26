@@ -9,10 +9,12 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/config/mode";
+import { perfOn, timedFetch } from "./timing";
 
 export async function userClient(): Promise<SupabaseClient> {
   const store = await cookies();
   return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    ...(perfOn() ? { global: { fetch: timedFetch } } : {}),
     cookies: {
       getAll: () => store.getAll(),
       setAll: (list) => {
@@ -30,7 +32,7 @@ let admin: SupabaseClient | null = null;
 export function adminClient(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY ausente");
-  admin ??= createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  admin ??= createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false }, ...(perfOn() ? { global: { fetch: timedFetch } } : {}) });
   return admin;
 }
 

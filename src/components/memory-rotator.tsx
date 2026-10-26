@@ -30,6 +30,14 @@ export function MemoryRotator({ entries, dogName }: { entries: DiaryEntry[]; dog
   }, [list.length]);
 
   const e = list[i % Math.max(1, list.length)];
+  // A próxima foto é baixada 3 s depois desta aparecer (a troca é a cada 10 s): em rede lenta, não disputa banda
+  // com a abertura da tela nem com a troca de cachorro.
+  const [preloadOn, setPreloadOn] = useState(false);
+  useEffect(() => {
+    setPreloadOn(false);
+    const t = setTimeout(() => setPreloadOn(true), 3000);
+    return () => clearTimeout(t);
+  }, [e?.id]);
   if (!e) return null;
   const next = list[(i + 1) % list.length];
   return (
@@ -40,7 +48,7 @@ export function MemoryRotator({ entries, dogName }: { entries: DiaryEntry[]; dog
         <p className="caption polaroid__meta">{i === 0 ? t("latest") : t("one")} · {f.date(e.occurredDate)}</p>
       </div>
       {/* Carrega a próxima por trás, para a troca não piscar. */}
-      {next && next.id !== e.id ? <span hidden><MediaImage id={next.mediaId} variant="display" alt="" className="photo" /></span> : null}
+      {preloadOn && next && next.id !== e.id ? <span hidden><MediaImage id={next.mediaId} variant="display" alt="" className="photo" preload /></span> : null}
     </Link>
   );
 }

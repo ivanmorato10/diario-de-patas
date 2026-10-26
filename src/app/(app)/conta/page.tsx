@@ -157,7 +157,7 @@ export default function Conta() {
               <span id="c-region" className="label" style={{ fontWeight: 600 }}>{t("region")}</span>
               <div className="filter-row">
                 {REGIONS.map((r) => (
-                  <button key={r} type="button" role="radio" aria-checked={prefs.region === r} className={`filter-chip${prefs.region === r ? " is-active" : ""}`} onClick={() => void regionSaver.save({ region: r })}>{t(`regions.${r}`)}</button>
+                  <button key={r} type="button" role="radio" aria-checked={prefs.region === r} aria-busy={regionSaver.busy && prefs.region === r ? "true" : undefined} className={`filter-chip${prefs.region === r ? " is-active" : ""}`} onClick={() => { if (prefs.region !== r) void regionSaver.save({ region: r }); }}>{regionSaver.busy && prefs.region === r ? <span className="sp-spinner chip-spinner" aria-hidden="true" /> : null}{t(`regions.${r}`)}</button>
                 ))}
               </div>
               <PrefsSaveError failed={regionSaver.failed} retry={regionSaver.retry} busy={regionSaver.busy} />

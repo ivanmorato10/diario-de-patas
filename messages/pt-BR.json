@@ -1137,8 +1137,8 @@
     "deleteTitle": "Excluir este contato?"
   },
   "credits": {
-    "expiresIn": "Vence em {time}",
-    "pixExpired": "Esse Pix venceu",
+    "expiresIn": "Pague em até {time}",
+    "pixExpired": "Esse código Pix não vale mais. Nada foi cobrado.",
     "notCompleted": "Pagamento não concluído",
     "notCharged": "Nenhum valor foi cobrado. É só gerar um novo Pix.",
     "newPix": "Gerar outro Pix",
@@ -1183,7 +1183,7 @@
       "pending": "Aguardando pagamento",
       "approved": "Pago",
       "rejected": "Recusado",
-      "expired": "Vencido",
+      "expired": "Não concluído",
       "cancelled": "Cancelado",
       "refunded": "Estornado"
     },
@@ -1289,7 +1289,8 @@
     "add": "+ Adicionar cachorro",
     "menuLabel": "{dog}: trocar de cachorro ou ver o perfil",
     "title": "Seus cachorros",
-    "close": "Fechar"
+    "close": "Fechar",
+    "opening": "Abrindo o diário…"
   },
   "emails": {
     "signature": "Com carinho,\nAbu e a equipe do Diário de Patas",
