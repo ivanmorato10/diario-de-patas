@@ -2096,7 +2096,8 @@
     "confirmLabel": "To confirm, type the name: <strong>{dog}</strong>",
     "deleting": "Deleting…",
     "saveChanges": "Save changes",
-    "close": "Close"
+    "close": "Close",
+    "saving": "Saving…"
   },
   "push": {
     "photoTitle": "{count, plural, one {A new adventure for {dog} 🐾} other {New adventures for {dog} 🐾}}",
@@ -2757,5 +2758,12 @@
     "publicThanks": "Thank you. Support reviews it within 24 hours.",
     "entryLabel": "Report photo: {label}",
     "letterLabel": "Report letter"
+  },
+  "celebrate": {
+    "title": "You earned 1 credit 🎉",
+    "text": "{dog} reached this month’s paws. Use the credit in the Studio to create a special piece of art.",
+    "create": "Create the art now",
+    "later": "Later",
+    "paws": "{goal} paws!"
   }
 }

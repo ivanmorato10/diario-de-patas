@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useCatalog } from "@/i18n/catalog";
 import { useFormat, usePrefs } from "@/i18n/use-format";
@@ -21,6 +21,8 @@ import { DAILY_SLOTS, type DailySlot } from "@/config/cycle";
 import { activeSpecials, daysWithMemories, missionStatus } from "@/domain/cycle";
 import { levelFor, missionById } from "@/domain/missions";
 import { XpRewardBar } from "@/components/xp-reward";
+import { CreditCelebration, celebrationSeen, markCelebrationSeen } from "@/components/credit-celebration";
+import { monthReward } from "@/config/credits";
 import { AchadinhosCard } from "@/components/achadinhos-card";
 import { MedAlert } from "@/components/med-alert";
 import { FamilyNudge } from "@/components/family-nudge";
@@ -35,6 +37,17 @@ export default function Hoje() {
   const [swapping, setSwapping] = useState<DailySlot | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
   const [ideasHelp, setIdeasHelp] = useState(false);
+  // 200 patinhas que chegaram por outro caminho (outra pessoa da família, indicação): comemora ao abrir Hoje,
+  // uma vez por cachorro e mês neste aparelho (quem completou pela missão já viu na hora).
+  const [party, setParty] = useState(false);
+  const partyDog = snap?.dog?.id;
+  const partyMonth = snap?.today.slice(0, 7);
+  const reached = !!snap && monthReward(snap.xpMonth).reached;
+  useEffect(() => {
+    if (!partyDog || !partyMonth || !reached || celebrationSeen(partyDog, partyMonth)) return;
+    markCelebrationSeen(partyDog, partyMonth);
+    setParty(true);
+  }, [partyDog, partyMonth, reached]);
   const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
   const t = useTranslations("today");
   const cat = useCatalog(snap?.dog?.name ?? "");
@@ -205,6 +218,7 @@ export default function Hoje() {
         {care.length ? <UpcomingCareCard items={care} today={snap.today} compact /> : null}
 
         <XpRewardBar xpMonth={snap.xpMonth} compact />
+        <CreditCelebration open={party} dogName={snap.dog.name} onClose={() => setParty(false)} />
         <AchadinhosCard />
 
       </main>

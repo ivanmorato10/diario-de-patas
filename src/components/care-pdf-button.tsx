@@ -81,7 +81,7 @@ export function CarePdfButton() {
 
   return (
     <div className="stack" style={{ gap: 4 }}>
-      <button type="button" className="btn btn--block btn--vet" onClick={make} disabled={busy}>📄 {busy ? t("generating") : t("button")}</button>
+      <button type="button" className="btn btn--block btn--vet" onClick={make} disabled={busy} aria-busy={busy ? "true" : undefined}>📄 {busy ? t("generating") : t("button")}</button>
       {msg ? <span className="caption" style={{ textAlign: "center" }}>{msg}</span> : null}
     </div>
   );

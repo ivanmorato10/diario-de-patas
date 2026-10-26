@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditEarned } from "@/components/xp-reward";
+import { CreditCelebration, bumpCachedBalance, markCelebrationSeen } from "@/components/credit-celebration";
 import { useTranslations } from "next-intl";
 import { useCatalog } from "@/i18n/catalog";
 import { useFormat, usePrefs } from "@/i18n/use-format";
@@ -56,6 +57,8 @@ function GuardarInner() {
   const presetDate = params.get("data");
   const { ready, snap, unavailable } = useRequireDiary();
   const { repo, reload, patchDog } = useStore();
+  const [answer, setAnswer] = useState(true); // resposta tocada na missão (só ela mostra que está indo)
+  const [party, setParty] = useState(false); // 200 patinhas: comemoração
   const t = useTranslations("save");
   const te = useTranslations("errors");
   const tf = useTranslations("family");
@@ -223,6 +226,12 @@ function GuardarInner() {
       // Conclusão, XP, álbum da missão, medalhas e item de coleção entram na tela já (com o cachorro da operação).
       patchDog(opDog.current, (s) => withSubmitResult(s, entry.id, mission, result));
       setStep({ kind: "result", entry, result }); // o servidor confirmou: mostra já
+      if (result.creditsEarned && opDog.current) {
+        // Completou as 200 patinhas: o saldo do Estúdio já sobe neste aparelho e vem a comemoração (uma vez no mês).
+        bumpCachedBalance(opDog.current, result.creditsEarned);
+        markCelebrationSeen(opDog.current, snap!.today.slice(0, 7));
+        setParty(true);
+      }
       void sync();
     } catch (err) {
       setError(errText(err instanceof DomainError ? err : null, "save.confirmFailed"));
@@ -307,7 +316,7 @@ function GuardarInner() {
             {!mission ? albumPicker(t("putInAlbums")) : null}
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
-              <button type="button" className="btn btn--primary btn--block" onClick={save} disabled={busy}>
+              <button type="button" className="btn btn--primary btn--block" onClick={save} disabled={busy} aria-busy={busy ? "true" : undefined}>
                 {busy ? t("saving") : mission ? t("saveAndContinue") : t("savePhoto")}
               </button>
               <Link href={back} className="btn btn--ghost btn--block">{t("cancel")}</Link>
@@ -336,7 +345,7 @@ function GuardarInner() {
             {albumPicker(t("putAllInAlbums"))}
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
-              <button type="button" className="btn btn--primary btn--block" onClick={saveAll} disabled={busy || batch.length === 0}>
+              <button type="button" className="btn btn--primary btn--block" onClick={saveAll} disabled={busy || batch.length === 0} aria-busy={busy ? "true" : undefined}>
                 {busy ? t("savingN", { n: batch.filter((x) => x.state === "saved").length + 1, total: batch.length }) : t("saveAll")}
               </button>
               <Link href={back} className="btn btn--ghost btn--block">{t("cancel")}</Link>
@@ -372,8 +381,8 @@ function GuardarInner() {
             <div className="notice notice--info"><IconInfo /><span>{t("youConfirm")}</span></div>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
             <div className="stack">
-              <button type="button" className="btn btn--primary btn--block" onClick={() => confirm(step.entry, true)} disabled={busy}>{busy ? t("finishing") : t("yes")}</button>
-              <button type="button" className="btn btn--secondary btn--block" onClick={() => confirm(step.entry, false)} disabled={busy}>{t("notSure")}</button>
+              <button type="button" className="btn btn--primary btn--block" onClick={() => { setAnswer(true); void confirm(step.entry, true); }} disabled={busy} aria-busy={busy && answer ? "true" : undefined}>{busy && answer ? t("finishing") : t("yes")}</button>
+              <button type="button" className="btn btn--secondary btn--block" onClick={() => { setAnswer(false); void confirm(step.entry, false); }} disabled={busy} aria-busy={busy && !answer ? "true" : undefined}>{t("notSure")}</button>
             </div>
           </section>
         ) : null}
@@ -382,6 +391,7 @@ function GuardarInner() {
           <ResultView step={step} dogName={dog.name} missionTitle={mission ? cat.title(mission) : undefined} firstAchievement={snap.completions.length === 1 && !!step.result?.xpAwarded} previewUrl={previewUrl} headingRef={headingRef}
             dailyAllDone={!!mission && mission.kind === "daily" && !!snap.dailyPlan && Object.values(snap.dailyPlan.slots).every((id) => ctx && missionStatus(missionById(id)!, ctx) === "completed")} />
         ) : null}
+        <CreditCelebration open={party} dogName={dog.name} onClose={() => setParty(false)} />
       </main>
     </>
   );

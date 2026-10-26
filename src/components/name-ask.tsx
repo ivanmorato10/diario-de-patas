@@ -43,7 +43,7 @@ export function NameAsk({ title, note }: { title?: string; note?: string }) {
       <p style={{ margin: "2px 0 0" }}>{note ?? t("note")}</p>
       <div className="name-ask__row">
         <input id="my-name" className="input" value={name} maxLength={40} autoComplete="given-name" placeholder={t("placeholder")} onChange={(e) => setName(e.target.value)} />
-        <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? t("saving") : t("save")}</button>
+        <button type="submit" className="btn btn--primary" disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("saving") : t("save")}</button>
       </div>
       {error ? <p className="field-error" role="alert" style={{ margin: 0 }}>{error}</p> : null}
     </form>
@@ -84,7 +84,7 @@ export function MyNameField() {
       <label htmlFor="conta-nome">{t("yourName")} <span className="muted">{t("yourNameHint")}</span></label>
       <div className="name-ask__row">
         <input id="conta-nome" className="input" value={value} maxLength={40} autoComplete="given-name" onChange={(e) => setName(e.target.value)} />
-        <button type="submit" className="btn btn--secondary" disabled={busy || !dirty || !value.trim()}>{t("save")}</button>
+        <button type="submit" className="btn btn--secondary" disabled={busy || !dirty || !value.trim()} aria-busy={busy ? "true" : undefined}>{t("save")}</button>
       </div>
       {msg ? <p className="small" role="status" style={{ margin: 0 }}>{msg}</p> : null}
     </form>

@@ -44,6 +44,7 @@ export default function Conta() {
   const regionSaver = usePreferenceSaver();
   const CONFIRM_WORD = t("confirmWord");
   const [aiBusy, setAiBusy] = useState(false);
+  const [tzBusy, setTzBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,12 +70,16 @@ export default function Conta() {
 
   async function saveTz(e: React.FormEvent) {
     e.preventDefault();
+    if (tzBusy) return;
     if (!isValidTimezone(tzValue)) return setTzMsg(errText("errors.invalidTimezone"));
+    setTzBusy(true);
     try {
       await repo!.updateTimezone(tzValue);
     } catch {
       setTzMsg(errText("errors.saveFailed"));
       return;
+    } finally {
+      setTzBusy(false);
     }
     // Gravou: o fuso novo já vale na tela; a conferência completa vem depois (se falhar, não vira erro).
     patchSnap((s) => (s.profile ? { ...s, profile: { ...s.profile, timezone: tzValue } } : s));
@@ -184,7 +189,7 @@ export default function Conta() {
             <TimezoneSelect id="tz" value={tzValue} onChange={(v) => { setTz(v); setTzMsg(null); }} />
             <span className="hint">{t("tzHint")}</span>
             {tzMsg ? <p className="small" role="status" style={{ margin: 0 }}>{tzMsg}</p> : null}
-            {tzDirty ? <button type="submit" className="btn btn--primary btn--block">{t("tzSave")}</button> : null}
+            {tzDirty ? <button type="submit" className="btn btn--primary btn--block" disabled={tzBusy} aria-busy={tzBusy ? "true" : undefined}>{t("tzSave")}</button> : null}
             <button type="button" className="btn btn--secondary btn--block" onClick={() => { setPanel(null); setTz(null); setTzMsg(null); }}>{t("close")}</button>
           </form>
         </Sheet>
@@ -193,7 +198,7 @@ export default function Conta() {
           <h2 id="c-ai">{t("aiTitle")}</h2>
           <p className="small">{snap.me?.aiConsent ? t("aiText") : t("aiOffText")}</p>
           {aiMsg ? <p className="small" role="status">{aiMsg}</p> : null}
-          {snap.me?.aiConsent ? <button type="button" className="btn btn--danger-outline btn--block" onClick={withdrawAi} disabled={aiBusy}>{aiBusy ? t("aiWithdrawing") : t("aiWithdraw")}</button> : null}
+          {snap.me?.aiConsent ? <button type="button" className="btn btn--danger-outline btn--block" onClick={withdrawAi} disabled={aiBusy} aria-busy={aiBusy ? "true" : undefined}>{aiBusy ? t("aiWithdrawing") : t("aiWithdraw")}</button> : null}
           <button type="button" className="btn btn--secondary btn--block" style={{ marginTop: 12 }} onClick={() => { setPanel(null); setAiMsg(null); }}>{t("close")}</button>
         </Sheet>
 
@@ -207,7 +212,7 @@ export default function Conta() {
           </div>
           {error ? <p className="field-error" role="alert">{error}</p> : null}
           <div className="stack" style={{ gap: 8 }}>
-            <button type="button" className="btn btn--danger-outline btn--block" disabled={confirm.trim().toUpperCase() !== CONFIRM_WORD || busy} onClick={deleteAccount}>{busy ? t("deleting") : t("delete")}</button>
+            <button type="button" className="btn btn--danger-outline btn--block" disabled={confirm.trim().toUpperCase() !== CONFIRM_WORD || busy} onClick={deleteAccount} aria-busy={busy ? "true" : undefined}>{busy ? t("deleting") : t("delete")}</button>
             <button type="button" className="btn btn--secondary btn--block" onClick={() => setPanel(null)}>{t("close")}</button>
           </div>
         </Sheet>

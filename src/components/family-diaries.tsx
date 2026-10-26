@@ -44,10 +44,10 @@ export function FamilyDiaries() {
         {others.map((d) => (
           <li key={d.id} className="dog-list__row">
             <div className="dog-list__item" style={{ cursor: "default" }}>
-              <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} />
+              <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} decorative />
               <span className="dog-list__text"><strong>{d.name}</strong><span className="caption">{tf(`roles.${d.role}`)}</span></span>
             </div>
-            <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "center" }} disabled={!!busy} onClick={() => leave(d.id, d.name)}>{busy === d.id ? t("leaving") : t("leave")}</button>
+            <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "center" }} disabled={!!busy} onClick={() => leave(d.id, d.name)} aria-busy={busy === d.id ? "true" : undefined}>{busy === d.id ? t("leaving") : t("leave")}</button>
           </li>
         ))}
       </ul>

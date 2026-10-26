@@ -356,7 +356,15 @@ with sync_playwright() as p:
     check("aviso de outro cachorro troca para o diário certo antes de abrir", rpc(a, "snapshot", {})[1]["dog"]["name"] == "Luna")
     a.goto(BASE + "/hoje"); a.locator("button.dog-switch").click()
     check("foto do topo abre Seus cachorros com 'Adicionar cachorro'", a.get_by_role("heading", name="Seus cachorros").is_visible() and a.get_by_role("button", name="+ Adicionar cachorro").is_visible())
-    a.get_by_role("button", name=re.compile("^Luna Responsável")).click(); a.wait_for_url("**/hoje")
+    try:
+        a.get_by_role("button", name=re.compile("^Luna Responsável")).click(timeout=20000)
+    except Exception:
+        # Diagnóstico (falha intermitente): o que a lista mostra na hora.
+        a.screenshot(path=f"{OUT}/falha-troca.png", full_page=True)
+        print("DIAG botões no diálogo:", a.evaluate("() => [...document.querySelectorAll('dialog[open] button')].map(b => (b.getAttribute('aria-label') || '') + ' | ' + b.innerText.replace(/\\s+/g, ' ').trim())"))
+        print("DIAG snapshot:", (lambda s: (s.get("dog") or {}).get("name"))(rpc(a, "snapshot", {})[1]))
+        raise
+    a.wait_for_url("**/hoje")
     check("trocar de cachorro pelo topo", eventually(lambda t: expect(a.get_by_role("heading", name="Diário de Luna")).to_be_visible(timeout=t)))
     # Mesma conta em duas abas, cada uma com um cachorro: a edição vai para o cachorro DA TELA.
     a.goto(BASE + "/perfil"); expect(a.get_by_role("heading", name="Luna", exact=True)).to_be_visible(timeout=20000)
@@ -452,7 +460,12 @@ with sync_playwright() as p:
     # ---------- Excluir as contas (pela tela) ----------
     for page, name in [(b, "Thor"), (a, "Luna")]:
         page.goto(BASE + "/conta"); page.get_by_role("button", name="🗑️ Excluir minha conta").click(); page.get_by_label("Para confirmar").fill("EXCLUIR")
-        page.get_by_role("button", name="Excluir minha conta", exact=True).click(); page.wait_for_timeout(4000)
+        page.get_by_role("button", name="Excluir minha conta", exact=True).click()
+        # Excluiu de fato quando volta para "Entrar" (a saída da conta pode cancelar navegações no meio: tolera).
+        for _ in range(180):
+            if "/entrar" in page.url: break
+            try: page.wait_for_timeout(500)
+            except Exception: pass
     st = a.evaluate("id => fetch('/api/media/' + id + '?v=display').then(r => r.status)", mediaA)
     check(f"conta excluída: foto de A não abre mais ({st})", st in (401, 404))
     users = admin("GET", f"users?per_page=200")

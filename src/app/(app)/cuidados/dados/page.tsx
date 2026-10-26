@@ -59,7 +59,7 @@ export default function DadosDoCachorro() {
           <Field id="notes" label={t("notes")} optional multiline value={form.notes} onChange={(v) => set({ notes: v })} maxLength={1000} />
           {error ? <p className="field-error" role="alert">{error}</p> : null}
           {saved ? <p className="notice notice--positive" role="status">{t("saved")}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? t("saving") : t("save")}</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("saving") : t("save")}</button>
         </form>
       </main>
     </>

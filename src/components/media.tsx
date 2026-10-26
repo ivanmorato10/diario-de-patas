@@ -61,7 +61,8 @@ export function MediaImage({
 export const avatarImgStyle = (crop?: AvatarCrop | null): React.CSSProperties =>
   crop ? { objectPosition: `${crop.x}% ${crop.y}%`, transform: `scale(${crop.zoom})`, transformOrigin: `${crop.x}% ${crop.y}%` } : {};
 
-export function DogAvatar({ mediaId, name, size = "md", crop }: { mediaId: string | null; name: string; size?: "md" | "lg" | "xl"; crop?: AvatarCrop | null }) {
+/** `decorative`: o nome já está escrito ao lado (ex.: lista de cachorros) — a foto não repete o nome para leitores de tela. */
+export function DogAvatar({ mediaId, name, size = "md", crop, decorative = false }: { mediaId: string | null; name: string; size?: "md" | "lg" | "xl"; crop?: AvatarCrop | null; decorative?: boolean }) {
   const t = useTranslations("media");
   const cls = `avatar${size === "lg" ? " avatar--lg" : size === "xl" ? " avatar--xl" : ""}`;
   if (!mediaId) {
@@ -73,7 +74,7 @@ export function DogAvatar({ mediaId, name, size = "md", crop }: { mediaId: strin
   }
   return (
     <span className={cls}>
-      <MediaImage id={mediaId} alt={t("photoOf", { name })} className="avatar__img" style={avatarImgStyle(crop)} />
+      <MediaImage id={mediaId} alt={decorative ? "" : t("photoOf", { name })} className="avatar__img" style={avatarImgStyle(crop)} />
     </span>
   );
 }

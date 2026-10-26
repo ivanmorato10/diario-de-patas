@@ -105,7 +105,7 @@ function Cartinha() {
             <span className="caption">{body.length}/{MAX}</span>
           </div>
           {error ? <p className="field-error" role="alert">{error}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? t("saving") : editing ? t("saveEdit") : t("save")}</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("saving") : editing ? t("saveEdit") : t("save")}</button>
           {editing ? <button type="button" className="btn btn--secondary btn--block" onClick={remove} disabled={busy}>{t("delete")}</button> : null}
         </form>
       </main>

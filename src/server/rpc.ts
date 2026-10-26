@@ -423,9 +423,10 @@ export async function saveEntry(ctx: Ctx, args: unknown) {
     throw new HttpError(500, "SERVER", "errors.savePhotoFailed");
   }
   const row = ins.data as any;
-  await setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false);
-  // Primeira foto no próprio diário confirma a indicação: depois da resposta (não muda o que a pessoa vê agora).
-  if (dog.owner_id === ctx.user.id) after(() => confirmReferral(ctx));
+  await Promise.all([
+    setEntryAlbums(ctx, dog.id, row.id, a.albumIds, false),
+    dog.owner_id === ctx.user.id ? confirmReferral(ctx) : null, // primeira foto no próprio diário confirma a indicação
+  ]);
   notifyFamily(ctx, { dogId: dog.id, dogName: dog.name, kind: "photo", targetType: "entry", targetId: row.id });
   return toEntry(row, null);
 }

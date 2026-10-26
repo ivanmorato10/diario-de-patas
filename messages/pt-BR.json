@@ -2096,7 +2096,8 @@
     "confirmLabel": "Para confirmar, digite o nome: <strong>{dog}</strong>",
     "deleting": "Apagando…",
     "saveChanges": "Salvar alterações",
-    "close": "Fechar"
+    "close": "Fechar",
+    "saving": "Salvando…"
   },
   "push": {
     "photoTitle": "{count, plural, one {Uma nova aventura de {dog} 🐾} other {Novas aventuras de {dog} 🐾}}",
@@ -2757,5 +2758,12 @@
     "publicThanks": "Obrigado. O suporte analisa em até 24 horas.",
     "entryLabel": "Denunciar foto: {label}",
     "letterLabel": "Denunciar cartinha"
+  },
+  "celebrate": {
+    "title": "Você ganhou 1 crédito 🎉",
+    "text": "{dog} completou as patinhas do mês. Use o crédito no Estúdio para criar uma arte especial.",
+    "create": "Criar a arte agora",
+    "later": "Depois",
+    "paws": "{goal} patinhas!"
   }
 }

@@ -107,7 +107,7 @@ export default function Peso() {
           <PrefsSaveError failed={unitSaver.failed} retry={() => unitSaver.failed?.weightUnit && switchUnit(unitSaver.failed.weightUnit)} busy={unitSaver.busy} />
           <Field id="wdate" label={t("date")} type="date" value={date || snap.today} max={snap.today} onChange={setDate} />
           {error ? <p className="field-error" role="alert">{error}</p> : null}
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy || unitSaver.busy}>{t("add")}</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy || unitSaver.busy} aria-busy={busy ? "true" : undefined}>{t("add")}</button>
         </form>
       </main>
       <DeleteSheet error={toDelete ? error : null} open={!!toDelete} onClose={() => setToDelete(null)} title={t("deleteTitle")} text={toDelete ? t("deleteText", { weight: f.weight(toDelete.kg, 2), date: f.date(toDelete.date) }) : ""} busy={busy}

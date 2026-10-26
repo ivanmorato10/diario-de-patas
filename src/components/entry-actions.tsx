@@ -145,7 +145,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
         <AlbumChecklist legend={t("albums")} value={albums} onChange={setAlbums} hint={false} />
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
-          <button type="button" className="btn btn--primary btn--block" onClick={saveEdit} disabled={busy}>{t("save")}</button>
+          <button type="button" className="btn btn--primary btn--block" onClick={saveEdit} disabled={busy} aria-busy={busy ? "true" : undefined}>{t("save")}</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>
         </div>
       </Sheet>
@@ -155,7 +155,7 @@ export function EntryActions({ entry, albumIds, today, label }: { entry: DiaryEn
         <p>{t("deleteText")} {entry.missionId ? t("deleteKeeps") : ""} {t("noUndo")}</p>
         {delError ? <p className="field-error" role="alert">{delError}</p> : null}
         <div className="stack">
-          <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy}>{t("delete")}</button>
+          <button type="button" className="btn btn--danger btn--block" onClick={confirmDelete} disabled={busy} aria-busy={busy ? "true" : undefined}>{t("delete")}</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>
         </div>
       </Sheet>

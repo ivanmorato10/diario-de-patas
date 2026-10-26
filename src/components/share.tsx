@@ -53,7 +53,7 @@ export function ShareSelection({ selected, defaultTitle, onDone }: { selected: s
       </div>
       <p className="caption">{t("consent")}</p>
       {error ? <p className="field-error" role="alert">{error}</p> : null}
-      <button type="submit" className="btn btn--primary btn--small" disabled={busy || selected.length === 0}>{busy ? t("creating") : t("create", { count: selected.length })}</button>
+      <button type="submit" className="btn btn--primary btn--small" disabled={busy || selected.length === 0} aria-busy={busy ? "true" : undefined}>{busy ? t("creating") : t("create", { count: selected.length })}</button>
     </form>
   );
 }

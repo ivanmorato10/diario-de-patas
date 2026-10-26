@@ -228,7 +228,7 @@ function CustomAlbumView({ snap, albumId, title, entries }: { snap: Snapshot; al
         </div>
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
-          <button type="button" className="btn btn--primary btn--block" disabled={busy || picked.size === 0} onClick={() => { const ids = [...picked]; run(() => repo!.addEntriesToAlbum(albumId, ids), (s) => ({ ...s, albumEntries: [...s.albumEntries, ...ids.filter((e) => !s.albumEntries.some((x) => x.albumId === albumId && x.entryId === e)).map((entryId) => ({ key: `${albumId}:${entryId}`, albumId: albumId as AlbumId, entryId, addedAt: new Date().toISOString() }))] })); }}>
+          <button type="button" className="btn btn--primary btn--block" disabled={busy || picked.size === 0} aria-busy={busy ? "true" : undefined} onClick={() => { const ids = [...picked]; run(() => repo!.addEntriesToAlbum(albumId, ids), (s) => ({ ...s, albumEntries: [...s.albumEntries, ...ids.filter((e) => !s.albumEntries.some((x) => x.albumId === albumId && x.entryId === e)).map((entryId) => ({ key: `${albumId}:${entryId}`, albumId: albumId as AlbumId, entryId, addedAt: new Date().toISOString() }))] })); }}>
             {picked.size ? t("addN", { count: picked.size }) : t("pickPhotos")}
           </button>
           <button type="button" className="btn btn--ghost btn--block" onClick={() => setMode("none")}>{t("cancel")}</button>

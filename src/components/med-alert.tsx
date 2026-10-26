@@ -61,7 +61,7 @@ export function MedAlert({ meds, today, dogName }: { meds: Medication[]; today: 
             <strong>{m.name}</strong>
             <span className="small">{[m.dose, m.frequency].filter(Boolean).join(" · ") || t("asVetSaid")}</span>
             <span className="caption">{d < today ? t("lateSince", { date: f.date(d) }) : t("today")}</span>
-            <button type="button" className="btn btn--primary btn--small" disabled={!!busy} onClick={() => given(m)}>{busy === m.id ? t("saving") : t("given")}</button>
+            <button type="button" className="btn btn--primary btn--small" disabled={!!busy} onClick={() => given(m)} aria-busy={busy === m.id ? "true" : undefined}>{busy === m.id ? t("saving") : t("given")}</button>
             {failed === m.id ? <span className="field-error" role="alert">{t("failed")}</span> : null}
           </li>
         ))}

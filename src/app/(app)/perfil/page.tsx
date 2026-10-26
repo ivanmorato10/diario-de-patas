@@ -39,6 +39,7 @@ export default function Perfil() {
   const [nick, setNick] = useState("");
   const [prefs, setPrefs] = useState<DogPreferences | null>(null);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [saving, setSaving] = useState<"save" | "photo" | null>(null); // o que está gravando (o botão tocado mostra)
   const [confirmText, setConfirmText] = useState("");
   const [cropOpen, setCropOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -76,7 +77,9 @@ export default function Perfil() {
    * Gravar e conferir são separados: o cachorro salvo (devolvido pelo servidor) entra na tela na hora e o "salvo"
    * aparece; a recarga completa vem depois e, se falhar, não vira erro de gravação.
    */
-  async function run(fn: () => Promise<unknown>, ok: string) {
+  async function run(fn: () => Promise<unknown>, ok: string, which: "save" | "photo" = "save") {
+    if (saving) return false; // um toque por vez
+    setSaving(which);
     setMsg(null);
     const dogAtStart = snap?.dog?.id;
     let saved: unknown;
@@ -84,8 +87,10 @@ export default function Perfil() {
       saved = await fn();
     } catch (e) {
       setMsg({ kind: "error", text: errText(e instanceof DomainError ? e : null, "errors.saveFailed") });
+      setSaving(null);
       return false;
     }
+    setSaving(null);
     const d = saved && typeof saved === "object" && "id" in saved ? (saved as Dog) : null;
     if (d) patchDog(dogAtStart, (s) => ({ ...s, dog: s.dog ? { ...s.dog, ...d } : s.dog, diaries: s.diaries?.map((x) => (x.id === d.id ? { ...x, name: d.name, photoMediaId: d.photoMediaId, avatarCrop: d.avatarCrop ?? null } : x)) }));
     setMsg({ kind: "ok", text: ok });
@@ -105,7 +110,7 @@ export default function Perfil() {
     <div className="save-ask" role="alertdialog" aria-label={t("askSave")}>
       <strong>{t("askSave")}</strong>
       <div className="stack" style={{ gap: 8 }}>
-        <button type="button" className="btn btn--primary btn--block" onClick={async () => { if (await saveProfile()) close(); }}>{t("save")}</button>
+        <button type="button" className="btn btn--primary btn--block" disabled={!!saving} aria-busy={saving === "save" ? "true" : undefined} onClick={async () => { if (await saveProfile()) close(); }}>{saving === "save" ? t("saving") : t("save")}</button>
         <button type="button" className="btn btn--secondary btn--block" onClick={close}>{t("discard")}</button>
         <button type="button" className="btn btn--secondary btn--block" onClick={() => setAskSave(false)}>{t("keepEditing")}</button>
       </div>
@@ -191,7 +196,7 @@ export default function Perfil() {
                 // Já abre o ajuste de zoom e posição da foto nova (depois que ela chega no perfil).
                 if (await run(() => repo!.updateDog({ photo: p, avatarCrop: null }), t("photoUpdated"))) { setPanel(null); setCropOpen(true); }
               }} />
-              {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} onClick={() => run(() => repo!.updateDog({ photo: null }), t("photoRemoved"))}><IconTrash /> {t("removePhoto")}</button> : null}
+              {dog.photoMediaId ? <button type="button" className="btn btn--secondary btn--small" style={{ alignSelf: "flex-start" }} disabled={!!saving} aria-busy={saving === "photo" ? "true" : undefined} onClick={() => run(() => repo!.updateDog({ photo: null }), t("photoRemoved"), "photo")}>{saving === "photo" ? null : <IconTrash />} {t("removePhoto")}</button> : null}
             </div>
             <div className="field">
               <label htmlFor="name">{t("name")}</label>
@@ -207,7 +212,7 @@ export default function Perfil() {
             </div>
             <MsgLine />
             <SaveAsk />
-            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">{t("saveChanges")}</button> : null}
+            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block" disabled={!!saving} aria-busy={saving === "save" ? "true" : undefined}>{saving === "save" ? t("saving") : t("saveChanges")}</button> : null}
             {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>{t("close")}</button> : null}
           </form>
         </Sheet>
@@ -218,7 +223,7 @@ export default function Perfil() {
             <PreferencesFields value={prefs} onChange={setPrefs} />
             <MsgLine />
             <SaveAsk />
-            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block">{t("saveChanges")}</button> : null}
+            {dirty && !askSave ? <button type="submit" className="btn btn--primary btn--block" disabled={!!saving} aria-busy={saving === "save" ? "true" : undefined}>{saving === "save" ? t("saving") : t("saveChanges")}</button> : null}
             {!askSave ? <button type="button" className="btn btn--secondary btn--block" onClick={tryClose}>{t("close")}</button> : null}
           </form>
         </Sheet>
@@ -247,7 +252,7 @@ export default function Perfil() {
                     <input id="confirm" className="input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
                   </div>
                   {deleteError ? <p className="field-error" role="alert">{deleteError}</p> : null}
-                  <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name || deleting} onClick={wipe}>{deleting ? t("deleting") : t("deleteDiary", { dog: dog.name })}</button>
+                  <button type="button" className="btn btn--danger-outline btn--block" disabled={confirmText.trim() !== dog.name || deleting} aria-busy={deleting ? "true" : undefined} onClick={wipe}>{deleting ? t("deleting") : t("deleteDiary", { dog: dog.name })}</button>
                 </div>
               </details>
             ) : null}

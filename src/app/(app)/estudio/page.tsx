@@ -340,6 +340,12 @@ function Estudio() {
     idem.current = crypto.randomUUID();
     if (snap?.dog?.id) void refresh();
   }, [refresh, snap?.dog?.id]);
+  // Voltou ao app com o Estúdio aberto (ex.: ganhou crédito em outra tela ou outra pessoa comprou): confere o saldo.
+  useEffect(() => {
+    const back = () => { if (document.visibilityState === "visible" && snap?.dog?.id) void refresh(); };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, [refresh, snap?.dog?.id]);
 
   // Reabrir a tela recupera o job em andamento (§9.2).
   useEffect(() => {
@@ -545,8 +551,8 @@ function Estudio() {
               <h2 id="st-custo" className="sr-only">{t("create")}</h2>
               {preset ? <p className="small" style={{ margin: 0 }}>{t("creditsN", { count: credits })}{state ? <> · {t("youHave", { n: state.balance })}</> : null}. {t("refund")}</p> : null}
               {error ? <p className="field-error" role="alert">{error}</p> : null}
-              <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate}>
-                <IconBrush /> {busy ? t("starting") : preset ? t("createWith", { count: credits }) : t("create")}
+              <button type="button" className="btn btn--primary btn--block" onClick={create} disabled={!canCreate} aria-busy={busy ? "true" : undefined}>
+                {busy ? null : <IconBrush />} {busy ? t("starting") : preset ? t("createWith", { count: credits }) : t("create")}
               </button>
               {state && preset && state.balance < credits ? <p className="small">{t("outOfCredits")} <Link href="/estudio/creditos">{t("seeCredits")}</Link></p> : null}
             </section>
@@ -609,7 +615,7 @@ function AiConsentCard({ onGranted, onDecline }: { onGranted: () => void; onDecl
       <p className="small" style={{ margin: 0 }}>{t("body")}</p>
       <p className="caption" style={{ margin: 0 }}>{t("details")} <Link href="/privacidade">{t("privacyLink")}</Link></p>
       {error ? <p className="field-error" role="alert">{error}</p> : null}
-      <button type="button" className="btn btn--primary btn--block" onClick={allow} disabled={busy}>{busy ? t("saving") : t("allow")}</button>
+      <button type="button" className="btn btn--primary btn--block" onClick={allow} disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("saving") : t("allow")}</button>
       <button type="button" className="btn btn--ghost btn--block" onClick={onDecline} disabled={busy}>{t("notNow")}</button>
     </section>
   );

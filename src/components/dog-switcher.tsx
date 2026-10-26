@@ -46,7 +46,7 @@ export function DogList({ onDone }: { onDone?: () => void }) {
         {diaries.map((d) => (
           <li key={d.id} className="dog-list__row">
             <button type="button" className={`dog-list__item${d.id === selected ? " dog-list__item--on" : ""}`} onClick={() => pick(d.id)} disabled={!!busy} aria-current={d.id === current ? "true" : undefined}>
-              <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} />
+              <DogAvatar mediaId={d.photoMediaId} name={d.name} crop={d.avatarCrop} decorative />
               <span className="dog-list__text"><strong>{d.name}</strong><span className="caption" role={busy === d.id ? "status" : undefined}>{busy === d.id ? t("opening") : tf(`roles.${d.role}`)}</span></span>
               <span className="dog-list__mark" aria-hidden="true">{busy === d.id ? <span className="sp-spinner" /> : d.id === selected ? "✓" : ""}</span>
             </button>

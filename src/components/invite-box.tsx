@@ -51,7 +51,7 @@ export function InviteBox({ dogName }: { dogName: string }) {
         <label className="check"><input type="radio" name="invite-role" checked={role === "editor"} onChange={() => setRole("editor")} /><span className="check__text"><strong>{tf("roles.editor")}</strong><span className="caption">{tf("roleHelp.editor")}</span></span></label>
         <label className="check"><input type="radio" name="invite-role" checked={role === "viewer"} onChange={() => setRole("viewer")} /><span className="check__text"><strong>{tf("roles.viewer")}</strong><span className="caption">{tf("roleHelp.viewer")}</span></span></label>
       </fieldset>
-      <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate}>{busy ? t("generating") : t("generate")}</button>
+      <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={generate} aria-busy={busy ? "true" : undefined}>{busy ? t("generating") : t("generate")}</button>
       {msg ? <p className="small" role="status">{msg}</p> : null}
     </div>
   );

@@ -86,7 +86,7 @@ export function ReportSheet({ open, onClose, target }: { open: boolean; onClose:
             <label className="check"><input type="checkbox" checked={block} onChange={(e) => setBlock(e.target.checked)} /><span>{t("alsoBlock", { name: target.authorName || t("thisPerson") })}</span></label>
           ) : null}
           {error ? <p className="field-error" role="alert">{error}</p> : null}
-          <button type="button" className="btn btn--primary btn--block" onClick={send} disabled={busy}>{busy ? t("sending") : t("send")}</button>
+          <button type="button" className="btn btn--primary btn--block" onClick={send} disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("sending") : t("send")}</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={close} disabled={busy}>{t("cancel")}</button>
         </>
       )}

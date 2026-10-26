@@ -86,7 +86,7 @@ export function FormSheet({
         {children}
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <div className="stack">
-          <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? t("saving") : submitLabel ?? t("save")}</button>
+          <button type="submit" className="btn btn--primary btn--block" disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("saving") : submitLabel ?? t("save")}</button>
           <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>{t("cancel")}</button>
         </div>
       </form>
@@ -105,7 +105,7 @@ export function DeleteSheet({ open, onClose, title, text, onConfirm, busy, error
       <p>{text} {t("noUndo")}</p>
       {error ? <p className="field-error" role="alert">{error}</p> : null}
       <div className="stack">
-        <button type="button" className="btn btn--danger btn--block" onClick={onConfirm} disabled={busy}>{busy ? t("deleting") : t("delete")}</button>
+        <button type="button" className="btn btn--danger btn--block" onClick={onConfirm} disabled={busy} aria-busy={busy ? "true" : undefined}>{busy ? t("deleting") : t("delete")}</button>
         <button type="button" className="btn btn--ghost btn--block" onClick={onClose}>{t("cancel")}</button>
       </div>
     </Sheet>

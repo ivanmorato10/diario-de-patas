@@ -65,26 +65,27 @@ const prefState = {
 export function NotificationSettings() {
   const { snap, patchSnap } = useStore();
   const [state, setState] = useState<PushState | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"toggle" | "test" | null>(null); // o botão tocado mostra que está indo
   const [msg, setMsg] = useState<string | null>(null);
+  const [saving, setSaving] = useState<Record<string, boolean>>({}); // caixas com gravação em andamento
   const t = useTranslations("notify");
   const prefs = snap?.me?.notify ?? { photo: true, letter: true, bone: true };
   useEffect(() => { void pushState().then(setState); }, []);
 
   async function toggle() {
-    setBusy(true);
+    setBusy("toggle");
     setMsg(null);
     try {
       setState(state === "on" ? await disablePush() : await enablePush());
     } catch {
       setMsg(t("failed"));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
   /** O servidor diz se aceitou o envio. "Aceito" não é "entregue": quem confirma é o aviso aparecer no celular. */
   async function runTest() {
-    setBusy(true);
+    setBusy("test");
     setMsg(null);
     try {
       const r = await testPush();
@@ -95,7 +96,7 @@ export function NotificationSettings() {
     } catch {
       setMsg(t("testFailed"));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -113,6 +114,7 @@ export function NotificationSettings() {
     st.pending++;
     set(v);
     setMsg(null);
+    setSaving((x) => ({ ...x, [k]: true }));
     prefQueue = prefQueue
       .then(() => setNotifyPrefs({ [k]: v }))
       .then(
@@ -123,8 +125,19 @@ export function NotificationSettings() {
           setMsg(t("saveFailed"));
         },
       )
-      .finally(() => { st.pending--; });
+      .finally(() => {
+        st.pending--;
+        if (st.pending === 0) {
+          // Todas as gravações desta caixa terminaram: a tela fica com o que o servidor confirmou (uma recarga
+          // que chegou no meio, com o valor antigo, não vale).
+          set(st.confirmed);
+          setSaving((x) => ({ ...x, [k]: false }));
+        }
+      });
   }
+
+  /** Com gravação pendente, a última escolha da pessoa (nada que chegue no meio desfaz o toque); sem, o servidor. */
+  const shownPref = (k: "photo" | "letter" | "bone") => (prefState[k].pending > 0 ? prefState[k].shown : prefs[k]);
 
   return (
     <div className="stack">
@@ -133,16 +146,16 @@ export function NotificationSettings() {
         <span className="caption">{state ? t(`state.${state}`) : "…"}</span>
         {state === "on" || state === "off" ? (
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className={`btn btn--small ${state === "on" ? "btn--secondary" : "btn--primary"}`} disabled={busy} onClick={toggle}>{busy ? "…" : state === "on" ? t("turnOff") : t("turnOn")}</button>
-            {state === "on" ? <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={runTest}>{t("test")}</button> : null}
+            <button type="button" className={`btn btn--small ${state === "on" ? "btn--secondary" : "btn--primary"}`} disabled={!!busy} aria-busy={busy === "toggle" ? "true" : undefined} onClick={toggle}>{state === "on" ? t("turnOff") : t("turnOn")}</button>
+            {state === "on" ? <button type="button" className="btn btn--secondary btn--small" disabled={!!busy} aria-busy={busy === "test" ? "true" : undefined} onClick={runTest}>{t("test")}</button> : null}
           </div>
         ) : null}
       </div>
       <fieldset className="invite-box__roles">
         <legend className="caption">{t("legend")}</legend>
-        <label className="check"><input type="checkbox" checked={prefs.photo} onChange={() => pref("photo")} /><span>{t("photo")}</span></label>
-        <label className="check"><input type="checkbox" checked={prefs.letter} onChange={() => pref("letter")} /><span>{t("letter")}</span></label>
-        <label className="check"><input type="checkbox" checked={prefs.bone} onChange={() => pref("bone")} /><span>{t("bone")}</span></label>
+        <label className="check"><input type="checkbox" checked={shownPref("photo")} onChange={() => pref("photo")} /><span>{t("photo")}</span>{saving.photo ? <span className="sp-spinner chip-spinner" aria-hidden="true" /> : null}</label>
+        <label className="check"><input type="checkbox" checked={shownPref("letter")} onChange={() => pref("letter")} /><span>{t("letter")}</span>{saving.letter ? <span className="sp-spinner chip-spinner" aria-hidden="true" /> : null}</label>
+        <label className="check"><input type="checkbox" checked={shownPref("bone")} onChange={() => pref("bone")} /><span>{t("bone")}</span>{saving.bone ? <span className="sp-spinner chip-spinner" aria-hidden="true" /> : null}</label>
       </fieldset>
       {msg ? <p className="small" role="status" style={{ margin: 0 }}>{msg}</p> : null}
     </div>

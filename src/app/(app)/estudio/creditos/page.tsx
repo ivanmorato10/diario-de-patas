@@ -207,7 +207,7 @@ function AppleShop({ onPaid }: { onPaid: (p: CreditPurchase) => void }) {
         })}
       </div>
       {error ? <p className="field-error" role="alert">{error}</p> : null}
-      <button type="button" className="btn btn--primary btn--block" onClick={buy} disabled={busy || !chosen}>
+      <button type="button" className="btn btn--primary btn--block" onClick={buy} disabled={busy || !chosen} aria-busy={busy ? "true" : undefined}>
         {busy ? t("opening") : chosen ? t("payApple", { price: chosen.priceString }) : t("pickPack")}
       </button>
       <p className="caption" style={{ textAlign: "center" }}>{t("oneTimeApple")}</p>
@@ -333,7 +333,7 @@ export default function Creditos() {
               ))}
             </div>
             {error ? <p className="field-error" role="alert">{error}</p> : null}
-            <button type="button" className="btn btn--primary btn--block" onClick={buy} disabled={busy || !pkg}>
+            <button type="button" className="btn btn--primary btn--block" onClick={buy} disabled={busy || !pkg} aria-busy={busy ? "true" : undefined}>
               {busy ? (shop.provider === "stripe" ? t("opening") : t("generating")) : pkg ? t(shop.provider === "stripe" ? "payCard" : "pay", { price: money(pkg.priceCents) }) : t("pickPack")}
             </button>
             <p className="caption" style={{ textAlign: "center" }}>{shop.provider === "stripe" ? t("oneTimeCard") : t("oneTime")}</p>

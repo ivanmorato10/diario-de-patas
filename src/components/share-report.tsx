@@ -33,7 +33,7 @@ export function ShareReport({ token }: { token: string }) {
         <textarea id="share-report-d" className="textarea" value={details} maxLength={1000} onChange={(e) => setDetails(e.target.value)} />
       </div>
       {state === "error" ? <p className="field-error" role="alert">{t("failed")}</p> : null}
-      <button type="button" className="btn btn--primary btn--block" onClick={send} disabled={state === "sending"}>{state === "sending" ? t("sending") : t("send")}</button>
+      <button type="button" className="btn btn--primary btn--block" onClick={send} disabled={state === "sending"} aria-busy={state === "sending" ? "true" : undefined}>{state === "sending" ? t("sending") : t("send")}</button>
       <button type="button" className="btn btn--ghost btn--block" onClick={() => setOpen(false)} disabled={state === "sending"}>{t("cancel")}</button>
     </section>
   );
