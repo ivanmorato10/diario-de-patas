@@ -23,13 +23,15 @@ begin
   insert into public.content_reports (reporter_id, target_type, target_id, reason) values (b, 'user', a::text, 'harassment');
   insert into public.apple_signin_tokens (user_id, refresh_token_sealed) values (b, 'v1.x.y.z');
   update public.profiles set ai_consent_version = 1, ai_consent_at = now() where user_id = b;
+  insert into public.apple_revocations (refresh_token_sealed) values ('v1.a.b.c');
   delete from auth.users where id = b;
+  if (select count(*) from public.apple_revocations) <> 1 then raise exception 'FALHOU: revogação pendente sumiu com a conta'; end if;
   if (select reporter_id from public.content_reports where target_id = a::text) is not null then raise exception 'FALHOU: denúncia não sobreviveu'; end if;
   if exists (select 1 from public.apple_signin_tokens where user_id = b) then raise exception 'FALHOU: token da Apple ficou'; end if;
   if exists (select 1 from public.user_blocks where blocked_id = b) then raise exception 'FALHOU: bloqueio ficou'; end if;
   -- RLS ligada e sem política: ninguém além do servidor lê.
-  if exists (select 1 from pg_tables where schemaname = 'public' and tablename in ('apple_purchase_attempts', 'content_reports', 'user_blocks', 'apple_signin_tokens') and not rowsecurity) then raise exception 'FALHOU: RLS desligada'; end if;
-  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('apple_purchase_attempts', 'content_reports', 'user_blocks', 'apple_signin_tokens')) then raise exception 'FALHOU: política inesperada'; end if;
+  if exists (select 1 from pg_tables where schemaname = 'public' and tablename in ('apple_purchase_attempts', 'content_reports', 'user_blocks', 'apple_signin_tokens', 'apple_revocations') and not rowsecurity) then raise exception 'FALHOU: RLS desligada'; end if;
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('apple_purchase_attempts', 'content_reports', 'user_blocks', 'apple_signin_tokens', 'apple_revocations')) then raise exception 'FALHOU: política inesperada'; end if;
   raise notice 'SEGURANÇA E APPLE OK';
 end $$;
 rollback;
