@@ -12,7 +12,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.diariodepatas.app
       vars:
-        APP_STORE_APPLE_ID: "0000000000" # id numérico do app no App Store Connect (App Information › Apple ID)
+        APP_STORE_APPLE_ID: "6827340271" # id numérico do app no App Store Connect (App Information › Apple ID)
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
       node: 22
