@@ -168,9 +168,9 @@ with sync_playwright() as p:
     ctx.close()
 
     def measure_all():
-      # PERF_ONLY=troca: só abertura e troca de cachorro em 4G lento (medição focada).
+      # PERF_ONLY=troca: só abertura e troca de cachorro em 4G lento; PERF_ONLY=abrir: só abertura em rede local.
       only = os.environ.get("PERF_ONLY")
-      for cond in (["4G lento"] if only == "troca" else ["rede local", "4G lento", "CPU 4× (celular)"]):
+      for cond in (["4G lento"] if only == "troca" else ["rede local"] if only == "abrir" else ["rede local", "4G lento", "CPU 4× (celular)"]):
           for rep in range(REPS):
               c = new_ctx(storage_state=state); pg = c.new_page(); m = Meter(pg)
               if cond == "4G lento":
@@ -182,6 +182,8 @@ with sync_playwright() as p:
               record("1 abrir → Hoje utilizável", f"{cond} · frio", ms, s)
               ms, s = timed(pg, m, "hoje", lambda: pg.reload(), nav=True)
               record("1 abrir → Hoje utilizável", f"{cond} · quente", ms, s)
+              if only == "abrir":
+                  c.close(); continue
               # 2. Navegação pelo menu inferior (1ª visita a cada tela nesta sessão, depois 2ª)
               for visit in ([] if only == "troca" else ["1ª visita", "2ª visita"]):
                   for href, what in [("/diario", "diario"), ("/albuns", "albuns"), ("/cuidados", "cuidados"), ("/estudio", "estudio"), ("/hoje", "hoje")]:
