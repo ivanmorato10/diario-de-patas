@@ -88,6 +88,8 @@ export interface Me {
   aiConsent?: boolean;
   /** Pessoas que você bloqueou (não vê o que publicam nem recebe avisos delas). */
   blocked?: string[];
+  /** Comemorações das 200 patinhas já vistas nesta conta ("<cachorro>:<AAAA-MM>"). */
+  celebrated?: string[];
 }
 export interface DiaryMember { userId: string; name: string; email: string; role: DiaryRole; me: boolean; owner: boolean }
 

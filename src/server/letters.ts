@@ -27,6 +27,21 @@ export async function setMyName(ctx: Ctx, args: unknown) {
   return { name };
 }
 
+/** Comemoração das 200 patinhas vista: fica na conta, para não voltar a cada login ou aparelho novo. */
+export async function markCelebrated(ctx: Ctx, args: unknown) {
+  const { dogId, month } = z.object({ dogId: z.string().uuid(), month: z.string().regex(/^\d{4}-\d{2}$/) }).parse(args);
+  const key = `${dogId}:${month}`;
+  const admin = adminClient();
+  const { data, error } = await admin.from("profiles").select("celebrated").eq("user_id", ctx.user.id).maybeSingle();
+  if (error) throw new HttpError(500, "SERVER", "errors.generic");
+  const seen: string[] = Array.isArray((data as any)?.celebrated) ? (data as any).celebrated : [];
+  if (seen.includes(key)) return { celebrated: seen };
+  const celebrated = [...seen, key].slice(-24); // os mais recentes bastam (um por cachorro e mês)
+  const { error: upErr } = await admin.from("profiles").upsert({ user_id: ctx.user.id, celebrated }, { onConflict: "user_id" });
+  if (upErr) throw new HttpError(500, "SERVER", "errors.generic");
+  return { celebrated };
+}
+
 const LetterIn = z.object({ body: z.string(), date: civil });
 const clean = (body: string) => {
   const b = body.replace(/\r\n/g, "\n").trim();

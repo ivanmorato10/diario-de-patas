@@ -28,7 +28,7 @@ import { after } from "next/server";
 import { studioAiConsent, studioCheckPhoto, studioCreateJob, studioJob, studioSetComposite, studioState } from "./studio";
 import { sendAccountDeleted } from "./mailer";
 import { attachReferral, confirmReferral, referralInfo } from "./referrals";
-import { deleteLetter, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
+import { deleteLetter, markCelebrated, saveLetter, setMyName, toggleBone, updateLetter } from "./letters";
 import { checkPushSubscription, unreadCount, listNotifications, markNotificationsRead, notifyFamily, removePushSubscription, savePushSubscription, saveNativePush, setNotifyPrefs, testPush } from "./notify";
 import { createPurchase, creditShop, fakePayPurchase, purchaseStatus } from "./payments";
 import { appleConfirm, appleIntent, appleStore } from "./apple";
@@ -149,6 +149,7 @@ const meOf = (ctx: Ctx, profile: any) => {
     notify: { photo: profile?.notify_photo !== false, letter: profile?.notify_letter !== false, bone: profile?.notify_bone !== false },
     locale: isLocale(profile?.locale) ? profile.locale : null, region: isRegion(profile?.region) ? profile.region : null, weightUnit: isWeightUnit(profile?.weight_unit) ? profile.weight_unit : null,
     aiConsent: profile?.ai_consent_version === AI_CONSENT_VERSION,
+    celebrated: Array.isArray(profile?.celebrated) ? (profile.celebrated as string[]) : [],
   };
 };
 
@@ -941,5 +942,6 @@ export const RPC: Record<string, (ctx: Ctx, args: unknown) => Promise<unknown>> 
   setPreferences,
   switchDog, referralInfo: (c) => referralInfo(c), setMyName, saveLetter, updateLetter, deleteLetter, toggleBone, deleteDiary, leaveDiary, listNotifications: (c) => listNotifications(c), markNotificationsRead, checkPushSubscription, unreadCount: (c) => unreadCount(c), savePushSubscription, saveNativePush, removePushSubscription, setNotifyPrefs, testPush: (c) => testPush(c), createInvite, acceptInvite, updateMember, removeMember,
   studioCreateJob: (c, a) => studioCreateJob(c, a, (fn) => after(fn)),
+  markCelebrated,
   markDemoImported: async (c) => { await q(c.supa.from("profiles").update({ demo_imported_at: now() }).eq("user_id", c.user.id)); return {}; },
 };

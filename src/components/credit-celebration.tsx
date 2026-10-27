@@ -5,14 +5,20 @@ import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { XP_MONTH_GOAL } from "@/config/credits";
 import { AbuMascot } from "@/components/brand";
+import { rpc } from "@/data/real-repository";
 
-/** Comemoração vista neste aparelho (uma vez por cachorro e mês): ao reabrir Hoje, não aparece de novo. */
+/**
+ * Comemoração vista (uma vez por cachorro e mês): marcada neste aparelho e na conta, para não voltar a cada
+ * login ou aparelho novo (app do iPhone, outro navegador).
+ */
 const seenKey = (dogId: string, month: string) => `ddp-celebrated-${dogId}-${month}`;
-export function celebrationSeen(dogId: string, month: string) {
+export function celebrationSeen(dogId: string, month: string, celebrated?: string[]) {
+  if (celebrated?.includes(`${dogId}:${month}`)) return true;
   try { return localStorage.getItem(seenKey(dogId, month)) === "1"; } catch { return true; } // sem armazenamento: não insiste
 }
-export function markCelebrationSeen(dogId: string, month: string) {
+export function markCelebrationSeen(dogId: string, month: string, account = false) {
   try { localStorage.setItem(seenKey(dogId, month), "1"); } catch { /* ok */ }
+  if (account) void rpc("markCelebrated", { dogId, month }).catch(() => undefined); // falhou: o aparelho já lembra
 }
 
 /**

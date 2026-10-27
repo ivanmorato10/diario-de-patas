@@ -229,7 +229,7 @@ function GuardarInner() {
       if (result.creditsEarned && opDog.current) {
         // Completou as 200 patinhas: o saldo do Estúdio já sobe neste aparelho e vem a comemoração (uma vez no mês).
         bumpCachedBalance(opDog.current, result.creditsEarned);
-        markCelebrationSeen(opDog.current, snap!.today.slice(0, 7));
+        markCelebrationSeen(opDog.current, snap!.today.slice(0, 7), !!snap?.me);
         setParty(true);
       }
       void sync();

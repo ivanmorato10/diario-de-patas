@@ -38,16 +38,18 @@ export default function Hoje() {
   const [swapError, setSwapError] = useState<string | null>(null);
   const [ideasHelp, setIdeasHelp] = useState(false);
   // 200 patinhas que chegaram por outro caminho (outra pessoa da família, indicação): comemora ao abrir Hoje,
-  // uma vez por cachorro e mês neste aparelho (quem completou pela missão já viu na hora).
+  // uma vez por cachorro e mês (no aparelho e na conta) (quem completou pela missão já viu na hora).
   const [party, setParty] = useState(false);
   const partyDog = snap?.dog?.id;
   const partyMonth = snap?.today.slice(0, 7);
   const reached = !!snap && monthReward(snap.xpMonth).reached;
+  const account = !!snap?.me; // com login: a comemoração vista também fica na conta
+  const celebrated = snap?.me?.celebrated;
   useEffect(() => {
-    if (!partyDog || !partyMonth || !reached || celebrationSeen(partyDog, partyMonth)) return;
-    markCelebrationSeen(partyDog, partyMonth);
+    if (!partyDog || !partyMonth || !reached || celebrationSeen(partyDog, partyMonth, celebrated)) return;
+    markCelebrationSeen(partyDog, partyMonth, account);
     setParty(true);
-  }, [partyDog, partyMonth, reached]);
+  }, [partyDog, partyMonth, reached, celebrated, account]);
   const care = useMemo(() => (snap ? upcomingCare(snap.health, snap.today) : []), [snap]);
   const t = useTranslations("today");
   const cat = useCatalog(snap?.dog?.name ?? "");
