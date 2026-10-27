@@ -15,11 +15,17 @@ export interface AppleProduct { packageId: string; productId: string; priceStrin
 
 const plugin = async () => (await import("@capgo/native-purchases")).NativePurchases;
 
+/** Sem resposta da Apple nesse tempo (contrato de apps pagos inativo, rede): mostra "em breve" em vez de carregar sem fim. */
+const PRODUCTS_TIMEOUT_MS = 10_000;
+
 /** Produtos com o preço da Apple no país da pessoa (como a App Store mostra). */
 export async function appleProducts(store: AppleStore): Promise<AppleProduct[]> {
   const np = await plugin();
   const ids = Object.values(store.products);
-  const { products } = await np.getProducts({ productIdentifiers: ids });
+  const { products } = await Promise.race([
+    np.getProducts({ productIdentifiers: ids }),
+    new Promise<{ products: [] }>((resolve) => setTimeout(() => resolve({ products: [] }), PRODUCTS_TIMEOUT_MS)),
+  ]);
   return Object.entries(store.products).flatMap(([packageId, productId]) => {
     const p = products.find((x) => x.identifier === productId);
     return p ? [{ packageId, productId, priceString: p.priceString }] : [];
