@@ -12,24 +12,33 @@ insert into public.dog_members (dog_id, user_id, role) values
 insert into public.letters (id, dog_id, created_by, body, letter_date, request_key) values
   ('c6100000-0000-4000-8000-000000000001', 'd6100000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000001', 'Querido Abu, obrigado por tudo.', '2026-10-14', gen_random_uuid());
 
+-- Como o servidor faria: cartinha da Bianca e os ossinhos dela e da Duda na cartinha do Ivan.
+insert into public.letters (id, dog_id, created_by, body, letter_date, request_key) values
+  ('c6200000-0000-4000-8000-000000000002', 'd6100000-0000-4000-8000-000000000001', '62000000-0000-4000-8000-000000000002', 'Oi Abu!', '2026-10-14', gen_random_uuid());
+insert into public.bones (dog_id, target_type, target_id, user_id) values
+  ('d6100000-0000-4000-8000-000000000001', 'letter', 'c6100000-0000-4000-8000-000000000001', '62000000-0000-4000-8000-000000000002'),
+  ('d6100000-0000-4000-8000-000000000001', 'letter', 'c6100000-0000-4000-8000-000000000001', '63000000-0000-4000-8000-000000000003');
+
 set local role authenticated;
 -- Bianca (editor): escreve a própria, não altera a do Ivan.
 set local "request.jwt.claim.sub" = '62000000-0000-4000-8000-000000000002';
 set local "request.jwt.claims" = '{"sub":"62000000-0000-4000-8000-000000000002","role":"authenticated"}';
 do $$ begin
-  insert into public.letters (id, dog_id, created_by, body, letter_date, request_key) values
-    ('c6200000-0000-4000-8000-000000000002', 'd6100000-0000-4000-8000-000000000001', '62000000-0000-4000-8000-000000000002', 'Oi Abu!', '2026-10-14', gen_random_uuid());
+  -- Cartinha e ossinho são gravados pelo servidor (service role); direto pela sessão, recusado.
+  begin
+    insert into public.letters (dog_id, created_by, body, letter_date, request_key) values ('d6100000-0000-4000-8000-000000000001', '62000000-0000-4000-8000-000000000002', 'x', '2026-10-14', gen_random_uuid());
+    raise exception 'Bianca gravou cartinha direto';
+  exception when insufficient_privilege then null;
+  end;
   update public.letters set body = 'invadido' where id = 'c6100000-0000-4000-8000-000000000001';
   if (select body from public.letters where id = 'c6100000-0000-4000-8000-000000000001') = 'invadido' then raise exception 'Bianca alterou a cartinha do Ivan'; end if;
-  insert into public.bones (dog_id, target_type, target_id, user_id) values ('d6100000-0000-4000-8000-000000000001', 'letter', 'c6100000-0000-4000-8000-000000000001', '62000000-0000-4000-8000-000000000002');
 end $$;
 
--- Duda (só ver): lê, dá ossinho, não escreve cartinha.
+-- Duda (só ver): lê, não escreve cartinha nem dá ossinho em nome de outra pessoa.
 set local "request.jwt.claim.sub" = '63000000-0000-4000-8000-000000000003';
 set local "request.jwt.claims" = '{"sub":"63000000-0000-4000-8000-000000000003","role":"authenticated"}';
 do $$ begin
   if (select count(*) from public.letters) <> 2 then raise exception 'Duda deveria ler as 2 cartinhas'; end if;
-  insert into public.bones (dog_id, target_type, target_id, user_id) values ('d6100000-0000-4000-8000-000000000001', 'letter', 'c6100000-0000-4000-8000-000000000001', '63000000-0000-4000-8000-000000000003');
   begin
     insert into public.letters (dog_id, created_by, body, letter_date, request_key) values ('d6100000-0000-4000-8000-000000000001', '63000000-0000-4000-8000-000000000003', 'x', '2026-10-14', gen_random_uuid());
     raise exception 'Duda escreveu cartinha';
