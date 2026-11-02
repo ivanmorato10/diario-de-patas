@@ -8,7 +8,7 @@ import { must } from "./db";
 import { repeatRowId } from "./ids";
 import "server-only";
 import { z } from "zod";
-import sharp from "sharp";
+import sharp, { type Metadata } from "sharp";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { COLLECTIONS } from "@/config/catalog";
 import { LIMITS, fullDiaryParams, serverMaxEntries } from "@/config/business";
@@ -690,6 +690,7 @@ export async function deleteDocument(ctx: Ctx, args: unknown) {
 
 const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+const FORMAT_MIME: Record<string, string> = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
 
 export async function createUpload(ctx: Ctx, args: unknown) {
   const a = parse(z.object({
@@ -760,17 +761,36 @@ async function confirmFile(ctx: Ctx, kind: "media" | "document", id: string, pre
       return null;
     }
   };
+  /**
+   * O navegador já tira os metadados, mas uma chamada direta pode mandar a foto original (com GPS). Se vier
+   * EXIF/XMP/IPTC/texto, o servidor regrava a imagem sem eles (orientação aplicada) no mesmo lugar, antes de "pronta".
+   * Falhou ao regravar: não fica pronta (a limpeza de pendentes apaga depois).
+   */
+  const scrub = async (buf: Buffer, m: Metadata, path: string) => {
+    if (!(m.exif || m.xmp || m.iptc || (m as { comments?: unknown[] }).comments?.length)) return buf;
+    const clean = await sharp(buf, { limitInputPixels: LIMITS.maxUploadPixels }).rotate().toFormat(m.format as "jpeg" | "png" | "webp", { quality: 90 }).toBuffer();
+    const { error } = await admin.storage.from(bucket).upload(path, clean, { upsert: true, contentType: FORMAT_MIME[m.format!] });
+    if (error) throw new HttpError(500, "SERVER", "errors.generic");
+    return clean;
+  };
+  /** O tipo declarado tem que ser o tipo real dos bytes (antes, um PNG passava como "image/jpeg"). */
+  const sameType = (m: Metadata | null, mime: string) => !!m && FORMAT_MIME[m.format!] === mime;
   const [main, thumbBuf] = await Promise.all([download(row.private_storage_key), download(row.thumb_storage_key)]);
   if (!main) return reject("errors.fileMissing");
   if (kind === "media") {
     const [m, t] = await Promise.all([inspectImage(main), row.thumb_storage_key ? inspectImage(thumbBuf) : null]);
-    if (!m || !t) return reject("errors.notAPhoto");
-    await q(admin.from("media_assets").update({ status: "ready", bytes: main.length, width: m.width, height: m.height }).eq("id", row.id));
+    if (!sameType(m, row.mime) || !sameType(t, row.mime)) return reject("errors.notAPhoto");
+    const [clean] = await Promise.all([scrub(main, m!, row.private_storage_key), scrub(thumbBuf!, t!, row.thumb_storage_key)]);
+    await q(admin.from("media_assets").update({ status: "ready", bytes: clean.length, width: m!.width, height: m!.height }).eq("id", row.id));
   } else {
     const isPdf = row.mime === "application/pdf";
-    if (isPdf ? main.subarray(0, 5).toString("latin1") !== "%PDF-" : !(await inspectImage(main))) return reject(isPdf ? "errors.notPdf" : "errors.notImage");
-    if (row.thumb_storage_key && !(await inspectImage(thumbBuf))) return reject("errors.badThumb");
-    await q(admin.from("documents").update({ status: "ready", bytes: main.length }).eq("id", row.id)); // gatilho de cota: 50 por cachorro
+    const m = isPdf ? null : await inspectImage(main);
+    if (isPdf ? main.subarray(0, 5).toString("latin1") !== "%PDF-" : !sameType(m, row.mime)) return reject(isPdf ? "errors.notPdf" : "errors.notImage");
+    const t = row.thumb_storage_key ? await inspectImage(thumbBuf) : null;
+    if (row.thumb_storage_key && !t) return reject("errors.badThumb");
+    const clean = m ? await scrub(main, m, row.private_storage_key) : main;
+    if (t) await scrub(thumbBuf!, t, row.thumb_storage_key);
+    await q(admin.from("documents").update({ status: "ready", bytes: clean.length }).eq("id", row.id)); // gatilho de cota: 50 por cachorro
   }
 }
 
