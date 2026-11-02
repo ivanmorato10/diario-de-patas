@@ -27,6 +27,18 @@ const GROUP_MS = 2 * 3600_000; // fotos dentro de 2 h viram um aviso só (ver bu
 
 const pushReady = () => !!(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
+/**
+ * Endereço de push só de serviço conhecido (Chrome/Android, Firefox, Safari, Edge), em HTTPS na porta padrão.
+ * O endereço vem do navegador; sem essa lista, alguém cadastraria uma URL interna ou própria e o servidor faria
+ * POST nela (SSRF). Conferido ao cadastrar e de novo ao enviar (cadastros antigos).
+ */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /^([a-z0-9-]+\.)*push\.apple\.com$/, /^([a-z0-9-]+\.)*notify\.windows\.com$/];
+export function isPushEndpoint(endpoint: string) {
+  let u: URL;
+  try { u = new URL(endpoint); } catch { return false; }
+  return u.protocol === "https:" && (u.port === "" || u.port === "443") && !u.username && !u.password && PUSH_HOSTS.some((h) => h.test(u.hostname));
+}
+
 /** Texto do aviso no sininho (uma linha), no idioma de quem RECEBE (`t`). Nomes nunca são traduzidos. */
 export function noticeText(t: ServerT, n: { kind: NotifyKind; count: number; targetType: string | null }, actor: string, dog: string) {
   const v = { actor, dog, count: n.count };
@@ -85,6 +97,7 @@ async function sendPush(userId: string, payload: { title: string; body: string; 
       return;
     }
     if (!pushReady()) return;
+    if (!isPushEndpoint(s.endpoint)) { await admin.from("push_subscriptions").delete().eq("id", s.id); return; } // cadastro antigo fora da lista
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { TTL: 24 * 3600 });
       res.accepted++;
@@ -180,6 +193,7 @@ const Sub = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p2
 
 export async function savePushSubscription(ctx: Ctx, args: unknown) {
   const { endpoint, keys } = Sub.parse((args as any)?.subscription ?? args);
+  if (!isPushEndpoint(endpoint)) throw new HttpError(400, "INVALID", "errors.generic");
   const ua = String((args as any)?.userAgent ?? "").slice(0, 200);
   await must(adminClient().from("push_subscriptions").upsert({ user_id: ctx.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth, user_agent: ua }, { onConflict: "endpoint" }));
   return { ok: true };
