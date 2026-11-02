@@ -1,6 +1,20 @@
 # STATUS — Diário de Patas
 
-Última atualização: **13 de outubro de 2026** · Etapas concluídas: **A** e **B** (seção 25 do briefing) · **MUDANCAS-V2** em andamento (ver abaixo)
+Última atualização: **2 de novembro de 2026** (revisão de segurança) · Etapas concluídas: **A** e **B** (seção 25 do briefing) · **MUDANCAS-V2** em andamento (ver abaixo)
+
+## Revisão de segurança — 02/11/2026
+
+Relatório completo: `docs/SEGURANCA.md`. **Nenhum problema Crítico; nenhuma chave exposta** (histórico, arquivos e bundle conferidos).
+
+- **5 Altos corrigidos** na branch `seguranca-revisao`, ainda **não publicada**, cada um com um teste:
+  - S01: push só para serviços conhecidos (SSRF);
+  - S02: Data API sem troca de dono, chaves de Storage ou ligações entre diários;
+  - S03: GPS e metadados tirados das fotos no servidor;
+  - S04: limite de pedidos de envio;
+  - S17: app do iPhone só abre o próprio domínio por dentro (precisa de uma build nova).
+- **Publicação:** primeiro `supabase db push` com as 2 migrations novas, depois merge e push.
+- **10 Médios e 2 Baixos** aguardam decisão do proprietário: CSP, webhook do MP, logs, rate limit distribuído, limite do Estúdio por pessoa, PDFs, exportação, dependências e outros.
+- **Pendências do proprietário:** orçamento e alerta no Google Cloud, conferências no painel do Supabase (buckets, Auth) e `MP_WEBHOOK_SECRET`.
 
 ## MUDANCAS-V2 — progresso
 
