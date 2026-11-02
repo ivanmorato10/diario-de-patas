@@ -10,7 +10,9 @@ const config: CapacitorConfig = {
   appName: "Diário de Patas",
   webDir: "cap-www",
   server: {
-    url: "https://diario-de-patas.vercel.app",
+    // Barra no fim de propósito: o Capacitor considera "do app" toda URL que COMEÇA com este texto. Sem a barra,
+    // https://diario-de-patas.vercel.app.qualquer-coisa.com abriria dentro do app (com acesso aos plugins nativos).
+    url: "https://diario-de-patas.vercel.app/",
     cleartext: false,
     errorPath: "index.html",
   },
