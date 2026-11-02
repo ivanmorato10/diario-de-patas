@@ -1454,6 +1454,7 @@
     "recordNotFound": "Record not found.",
     "documentNotFound": "Document not found.",
     "fileTooLarge": "The file is larger than {mb} MB.",
+    "tooManyUploads": "Too many uploads in a row. Wait a few minutes and try again.",
     "notAPhoto": "This file doesn't look like a JPEG, PNG, or WebP photo.",
     "notPdfOrImage": "This file doesn't look like a PDF or a JPEG, PNG, or WebP image.",
     "uploadNotFound": "Upload not found.",

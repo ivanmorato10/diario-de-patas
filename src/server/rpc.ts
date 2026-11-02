@@ -701,6 +701,10 @@ export async function createUpload(ctx: Ctx, args: unknown) {
   for (const s of Object.values(a.sizes)) if (s > LIMITS.maxUploadBytes) throw bad("TOO_LARGE", "errors.fileTooLarge", { mb: LIMITS.maxUploadBytes / 1024 / 1024 });
   const dog = await editableDog(ctx);
   const admin = adminClient();
+  // Limite de pedidos de envio por pessoa (S04). Sem resposta do banco: não emite (falha fechada).
+  const { data: allowed, error: quotaErr } = await admin.rpc("take_upload_ticket", { p_user: ctx.user.id });
+  if (quotaErr) throw new HttpError(503, "SERVER", "errors.generic");
+  if (allowed !== true) throw new HttpError(429, "RATE_LIMIT", "errors.tooManyUploads");
   const id = uuid();
   const base = `${ctx.user.id}/${id}`;
   if (a.kind === "media") {

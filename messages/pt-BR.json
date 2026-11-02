@@ -1454,6 +1454,7 @@
     "recordNotFound": "Registro não encontrado.",
     "documentNotFound": "Documento não encontrado.",
     "fileTooLarge": "O arquivo passa de {mb} MB.",
+    "tooManyUploads": "Muitos envios seguidos. Espere alguns minutos e tente de novo.",
     "notAPhoto": "Esse arquivo não parece uma foto JPEG, PNG ou WebP.",
     "notPdfOrImage": "Esse arquivo não parece um PDF ou uma imagem JPEG, PNG ou WebP.",
     "uploadNotFound": "Envio não encontrado.",
