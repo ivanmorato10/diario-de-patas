@@ -95,7 +95,7 @@ Não ter achado um problema não garante que ele não exista. Os testes de banco
 
 ## Testes
 
-- `npm test`: **267/267** (antes eram 231), com quatro arquivos novos:
+- `npm test`: **278/278** em 44 arquivos (antes eram 231), com quatro arquivos novos:
   - `push-endpoint.test.ts`
   - `upload-sanitize.test.ts`
   - `upload-limit.test.ts`
